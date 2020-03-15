@@ -1,1 +1,5 @@
+dist/
+.cache/
+elm-stuff/
+node_modules/
 **/build/**
