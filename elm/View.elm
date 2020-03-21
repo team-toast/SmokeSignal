@@ -1,7 +1,7 @@
 module View exposing (root)
 
-import CommonTypes exposing (..)
 import Browser
+import CommonTypes exposing (..)
 import Element exposing (Attribute, Element)
 import Element.Background
 import Element.Border
@@ -13,4 +13,9 @@ import Types exposing (..)
 
 root : Model -> Browser.Document Msg
 root model =
-    Debug.todo ""
+    { title = "SmokeSig"
+    , body =
+        [ Element.layout [] <|
+            Element.text "hi"
+        ]
+    }

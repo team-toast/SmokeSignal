@@ -6,6 +6,7 @@
     "elm-version": "0.19.1",
     "dependencies": {
         "direct": {
+            "NoRedInk/elm-json-decode-pipeline": "1.0.0",
             "avh4/elm-color": "1.0.0",
             "burnable-tech/elm-ethereum": "1.0.1",
             "cmditch/elm-bigint": "1.0.1",
@@ -25,7 +26,6 @@
         },
         "indirect": {
             "Chadtech/elm-bool-extra": "2.4.0",
-            "NoRedInk/elm-json-decode-pipeline": "1.0.0",
             "Skinney/murmur3": "2.0.8",
             "elm/bytes": "1.0.8",
             "elm/file": "1.0.5",

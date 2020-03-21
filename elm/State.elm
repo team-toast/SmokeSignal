@@ -4,7 +4,11 @@ import Browser
 import Browser.Events
 import Browser.Navigation
 import CommonTypes exposing (..)
+import Config
+import Contracts.SmokeSig as SSContract
+import Eth.Decode
 import Eth.Net
+import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry
 import Eth.Sentry.Wallet as WalletSentry
 import Eth.Types exposing (Address)
@@ -19,9 +23,13 @@ import Url exposing (Url)
 import Wallet
 
 
-init : Flags ->  ( Model, Cmd Msg )
-init flags  =
+init : Flags -> ( Model, Cmd Msg )
+init flags =
     let
+        -- until decided otherwise
+        testMode =
+            False
+
         wallet =
             if flags.networkId == 0 then
                 let
@@ -39,12 +47,23 @@ init flags  =
                     (\httpProvider ->
                         TxSentry.init ( txOut, txIn ) TxSentryMsg httpProvider
                     )
+
+        ( initEventSentry, initEventSentryCmd ) =
+            EventSentry.init EventSentryMsg (Config.httpProviderUrl testMode)
+
+        ( eventSentry, secondEventSentryCmd, _ ) =
+            fetchMessagesFromBlockrangeCmd 9632692 9632694 testMode initEventSentry
     in
     ( { wallet = wallet
       , now = Time.millisToPosix flags.nowInMillis
+      , testMode = testMode
       , txSentry = txSentry
+      , eventSentry = eventSentry
       }
-    , Cmd.none
+    , Cmd.batch
+        [ initEventSentryCmd
+        , secondEventSentryCmd
+        ]
     )
 
 
@@ -111,6 +130,40 @@ update msg prevModel =
             in
             ( { prevModel | txSentry = newTxSentry }, subCmd )
 
+        EventSentryMsg eventMsg ->
+            let
+                ( newEventSentry, cmd ) =
+                    EventSentry.update
+                        eventMsg
+                        prevModel.eventSentry
+            in
+            ( { prevModel
+                | eventSentry =
+                    newEventSentry
+              }
+            , cmd
+            )
+
+        MessageLogReceived log ->
+            let
+                decodedEventLog =
+                    Eth.Decode.event SSContract.smokeSignalWithMessageDecoder log
+            in
+            case decodedEventLog.returnData of
+                Err err ->
+                    let
+                        _ =
+                            Debug.log "Error decoding contract event" err
+                    in
+                    ( prevModel, Cmd.none )
+
+                Ok event ->
+                    let
+                        _ =
+                            Debug.log "event" event
+                    in
+                    ( prevModel, Cmd.none )
+
         ClickHappened ->
             ( prevModel, Cmd.none )
 
@@ -123,6 +176,18 @@ update msg prevModel =
                     Debug.log "test" s
             in
             ( prevModel, Cmd.none )
+
+
+fetchMessagesFromBlockrangeCmd : Int -> Int -> Bool -> EventSentry Msg -> ( EventSentry Msg, Cmd Msg, EventSentry.Ref )
+fetchMessagesFromBlockrangeCmd from to testMode sentry =
+    EventSentry.watch
+        MessageLogReceived
+        sentry
+        { address = Config.smokesigContractAddress testMode
+        , fromBlock = Eth.Types.BlockNum from
+        , toBlock = Eth.Types.BlockNum to
+        , topics = []
+        }
 
 
 subscriptions : Model -> Sub Msg
