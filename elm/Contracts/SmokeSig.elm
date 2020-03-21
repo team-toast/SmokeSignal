@@ -8,7 +8,7 @@ import Json.Decode as Decode exposing (Decoder, succeed)
 import Json.Decode.Pipeline exposing (custom)
 import TokenValue exposing (TokenValue)
 
-
+import Config
 
 type alias SmokeSignalWithMessage =
     { hash : String
@@ -18,12 +18,12 @@ type alias SmokeSignalWithMessage =
     }
 
 
-smokeSignalWithMessageEvent : Address -> LogFilter
-smokeSignalWithMessageEvent contractAddress =
-    { fromBlock = LatestBlock
-    , toBlock = LatestBlock
-    , address = contractAddress
-    , topics = [ Just <| U.keccak256 "SmokeSignalWithMessage(string)" ]
+smokeSignalWithMessageEventFilter : Bool -> BlockId -> BlockId -> LogFilter
+smokeSignalWithMessageEventFilter testMode from to =
+    { fromBlock = from
+    , toBlock = to
+    , address = Config.smokesigContractAddress testMode
+    , topics = [ Just <| U.keccak256 "SmokeSignalWithMessage(bytes32,address,uint256,string)" ]
     }
 
 

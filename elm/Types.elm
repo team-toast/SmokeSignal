@@ -3,11 +3,13 @@ module Types exposing (..)
 import Browser
 import Browser.Navigation
 import CommonTypes exposing (..)
+import Contracts.SmokeSig as SSContract
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet as WalletSentry exposing (WalletSentry)
 import Eth.Types exposing (Address)
 import Time
+import TokenValue exposing (TokenValue)
 import Url
 import Wallet
 
@@ -26,6 +28,7 @@ type alias Model =
     , testMode : Bool
     , txSentry : Maybe (TxSentry Msg)
     , eventSentry : EventSentry Msg
+    , messages : List Message
     }
 
 
@@ -39,3 +42,12 @@ type Msg
     | EventSentryMsg EventSentry.Msg
     | MessageLogReceived Eth.Types.Log
     | Test String
+
+
+type alias Message =
+    { hash : String
+    , block : Int
+    , from : Address
+    , burnAmount : TokenValue
+    , message : String
+    }

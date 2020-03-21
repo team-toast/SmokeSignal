@@ -52,13 +52,18 @@ init flags =
             EventSentry.init EventSentryMsg (Config.httpProviderUrl testMode)
 
         ( eventSentry, secondEventSentryCmd, _ ) =
-            fetchMessagesFromBlockrangeCmd 9632692 9632694 testMode initEventSentry
+            fetchMessagesFromBlockrangeCmd
+                (Eth.Types.BlockNum 9632692)
+                Eth.Types.LatestBlock
+                testMode
+                initEventSentry
     in
     ( { wallet = wallet
       , now = Time.millisToPosix flags.nowInMillis
       , testMode = testMode
       , txSentry = txSentry
       , eventSentry = eventSentry
+      , messages = []
       }
     , Cmd.batch
         [ initEventSentryCmd
@@ -157,12 +162,21 @@ update msg prevModel =
                     in
                     ( prevModel, Cmd.none )
 
-                Ok event ->
-                    let
-                        _ =
-                            Debug.log "event" event
-                    in
-                    ( prevModel, Cmd.none )
+                Ok ssMessage ->
+                    ( { prevModel
+                        | messages =
+                            prevModel.messages
+                                |> List.append
+                                    [ Message
+                                        ssMessage.hash
+                                        log.blockNumber
+                                        ssMessage.from
+                                        ssMessage.burnAmount
+                                        ssMessage.message
+                                    ]
+                      }
+                    , Cmd.none
+                    )
 
         ClickHappened ->
             ( prevModel, Cmd.none )
@@ -178,16 +192,16 @@ update msg prevModel =
             ( prevModel, Cmd.none )
 
 
-fetchMessagesFromBlockrangeCmd : Int -> Int -> Bool -> EventSentry Msg -> ( EventSentry Msg, Cmd Msg, EventSentry.Ref )
+fetchMessagesFromBlockrangeCmd : Eth.Types.BlockId -> Eth.Types.BlockId -> Bool -> EventSentry Msg -> ( EventSentry Msg, Cmd Msg, EventSentry.Ref )
 fetchMessagesFromBlockrangeCmd from to testMode sentry =
     EventSentry.watch
         MessageLogReceived
         sentry
-        { address = Config.smokesigContractAddress testMode
-        , fromBlock = Eth.Types.BlockNum from
-        , toBlock = Eth.Types.BlockNum to
-        , topics = []
-        }
+    <|
+        SSContract.smokeSignalWithMessageEventFilter
+            testMode
+            from
+            to
 
 
 subscriptions : Model -> Sub Msg
