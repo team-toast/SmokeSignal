@@ -1,8 +1,8 @@
 module View exposing (root)
 
-import Dict exposing (Dict)
 import Browser
 import CommonTypes exposing (..)
+import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element)
 import Element.Background
@@ -101,11 +101,14 @@ viewMessage message =
 
 viewDaiBurned : TokenValue -> Element Msg
 viewDaiBurned amount =
-    Element.el
+    Element.row
         [ Element.Font.color EH.blue
         , Element.Font.size 20
+        , Element.spacing 5
         ]
-        (Element.text <| TokenValue.toConciseString amount)
+        [ Element.text <| TokenValue.toConciseString amount
+        , daiSymbol [ Element.height <| Element.px 20 ]
+        ]
 
 
 viewAuthor : Address -> Element Msg
@@ -132,3 +135,11 @@ renderMarkdownParagraphs attributes =
         >> List.map Element.html
         >> Element.paragraph
             attributes
+
+
+daiSymbol : List (Attribute Msg) -> Element Msg
+daiSymbol attributes =
+    Element.image attributes
+        { src = "img/dai-unit-char.svg"
+        , description = ""
+        }
