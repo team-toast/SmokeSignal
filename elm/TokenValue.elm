@@ -1,11 +1,12 @@
 module TokenValue exposing (..)
 
-import Helpers.Eth as EthHelpers
 import BigInt exposing (BigInt)
 import FormatFloat exposing (..)
 import Helpers.BigInt as BigIntHelpers
+import Helpers.Eth as EthHelpers
 import Json.Decode
 import Json.Encode
+import MaybeDebugLog exposing (maybeDebugLog)
 import Round
 
 
@@ -39,7 +40,7 @@ fromFloatWithWarning val =
         Nothing ->
             let
                 _ =
-                    Debug.log "Error converting float to tokenValue" val
+                    maybeDebugLog "Error converting float to tokenValue" val
             in
             tokenValue (BigInt.fromInt 0)
 
@@ -75,7 +76,7 @@ toFloatWithWarning tokens =
         Nothing ->
             let
                 _ =
-                    Debug.log "Error converting tokenValue to float: string -> float failed" tokens
+                    maybeDebugLog "Error converting tokenValue to float: string -> float failed" tokens
             in
             0
 
@@ -285,6 +286,7 @@ removeUnnecessaryZerosAndDots numString =
 
     else
         numString
+
 
 maxTokenValue : TokenValue
 maxTokenValue =

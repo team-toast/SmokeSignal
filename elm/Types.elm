@@ -3,7 +3,7 @@ module Types exposing (..)
 import Browser
 import Browser.Navigation
 import CommonTypes exposing (..)
-import Contracts.SmokeSig as SSContract
+import Contracts.SmokeSignal as SSContract
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet as WalletSentry exposing (WalletSentry)

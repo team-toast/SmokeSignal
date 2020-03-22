@@ -20,7 +20,7 @@ import Types exposing (..)
 
 root : Model -> Browser.Document Msg
 root model =
-    { title = "SmokeSig"
+    { title = "SmokeSignal"
     , body =
         [ Element.layout
             [ Element.width Element.fill ]
@@ -55,7 +55,7 @@ title =
         , Element.Font.bold
         ]
     <|
-        Element.text "SmokeSig"
+        Element.text "SmokeSignal"
 
 
 viewMessages : List Message -> Element Msg
@@ -303,7 +303,7 @@ messageInputPlaceholder =
                     ]
                     << List.map Element.text
                 )
-                [ [ "SmokeSig messages are formatted with markdown (e.g. *italic*, **bold**, [link-title](url))." ]
+                [ [ "SmokeSignal messages are formatted with markdown (e.g. *italic*, **bold**, [link-title](url))." ]
                 , [ "Hackmd.io is useful for drafting and previewing markdown text." ]
                 ]
 

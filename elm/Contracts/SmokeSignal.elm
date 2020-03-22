@@ -1,4 +1,4 @@
-module Contracts.SmokeSig exposing (..)
+module Contracts.SmokeSignal exposing (..)
 
 import Abi.Decode as AbiDecode exposing (abiDecode, andMap, data, toElmDecoder, topic)
 import Abi.Encode as AbiEncode exposing (Encoding(..), abiEncode)

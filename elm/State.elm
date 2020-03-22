@@ -6,7 +6,7 @@ import Browser.Navigation
 import CommonTypes exposing (..)
 import Config
 import Contracts.Dai as Dai
-import Contracts.SmokeSig as SSContract
+import Contracts.SmokeSignal as SSContract
 import Eth
 import Eth.Decode
 import Eth.Net
@@ -19,6 +19,7 @@ import Json.Decode
 import Json.Encode
 import List.Extra
 import Maybe.Extra
+import MaybeDebugLog exposing (maybeDebugLog)
 import Time
 import Types exposing (..)
 import Url exposing (Url)
@@ -36,7 +37,7 @@ init flags =
             if flags.networkId == 0 then
                 let
                     _ =
-                        Debug.log "No web3 wallet detected" ""
+                        maybeDebugLog "No web3 wallet detected" ""
                 in
                 Wallet.NoneDetected
 
@@ -117,7 +118,7 @@ update msg prevModel =
                 Err errStr ->
                     let
                         _ =
-                            Debug.log "Error with WalletStatus Msg" errStr
+                            maybeDebugLog "Error with WalletStatus Msg" errStr
                     in
                     ( prevModel, Cmd.none )
 
@@ -151,7 +152,7 @@ update msg prevModel =
                 Err err ->
                     let
                         _ =
-                            Debug.log "Error decoding contract event" err
+                            maybeDebugLog "Error decoding contract event" err
                     in
                     ( prevModel, Cmd.none )
 
@@ -176,7 +177,7 @@ update msg prevModel =
                 Wallet.NoneDetected ->
                     let
                         _ =
-                            Debug.log "no web3 detected" ""
+                            maybeDebugLog "no web3 detected" ""
                     in
                     ( prevModel
                     , Cmd.none
@@ -220,7 +221,7 @@ update msg prevModel =
                 Err httpErr ->
                     let
                         _ =
-                            Debug.log "http error at BalanceFetched" httpErr
+                            maybeDebugLog "http error at BalanceFetched" httpErr
                     in
                     ( prevModel, Cmd.none )
 
@@ -234,7 +235,7 @@ update msg prevModel =
                 Err httpErr ->
                     let
                         _ =
-                            Debug.log "http error at AllowanceFetched" httpErr
+                            maybeDebugLog "http error at AllowanceFetched" httpErr
                     in
                     ( prevModel, Cmd.none )
 
@@ -295,7 +296,7 @@ update msg prevModel =
         Test s ->
             let
                 _ =
-                    Debug.log "test" s
+                    maybeDebugLog "test" s
             in
             ( prevModel, Cmd.none )
 

@@ -3,6 +3,7 @@ module Helpers.BigInt exposing (decoder, encode, toInt, toIntWithWarning, toStri
 import BigInt exposing (BigInt)
 import Json.Decode
 import Json.Encode
+import MaybeDebugLog exposing (maybeDebugLog)
 
 
 toInt : BigInt -> Maybe Int
@@ -29,7 +30,7 @@ toIntWithWarning val =
         Nothing ->
             let
                 _ =
-                    Debug.log "Warning! BigInt to Int conversion failed!" <| BigInt.toString val
+                    maybeDebugLog "Warning! BigInt to Int conversion failed!" <| BigInt.toString val
             in
             0
 
