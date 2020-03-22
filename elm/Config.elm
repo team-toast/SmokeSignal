@@ -42,3 +42,8 @@ smokesigContractAddress testMode =
 
     else
         Eth.Utils.unsafeToAddress "0x5DC963d2c78D8FAa90c4400eB0dE1e4aE763DBaE"
+
+
+startScanBlock : Int
+startScanBlock =
+    9632692

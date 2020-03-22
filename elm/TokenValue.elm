@@ -1,5 +1,6 @@
-module TokenValue exposing (TokenValue(..), add, compare, decoder, div, divFloatWithWarning, encode, evmValueToTruncatedUserFloatString, evmValueToUserFloatString, fromFloatWithWarning, fromIntTokenValue, fromString, getEvmValue, isZero, mul, mulFloatWithWarning, negate, pullAnyFirstDecimalOffToRight, removeUnnecessaryZerosAndDots, sub, toConciseString, toFloatString, toFloatWithWarning, tokenValue, userStringToEvmValue, zero)
+module TokenValue exposing (..)
 
+import Helpers.Eth as EthHelpers
 import BigInt exposing (BigInt)
 import FormatFloat exposing (..)
 import Helpers.BigInt as BigIntHelpers
@@ -284,3 +285,7 @@ removeUnnecessaryZerosAndDots numString =
 
     else
         numString
+
+maxTokenValue : TokenValue
+maxTokenValue =
+    tokenValue EthHelpers.maxUintValue

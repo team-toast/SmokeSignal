@@ -5,7 +5,9 @@ import Browser.Events
 import Browser.Navigation
 import CommonTypes exposing (..)
 import Config
+import Contracts.Dai as Dai
 import Contracts.SmokeSig as SSContract
+import Eth
 import Eth.Decode
 import Eth.Net
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
@@ -42,18 +44,17 @@ init flags =
                 Wallet.OnlyNetwork <| Eth.Net.toNetworkId flags.networkId
 
         txSentry =
-            Wallet.httpProvider wallet
-                |> Maybe.map
-                    (\httpProvider ->
-                        TxSentry.init ( txOut, txIn ) TxSentryMsg httpProvider
-                    )
+            TxSentry.init
+                ( txOut, txIn )
+                TxSentryMsg
+                (Config.httpProviderUrl testMode)
 
         ( initEventSentry, initEventSentryCmd ) =
             EventSentry.init EventSentryMsg (Config.httpProviderUrl testMode)
 
         ( eventSentry, secondEventSentryCmd, _ ) =
             fetchMessagesFromBlockrangeCmd
-                (Eth.Types.BlockNum 9632692)
+                (Eth.Types.BlockNum Config.startScanBlock)
                 Eth.Types.LatestBlock
                 testMode
                 initEventSentry
@@ -63,7 +64,11 @@ init flags =
       , testMode = testMode
       , txSentry = txSentry
       , eventSentry = eventSentry
+      , userBalance = Nothing
+      , userAllowance = Nothing
       , messages = []
+      , showMessageInput = False
+      , composeUXModel = ComposeUXModel "" ""
       }
     , Cmd.batch
         [ initEventSentryCmd
@@ -78,21 +83,15 @@ update msg prevModel =
         Tick newTime ->
             ( { prevModel | now = newTime }, Cmd.none )
 
-        ConnectToWeb3 ->
-            case prevModel.wallet of
-                Wallet.NoneDetected ->
-                    let
-                        _ =
-                            Debug.log "no web3 detected" ""
-                    in
-                    ( prevModel
-                    , Cmd.none
+        EveryFewSeconds ->
+            ( prevModel
+            , Wallet.userInfo prevModel.wallet
+                |> Maybe.map
+                    (\userInfo ->
+                        fetchDaiBalanceAndAllowanceCmd userInfo.address prevModel.testMode
                     )
-
-                _ ->
-                    ( prevModel
-                    , connectToWeb3 ()
-                    )
+                |> Maybe.withDefault Cmd.none
+            )
 
         WalletStatus walletSentryResult ->
             case walletSentryResult of
@@ -125,13 +124,7 @@ update msg prevModel =
         TxSentryMsg subMsg ->
             let
                 ( newTxSentry, subCmd ) =
-                    case prevModel.txSentry of
-                        Just txSentry ->
-                            TxSentry.update subMsg txSentry
-                                |> Tuple.mapFirst Just
-
-                        Nothing ->
-                            ( Nothing, Cmd.none )
+                    TxSentry.update subMsg prevModel.txSentry
             in
             ( { prevModel | txSentry = newTxSentry }, subCmd )
 
@@ -178,10 +171,103 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-        ClickHappened ->
-            ( prevModel, Cmd.none )
+        ConnectToWeb3 ->
+            case prevModel.wallet of
+                Wallet.NoneDetected ->
+                    let
+                        _ =
+                            Debug.log "no web3 detected" ""
+                    in
+                    ( prevModel
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( prevModel
+                    , connectToWeb3 ()
+                    )
+
+        UnlockDai ->
+            let
+                ( newTxSentry, cmd ) =
+                    let
+                        txParams =
+                            Dai.unlockDaiCall
+                                prevModel.testMode
+                                |> Eth.toSend
+
+                        listeners =
+                            { onMined = Nothing
+                            , onSign = Nothing
+                            , onBroadcast = Nothing
+                            }
+                    in
+                    TxSentry.customSend prevModel.txSentry listeners txParams
+            in
+            ( { prevModel
+                | txSentry = newTxSentry
+              }
+            , cmd
+            )
+
+        BalanceFetched fetchResult ->
+            case fetchResult of
+                Ok balance ->
+                    ( { prevModel | userBalance = Just balance }
+                    , Cmd.none
+                    )
+
+                Err httpErr ->
+                    let
+                        _ =
+                            Debug.log "http error at BalanceFetched" httpErr
+                    in
+                    ( prevModel, Cmd.none )
+
+        AllowanceFetched fetchResult ->
+            case fetchResult of
+                Ok allowance ->
+                    ( { prevModel | userAllowance = Just allowance }
+                    , Cmd.none
+                    )
+
+                Err httpErr ->
+                    let
+                        _ =
+                            Debug.log "http error at AllowanceFetched" httpErr
+                    in
+                    ( prevModel, Cmd.none )
+
+        ComposeMessage ->
+            ( { prevModel
+                | showMessageInput = True
+              }
+            , Cmd.none
+            )
+
+        MessageInputChanged input ->
+            ( { prevModel
+                | composeUXModel =
+                    prevModel.composeUXModel |> updateMessage input
+              }
+            , Cmd.none
+            )
+
+        DaiInputChanged input ->
+            ( { prevModel
+                | composeUXModel =
+                    prevModel.composeUXModel |> updateDaiInput input
+              }
+            , Cmd.none
+            )
+
+        Submit validatedInputs ->
+            Debug.todo ""
 
         NoOp ->
+            ( prevModel, Cmd.none )
+
+        ClickHappened ->
             ( prevModel, Cmd.none )
 
         Test s ->
@@ -204,17 +290,25 @@ fetchMessagesFromBlockrangeCmd from to testMode sentry =
             to
 
 
+fetchDaiBalanceAndAllowanceCmd : Address -> Bool -> Cmd Msg
+fetchDaiBalanceAndAllowanceCmd address testMode =
+    Cmd.batch
+        [ Dai.getAllowanceCmd address testMode AllowanceFetched
+        , Dai.getBalanceCmd address testMode BalanceFetched
+        ]
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Time.every 1000 Tick
+        [ Time.every 200 Tick
+        , Time.every 2500 (always EveryFewSeconds)
         , walletSentryPort
             (WalletSentry.decodeToMsg
                 (WalletStatus << Err)
                 (WalletStatus << Ok)
             )
-        , Maybe.map TxSentry.listen model.txSentry
-            |> Maybe.withDefault Sub.none
+        , TxSentry.listen model.txSentry
         ]
 
 

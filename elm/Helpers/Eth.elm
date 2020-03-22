@@ -2,33 +2,10 @@ module Helpers.Eth exposing (..)
 
 import Array
 import BigInt exposing (BigInt)
-import Config
 import Eth.Net
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address, HttpProvider, TxHash, WebsocketProvider)
 import Eth.Utils
-
-
-appHttpProvider : Bool -> HttpProvider
-appHttpProvider testMode =
-    if testMode then
-        Config.kovanHttpProviderUrl
-
-    else
-        Config.mainnetHttpProviderUrl
-
-
-networkToHttpProvider : Eth.Net.NetworkId -> Maybe HttpProvider
-networkToHttpProvider networkId =
-    case networkId of
-        Eth.Net.Mainnet ->
-            Just Config.mainnetHttpProviderUrl
-
-        Eth.Net.Kovan ->
-            Just Config.kovanHttpProviderUrl
-
-        _ ->
-            Nothing
 
 
 addressIfNot0x0 : Address -> Maybe Address
