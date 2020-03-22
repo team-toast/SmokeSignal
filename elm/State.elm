@@ -262,7 +262,29 @@ update msg prevModel =
             )
 
         Submit validatedInputs ->
-            Debug.todo ""
+            let
+                ( newTxSentry, cmd ) =
+                    let
+                        txParams =
+                            SSContract.smokeSignalWithMessage
+                                prevModel.testMode
+                                validatedInputs.message
+                                validatedInputs.burnAmount
+                                |> Eth.toSend
+
+                        listeners =
+                            { onMined = Nothing
+                            , onSign = Nothing
+                            , onBroadcast = Nothing
+                            }
+                    in
+                    TxSentry.customSend prevModel.txSentry listeners txParams
+            in
+            ( { prevModel
+                | txSentry = newTxSentry
+              }
+            , cmd
+            )
 
         NoOp ->
             ( prevModel, Cmd.none )
