@@ -1,4 +1,4 @@
-module Helpers.Time exposing (HumanReadableInterval, add, compare, daysStrToMaybePosix, getRatio, isNegative, monthToShortString, mul, negativeToZero, oneDay, oneHour, oneMinute, oneSecond, oneWeek, oneYear, posixToMillisBigInt, posixToSeconds, posixToSecondsBigInt, secondsBigIntToMaybePosix, secondsBigIntToPosixWithWarning, secondsToPosix, sub, toConciseIntervalString, toHumanReadableInterval, toString, weekdayToShortString)
+module Helpers.Time exposing (..)
 
 import BigInt exposing (BigInt)
 import Helpers.BigInt as BigIntHelpers
@@ -260,3 +260,43 @@ monthToShortString m =
 
         Time.Dec ->
             "Dec"
+
+
+monthToInt : Time.Month -> Int
+monthToInt m =
+    case m of
+        Time.Jan ->
+            1
+
+        Time.Feb ->
+            2
+
+        Time.Mar ->
+            3
+
+        Time.Apr ->
+            4
+
+        Time.May ->
+            5
+
+        Time.Jun ->
+            6
+
+        Time.Jul ->
+            7
+
+        Time.Aug ->
+            8
+
+        Time.Sep ->
+            9
+
+        Time.Oct ->
+            10
+
+        Time.Nov ->
+            11
+
+        Time.Dec ->
+            12

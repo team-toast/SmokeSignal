@@ -7,6 +7,7 @@ import CommonTypes exposing (..)
 import Config
 import Contracts.Dai as Dai
 import Contracts.SmokeSignal as SSContract
+import Dict exposing (Dict)
 import Eth
 import Eth.Decode
 import Eth.Net
@@ -20,6 +21,7 @@ import Json.Encode
 import List.Extra
 import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
+import Task
 import Time
 import Types exposing (..)
 import Url exposing (Url)
@@ -70,6 +72,7 @@ init flags =
       , messages = []
       , showMessageInput = False
       , composeUXModel = ComposeUXModel "" ""
+      , blockTimes = Dict.empty
       }
     , Cmd.batch
         [ initEventSentryCmd
@@ -169,7 +172,11 @@ update msg prevModel =
                                         ssMessage.message
                                     ]
                       }
-                    , Cmd.none
+                    , if Dict.get log.blockNumber prevModel.blockTimes == Nothing then
+                        getBlockTimeCmd log.blockNumber
+
+                      else
+                        Cmd.none
                     )
 
         ConnectToWeb3 ->
@@ -287,6 +294,24 @@ update msg prevModel =
             , cmd
             )
 
+        BlockTimeFetched blocknum timeResult ->
+            case timeResult of
+                Err httpErr ->
+                    let
+                        _ =
+                            maybeDebugLog "http error at BlockTimeFetched" httpErr
+                    in
+                    ( prevModel, Cmd.none )
+
+                Ok time ->
+                    ( { prevModel
+                        | blockTimes =
+                            prevModel.blockTimes
+                                |> Dict.insert blocknum time
+                      }
+                    , Cmd.none
+                    )
+
         NoOp ->
             ( prevModel, Cmd.none )
 
@@ -319,6 +344,15 @@ fetchDaiBalanceAndAllowanceCmd address testMode =
         [ Dai.getAllowanceCmd address testMode AllowanceFetched
         , Dai.getBalanceCmd address testMode BalanceFetched
         ]
+
+
+getBlockTimeCmd : Int -> Cmd Msg
+getBlockTimeCmd blocknum =
+    Eth.getBlock
+        (Config.httpProviderUrl False)
+        blocknum
+        |> Task.map .timestamp
+        |> Task.attempt (BlockTimeFetched blocknum)
 
 
 subscriptions : Model -> Sub Msg

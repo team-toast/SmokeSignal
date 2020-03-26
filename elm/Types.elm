@@ -4,6 +4,7 @@ import Browser
 import Browser.Navigation
 import CommonTypes exposing (..)
 import Contracts.SmokeSignal as SSContract
+import Dict exposing (Dict)
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet as WalletSentry exposing (WalletSentry)
@@ -34,6 +35,7 @@ type alias Model =
     , messages : List Message
     , showMessageInput : Bool
     , composeUXModel : ComposeUXModel
+    , blockTimes : Dict Int Time.Posix
     }
 
 
@@ -54,6 +56,7 @@ type Msg
     | MessageInputChanged String
     | DaiInputChanged String
     | Submit ValidatedInputs
+    | BlockTimeFetched Int (Result Http.Error Time.Posix)
     | Test String
 
 

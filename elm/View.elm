@@ -1,6 +1,5 @@
 module View exposing (root)
 
-import Html.Attributes
 import Browser
 import CommonTypes exposing (..)
 import Dict exposing (Dict)
@@ -14,7 +13,10 @@ import Element.Input
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Helpers.Element as EH
+import Helpers.Time as TimeHelpers
+import Html.Attributes
 import Markdown
+import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
 
@@ -40,7 +42,7 @@ body model =
         , Element.spacing 30
         ]
         [ title
-        , viewMessages model.messages
+        , viewMessages model.blockTimes model.messages
         , Element.el
             [ Element.width Element.fill
             , Element.alignBottom
@@ -59,8 +61,8 @@ title =
         Element.text "SmokeSignal"
 
 
-viewMessages : List Message -> Element Msg
-viewMessages messages =
+viewMessages : Dict Int Time.Posix -> List Message -> Element Msg
+viewMessages blockTimes messages =
     let
         structuredMessageList =
             sortMessagesByBlock messages
@@ -79,17 +81,61 @@ viewMessages messages =
                     [ Element.width Element.fill
                     , Element.spacing 10
                     ]
-                    [ Element.el
-                        [ Element.Font.size 14
+                    [ Element.column
+                        [ Element.width Element.fill
+                        , Element.spacing 5
                         , Element.Font.italic
+                        , Element.Font.size 14
                         ]
-                        (Element.text <| String.fromInt blocknum)
+                        [ Element.row
+                            [ Element.width Element.fill
+                            , Element.spacing 5
+                            ]
+                            [ Element.text <| "block " ++ String.fromInt blocknum
+                            , Element.el
+                                [ Element.width Element.fill
+                                , Element.height <| Element.px 1
+                                , Element.Border.color EH.black
+                                , Element.Border.widthEach
+                                    { top = 1
+                                    , bottom = 0
+                                    , right = 0
+                                    , left = 0
+                                    }
+                                , Element.Border.dashed
+                                ]
+                                Element.none
+                            ]
+                        , blockTimes
+                            |> Dict.get blocknum
+                            |> Maybe.map posixToString
+                            |> Maybe.withDefault "???"
+                            |> Element.text
+                        ]
                     , Element.column
                         [ Element.paddingXY 20 0 ]
                         (List.map viewMessage messagesForBlock)
                     ]
             )
             structuredMessageList
+
+
+posixToString : Time.Posix -> String
+posixToString t =
+    let
+        z =
+            Time.utc
+    in
+    String.fromInt (Time.toYear z t)
+        ++ "-"
+        ++ String.padLeft 2 '0' (String.fromInt <| TimeHelpers.monthToInt <| Time.toMonth z t)
+        ++ "-"
+        ++ String.padLeft 2 '0' (String.fromInt (Time.toDay z t))
+        ++ " "
+        ++ String.padLeft 2 '0' (String.fromInt (Time.toHour z t))
+        ++ ":"
+        ++ String.padLeft 2 '0' (String.fromInt (Time.toMinute z t))
+        ++ " (UTC)"
 
 
 sortMessagesByBlock : List Message -> Dict Int (List Message)
