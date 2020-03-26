@@ -7,7 +7,8 @@
     "url": ""
   },
   "scripts": {
-    "dev": "parcel static/index.html --public-url ./",
+    "dev": "parcel static/index.html",
+    "devbuild": "parcel static/index.html --public-url ./",
     "build": "parcel build static/index.html --public-url ./"
   },
   "devDependencies": {

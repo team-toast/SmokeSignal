@@ -1,5 +1,6 @@
 module View exposing (root)
 
+import Html.Attributes
 import Browser
 import CommonTypes exposing (..)
 import Dict exposing (Dict)
@@ -34,7 +35,7 @@ body : Model -> Element Msg
 body model =
     Element.column
         [ Element.width Element.fill
-        , Element.height Element.fill
+        , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
         , Element.padding 20
         , Element.spacing 30
         ]
@@ -60,9 +61,19 @@ title =
 
 viewMessages : List Message -> Element Msg
 viewMessages messages =
-    sortMessagesByBlock messages
-        |> Dict.toList
-        |> List.map
+    let
+        structuredMessageList =
+            sortMessagesByBlock messages
+                |> Dict.toList
+    in
+    Element.column
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        , Element.scrollbarY
+        , Element.spacing 20
+        ]
+    <|
+        List.map
             (\( blocknum, messagesForBlock ) ->
                 Element.column
                     [ Element.width Element.fill
@@ -78,10 +89,7 @@ viewMessages messages =
                         (List.map viewMessage messagesForBlock)
                     ]
             )
-        |> Element.column
-            [ Element.width Element.fill
-            , Element.spacing 20
-            ]
+            structuredMessageList
 
 
 sortMessagesByBlock : List Message -> Dict Int (List Message)
@@ -109,12 +117,14 @@ viewMessage message =
 viewDaiBurned : TokenValue -> Element Msg
 viewDaiBurned amount =
     Element.row
-        [ Element.Font.color EH.blue
-        , Element.Font.size 20
-        , Element.spacing 5
+        [ Element.Font.size 20
+        , Element.Background.color EH.lightRed
+        , Element.padding 5
+        , Element.Border.rounded 5
+        , Element.spacing 3
         ]
-        [ Element.text <| TokenValue.toConciseString amount
-        , daiSymbol [ Element.height <| Element.px 20 ]
+        [ daiSymbol [ Element.height <| Element.px 18 ]
+        , Element.text <| TokenValue.toConciseString amount
         ]
 
 
@@ -131,7 +141,7 @@ viewMessageContent content =
         [ Element.spacing 2
         , Element.padding 10
         , Element.Border.rounded 10
-        , Element.Background.color EH.softRed
+        , Element.Background.color (Element.rgb 0.8 0.8 1)
         ]
         content
 
@@ -268,14 +278,14 @@ submitButton composeModel maybeUserBalance =
 burnAmountInput : String -> Element Msg
 burnAmountInput daiInput =
     Element.row []
-        [ Element.Input.text
+        [ daiSymbol [ Element.height <| Element.px 30 ]
+        , Element.Input.text
             [ Element.width <| Element.px 100 ]
             { onChange = DaiInputChanged
             , text = daiInput
             , placeholder = Nothing
             , label = Element.Input.labelHidden "amount to burn"
             }
-        , daiSymbol []
         ]
 
 
@@ -298,7 +308,7 @@ messageInputPlaceholder =
         <|
             List.map
                 (Element.paragraph
-                    [ Element.Font.color EH.lightGray
+                    [ Element.Font.color EH.darkGray
                     , Element.Font.italic
                     ]
                     << List.map Element.text
