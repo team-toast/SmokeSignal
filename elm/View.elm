@@ -16,6 +16,7 @@ import Helpers.Element as EH
 import Helpers.Time as TimeHelpers
 import Html.Attributes
 import Markdown
+import Phace
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
@@ -147,38 +148,59 @@ sortMessagesByBlock messages =
 
 viewMessage : Message -> Element Msg
 viewMessage message =
-    Element.column
+    Element.row
         [ Element.width Element.fill
         , Element.spacing 10
         ]
-        [ Element.row
-            [ Element.spacing 10 ]
-            [ viewDaiBurned message.burnAmount
-            , viewAuthor message.from
+        [ Element.column
+            [ Element.spacing 10
+            , Element.width <| Element.px 100
+            , Element.alignTop
+            , Element.spacing 10
+            ]
+            [ viewAuthor message.from
+            , viewDaiBurned message.burnAmount
             ]
         , viewMessageContent message.message
-        ]
-
-
-viewDaiBurned : TokenValue -> Element Msg
-viewDaiBurned amount =
-    Element.row
-        [ Element.Font.size 20
-        , Element.Background.color EH.lightRed
-        , Element.padding 5
-        , Element.Border.rounded 5
-        , Element.spacing 3
-        ]
-        [ daiSymbol [ Element.height <| Element.px 18 ]
-        , Element.text <| TokenValue.toConciseString amount
         ]
 
 
 viewAuthor : Address -> Element Msg
 viewAuthor fromAddress =
     Element.el
-        [ Element.Font.size 20 ]
-        (Element.text <| Eth.Utils.addressToString fromAddress)
+        [ Element.Border.rounded 10
+        , Element.clip
+        , Element.Border.width 2
+        , Element.Border.color EH.black
+        ]
+    <|
+        Element.html
+            (Phace.fromEthAddress fromAddress)
+
+
+viewDaiBurned : TokenValue -> Element Msg
+viewDaiBurned amount =
+    Element.el
+        [ Element.width Element.fill
+        , Element.clip
+        , Element.Border.rounded 5
+        ] <|
+    Element.el
+        [ Element.Font.size 20
+        , Element.padding 5
+        , Element.Background.color EH.lightRed
+        , Element.Border.rounded 5
+        , Element.alignLeft
+        ]
+    <|
+        Element.row
+            [ Element.spacing 3
+            , Element.centerX
+            , Element.clip
+            ]
+            [ daiSymbol [ Element.height <| Element.px 18 ]
+            , Element.text <| TokenValue.toConciseString amount
+            ]
 
 
 viewMessageContent : String -> Element Msg
@@ -188,6 +210,7 @@ viewMessageContent content =
         , Element.padding 10
         , Element.Border.rounded 10
         , Element.Background.color (Element.rgb 0.8 0.8 1)
+        , Element.alignTop
         ]
         content
 
