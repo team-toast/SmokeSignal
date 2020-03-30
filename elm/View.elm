@@ -48,7 +48,7 @@ body model =
             [ Element.width Element.fill
             , Element.alignBottom
             ]
-            (viewComposeUX model.showMessageInput (makeAccountInfo model) model.composeUXModel)
+            (viewComposeUX model.showMessageInput (makeAccountInfo model) model.showingAddress model.composeUXModel)
         ]
 
 
@@ -167,50 +167,7 @@ viewMessage showingAddress message =
 
 viewAuthor : Address -> Bool -> Element Msg
 viewAuthor fromAddress showAddress =
-    let
-        addressOutputEl isInFront =
-            Element.el
-                [ Element.alignTop
-                , Element.alignLeft
-                , Element.Border.widthEach
-                    { top = 2
-                    , bottom =
-                        if isInFront then
-                            1
-
-                        else
-                            2
-                    , right = 2
-                    , left = 2
-                    }
-                , Element.Border.color EH.black
-                , Element.Background.color EH.white
-                , Element.Font.size 12
-                ]
-                (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
-    in
-    Element.el
-        (if showAddress then
-            [ Element.inFront (addressOutputEl True)
-            , Element.behindContent (addressOutputEl False)
-            , EH.moveToFront
-            ]
-
-         else
-            []
-        )
-    <|
-        Element.el
-            [ Element.Border.rounded 10
-            , Element.clip
-            , Element.Border.width 2
-            , Element.Border.color EH.black
-            , Element.Events.onMouseEnter (ShowAddress fromAddress)
-            , Element.Events.onMouseLeave HideAddress
-            ]
-        <|
-            Element.html
-                (Phace.fromEthAddress fromAddress)
+    phaceElement fromAddress showAddress
 
 
 viewDaiBurned : TokenValue -> Element Msg
@@ -259,25 +216,37 @@ renderMarkdownParagraphs attributes =
             attributes
 
 
-viewComposeUX : Bool -> AccountInfo -> ComposeUXModel -> Element Msg
-viewComposeUX showMessageInput accountInfo composeModel =
+viewComposeUX : Bool -> AccountInfo -> Maybe Address -> ComposeUXModel -> Element Msg
+viewComposeUX showMessageInput accountInfo showingAddress composeModel =
     Element.column
         [ Element.width Element.fill
-        , Element.height Element.fill
         , Element.spacing 10
         ]
-        [ if showMessageInput then
-            messageInputBox composeModel.message
+        [ Element.row
+            [ Element.width Element.fill
+            , Element.spacing 10
+            ]
+            [ case accountInfo.address of
+                Just address ->
+                    phaceElement address (showingAddress == Just address)
 
-          else
-            Element.none
+                Nothing ->
+                    Element.none
+            , if showMessageInput then
+                messageInputBox composeModel.message
+
+              else
+                Element.none
+            ]
         , maybeSubmitForm showMessageInput accountInfo composeModel
         ]
 
 
 messageInputBox : String -> Element Msg
 messageInputBox input =
-    Element.Input.multiline [ Element.width Element.fill, Element.height (Element.px 100) ]
+    Element.Input.multiline
+        [ Element.width Element.fill
+        , Element.height (Element.px 300) ]
         { onChange = MessageInputChanged
         , text = input
         , placeholder = Just messageInputPlaceholder
@@ -316,6 +285,55 @@ maybeSubmitForm showingMessageInput accountInfo composeModel =
 
                         else
                             composeMessageButton
+
+
+phaceElement : Address -> Bool -> Element Msg
+phaceElement fromAddress showAddress =
+    let
+        addressOutputEl isInFront =
+            Element.el
+                [ Element.alignTop
+                , Element.alignLeft
+                , Element.Border.widthEach
+                    { top = 2
+                    , bottom =
+                        if isInFront then
+                            1
+
+                        else
+                            2
+                    , right = 2
+                    , left = 2
+                    }
+                , Element.Border.color EH.black
+                , Element.Background.color EH.white
+                , Element.Font.size 12
+                ]
+                (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
+    in
+    Element.el
+        (if showAddress then
+            [ Element.inFront (addressOutputEl True)
+            , Element.behindContent (addressOutputEl False)
+            , EH.moveToFront
+            , Element.alignTop
+            ]
+
+         else
+            [ Element.alignTop ]
+        )
+    <|
+        Element.el
+            [ Element.Border.rounded 10
+            , Element.clip
+            , Element.Border.width 2
+            , Element.Border.color EH.black
+            , Element.Events.onMouseEnter (ShowAddress fromAddress)
+            , Element.Events.onMouseLeave HideAddress
+            ]
+        <|
+            Element.html
+                (Phace.fromEthAddress fromAddress)
 
 
 web3ConnectButton : Element Msg
