@@ -61,7 +61,7 @@ type Msg
 
 
 type alias Message =
-    { hash : String
+    { hash : Eth.Types.Hex
     , block : Int
     , from : Address
     , burnAmount : TokenValue

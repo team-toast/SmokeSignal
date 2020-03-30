@@ -191,10 +191,10 @@ userStringToEvmValue amountString =
             maybeBigIntAmount =
                 if numDigitsLeftToMove < 0 then
                     -- indicates there is too much precision; we must cut some off the end
-                    BigInt.fromString (String.dropRight (Basics.negate numDigitsLeftToMove) newString)
+                    BigInt.fromIntString (String.dropRight (Basics.negate numDigitsLeftToMove) newString)
 
                 else
-                    BigInt.fromString newString
+                    BigInt.fromIntString newString
         in
         maybeBigIntAmount
             |> Maybe.map

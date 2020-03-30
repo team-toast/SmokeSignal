@@ -1,8 +1,8 @@
 module Contracts.SmokeSignal exposing (..)
 
-import Abi.Decode as AbiDecode exposing (abiDecode, andMap, data, toElmDecoder, topic)
-import Abi.Encode as AbiEncode exposing (Encoding(..), abiEncode)
 import Config
+import Eth.Abi.Decode as AbiDecode exposing (abiDecode, andMap, data, toElmDecoder, topic)
+import Eth.Abi.Encode as AbiEncode exposing (Encoding(..), abiEncode)
 import Eth.Types exposing (..)
 import Eth.Utils as U
 import Json.Decode as Decode exposing (Decoder, succeed)
@@ -11,7 +11,7 @@ import TokenValue exposing (TokenValue)
 
 
 type alias SmokeSignalWithMessageEvent =
-    { hash : String
+    { hash : Hex
     , from : Address
     , burnAmount : TokenValue
     , message : String
@@ -40,7 +40,7 @@ smokeSignalWithMessageDecoder =
         |> custom (data 1 AbiDecode.string)
 
 
-smokeSignalWithMessage : Bool -> String -> TokenValue -> Call String
+smokeSignalWithMessage : Bool -> String -> TokenValue -> Call Hex
 smokeSignalWithMessage testMode message burnAmount =
     { to = Just <| Config.smokesigContractAddress testMode
     , from = Nothing
