@@ -173,10 +173,15 @@ viewAuthor fromAddress showAddress =
                 [ Element.alignTop
                 , Element.alignLeft
                 , Element.Border.widthEach
-                    {top = 2
-                    , bottom = if isInFront then 1 else 2
+                    { top = 2
+                    , bottom =
+                        if isInFront then
+                            1
+
+                        else
+                            2
                     , right = 2
-                    , left =2
+                    , left = 2
                     }
                 , Element.Border.color EH.black
                 , Element.Background.color EH.white
