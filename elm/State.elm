@@ -70,6 +70,7 @@ init flags =
       , userBalance = Nothing
       , userAllowance = Nothing
       , messages = []
+      , showingAddress = Nothing
       , showMessageInput = False
       , composeUXModel = ComposeUXModel "" ""
       , blockTimes = Dict.empty
@@ -178,6 +179,16 @@ update msg prevModel =
                       else
                         Cmd.none
                     )
+
+        ShowAddress address ->
+            ( { prevModel | showingAddress = Just address }
+            , Cmd.none
+            )
+
+        HideAddress ->
+            ( { prevModel | showingAddress = Nothing }
+            , Cmd.none
+            )
 
         ConnectToWeb3 ->
             case prevModel.wallet of

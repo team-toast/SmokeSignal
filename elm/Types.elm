@@ -33,6 +33,7 @@ type alias Model =
     , userBalance : Maybe TokenValue
     , userAllowance : Maybe TokenValue
     , messages : List Message
+    , showingAddress : Maybe Address
     , showMessageInput : Bool
     , composeUXModel : ComposeUXModel
     , blockTimes : Dict Int Time.Posix
@@ -48,6 +49,8 @@ type Msg
     | TxSentryMsg TxSentry.Msg
     | EventSentryMsg EventSentry.Msg
     | MessageLogReceived Eth.Types.Log
+    | ShowAddress Address
+    | HideAddress
     | ConnectToWeb3
     | UnlockDai
     | AllowanceFetched (Result Http.Error TokenValue)

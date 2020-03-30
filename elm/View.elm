@@ -43,7 +43,7 @@ body model =
         , Element.spacing 30
         ]
         [ title
-        , viewMessages model.blockTimes model.messages
+        , viewMessages model.blockTimes model.messages model.showingAddress
         , Element.el
             [ Element.width Element.fill
             , Element.alignBottom
@@ -62,8 +62,8 @@ title =
         Element.text "SmokeSignal"
 
 
-viewMessages : Dict Int Time.Posix -> List Message -> Element Msg
-viewMessages blockTimes messages =
+viewMessages : Dict Int Time.Posix -> List Message -> Maybe Address -> Element Msg
+viewMessages blockTimes messages showingAddress =
     let
         structuredMessageList =
             sortMessagesByBlock messages
@@ -115,7 +115,7 @@ viewMessages blockTimes messages =
                         ]
                     , Element.column
                         [ Element.paddingXY 20 0 ]
-                        (List.map viewMessage messagesForBlock)
+                        (List.map (viewMessage showingAddress) messagesForBlock)
                     ]
             )
             structuredMessageList
@@ -146,11 +146,11 @@ sortMessagesByBlock messages =
             .block
 
 
-viewMessage : Message -> Element Msg
-viewMessage message =
+viewMessage : Maybe Address -> Message -> Element Msg
+viewMessage showingAddress message =
     Element.row
         [ Element.width Element.fill
-        , Element.spacing 10
+        , Element.spacing 20
         ]
         [ Element.column
             [ Element.spacing 10
@@ -158,24 +158,54 @@ viewMessage message =
             , Element.alignTop
             , Element.spacing 10
             ]
-            [ viewAuthor message.from
+            [ viewAuthor message.from (showingAddress == Just message.from)
             , viewDaiBurned message.burnAmount
             ]
         , viewMessageContent message.message
         ]
 
 
-viewAuthor : Address -> Element Msg
-viewAuthor fromAddress =
+viewAuthor : Address -> Bool -> Element Msg
+viewAuthor fromAddress showAddress =
+    let
+        addressOutputEl isInFront =
+            Element.el
+                [ Element.alignTop
+                , Element.alignLeft
+                , Element.Border.widthEach
+                    {top = 2
+                    , bottom = if isInFront then 1 else 2
+                    , right = 2
+                    , left =2
+                    }
+                , Element.Border.color EH.black
+                , Element.Background.color EH.white
+                , Element.Font.size 12
+                ]
+                (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
+    in
     Element.el
-        [ Element.Border.rounded 10
-        , Element.clip
-        , Element.Border.width 2
-        , Element.Border.color EH.black
-        ]
+        (if showAddress then
+            [ Element.inFront (addressOutputEl True)
+            , Element.behindContent (addressOutputEl False)
+            , EH.moveToFront
+            ]
+
+         else
+            []
+        )
     <|
-        Element.html
-            (Phace.fromEthAddress fromAddress)
+        Element.el
+            [ Element.Border.rounded 10
+            , Element.clip
+            , Element.Border.width 2
+            , Element.Border.color EH.black
+            , Element.Events.onMouseEnter (ShowAddress fromAddress)
+            , Element.Events.onMouseLeave HideAddress
+            ]
+        <|
+            Element.html
+                (Phace.fromEthAddress fromAddress)
 
 
 viewDaiBurned : TokenValue -> Element Msg
@@ -184,23 +214,24 @@ viewDaiBurned amount =
         [ Element.width Element.fill
         , Element.clip
         , Element.Border.rounded 5
-        ] <|
-    Element.el
-        [ Element.Font.size 20
-        , Element.padding 5
-        , Element.Background.color EH.lightRed
-        , Element.Border.rounded 5
-        , Element.alignLeft
         ]
     <|
-        Element.row
-            [ Element.spacing 3
-            , Element.centerX
-            , Element.clip
+        Element.el
+            [ Element.Font.size 20
+            , Element.padding 5
+            , Element.Background.color EH.lightRed
+            , Element.Border.rounded 5
+            , Element.alignLeft
             ]
-            [ daiSymbol [ Element.height <| Element.px 18 ]
-            , Element.text <| TokenValue.toConciseString amount
-            ]
+        <|
+            Element.row
+                [ Element.spacing 3
+                , Element.centerX
+                , Element.clip
+                ]
+                [ daiSymbol [ Element.height <| Element.px 18 ]
+                , Element.text <| TokenValue.toConciseString amount
+                ]
 
 
 viewMessageContent : String -> Element Msg
