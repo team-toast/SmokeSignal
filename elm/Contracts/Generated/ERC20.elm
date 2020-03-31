@@ -1,4 +1,4 @@
-module Contracts.ERC20Generated exposing
+module Contracts.Generated.ERC20 exposing
     ( Approval
     , Transfer
     , allowance

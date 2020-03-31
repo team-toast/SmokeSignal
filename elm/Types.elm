@@ -27,7 +27,6 @@ type alias Flags =
 type alias Model =
     { wallet : Wallet.State
     , now : Time.Posix
-    , testMode : Bool
     , txSentry : TxSentry Msg
     , eventSentry : EventSentry Msg
     , userBalance : Maybe TokenValue

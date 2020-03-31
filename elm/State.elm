@@ -50,10 +50,10 @@ init flags =
             TxSentry.init
                 ( txOut, txIn )
                 TxSentryMsg
-                (Config.httpProviderUrl testMode)
+                Config.httpProviderUrl
 
         ( initEventSentry, initEventSentryCmd ) =
-            EventSentry.init EventSentryMsg (Config.httpProviderUrl testMode)
+            EventSentry.init EventSentryMsg Config.httpProviderUrl
 
         ( eventSentry, secondEventSentryCmd, _ ) =
             fetchMessagesFromBlockrangeCmd
@@ -64,7 +64,6 @@ init flags =
     in
     ( { wallet = wallet
       , now = Time.millisToPosix flags.nowInMillis
-      , testMode = testMode
       , txSentry = txSentry
       , eventSentry = eventSentry
       , userBalance = Nothing
@@ -93,7 +92,7 @@ update msg prevModel =
             , Wallet.userInfo prevModel.wallet
                 |> Maybe.map
                     (\userInfo ->
-                        fetchDaiBalanceAndAllowanceCmd userInfo.address prevModel.testMode
+                        fetchDaiBalanceAndAllowanceCmd userInfo.address
                     )
                 |> Maybe.withDefault Cmd.none
             )
@@ -212,7 +211,6 @@ update msg prevModel =
                     let
                         txParams =
                             Dai.unlockDaiCall
-                                prevModel.testMode
                                 |> Eth.toSend
 
                         listeners =
@@ -286,7 +284,6 @@ update msg prevModel =
                     let
                         txParams =
                             SSContract.smokeSignalWithMessage
-                                prevModel.testMode
                                 validatedInputs.message
                                 validatedInputs.burnAmount
                                 |> Eth.toSend
@@ -344,23 +341,24 @@ fetchMessagesFromBlockrangeCmd from to testMode sentry =
         sentry
     <|
         SSContract.smokeSignalWithMessageEventFilter
-            testMode
             from
             to
+            Nothing
+            Nothing
 
 
-fetchDaiBalanceAndAllowanceCmd : Address -> Bool -> Cmd Msg
-fetchDaiBalanceAndAllowanceCmd address testMode =
+fetchDaiBalanceAndAllowanceCmd : Address -> Cmd Msg
+fetchDaiBalanceAndAllowanceCmd address =
     Cmd.batch
-        [ Dai.getAllowanceCmd address testMode AllowanceFetched
-        , Dai.getBalanceCmd address testMode BalanceFetched
+        [ Dai.getAllowanceCmd address AllowanceFetched
+        , Dai.getBalanceCmd address BalanceFetched
         ]
 
 
 getBlockTimeCmd : Int -> Cmd Msg
 getBlockTimeCmd blocknum =
     Eth.getBlock
-        (Config.httpProviderUrl False)
+        Config.httpProviderUrl
         blocknum
         |> Task.map .timestamp
         |> Task.attempt (BlockTimeFetched blocknum)
