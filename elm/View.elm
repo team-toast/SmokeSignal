@@ -200,7 +200,7 @@ viewMessageContent : String -> Element Msg
 viewMessageContent content =
     renderMarkdownParagraphs
         [ Element.spacing 2
-        , Element.padding 10
+        , Element.paddingXY 20 0
         , Element.Border.rounded 10
         , Element.Background.color (Element.rgb 0.8 0.8 1)
         , Element.alignTop
@@ -281,6 +281,7 @@ maybeSubmitForm showingMessageInput accountInfo composeModel =
                                 [ submitButton composeModel accountInfo.balance
                                 , Element.text "with"
                                 , burnAmountInput composeModel.daiInput
+                                , Element.text "DAI"
                                 ]
 
                         else
@@ -401,8 +402,7 @@ submitButton composeModel maybeUserBalance =
 burnAmountInput : String -> Element Msg
 burnAmountInput daiInput =
     Element.row []
-        [ daiSymbol [ Element.height <| Element.px 30 ]
-        , Element.Input.text
+        [ Element.Input.text
             [ Element.width <| Element.px 100 ]
             { onChange = DaiInputChanged
             , text = daiInput
