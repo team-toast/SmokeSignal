@@ -246,7 +246,8 @@ messageInputBox : String -> Element Msg
 messageInputBox input =
     Element.Input.multiline
         [ Element.width Element.fill
-        , Element.height (Element.px 300) ]
+        , Element.height (Element.px 300)
+        ]
         { onChange = MessageInputChanged
         , text = input
         , placeholder = Just messageInputPlaceholder
@@ -276,12 +277,28 @@ maybeSubmitForm showingMessageInput accountInfo composeModel =
 
                     Just True ->
                         if showingMessageInput then
-                            Element.row
-                                [ Element.spacing 10 ]
-                                [ submitButton composeModel accountInfo.balance
-                                , Element.text "with"
-                                , burnAmountInput composeModel.daiInput
-                                , Element.text "DAI"
+                            Element.column
+                                [ Element.centerX
+                                , Element.spacing 10
+                                ]
+                                [ Element.row
+                                    [ Element.spacing 10 ]
+                                    [ submitButton composeModel accountInfo.balance
+                                    , Element.text "with"
+                                    , burnAmountInput composeModel.daiInput
+                                    , Element.text "DAI"
+                                    ]
+                                , Element.Input.checkbox
+                                    [ Element.centerX
+                                    , Element.width Element.shrink
+                                    ]
+                                    { onChange = DonationCheckboxSet
+                                    , icon = Element.Input.defaultCheckbox
+                                    , checked = composeModel.donateChecked
+                                    , label =
+                                        Element.Input.labelRight [ ]
+                                            (Element.text "Donate an extra 1% to Foundry")
+                                    }
                                 ]
 
                         else

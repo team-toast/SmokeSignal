@@ -57,6 +57,7 @@ type Msg
     | ComposeMessage
     | MessageInputChanged String
     | DaiInputChanged String
+    | DonationCheckboxSet Bool
     | Submit ValidatedInputs
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
     | Test String
@@ -80,16 +81,17 @@ type alias ComposeUXModel =
 
 updateMessage : String -> ComposeUXModel -> ComposeUXModel
 updateMessage message m =
-    { m
-        | message = message
-    }
+    { m | message = message }
 
 
 updateDaiInput : String -> ComposeUXModel -> ComposeUXModel
 updateDaiInput input m =
-    { m
-        | daiInput = input
-    }
+    { m | daiInput = input }
+
+
+updateDonteChecked : Bool -> ComposeUXModel -> ComposeUXModel
+updateDonteChecked flag m =
+    { m | donateChecked = flag }
 
 
 type alias ValidatedInputs =

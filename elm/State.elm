@@ -270,6 +270,14 @@ update msg prevModel =
             , Cmd.none
             )
 
+        DonationCheckboxSet flag ->
+            ( { prevModel
+                | composeUXModel =
+                    prevModel.composeUXModel |> updateDonteChecked flag
+              }
+            , Cmd.none
+            )
+
         DaiInputChanged input ->
             ( { prevModel
                 | composeUXModel =
