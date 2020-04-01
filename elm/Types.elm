@@ -74,6 +74,7 @@ type alias Message =
 type alias ComposeUXModel =
     { message : String
     , daiInput : String
+    , donateChecked : Bool
     }
 
 
@@ -94,6 +95,7 @@ updateDaiInput input m =
 type alias ValidatedInputs =
     { message : String
     , burnAmount : TokenValue
+    , donateAmount : TokenValue
     }
 
 
@@ -114,7 +116,18 @@ validateInputs composeModel =
                         else
                             Err "Must be greater than 0"
                     )
-                |> Result.map (ValidatedInputs composeModel.message)
+                |> Result.map
+                    (\burnAmount ->
+                        ValidatedInputs
+                            composeModel.message
+                            burnAmount
+                            (if composeModel.donateChecked then
+                                TokenValue.div burnAmount 100
+
+                             else
+                                TokenValue.zero
+                            )
+                    )
             )
 
 

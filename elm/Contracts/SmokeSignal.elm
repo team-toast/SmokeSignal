@@ -9,7 +9,7 @@ import Json.Decode.Pipeline exposing (custom)
 import TokenValue exposing (TokenValue)
 
 
-type alias SmokeSignalWithMessage =
+type alias MessageBurn =
     { hash : Hex
     , from : Address
     , burnAmount : TokenValue
@@ -17,18 +17,18 @@ type alias SmokeSignalWithMessage =
     }
 
 
-convertBurnAmount : G.SmokeSignalWithMessage -> SmokeSignalWithMessage
+convertBurnAmount : G.MessageBurn -> MessageBurn
 convertBurnAmount gen =
-    SmokeSignalWithMessage
+    MessageBurn
         gen.hash
         gen.from
         (TokenValue.tokenValue gen.burnAmount)
         gen.message
 
 
-smokeSignalWithMessageEventFilter : BlockId -> BlockId -> Maybe Hex -> Maybe Address -> LogFilter
-smokeSignalWithMessageEventFilter from to maybeHash maybeAuthor =
-    G.smokeSignalWithMessageEvent
+messageBurnEventFilter : BlockId -> BlockId -> Maybe Hex -> Maybe Address -> LogFilter
+messageBurnEventFilter from to maybeHash maybeAuthor =
+    G.messageBurnEvent
         Config.smokesignalContractAddress
         maybeHash
         maybeAuthor
@@ -40,15 +40,16 @@ smokeSignalWithMessageEventFilter from to maybeHash maybeAuthor =
            )
 
 
-smokeSignalWithMessageDecoder : Decoder SmokeSignalWithMessage
-smokeSignalWithMessageDecoder =
-    G.smokeSignalWithMessageDecoder
+messageBurnDecoder : Decoder MessageBurn
+messageBurnDecoder =
+    G.messageBurnDecoder
         |> Decode.map convertBurnAmount
 
 
-smokeSignalWithMessage : String -> TokenValue -> Call Hex
-smokeSignalWithMessage message burnAmount =
-    G.smokeSignalWithMessage
+burnMessage : String -> TokenValue -> TokenValue -> Call Hex
+burnMessage message burnAmount donateAmount =
+    G.burnMessage
         Config.smokesignalContractAddress
         message
         (TokenValue.getEvmValue burnAmount)
+        (TokenValue.getEvmValue donateAmount)

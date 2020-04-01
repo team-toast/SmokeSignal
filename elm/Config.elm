@@ -24,9 +24,9 @@ daiContractAddress =
 
 smokesignalContractAddress : Address
 smokesignalContractAddress =
-    Eth.Utils.unsafeToAddress "0x5DC963d2c78D8FAa90c4400eB0dE1e4aE763DBaE"
+    Eth.Utils.unsafeToAddress "0xf18407C16ACF13a0057b2746B29F580eb8343156"
 
 
 startScanBlock : Int
 startScanBlock =
-    9632692
+    9786122

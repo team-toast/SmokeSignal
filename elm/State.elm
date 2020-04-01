@@ -71,7 +71,7 @@ init flags =
       , messages = []
       , showingAddress = Nothing
       , showMessageInput = False
-      , composeUXModel = ComposeUXModel "" ""
+      , composeUXModel = ComposeUXModel "" "" True
       , blockTimes = Dict.empty
       }
     , Cmd.batch
@@ -149,7 +149,7 @@ update msg prevModel =
         MessageLogReceived log ->
             let
                 decodedEventLog =
-                    Eth.Decode.event SSContract.smokeSignalWithMessageDecoder log
+                    Eth.Decode.event SSContract.messageBurnDecoder log
             in
             case decodedEventLog.returnData of
                 Err err ->
@@ -283,9 +283,10 @@ update msg prevModel =
                 ( newTxSentry, cmd ) =
                     let
                         txParams =
-                            SSContract.smokeSignalWithMessage
+                            SSContract.burnMessage
                                 validatedInputs.message
                                 validatedInputs.burnAmount
+                                validatedInputs.donateAmount
                                 |> Eth.toSend
 
                         listeners =
@@ -340,7 +341,7 @@ fetchMessagesFromBlockrangeCmd from to testMode sentry =
         MessageLogReceived
         sentry
     <|
-        SSContract.smokeSignalWithMessageEventFilter
+        SSContract.messageBurnEventFilter
             from
             to
             Nothing
