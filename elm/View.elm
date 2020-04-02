@@ -198,43 +198,44 @@ viewMessage showingAddress message =
         [ Element.width Element.fill
         , Element.spacing 20
         ]
-        [ Element.column
-            [ Element.spacing 10
-            , Element.width <| Element.px 100
+        [ Element.el
+            [ Element.alignTop
+            , Element.height <| Element.px 100
+            ]
+          <|
+            phaceElement message.from (showingAddress == Just message.from)
+        , Element.column
+            [ Element.width <| Element.px 100
             , Element.alignTop
-            , Element.spacing 10
+            , Element.width Element.fill
             ]
-            [ phaceElement message.from (showingAddress == Just message.from)
-            , viewDaiBurned message.burnAmount
+            [ viewDaiBurned message.burnAmount
+            , viewMessageContent message.message
             ]
-        , viewMessageContent message.message
         ]
 
 
 viewDaiBurned : TokenValue -> Element Msg
 viewDaiBurned amount =
     Element.el
-        [ Element.width Element.fill
-        , Element.clip
-        , Element.Border.rounded 5
+        [ Element.Font.size 26
+        , Element.paddingXY 10 5
+        , Element.Background.color EH.lightRed
+        , Element.Border.roundEach
+            { bottomLeft = 0
+            , bottomRight = 0
+            , topLeft = 5
+            , topRight = 5
+            }
+        , Element.alignLeft
         ]
     <|
-        Element.el
-            [ Element.Font.size 26
-            , Element.padding 5
-            , Element.Background.color EH.lightRed
-            , Element.Border.rounded 5
-            , Element.alignLeft
+        Element.row
+            [ Element.spacing 3
             ]
-        <|
-            Element.row
-                [ Element.spacing 3
-                , Element.centerX
-                , Element.clip
-                ]
-                [ daiSymbol [ Element.height <| Element.px 18 ]
-                , Element.text <| TokenValue.toConciseString amount
-                ]
+            [ daiSymbol [ Element.height <| Element.px 18 ]
+            , Element.text <| TokenValue.toConciseString amount
+            ]
 
 
 viewMessageContent : String -> Element Msg
@@ -242,7 +243,12 @@ viewMessageContent content =
     renderMarkdownParagraphs
         [ Element.spacing 2
         , Element.paddingXY 20 0
-        , Element.Border.rounded 10
+        , Element.Border.roundEach
+            { topLeft = 0
+            , topRight = 10
+            , bottomRight = 10
+            , bottomLeft = 10
+            }
         , Element.Background.color (Element.rgb 0.8 0.8 1)
         , Element.alignTop
         ]
@@ -264,7 +270,7 @@ viewComposeUX maybeUserInfo showingAddress composeUXModel =
         , Element.spacing 10
         ]
         [ messageInputBox composeUXModel.message
-        , actionForm maybeUserInfo showingAddress composeUXModel
+        , actionFormAndMaybeError maybeUserInfo showingAddress composeUXModel
         ]
 
 
@@ -282,24 +288,58 @@ messageInputBox input =
         }
 
 
-actionForm : Maybe UserInfo -> Maybe Address -> ComposeUXModel -> Element Msg
-actionForm maybeUserInfo showingAddress composeUXModel =
+actionFormAndMaybeError : Maybe UserInfo -> Maybe Address -> ComposeUXModel -> Element Msg
+actionFormAndMaybeError maybeUserInfo showingAddress composeUXModel =
+    let
+        ( actionFormEl, maybeInputErrorStr ) =
+            actionFormElAndMaybeError maybeUserInfo showingAddress composeUXModel
+    in
+    Element.row
+        [ Element.alignLeft
+        , Element.spacing 10
+        ]
+        [ actionFormEl
+        , maybeInputErrorStr
+            |> Maybe.map inputErrorEl
+            |> Maybe.withDefault Element.none
+        ]
+
+
+actionFormElAndMaybeError : Maybe UserInfo -> Maybe Address -> ComposeUXModel -> ( Element Msg, Maybe String )
+actionFormElAndMaybeError maybeUserInfo showingAddress composeUXModel =
     case maybeUserInfo of
         Just userInfo ->
-            Element.row
+            let
+                ( goButtonEl, maybeError ) =
+                    goButtonAndMaybeError userInfo composeUXModel
+            in
+            ( Element.row
                 [ Element.spacing 15
-                , Element.centerX
                 , Element.padding 10
                 , Element.Background.color <| Element.rgb 0.8 0.8 1
                 , Element.Border.rounded 10
                 ]
                 [ phaceElement userInfo.address (showingAddress == Just userInfo.address)
                 , inputsElement userInfo composeUXModel
-                , maybeDisabledGoButton userInfo composeUXModel
+                , goButtonEl
                 ]
+            , maybeError
+            )
 
         Nothing ->
-            web3ConnectButton [ Element.centerX, Element.centerY ]
+            ( web3ConnectButton [ Element.centerX, Element.centerY ]
+            , Nothing
+            )
+
+
+inputErrorEl : String -> Element Msg
+inputErrorEl error =
+    Element.paragraph
+        [ Element.width <| Element.px 300
+        , Element.Font.color EH.softRed
+        , Element.Font.italic
+        ]
+        [ Element.text error ]
 
 
 inputsElement : UserInfo -> ComposeUXModel -> Element Msg
@@ -341,7 +381,7 @@ inputsElement userInfo composeUXModel =
                         , label = Element.Input.labelHidden "Donate an extra 1% to Foundry"
                         }
                     , Element.column
-                        [Element.spacing 5]
+                        [ Element.spacing 5 ]
                         [ Element.row []
                             [ Element.text "Donate an extra 1% to "
                             , Element.newTabLink
@@ -349,15 +389,15 @@ inputsElement userInfo composeUXModel =
                                 { url = "https://foundrydao.com/"
                                 , label = Element.text "Foundry"
                                 }
-                            ]   
+                            ]
                         , Element.text "so we can build more cool stuff!"
                         ]
                     ]
                 ]
 
 
-maybeDisabledGoButton : UserInfo -> ComposeUXModel -> Element Msg
-maybeDisabledGoButton userInfo composeUXModel =
+goButtonAndMaybeError : UserInfo -> ComposeUXModel -> ( Element Msg, Maybe String )
+goButtonAndMaybeError userInfo composeUXModel =
     case ( userInfo.balance, userInfo.daiUnlocked ) of
         ( Just balance, Just True ) ->
             case validateInputs composeUXModel of
@@ -367,16 +407,29 @@ maybeDisabledGoButton userInfo composeUXModel =
                             TokenValue.compare validatedInputs.burnAmount balance == GT
                     in
                     if balanceTooLow then
-                        maybeGoButton Nothing
+                        ( maybeGoButton Nothing
+                        , Just "You don't have that much DAI in your wallet!"
+                        )
 
                     else
-                        maybeGoButton <| Just validatedInputs
+                        ( maybeGoButton <| Just validatedInputs
+                        , Nothing
+                        )
 
-                _ ->
-                    maybeGoButton Nothing
+                Just (Err errStr) ->
+                    ( maybeGoButton Nothing
+                    , Just errStr
+                    )
+
+                Nothing ->
+                    ( maybeGoButton Nothing
+                    , Nothing
+                    )
 
         _ ->
-            maybeGoButton Nothing
+            ( maybeGoButton Nothing
+            , Nothing
+            )
 
 
 maybeGoButton : Maybe ValidatedInputs -> Element Msg
@@ -394,14 +447,14 @@ maybeGoButton maybeValidInputs =
             EH.redButton
                 Desktop
                 commonStyles
-                [ "GO!" ]
+                [ "Post" ]
                 (Submit validInputs)
 
         Nothing ->
             EH.disabledButton
                 Desktop
                 commonStyles
-                "GO"
+                "Post"
                 Nothing
 
 
@@ -415,10 +468,6 @@ loadingElement attrs maybeString =
             ++ attrs
         )
         (Element.text <| Maybe.withDefault "loading..." maybeString)
-
-
-
-
 
 
 web3ConnectButton : List (Attribute Msg) -> Element Msg
@@ -444,7 +493,8 @@ burnAmountInput daiInput =
     Element.row []
         [ Element.Input.text
             [ Element.width <| Element.px 100
-            , Element.Background.color <| Element.rgba 1 1 1 0.4]
+            , Element.Background.color <| Element.rgba 1 1 1 0.4
+            ]
             { onChange = DaiInputChanged
             , text = daiInput
             , placeholder = Nothing

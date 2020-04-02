@@ -101,12 +101,41 @@ type alias ValidatedInputs =
 
 validateInputs : ComposeUXModel -> Maybe (Result String ValidatedInputs)
 validateInputs composeModel =
-    if composeModel.message == "" || composeModel.daiInput == "" then
+    case validateBurnAmount composeModel.daiInput of
+        Nothing ->
+            Nothing
+
+        Just (Err errStr) ->
+            Just <| Err errStr
+
+        Just (Ok burnAmount) ->
+            if composeModel.message == "" then
+                Nothing
+
+            else
+                Just
+                    (Ok
+                        (ValidatedInputs
+                            composeModel.message
+                            burnAmount
+                            (if composeModel.donateChecked then
+                                TokenValue.div burnAmount 100
+
+                             else
+                                TokenValue.zero
+                            )
+                        )
+                    )
+
+
+validateBurnAmount : String -> Maybe (Result String TokenValue)
+validateBurnAmount input =
+    if input == "" then
         Nothing
 
     else
         Just
-            (TokenValue.fromString composeModel.daiInput
+            (TokenValue.fromString input
                 |> Result.fromMaybe "Invalid burn amount"
                 |> Result.andThen
                     (\tv ->
@@ -116,19 +145,4 @@ validateInputs composeModel =
                         else
                             Err "Must be greater than 0"
                     )
-                |> Result.map
-                    (\burnAmount ->
-                        ValidatedInputs
-                            composeModel.message
-                            burnAmount
-                            (if composeModel.donateChecked then
-                                TokenValue.div burnAmount 100
-
-                             else
-                                TokenValue.zero
-                            )
-                    )
             )
-
-
-
