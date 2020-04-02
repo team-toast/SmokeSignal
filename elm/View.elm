@@ -241,7 +241,7 @@ viewMessage showingAddress message =
 viewDaiBurned : TokenValue -> Element Msg
 viewDaiBurned amount =
     Element.el
-        [ Element.Font.size 26
+        [ Element.Font.size 22
         , Element.paddingXY 10 5
         , Element.Background.color EH.lightRed
         , Element.Border.roundEach
