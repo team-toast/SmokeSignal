@@ -20,6 +20,7 @@ import Phace
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
+import Wallet
 
 
 root : Model -> Browser.Document Msg
@@ -41,15 +42,60 @@ body model =
         , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
         , Element.padding 20
         , Element.spacing 30
+        , Element.inFront <|
+            if model.showComposeUX then
+                Element.none
+
+            else
+                viewMinimizedComposeUX
+                    (Wallet.userInfo model.wallet)
+                    model.showingAddress
         ]
         [ title
         , viewMessages model.blockTimes model.messages model.showingAddress
-        , Element.el
-            [ Element.width Element.fill
-            , Element.alignBottom
-            ]
-            (viewComposeUX model.showMessageInput (makeAccountInfo model) model.showingAddress model.composeUXModel)
+        , if model.showComposeUX then
+            Element.el
+                [ Element.width Element.fill
+                , Element.alignBottom
+                ]
+                (viewComposeUX (Wallet.userInfo model.wallet) model.showingAddress model.composeUXModel)
+
+          else
+            Element.none
         ]
+
+
+viewMinimizedComposeUX : Maybe UserInfo -> Maybe Address -> Element Msg
+viewMinimizedComposeUX maybeUserInfo showingAddress =
+    Element.el
+        [ Element.alignRight
+        , Element.alignBottom
+        , Element.Background.color EH.lightGray
+        , Element.padding 10
+        , Element.Border.roundEach
+            { topLeft = 10
+            , topRight = 0
+            , bottomRight = 0
+            , bottomLeft = 0
+            }
+        , Element.Border.widthEach
+            { top = 1
+            , left = 1
+            , right = 0
+            , bottom = 0
+            }
+        ]
+    <|
+        case maybeUserInfo of
+            Nothing ->
+                web3ConnectButton []
+
+            Just accountInfo ->
+                Element.column
+                    [ Element.spacing 10 ]
+                    [ phaceElement accountInfo.address (showingAddress == Just accountInfo.address)
+                    , showComposeUXButton
+                    ]
 
 
 title : Element Msg
@@ -158,16 +204,11 @@ viewMessage showingAddress message =
             , Element.alignTop
             , Element.spacing 10
             ]
-            [ viewAuthor message.from (showingAddress == Just message.from)
+            [ phaceElement message.from (showingAddress == Just message.from)
             , viewDaiBurned message.burnAmount
             ]
         , viewMessageContent message.message
         ]
-
-
-viewAuthor : Address -> Bool -> Element Msg
-viewAuthor fromAddress showAddress =
-    phaceElement fromAddress showAddress
 
 
 viewDaiBurned : TokenValue -> Element Msg
@@ -179,7 +220,7 @@ viewDaiBurned amount =
         ]
     <|
         Element.el
-            [ Element.Font.size 20
+            [ Element.Font.size 26
             , Element.padding 5
             , Element.Background.color EH.lightRed
             , Element.Border.rounded 5
@@ -216,29 +257,14 @@ renderMarkdownParagraphs attributes =
             attributes
 
 
-viewComposeUX : Bool -> AccountInfo -> Maybe Address -> ComposeUXModel -> Element Msg
-viewComposeUX showMessageInput accountInfo showingAddress composeModel =
+viewComposeUX : Maybe UserInfo -> Maybe Address -> ComposeUXModel -> Element Msg
+viewComposeUX maybeUserInfo showingAddress composeUXModel =
     Element.column
         [ Element.width Element.fill
         , Element.spacing 10
         ]
-        [ Element.row
-            [ Element.width Element.fill
-            , Element.spacing 10
-            ]
-            [ case accountInfo.address of
-                Just address ->
-                    phaceElement address (showingAddress == Just address)
-
-                Nothing ->
-                    Element.none
-            , if showMessageInput then
-                messageInputBox composeModel.message
-
-              else
-                Element.none
-            ]
-        , maybeSubmitForm showMessageInput accountInfo composeModel
+        [ messageInputBox composeUXModel.message
+        , actionForm maybeUserInfo showingAddress composeUXModel
         ]
 
 
@@ -256,53 +282,204 @@ messageInputBox input =
         }
 
 
-maybeSubmitForm : Bool -> AccountInfo -> ComposeUXModel -> Element Msg
-maybeSubmitForm showingMessageInput accountInfo composeModel =
-    Element.el [ Element.centerX ] <|
-        case accountInfo.address of
-            Nothing ->
-                web3ConnectButton
+actionForm : Maybe UserInfo -> Maybe Address -> ComposeUXModel -> Element Msg
+actionForm maybeUserInfo showingAddress composeUXModel =
+    case maybeUserInfo of
+        Just userInfo ->
+            Element.row
+                [ Element.spacing 15
+                , Element.centerX
+                , Element.padding 10
+                , Element.Background.color <| Element.rgb 0.8 0.8 1
+                , Element.Border.rounded 10
+                ]
+                [ phaceElement userInfo.address (showingAddress == Just userInfo.address)
+                , inputsElement userInfo composeUXModel
+                , maybeDisabledGoButton userInfo composeUXModel
+                ]
 
-            Just address ->
-                case accountInfo.isUnlocked of
-                    Nothing ->
-                        EH.disabledButton
-                            Desktop
-                            []
-                            "Checking DAI lock..."
-                            Nothing
+        Nothing ->
+            web3ConnectButton [ Element.centerX, Element.centerY ]
 
-                    Just False ->
-                        unlockButton
 
-                    Just True ->
-                        if showingMessageInput then
-                            Element.column
-                                [ Element.centerX
-                                , Element.spacing 10
-                                ]
-                                [ Element.row
-                                    [ Element.spacing 10 ]
-                                    [ submitButton composeModel accountInfo.balance
-                                    , Element.text "with"
-                                    , burnAmountInput composeModel.daiInput
-                                    , Element.text "DAI"
-                                    ]
-                                , Element.Input.checkbox
-                                    [ Element.centerX
-                                    , Element.width Element.shrink
-                                    ]
-                                    { onChange = DonationCheckboxSet
-                                    , icon = Element.Input.defaultCheckbox
-                                    , checked = composeModel.donateChecked
-                                    , label =
-                                        Element.Input.labelRight [ ]
-                                            (Element.text "Donate an extra 1% to Foundry")
-                                    }
-                                ]
+inputsElement : UserInfo -> ComposeUXModel -> Element Msg
+inputsElement userInfo composeUXModel =
+    case userInfo.daiUnlocked of
+        Nothing ->
+            loadingElement
+                [ Element.centerX
+                , Element.centerY
+                ]
+            <|
+                Just "Checking DAI lock..."
 
-                        else
-                            composeMessageButton
+        Just False ->
+            unlockButton
+                [ Element.centerX
+                , Element.centerY
+                ]
+
+        Just True ->
+            Element.column
+                [ Element.spacing 10 ]
+                [ Element.row
+                    [ Element.spacing 10
+                    , Element.centerX
+                    ]
+                    [ Element.text "Burn"
+                    , burnAmountInput composeUXModel.daiInput
+                    , Element.text "DAI"
+                    ]
+                , Element.row
+                    [ Element.Font.size 14
+                    , Element.spacing 5
+                    ]
+                    [ Element.Input.checkbox [ Element.alignTop ]
+                        { onChange = DonationCheckboxSet
+                        , icon = Element.Input.defaultCheckbox
+                        , checked = composeUXModel.donateChecked
+                        , label = Element.Input.labelHidden "Donate an extra 1% to Foundry"
+                        }
+                    , Element.column
+                        [Element.spacing 5]
+                        [ Element.row []
+                            [ Element.text "Donate an extra 1% to "
+                            , Element.newTabLink
+                                [ Element.Font.color EH.blue ]
+                                { url = "https://foundrydao.com/"
+                                , label = Element.text "Foundry"
+                                }
+                            ]   
+                        , Element.text "so we can build more cool stuff!"
+                        ]
+                    ]
+                ]
+
+
+maybeDisabledGoButton : UserInfo -> ComposeUXModel -> Element Msg
+maybeDisabledGoButton userInfo composeUXModel =
+    case ( userInfo.balance, userInfo.daiUnlocked ) of
+        ( Just balance, Just True ) ->
+            case validateInputs composeUXModel of
+                Just (Ok validatedInputs) ->
+                    let
+                        balanceTooLow =
+                            TokenValue.compare validatedInputs.burnAmount balance == GT
+                    in
+                    if balanceTooLow then
+                        maybeGoButton Nothing
+
+                    else
+                        maybeGoButton <| Just validatedInputs
+
+                _ ->
+                    maybeGoButton Nothing
+
+        _ ->
+            maybeGoButton Nothing
+
+
+maybeGoButton : Maybe ValidatedInputs -> Element Msg
+maybeGoButton maybeValidInputs =
+    let
+        commonStyles =
+            [ Element.height <| Element.px 100
+            , Element.width <| Element.px 100
+            , Element.Font.size 26
+            , Element.Border.rounded 10
+            ]
+    in
+    case maybeValidInputs of
+        Just validInputs ->
+            EH.redButton
+                Desktop
+                commonStyles
+                [ "GO!" ]
+                (Submit validInputs)
+
+        Nothing ->
+            EH.disabledButton
+                Desktop
+                commonStyles
+                "GO"
+                Nothing
+
+
+loadingElement : List (Attribute Msg) -> Maybe String -> Element Msg
+loadingElement attrs maybeString =
+    Element.el
+        ([ Element.Font.italic
+         , Element.Font.color EH.darkGray
+         , Element.Font.size 20
+         ]
+            ++ attrs
+        )
+        (Element.text <| Maybe.withDefault "loading..." maybeString)
+
+
+
+
+
+
+web3ConnectButton : List (Attribute Msg) -> Element Msg
+web3ConnectButton attrs =
+    EH.redButton
+        Desktop
+        attrs
+        [ "Connect to Wallet" ]
+        ConnectToWeb3
+
+
+unlockButton : List (Attribute Msg) -> Element Msg
+unlockButton attrs =
+    EH.redButton
+        Desktop
+        attrs
+        [ "Unlock Dai" ]
+        UnlockDai
+
+
+burnAmountInput : String -> Element Msg
+burnAmountInput daiInput =
+    Element.row []
+        [ Element.Input.text
+            [ Element.width <| Element.px 100
+            , Element.Background.color <| Element.rgba 1 1 1 0.4]
+            { onChange = DaiInputChanged
+            , text = daiInput
+            , placeholder = Nothing
+            , label = Element.Input.labelHidden "amount to burn"
+            }
+        ]
+
+
+showComposeUXButton : Element Msg
+showComposeUXButton =
+    EH.blueButton
+        Desktop
+        []
+        [ "Compose Message" ]
+        (ShowComposeUX True)
+
+
+messageInputPlaceholder : Element.Input.Placeholder Msg
+messageInputPlaceholder =
+    Element.Input.placeholder [] <|
+        Element.column
+            [ Element.width Element.fill
+            , Element.spacing 10
+            ]
+        <|
+            List.map
+                (Element.paragraph
+                    [ Element.Font.color EH.darkGray
+                    , Element.Font.italic
+                    ]
+                    << List.map Element.text
+                )
+                [ [ "SmokeSignal messages are formatted with markdown (e.g. *italic*, **bold**, [link-title](url))." ]
+                , [ "Hackmd.io is useful for drafting and previewing markdown text." ]
+                ]
 
 
 phaceElement : Address -> Bool -> Element Msg
@@ -352,110 +529,6 @@ phaceElement fromAddress showAddress =
         <|
             Element.html
                 (Phace.fromEthAddress fromAddress)
-
-
-web3ConnectButton : Element Msg
-web3ConnectButton =
-    EH.redButton
-        Desktop
-        []
-        [ "Connect to Wallet" ]
-        ConnectToWeb3
-
-
-unlockButton : Element Msg
-unlockButton =
-    EH.redButton
-        Desktop
-        []
-        [ "Unlock Dai" ]
-        UnlockDai
-
-
-submitButton : ComposeUXModel -> Maybe TokenValue -> Element Msg
-submitButton composeModel maybeUserBalance =
-    case validateInputs composeModel of
-        Nothing ->
-            EH.disabledButton
-                Desktop
-                []
-                "Burn Message"
-                Nothing
-
-        Just (Err errStr) ->
-            EH.disabledButton
-                Desktop
-                [ Element.Font.color EH.softRed
-                , Element.Font.italic
-                ]
-                errStr
-                Nothing
-
-        Just (Ok validatedInputs) ->
-            let
-                balanceTooLow =
-                    maybeUserBalance
-                        |> Maybe.map
-                            (\balance ->
-                                TokenValue.compare validatedInputs.burnAmount balance == GT
-                            )
-                        |> Maybe.withDefault False
-            in
-            if balanceTooLow then
-                EH.disabledButton
-                    Desktop
-                    []
-                    "Not enough Dai"
-                    Nothing
-
-            else
-                EH.redButton
-                    Desktop
-                    []
-                    [ "Burn message" ]
-                    (Submit validatedInputs)
-
-
-burnAmountInput : String -> Element Msg
-burnAmountInput daiInput =
-    Element.row []
-        [ Element.Input.text
-            [ Element.width <| Element.px 100 ]
-            { onChange = DaiInputChanged
-            , text = daiInput
-            , placeholder = Nothing
-            , label = Element.Input.labelHidden "amount to burn"
-            }
-        ]
-
-
-composeMessageButton : Element Msg
-composeMessageButton =
-    EH.blueButton
-        Desktop
-        []
-        [ "Compose Message" ]
-        ComposeMessage
-
-
-messageInputPlaceholder : Element.Input.Placeholder Msg
-messageInputPlaceholder =
-    Element.Input.placeholder [] <|
-        Element.column
-            [ Element.width Element.fill
-            , Element.spacing 10
-            ]
-        <|
-            List.map
-                (Element.paragraph
-                    [ Element.Font.color EH.darkGray
-                    , Element.Font.italic
-                    ]
-                    << List.map Element.text
-                )
-                [ [ "SmokeSignal messages are formatted with markdown (e.g. *italic*, **bold**, [link-title](url))." ]
-                , [ "Hackmd.io is useful for drafting and previewing markdown text." ]
-                ]
 
 
 daiSymbol : List (Attribute Msg) -> Element Msg

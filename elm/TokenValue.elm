@@ -291,3 +291,8 @@ removeUnnecessaryZerosAndDots numString =
 maxTokenValue : TokenValue
 maxTokenValue =
     tokenValue EthHelpers.maxUintValue
+
+
+isMaxTokenValue : TokenValue -> Bool
+isMaxTokenValue tv =
+    compare tv maxTokenValue == EQ

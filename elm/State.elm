@@ -23,6 +23,7 @@ import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
 import Task
 import Time
+import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import Url exposing (Url)
 import Wallet
@@ -66,11 +67,9 @@ init flags =
       , now = Time.millisToPosix flags.nowInMillis
       , txSentry = txSentry
       , eventSentry = eventSentry
-      , userBalance = Nothing
-      , userAllowance = Nothing
       , messages = []
       , showingAddress = Nothing
-      , showMessageInput = False
+      , showComposeUX = False
       , composeUXModel = ComposeUXModel "" "" True
       , blockTimes = Dict.empty
       }
@@ -101,16 +100,28 @@ update msg prevModel =
             case walletSentryResult of
                 Ok walletSentry ->
                     let
-                        newWallet =
+                        ( newWallet, cmd ) =
                             case walletSentry.account of
-                                Just address ->
-                                    Wallet.Active <|
-                                        UserInfo
-                                            walletSentry.networkId
-                                            address
+                                Just newAddress ->
+                                    if (prevModel.wallet |> Wallet.userInfo |> Maybe.map .address) == Just newAddress then
+                                        ( prevModel.wallet
+                                        , Cmd.none
+                                        )
+
+                                    else
+                                        ( Wallet.Active <|
+                                            UserInfo
+                                                walletSentry.networkId
+                                                newAddress
+                                                Nothing
+                                                Nothing
+                                        , fetchDaiBalanceAndAllowanceCmd newAddress
+                                        )
 
                                 Nothing ->
-                                    Wallet.OnlyNetwork walletSentry.networkId
+                                    ( Wallet.OnlyNetwork walletSentry.networkId
+                                    , Cmd.none
+                                    )
                     in
                     ( { prevModel
                         | wallet = newWallet
@@ -227,37 +238,61 @@ update msg prevModel =
             , cmd
             )
 
-        BalanceFetched fetchResult ->
-            case fetchResult of
-                Ok balance ->
-                    ( { prevModel | userBalance = Just balance }
-                    , Cmd.none
-                    )
+        BalanceFetched address fetchResult ->
+            let
+                maybeCurrentAddress =
+                    Wallet.userInfo prevModel.wallet
+                        |> Maybe.map .address
+            in
+            if maybeCurrentAddress /= Just address then
+                ( prevModel, Cmd.none )
 
-                Err httpErr ->
-                    let
-                        _ =
-                            maybeDebugLog "http error at BalanceFetched" httpErr
-                    in
-                    ( prevModel, Cmd.none )
+            else
+                case fetchResult of
+                    Ok balance ->
+                        ( { prevModel
+                            | wallet =
+                                prevModel.wallet |> Wallet.withFetchedBalance balance
+                          }
+                        , Cmd.none
+                        )
 
-        AllowanceFetched fetchResult ->
-            case fetchResult of
-                Ok allowance ->
-                    ( { prevModel | userAllowance = Just allowance }
-                    , Cmd.none
-                    )
+                    Err httpErr ->
+                        let
+                            _ =
+                                maybeDebugLog "http error at BalanceFetched" httpErr
+                        in
+                        ( prevModel, Cmd.none )
 
-                Err httpErr ->
-                    let
-                        _ =
-                            maybeDebugLog "http error at AllowanceFetched" httpErr
-                    in
-                    ( prevModel, Cmd.none )
+        AllowanceFetched address fetchResult ->
+            let
+                maybeCurrentAddress =
+                    Wallet.userInfo prevModel.wallet
+                        |> Maybe.map .address
+            in
+            if maybeCurrentAddress /= Just address then
+                ( prevModel, Cmd.none )
 
-        ComposeMessage ->
+            else
+                case fetchResult of
+                    Ok allowance ->
+                        ( { prevModel
+                            | wallet =
+                                prevModel.wallet |> Wallet.withFetchedAllowance allowance
+                          }
+                        , Cmd.none
+                        )
+
+                    Err httpErr ->
+                        let
+                            _ =
+                                maybeDebugLog "http error at AllowanceFetched" httpErr
+                        in
+                        ( prevModel, Cmd.none )
+
+        ShowComposeUX flag ->
             ( { prevModel
-                | showMessageInput = True
+                | showComposeUX = flag
               }
             , Cmd.none
             )
@@ -273,7 +308,7 @@ update msg prevModel =
         DonationCheckboxSet flag ->
             ( { prevModel
                 | composeUXModel =
-                    prevModel.composeUXModel |> updateDonteChecked flag
+                    prevModel.composeUXModel |> updateDonateChecked flag
               }
             , Cmd.none
             )
@@ -359,8 +394,8 @@ fetchMessagesFromBlockrangeCmd from to testMode sentry =
 fetchDaiBalanceAndAllowanceCmd : Address -> Cmd Msg
 fetchDaiBalanceAndAllowanceCmd address =
     Cmd.batch
-        [ Dai.getAllowanceCmd address AllowanceFetched
-        , Dai.getBalanceCmd address BalanceFetched
+        [ Dai.getAllowanceCmd address (AllowanceFetched address)
+        , Dai.getBalanceCmd address (BalanceFetched address)
         ]
 
 

@@ -5,6 +5,7 @@ import Config
 import Eth.Net
 import Eth.Types exposing (Address, HttpProvider, TxHash, WebsocketProvider)
 import Helpers.Eth as EthHelpers
+import TokenValue exposing (TokenValue)
 
 
 type State
@@ -34,3 +35,25 @@ network walletState =
 
         Active uInfo ->
             Just uInfo.network
+
+
+withFetchedBalance : TokenValue -> State -> State
+withFetchedBalance balance wallet =
+    case wallet of
+        Active uInfo ->
+            Active <|
+                (uInfo |> withBalance balance)
+        _ ->
+            wallet
+    
+
+
+withFetchedAllowance : TokenValue -> State -> State
+withFetchedAllowance allowance wallet =
+    case wallet of
+        Active uInfo ->
+            Active <|
+                (uInfo |> withAllowance allowance)
+        _ ->
+            wallet
+    

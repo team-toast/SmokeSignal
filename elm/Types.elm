@@ -29,11 +29,9 @@ type alias Model =
     , now : Time.Posix
     , txSentry : TxSentry Msg
     , eventSentry : EventSentry Msg
-    , userBalance : Maybe TokenValue
-    , userAllowance : Maybe TokenValue
     , messages : List Message
     , showingAddress : Maybe Address
-    , showMessageInput : Bool
+    , showComposeUX : Bool
     , composeUXModel : ComposeUXModel
     , blockTimes : Dict Int Time.Posix
     }
@@ -52,9 +50,9 @@ type Msg
     | HideAddress
     | ConnectToWeb3
     | UnlockDai
-    | AllowanceFetched (Result Http.Error TokenValue)
-    | BalanceFetched (Result Http.Error TokenValue)
-    | ComposeMessage
+    | AllowanceFetched Address (Result Http.Error TokenValue)
+    | BalanceFetched Address (Result Http.Error TokenValue)
+    | ShowComposeUX Bool
     | MessageInputChanged String
     | DaiInputChanged String
     | DonationCheckboxSet Bool
@@ -89,8 +87,8 @@ updateDaiInput input m =
     { m | daiInput = input }
 
 
-updateDonteChecked : Bool -> ComposeUXModel -> ComposeUXModel
-updateDonteChecked flag m =
+updateDonateChecked : Bool -> ComposeUXModel -> ComposeUXModel
+updateDonateChecked flag m =
     { m | donateChecked = flag }
 
 
@@ -133,24 +131,4 @@ validateInputs composeModel =
             )
 
 
-type alias AccountInfo =
-    { address : Maybe Address
-    , balance : Maybe TokenValue
-    , isUnlocked : Maybe Bool
-    }
 
-
-makeAccountInfo : Model -> AccountInfo
-makeAccountInfo model =
-    AccountInfo
-        (model.wallet
-            |> Wallet.userInfo
-            |> Maybe.map .address
-        )
-        model.userBalance
-        (model.userAllowance
-            |> Maybe.map
-                (\allowance ->
-                    TokenValue.compare allowance TokenValue.maxTokenValue == EQ
-                )
-        )
