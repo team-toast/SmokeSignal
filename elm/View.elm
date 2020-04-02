@@ -40,8 +40,6 @@ body model =
     Element.column
         [ Element.width Element.fill
         , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
-        , Element.padding 20
-        , Element.spacing 30
         , Element.inFront <|
             if model.showComposeUX then
                 Element.none
@@ -65,6 +63,17 @@ body model =
         ]
 
 
+title : Element Msg
+title =
+    Element.el
+        [ Element.Font.size 40
+        , Element.Font.bold
+        , Element.padding 30
+        ]
+    <|
+        Element.text "SmokeSignal"
+
+
 viewMinimizedComposeUX : Maybe UserInfo -> Maybe Address -> Element Msg
 viewMinimizedComposeUX maybeUserInfo showingAddress =
     let
@@ -79,12 +88,7 @@ viewMinimizedComposeUX maybeUserInfo showingAddress =
                 , bottomRight = 0
                 , bottomLeft = 0
                 }
-            , Element.Border.shadow
-                { offset = ( 0, 0 )
-                , size = 0
-                , blur = 10
-                , color = EH.darkGray
-                }
+            , composeUXShadow
             , Element.Border.color (Element.rgba 0 0 1 0.5)
             , Element.Border.widthEach
                 { top = 1
@@ -108,23 +112,22 @@ viewMinimizedComposeUX maybeUserInfo showingAddress =
                        ]
                 )
             <|
-                [phaceElement accountInfo.address False
+                [ phaceElement accountInfo.address False
                 , EH.blueButton
                     Mobile
                     [ Element.width Element.fill ]
-                    ["Compose"]
+                    [ "Compose" ]
                     (ShowComposeUX True)
                 ]
 
-
-title : Element Msg
-title =
-    Element.el
-        [ Element.Font.size 40
-        , Element.Font.bold
-        ]
-    <|
-        Element.text "SmokeSignal"
+composeUXShadow : Attribute Msg
+composeUXShadow =
+    Element.Border.shadow
+        { offset = ( 0, 0 )
+        , size = 0
+        , blur = 10
+        , color = EH.darkGray
+        }
 
 
 viewMessages : Dict Int Time.Posix -> List Message -> Maybe Address -> Element Msg
@@ -139,6 +142,7 @@ viewMessages blockTimes messages showingAddress =
         , Element.height Element.fill
         , Element.scrollbarY
         , Element.spacing 20
+        , Element.padding 20
         ]
     <|
         List.map
@@ -286,8 +290,8 @@ viewComposeUX : Maybe UserInfo -> Maybe Address -> ComposeUXModel -> Element Msg
 viewComposeUX maybeUserInfo showingAddress composeUXModel =
     Element.column
         [ Element.width Element.fill
-        , Element.spacing 10
         , Element.Background.color EH.lightBlue
+        , composeUXShadow
         , Element.Border.roundEach
             { topLeft = 0
             , topRight = 10
@@ -297,19 +301,20 @@ viewComposeUX maybeUserInfo showingAddress composeUXModel =
         , Element.above <|
             Element.el
                 [ Element.alignLeft
-                , Element.Background.color EH.lightBlue
-                , Element.paddingEach
-                    { bottom = 0
-                    , top = 10
-                    , right = 10
-                    , left = 10
-                    }
-                , Element.Border.roundEach
-                    { topRight = 10
-                    , topLeft = 10
-                    , bottomRight = 0
-                    , bottomLeft = 0
-                    }
+                -- , Element.Background.color EH.lightBlue
+                -- , composeUXShadow
+                -- , Element.paddingEach
+                --     { bottom = 0
+                --     , top = 10
+                --     , right = 10
+                --     , left = 10
+                --     }
+                -- , Element.Border.roundEach
+                --     { topRight = 10
+                --     , topLeft = 10
+                --     , bottomRight = 0
+                --     , bottomLeft = 0
+                --     }
                 ]
             <|
                 EH.blueButton
