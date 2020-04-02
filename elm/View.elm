@@ -67,35 +67,54 @@ body model =
 
 viewMinimizedComposeUX : Maybe UserInfo -> Maybe Address -> Element Msg
 viewMinimizedComposeUX maybeUserInfo showingAddress =
-    Element.el
-        [ Element.alignRight
-        , Element.alignBottom
-        , Element.Background.color EH.lightGray
-        , Element.padding 10
-        , Element.Border.roundEach
-            { topLeft = 10
-            , topRight = 0
-            , bottomRight = 0
-            , bottomLeft = 0
-            }
-        , Element.Border.widthEach
-            { top = 1
-            , left = 1
-            , right = 0
-            , bottom = 0
-            }
-        ]
-    <|
-        case maybeUserInfo of
-            Nothing ->
+    let
+        commonAttributes =
+            [ Element.alignLeft
+            , Element.alignBottom
+            , Element.Background.color EH.lightBlue
+            , Element.padding 10
+            , Element.Border.roundEach
+                { topLeft = 0
+                , topRight = 10
+                , bottomRight = 0
+                , bottomLeft = 0
+                }
+            , Element.Border.shadow
+                { offset = ( 0, 0 )
+                , size = 0
+                , blur = 10
+                , color = EH.darkGray
+                }
+            , Element.Border.color (Element.rgba 0 0 1 0.5)
+            , Element.Border.widthEach
+                { top = 1
+                , right = 1
+                , bottom = 0
+                , left = 0
+                }
+            ]
+    in
+    case maybeUserInfo of
+        Nothing ->
+            Element.el commonAttributes <|
                 web3ConnectButton []
 
-            Just accountInfo ->
-                Element.column
-                    [ Element.spacing 10 ]
-                    [ phaceElement accountInfo.address (showingAddress == Just accountInfo.address)
-                    , showComposeUXButton
-                    ]
+        Just accountInfo ->
+            Element.column
+                (commonAttributes
+                    ++ [ Element.pointer
+                       , Element.Events.onClick (ShowComposeUX True)
+                       , Element.spacing 3
+                       ]
+                )
+            <|
+                [phaceElement accountInfo.address False
+                , EH.blueButton
+                    Mobile
+                    [ Element.width Element.fill ]
+                    ["Compose"]
+                    (ShowComposeUX True)
+                ]
 
 
 title : Element Msg
@@ -268,6 +287,36 @@ viewComposeUX maybeUserInfo showingAddress composeUXModel =
     Element.column
         [ Element.width Element.fill
         , Element.spacing 10
+        , Element.Background.color EH.lightBlue
+        , Element.Border.roundEach
+            { topLeft = 0
+            , topRight = 10
+            , bottomRight = 10
+            , bottomLeft = 10
+            }
+        , Element.above <|
+            Element.el
+                [ Element.alignLeft
+                , Element.Background.color EH.lightBlue
+                , Element.paddingEach
+                    { bottom = 0
+                    , top = 10
+                    , right = 10
+                    , left = 10
+                    }
+                , Element.Border.roundEach
+                    { topRight = 10
+                    , topLeft = 10
+                    , bottomRight = 0
+                    , bottomLeft = 0
+                    }
+                ]
+            <|
+                EH.blueButton
+                    Mobile
+                    []
+                    [ "Hide" ]
+                    (ShowComposeUX False)
         ]
         [ messageInputBox composeUXModel.message
         , actionFormAndMaybeError maybeUserInfo showingAddress composeUXModel
@@ -276,16 +325,29 @@ viewComposeUX maybeUserInfo showingAddress composeUXModel =
 
 messageInputBox : String -> Element Msg
 messageInputBox input =
-    Element.Input.multiline
+    Element.el
         [ Element.width Element.fill
-        , Element.height (Element.px 300)
+        , Element.padding 10
+        , Element.Border.roundEach
+            { bottomRight = 0
+            , bottomLeft = 10
+            , topRight = 10
+            , topLeft = 10
+            }
+        , Element.Background.color EH.lightBlue
         ]
-        { onChange = MessageInputChanged
-        , text = input
-        , placeholder = Just messageInputPlaceholder
-        , label = Element.Input.labelHidden "messageInput"
-        , spellcheck = True
-        }
+    <|
+        Element.Input.multiline
+            [ Element.width Element.fill
+            , Element.height (Element.px 300)
+            , Element.Background.color <| Element.rgba 1 1 1 0.5
+            ]
+            { onChange = MessageInputChanged
+            , text = input
+            , placeholder = Just messageInputPlaceholder
+            , label = Element.Input.labelHidden "messageInput"
+            , spellcheck = True
+            }
 
 
 actionFormAndMaybeError : Maybe UserInfo -> Maybe Address -> ComposeUXModel -> Element Msg
@@ -473,7 +535,7 @@ loadingElement attrs maybeString =
 web3ConnectButton : List (Attribute Msg) -> Element Msg
 web3ConnectButton attrs =
     EH.redButton
-        Desktop
+        Mobile
         attrs
         [ "Connect to Wallet" ]
         ConnectToWeb3
