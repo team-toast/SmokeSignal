@@ -26,6 +26,7 @@ import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import Url exposing (Url)
+import UserNotice as UN exposing (UserNotice)
 import Wallet
 
 
@@ -36,16 +37,16 @@ init flags =
         testMode =
             False
 
-        wallet =
+        ( wallet, walletNotices ) =
             if flags.networkId == 0 then
-                let
-                    _ =
-                        maybeDebugLog "No web3 wallet detected" ""
-                in
-                Wallet.NoneDetected
+                ( Wallet.NoneDetected
+                , [ UN.noWeb3Provider ]
+                )
 
             else
-                Wallet.OnlyNetwork <| Eth.Net.toNetworkId flags.networkId
+                ( Wallet.OnlyNetwork <| Eth.Net.toNetworkId flags.networkId
+                , []
+                )
 
         txSentry =
             TxSentry.init
@@ -72,6 +73,8 @@ init flags =
       , showComposeUX = False
       , composeUXModel = ComposeUXModel "" "" True
       , blockTimes = Dict.empty
+      , userNotices =
+            walletNotices
       }
     , Cmd.batch
         [ initEventSentryCmd
@@ -130,11 +133,9 @@ update msg prevModel =
                     )
 
                 Err errStr ->
-                    let
-                        _ =
-                            maybeDebugLog "Error with WalletStatus Msg" errStr
-                    in
-                    ( prevModel, Cmd.none )
+                    ( prevModel |> addUserNotice (UN.walletError errStr)
+                    , Cmd.none
+                    )
 
         TxSentryMsg subMsg ->
             let
@@ -164,11 +165,9 @@ update msg prevModel =
             in
             case decodedEventLog.returnData of
                 Err err ->
-                    let
-                        _ =
-                            maybeDebugLog "Error decoding contract event" err
-                    in
-                    ( prevModel, Cmd.none )
+                    ( prevModel |> addUserNotice (UN.eventDecodeError err)
+                    , Cmd.none
+                    )
 
                 Ok ssMessage ->
                     ( { prevModel
@@ -203,11 +202,7 @@ update msg prevModel =
         ConnectToWeb3 ->
             case prevModel.wallet of
                 Wallet.NoneDetected ->
-                    let
-                        _ =
-                            maybeDebugLog "no web3 detected" ""
-                    in
-                    ( prevModel
+                    ( prevModel |> addUserNotice UN.cantConnectNoWeb3
                     , Cmd.none
                     )
 
@@ -258,11 +253,10 @@ update msg prevModel =
                         )
 
                     Err httpErr ->
-                        let
-                            _ =
-                                maybeDebugLog "http error at BalanceFetched" httpErr
-                        in
-                        ( prevModel, Cmd.none )
+                        ( prevModel
+                            |> addUserNotice (UN.web3FetchError "DAI balance" httpErr)
+                        , Cmd.none
+                        )
 
         AllowanceFetched address fetchResult ->
             let
@@ -284,11 +278,10 @@ update msg prevModel =
                         )
 
                     Err httpErr ->
-                        let
-                            _ =
-                                maybeDebugLog "http error at AllowanceFetched" httpErr
-                        in
-                        ( prevModel, Cmd.none )
+                        ( prevModel
+                            |> addUserNotice (UN.web3FetchError "DAI unlock status" httpErr)
+                        , Cmd.none
+                        )
 
         ShowComposeUX flag ->
             ( { prevModel
@@ -349,11 +342,10 @@ update msg prevModel =
         BlockTimeFetched blocknum timeResult ->
             case timeResult of
                 Err httpErr ->
-                    let
-                        _ =
-                            maybeDebugLog "http error at BlockTimeFetched" httpErr
-                    in
-                    ( prevModel, Cmd.none )
+                    ( prevModel
+                        |> addUserNotice (UN.web3FetchError "block time" httpErr)
+                    , Cmd.none
+                    )
 
                 Ok time ->
                     ( { prevModel
@@ -363,20 +355,17 @@ update msg prevModel =
                       }
                     , Cmd.none
                     )
+        
+        DismissNotice id ->
+            ( { prevModel
+                | userNotices =
+                    prevModel.userNotices |> List.Extra.removeAt id
+              }
+            , Cmd.none
+            )
 
         NoOp ->
             ( prevModel, Cmd.none )
-
-        ClickHappened ->
-            ( prevModel, Cmd.none )
-
-        Test s ->
-            let
-                _ =
-                    maybeDebugLog "test" s
-            in
-            ( prevModel, Cmd.none )
-
 
 fetchMessagesFromBlockrangeCmd : Eth.Types.BlockId -> Eth.Types.BlockId -> Bool -> EventSentry Msg -> ( EventSentry Msg, Cmd Msg, EventSentry.Ref )
 fetchMessagesFromBlockrangeCmd from to testMode sentry =
@@ -406,6 +395,22 @@ getBlockTimeCmd blocknum =
         blocknum
         |> Task.map .timestamp
         |> Task.attempt (BlockTimeFetched blocknum)
+
+
+addUserNotice : UserNotice Msg -> Model -> Model
+addUserNotice notice model =
+    model
+        |> addUserNotices [ notice ]
+
+
+addUserNotices : List (UserNotice Msg) -> Model -> Model
+addUserNotices notices model =
+    { model
+        | userNotices =
+            List.append
+                model.userNotices
+                notices
+    }
 
 
 subscriptions : Model -> Sub Msg

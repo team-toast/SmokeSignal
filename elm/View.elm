@@ -20,6 +20,7 @@ import Phace
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
+import UserNotice as UN exposing (UserNotice)
 import Wallet
 
 
@@ -38,9 +39,9 @@ root model =
 body : Model -> Element Msg
 body model =
     Element.column
-        [ Element.width Element.fill
-        , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
-        , Element.inFront <|
+        ([ Element.width Element.fill
+         , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
+         , Element.inFront <|
             if model.showComposeUX then
                 Element.none
 
@@ -48,7 +49,11 @@ body model =
                 viewMinimizedComposeUX
                     (Wallet.userInfo model.wallet)
                     model.showingAddress
-        ]
+         ]
+            ++ List.map
+                Element.inFront
+                (userNoticeEls Desktop model.userNotices)
+        )
         [ title
         , viewMessages model.blockTimes model.messages model.showingAddress
         , if model.showComposeUX then
@@ -653,6 +658,109 @@ phaceElement fromAddress showAddress =
         <|
             Element.html
                 (Phace.fromEthAddress fromAddress)
+
+
+userNoticeEls : DisplayProfile -> List (UserNotice Msg) -> List (Element Msg)
+userNoticeEls dProfile notices =
+    if notices == [] then
+        []
+
+    else
+        [ Element.column
+            [ Element.moveLeft (20 |> changeForMobile 5 dProfile)
+            , Element.moveUp (20 |> changeForMobile 5 dProfile)
+            , Element.spacing (10 |> changeForMobile 5 dProfile)
+            , Element.alignRight
+            , Element.alignBottom
+            , Element.width <| Element.px (300 |> changeForMobile 150 dProfile)
+            , Element.Font.size (15 |> changeForMobile 10 dProfile)
+            ]
+            (notices
+                |> List.indexedMap (\id notice -> ( id, notice ))
+                |> List.filter (\( _, notice ) -> notice.align == UN.BottomRight)
+                |> List.map (userNotice dProfile)
+            )
+        , Element.column
+            [ Element.moveRight (20 |> changeForMobile 5 dProfile)
+            , Element.moveDown 100
+            , Element.spacing (10 |> changeForMobile 5 dProfile)
+            , Element.alignLeft
+            , Element.alignTop
+            , Element.width <| Element.px (300 |> changeForMobile 150 dProfile)
+            , Element.Font.size (15 |> changeForMobile 10 dProfile)
+            ]
+            (notices
+                |> List.indexedMap (\id notice -> ( id, notice ))
+                |> List.filter (\( _, notice ) -> notice.align == UN.TopLeft)
+                |> List.map (userNotice dProfile)
+            )
+        ]
+
+
+userNotice : DisplayProfile -> ( Int, UserNotice Msg ) -> Element Msg
+userNotice dProfile ( id, notice ) =
+    let
+        color =
+            case notice.noticeType of
+                UN.Update ->
+                    Element.rgb255 100 200 255
+
+                UN.Caution ->
+                    Element.rgb255 255 188 0
+
+                UN.Error ->
+                    Element.rgb255 255 70 70
+
+                UN.ShouldBeImpossible ->
+                    Element.rgb255 200 200 200
+
+        textColor =
+            case notice.noticeType of
+                UN.Error ->
+                    Element.rgb 1 1 1
+
+                _ ->
+                    Element.rgb 0 0 0
+
+        closeElement =
+            Element.el
+                [ Element.alignRight
+                , Element.alignTop
+                , Element.moveUp 5
+                , Element.moveRight 5
+                ]
+                (EH.closeButton True (DismissNotice id))
+    in
+    Element.el
+        [ Element.Background.color color
+        , Element.Border.rounded (10 |> changeForMobile 5 dProfile)
+        , Element.padding (8 |> changeForMobile 3 dProfile)
+        , Element.width Element.fill
+        , Element.Border.width 1
+        , Element.Border.color <| Element.rgba 0 0 0 0.15
+        , EH.subtleShadow
+        , EH.onClickNoPropagation NoOp
+        ]
+        (notice.mainParagraphs
+            |> List.indexedMap
+                (\pNum paragraphLines ->
+                    Element.paragraph
+                        [ Element.width Element.fill
+                        , Element.Font.color textColor
+                        , Element.spacing 1
+                        ]
+                        (if pNum == 0 then
+                            closeElement :: paragraphLines
+
+                         else
+                            paragraphLines
+                        )
+                )
+            |> Element.column
+                [ Element.spacing 4
+                , Element.width Element.fill
+                ]
+        )
 
 
 daiSymbol : List (Attribute Msg) -> Element Msg

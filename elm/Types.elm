@@ -1,5 +1,6 @@
 module Types exposing (..)
 
+import UserNotice as UN exposing (UserNotice)
 import Browser
 import Browser.Navigation
 import CommonTypes exposing (..)
@@ -34,12 +35,12 @@ type alias Model =
     , showComposeUX : Bool
     , composeUXModel : ComposeUXModel
     , blockTimes : Dict Int Time.Posix
+    , userNotices : List (UserNotice Msg)
     }
 
 
 type Msg
     = NoOp
-    | ClickHappened
     | Tick Time.Posix
     | EveryFewSeconds
     | WalletStatus (Result String WalletSentry)
@@ -58,7 +59,7 @@ type Msg
     | DonationCheckboxSet Bool
     | Submit ValidatedInputs
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
-    | Test String
+    | DismissNotice Int
 
 
 type alias Message =

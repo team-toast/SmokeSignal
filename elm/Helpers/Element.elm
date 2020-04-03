@@ -619,7 +619,6 @@ disabledButton dProfile attributes text maybeTipText =
          , Element.Font.semiBold
          , Element.Background.color lightGray
          , Element.Font.center
-         
          , noSelectText
          , Element.above <|
             maybeErrorElement
@@ -628,7 +627,7 @@ disabledButton dProfile attributes text maybeTipText =
          ]
             ++ attributes
         )
-        (Element.el [ Element.centerY , Element.centerX] <| Element.text text)
+        (Element.el [ Element.centerY, Element.centerX ] <| Element.text text)
 
 
 orangeButton : DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
@@ -655,6 +654,25 @@ grayButton dProfile attributes text msg =
         black
         text
         msg
+
+
+closeButton : Bool -> msg -> Element msg
+closeButton isBlack msg =
+    Element.el
+        [ Element.padding 10
+        , Element.Events.onClick msg
+        , Element.pointer
+        ]
+        (Element.image [ Element.width <| Element.px 22 ]
+            { src =
+                if isBlack then
+                    "img/remove-circle-black.svg"
+
+                else
+                    "img/remove-circle-white.svg"
+            , description = "close"
+            }
+        )
 
 
 
