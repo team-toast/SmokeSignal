@@ -120,6 +120,7 @@ viewMinimizedComposeUX maybeUserInfo showingAddress =
                     (ShowComposeUX True)
                 ]
 
+
 composeUXShadow : Attribute Msg
 composeUXShadow =
     Element.Border.shadow
@@ -142,7 +143,12 @@ viewMessages blockTimes messages showingAddress =
         , Element.height Element.fill
         , Element.scrollbarY
         , Element.spacing 20
-        , Element.padding 20
+        , Element.paddingEach
+            { bottom = 140
+            , top = 20
+            , right = 20
+            , left = 20
+            }
         ]
     <|
         List.map
@@ -301,6 +307,7 @@ viewComposeUX maybeUserInfo showingAddress composeUXModel =
         , Element.above <|
             Element.el
                 [ Element.alignLeft
+
                 -- , Element.Background.color EH.lightBlue
                 -- , composeUXShadow
                 -- , Element.paddingEach
