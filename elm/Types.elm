@@ -1,6 +1,5 @@
 module Types exposing (..)
 
-import UserNotice as UN exposing (UserNotice)
 import Browser
 import Browser.Navigation
 import CommonTypes exposing (..)
@@ -9,11 +8,12 @@ import Dict exposing (Dict)
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet as WalletSentry exposing (WalletSentry)
-import Eth.Types exposing (Address)
+import Eth.Types exposing (Address, Hex)
 import Http
 import Time
 import TokenValue exposing (TokenValue)
 import Url
+import UserNotice as UN exposing (UserNotice)
 import Wallet
 
 
@@ -30,11 +30,12 @@ type alias Model =
     , now : Time.Posix
     , txSentry : TxSentry Msg
     , eventSentry : EventSentry Msg
-    , messages : List Message
+    , messages : Dict String Message -- Can't use Hex type, as Elm is silly with what is and is not comparable
     , showingAddress : Maybe Address
     , showComposeUX : Bool
     , composeUXModel : ComposeUXModel
     , blockTimes : Dict Int Time.Posix
+    , showAddress : Maybe PhaceId
     , userNotices : List (UserNotice Msg)
     }
 
@@ -47,7 +48,7 @@ type Msg
     | TxSentryMsg TxSentry.Msg
     | EventSentryMsg EventSentry.Msg
     | MessageLogReceived Eth.Types.Log
-    | ShowAddress Address
+    | ShowAddress PhaceId
     | HideAddress
     | ConnectToWeb3
     | UnlockDai
@@ -63,12 +64,16 @@ type Msg
 
 
 type alias Message =
-    { hash : Eth.Types.Hex
-    , block : Int
-    , from : Address
+    { block : Int
+    , author : Address
     , burnAmount : TokenValue
     , message : String
     }
+
+
+type PhaceId
+    = MessageAuthor Hex
+    | User
 
 
 type alias ComposeUXModel =

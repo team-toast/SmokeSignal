@@ -10,7 +10,7 @@ import Element.Border
 import Element.Events
 import Element.Font
 import Element.Input
-import Eth.Types exposing (Address)
+import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Helpers.Element as EH
 import Helpers.Time as TimeHelpers
@@ -47,21 +47,50 @@ body model =
 
             else
                 viewMinimizedComposeUX
-                    (Wallet.userInfo model.wallet)
-                    model.showingAddress
+                    (Wallet.userInfo model.wallet
+                        |> Maybe.map
+                            (\userInfo ->
+                                ( userInfo
+                                , model.showAddress == Just User
+                                )
+                            )
+                    )
          ]
             ++ List.map
                 Element.inFront
                 (userNoticeEls Desktop model.userNotices)
         )
         [ title
-        , viewMessages model.blockTimes model.messages model.showingAddress
+        , viewMessages
+            model.blockTimes
+            model.messages
+            (model.showAddress
+                |> Maybe.andThen
+                    (\phaceId ->
+                        case phaceId of
+                            MessageAuthor hash ->
+                                Just hash
+
+                            User ->
+                                Nothing
+                    )
+            )
         , if model.showComposeUX then
             Element.el
                 [ Element.width Element.fill
                 , Element.alignBottom
                 ]
-                (viewComposeUX (Wallet.userInfo model.wallet) model.showingAddress model.composeUXModel)
+                (viewComposeUX
+                    (Wallet.userInfo model.wallet
+                        |> Maybe.map
+                            (\userInfo ->
+                                ( userInfo
+                                , model.showAddress == Just User
+                                )
+                            )
+                    )
+                    model.composeUXModel
+                )
 
           else
             Element.none
@@ -79,8 +108,8 @@ title =
         Element.text "SmokeSignal"
 
 
-viewMinimizedComposeUX : Maybe UserInfo -> Maybe Address -> Element Msg
-viewMinimizedComposeUX maybeUserInfo showingAddress =
+viewMinimizedComposeUX : Maybe ( UserInfo, Bool ) -> Element Msg
+viewMinimizedComposeUX maybeUserInfoAndShowAddress =
     let
         commonAttributes =
             [ Element.alignLeft
@@ -103,12 +132,12 @@ viewMinimizedComposeUX maybeUserInfo showingAddress =
                 }
             ]
     in
-    case maybeUserInfo of
+    case maybeUserInfoAndShowAddress of
         Nothing ->
             Element.el commonAttributes <|
                 web3ConnectButton []
 
-        Just accountInfo ->
+        Just ( accountInfo, showAddress ) ->
             Element.column
                 (commonAttributes
                     ++ [ Element.pointer
@@ -117,7 +146,10 @@ viewMinimizedComposeUX maybeUserInfo showingAddress =
                        ]
                 )
             <|
-                [ phaceElement accountInfo.address False
+                [ phaceElement
+                    User
+                    accountInfo.address
+                    showAddress
                 , EH.blueButton
                     Mobile
                     [ Element.width Element.fill ]
@@ -136,8 +168,8 @@ composeUXShadow =
         }
 
 
-viewMessages : Dict Int Time.Posix -> List Message -> Maybe Address -> Element Msg
-viewMessages blockTimes messages showingAddress =
+viewMessages : Dict Int Time.Posix -> Dict String Message -> Maybe Hex -> Element Msg
+viewMessages blockTimes messages maybeShowAddressForMessage =
     let
         structuredMessageList =
             sortMessagesByBlock messages
@@ -206,7 +238,11 @@ viewMessages blockTimes messages showingAddress =
                             ]
                         , Element.column
                             [ Element.paddingXY 20 0 ]
-                            (List.map (viewMessage showingAddress) messagesForBlock)
+                            (Dict.map
+                                (viewMessage maybeShowAddressForMessage)
+                                messagesForBlock
+                                |> Dict.values
+                            )
                         ]
                 )
                 structuredMessageList
@@ -230,15 +266,18 @@ posixToString t =
         ++ " (UTC)"
 
 
-sortMessagesByBlock : List Message -> Dict Int (List Message)
+sortMessagesByBlock : Dict String Message -> Dict Int (Dict String Message)
 sortMessagesByBlock messages =
     messages
+        |> Dict.toList
         |> Dict.Extra.groupBy
-            .block
+            (Tuple.second >> .block)
+        |> Dict.map
+            (always Dict.fromList)
 
 
-viewMessage : Maybe Address -> Message -> Element Msg
-viewMessage showingAddress message =
+viewMessage : Maybe Hex -> String -> Message -> Element Msg
+viewMessage maybeShowAddressForMessage hashIdString message =
     Element.row
         [ Element.width Element.fill
         , Element.spacing 20
@@ -248,7 +287,10 @@ viewMessage showingAddress message =
             , Element.height <| Element.px 100
             ]
           <|
-            phaceElement message.from (showingAddress == Just message.from)
+            phaceElement
+                (MessageAuthor (Eth.Utils.unsafeToHex hashIdString))
+                message.author
+                (maybeShowAddressForMessage == Just (Eth.Utils.unsafeToHex hashIdString))
         , Element.column
             [ Element.width <| Element.px 100
             , Element.alignTop
@@ -308,8 +350,8 @@ renderMarkdownParagraphs attributes =
             attributes
 
 
-viewComposeUX : Maybe UserInfo -> Maybe Address -> ComposeUXModel -> Element Msg
-viewComposeUX maybeUserInfo showingAddress composeUXModel =
+viewComposeUX : Maybe ( UserInfo, Bool ) -> ComposeUXModel -> Element Msg
+viewComposeUX maybeUserInfoAndShowAddress composeUXModel =
     Element.column
         [ Element.width Element.fill
         , Element.Background.color EH.lightBlue
@@ -347,7 +389,7 @@ viewComposeUX maybeUserInfo showingAddress composeUXModel =
                     (ShowComposeUX False)
         ]
         [ messageInputBox composeUXModel.message
-        , actionFormAndMaybeError maybeUserInfo showingAddress composeUXModel
+        , actionFormAndMaybeError maybeUserInfoAndShowAddress composeUXModel
         ]
 
 
@@ -378,11 +420,11 @@ messageInputBox input =
             }
 
 
-actionFormAndMaybeError : Maybe UserInfo -> Maybe Address -> ComposeUXModel -> Element Msg
-actionFormAndMaybeError maybeUserInfo showingAddress composeUXModel =
+actionFormAndMaybeError : Maybe ( UserInfo, Bool ) -> ComposeUXModel -> Element Msg
+actionFormAndMaybeError maybeUserInfoAndShowAddress composeUXModel =
     let
         ( actionFormEl, maybeInputErrorStr ) =
-            actionFormElAndMaybeError maybeUserInfo showingAddress composeUXModel
+            actionFormElAndMaybeError maybeUserInfoAndShowAddress composeUXModel
     in
     Element.row
         [ Element.alignLeft
@@ -395,10 +437,10 @@ actionFormAndMaybeError maybeUserInfo showingAddress composeUXModel =
         ]
 
 
-actionFormElAndMaybeError : Maybe UserInfo -> Maybe Address -> ComposeUXModel -> ( Element Msg, Maybe String )
-actionFormElAndMaybeError maybeUserInfo showingAddress composeUXModel =
-    case maybeUserInfo of
-        Just userInfo ->
+actionFormElAndMaybeError : Maybe ( UserInfo, Bool ) -> ComposeUXModel -> ( Element Msg, Maybe String )
+actionFormElAndMaybeError maybeUserInfoAndShowAddress composeUXModel =
+    case maybeUserInfoAndShowAddress of
+        Just ( userInfo, showAddress ) ->
             let
                 ( goButtonEl, maybeError ) =
                     goButtonAndMaybeError userInfo composeUXModel
@@ -409,7 +451,7 @@ actionFormElAndMaybeError maybeUserInfo showingAddress composeUXModel =
                 , Element.Background.color <| Element.rgb 0.8 0.8 1
                 , Element.Border.rounded 10
                 ]
-                [ phaceElement userInfo.address (showingAddress == Just userInfo.address)
+                [ phaceElement User userInfo.address showAddress
                 , inputsElement userInfo composeUXModel
                 , goButtonEl
                 ]
@@ -622,8 +664,8 @@ messageInputPlaceholder =
                 ]
 
 
-phaceElement : Address -> Bool -> Element Msg
-phaceElement fromAddress showAddress =
+phaceElement : PhaceId -> Address -> Bool -> Element Msg
+phaceElement phaceId fromAddress showAddress =
     let
         addressOutputEl isInFront =
             Element.el
@@ -663,7 +705,7 @@ phaceElement fromAddress showAddress =
             , Element.clip
             , Element.Border.width 2
             , Element.Border.color EH.black
-            , Element.Events.onMouseEnter (ShowAddress fromAddress)
+            , Element.Events.onMouseEnter (ShowAddress phaceId)
             , Element.Events.onMouseLeave HideAddress
             ]
         <|

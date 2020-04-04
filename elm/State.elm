@@ -68,11 +68,12 @@ init flags =
       , now = Time.millisToPosix flags.nowInMillis
       , txSentry = txSentry
       , eventSentry = eventSentry
-      , messages = []
+      , messages = Dict.empty
       , showingAddress = Nothing
       , showComposeUX = False
       , composeUXModel = ComposeUXModel "" "" True
       , blockTimes = Dict.empty
+      , showAddress = Nothing
       , userNotices =
             walletNotices
       }
@@ -173,14 +174,13 @@ update msg prevModel =
                     ( { prevModel
                         | messages =
                             prevModel.messages
-                                |> List.append
-                                    [ Message
-                                        ssMessage.hash
+                                |> Dict.insert (Eth.Utils.hexToString ssMessage.hash)
+                                    (Message
                                         log.blockNumber
                                         ssMessage.from
                                         ssMessage.burnAmount
                                         ssMessage.message
-                                    ]
+                                    )
                       }
                     , if Dict.get log.blockNumber prevModel.blockTimes == Nothing then
                         getBlockTimeCmd log.blockNumber
@@ -189,13 +189,13 @@ update msg prevModel =
                         Cmd.none
                     )
 
-        ShowAddress address ->
-            ( { prevModel | showingAddress = Just address }
+        ShowAddress phaceId ->
+            ( { prevModel | showAddress = Just phaceId }
             , Cmd.none
             )
 
         HideAddress ->
-            ( { prevModel | showingAddress = Nothing }
+            ( { prevModel | showAddress = Nothing }
             , Cmd.none
             )
 
@@ -355,7 +355,7 @@ update msg prevModel =
                       }
                     , Cmd.none
                     )
-        
+
         DismissNotice id ->
             ( { prevModel
                 | userNotices =
@@ -366,6 +366,7 @@ update msg prevModel =
 
         NoOp ->
             ( prevModel, Cmd.none )
+
 
 fetchMessagesFromBlockrangeCmd : Eth.Types.BlockId -> Eth.Types.BlockId -> Bool -> EventSentry Msg -> ( EventSentry Msg, Cmd Msg, EventSentry.Ref )
 fetchMessagesFromBlockrangeCmd from to testMode sentry =
