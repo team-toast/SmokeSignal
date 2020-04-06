@@ -48,12 +48,12 @@ withFetchedBalance balance wallet =
     
 
 
-withFetchedAllowance : TokenValue -> State -> State
-withFetchedAllowance allowance wallet =
+withIsUnlocked : Bool -> State -> State
+withIsUnlocked isUnlocked wallet =
     case wallet of
         Active uInfo ->
             Active <|
-                (uInfo |> withAllowance allowance)
+                (uInfo |> CommonTypes.withIsUnlocked isUnlocked)
         _ ->
             wallet
     

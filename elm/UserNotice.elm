@@ -158,6 +158,16 @@ web3SigError label errStr =
     }
 
 
+web3BroadcastError : String -> String -> UserNotice msg
+web3BroadcastError label errStr =
+    { label = "web3BroadcastError"
+    , noticeType = Error
+    , mainParagraphs =
+        [ [ Element.text <| "Error broadcasting \"" ++ label ++ "\" transaction: " ++ errStr ] ]
+    , align = BottomRight
+    }
+
+
 web3MiningError : String -> String -> UserNotice msg
 web3MiningError label errStr =
     { label = "web3MiningError"

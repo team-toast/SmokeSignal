@@ -8,7 +8,7 @@ import Dict exposing (Dict)
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet as WalletSentry exposing (WalletSentry)
-import Eth.Types exposing (Address, Hex)
+import Eth.Types exposing (Address, Hex, Tx, TxHash)
 import Http
 import Time
 import TokenValue exposing (TokenValue)
@@ -30,7 +30,7 @@ type alias Model =
     , now : Time.Posix
     , txSentry : TxSentry Msg
     , eventSentry : EventSentry Msg
-    , messages : Dict String Message -- Can't use Hex type, as Elm is silly with what is and is not comparable
+    , messages : Dict String Message -- Can't use Hex as a key; Elm is silly with what is and is not comparable
     , showingAddress : Maybe Address
     , showComposeUX : Bool
     , composeUXModel : ComposeUXModel
@@ -52,6 +52,7 @@ type Msg
     | HideAddress
     | ConnectToWeb3
     | UnlockDai
+    | UnlockMining (Result String TxHash)
     | AllowanceFetched Address (Result Http.Error TokenValue)
     | BalanceFetched Address (Result Http.Error TokenValue)
     | ShowComposeUX Bool
@@ -80,6 +81,7 @@ type alias ComposeUXModel =
     { message : String
     , daiInput : String
     , donateChecked : Bool
+    , miningUnlockTx : Maybe TxHash
     }
 
 
@@ -96,6 +98,11 @@ updateDaiInput input m =
 updateDonateChecked : Bool -> ComposeUXModel -> ComposeUXModel
 updateDonateChecked flag m =
     { m | donateChecked = flag }
+
+
+updateMiningUnlockTx : (Maybe TxHash) -> ComposeUXModel -> ComposeUXModel
+updateMiningUnlockTx maybeTxHash m =
+    { m | miningUnlockTx = maybeTxHash }
 
 
 type alias CheckedMaybeValidInputs =

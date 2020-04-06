@@ -13,6 +13,7 @@ import Element.Input
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Helpers.Element as EH
+import Helpers.Eth as EthHelpers
 import Helpers.Time as TimeHelpers
 import Html.Attributes
 import Markdown
@@ -463,56 +464,89 @@ inputErrorEl =
 
 inputsElement : UserInfo -> ComposeUXModel -> Element Msg
 inputsElement userInfo composeUXModel =
-    case userInfo.daiUnlocked of
-        Nothing ->
-            loadingElement
-                [ Element.centerX
-                , Element.centerY
-                ]
-            <|
-                Just "Checking DAI lock..."
-
-        Just False ->
-            unlockButton
-                [ Element.centerX
-                , Element.centerY
-                ]
-
-        Just True ->
-            Element.column
-                [ Element.spacing 10 ]
-                [ Element.row
-                    [ Element.spacing 10
-                    , Element.centerX
-                    ]
-                    [ Element.text "Burn"
-                    , burnAmountInput composeUXModel.daiInput
-                    , Element.text "DAI"
-                    ]
-                , Element.row
-                    [ Element.Font.size 14
-                    , Element.spacing 5
-                    ]
-                    [ Element.Input.checkbox [ Element.alignTop ]
-                        { onChange = DonationCheckboxSet
-                        , icon = Element.Input.defaultCheckbox
-                        , checked = composeUXModel.donateChecked
-                        , label = Element.Input.labelHidden "Donate an extra 1% to Foundry"
-                        }
-                    , Element.column
-                        [ Element.spacing 5 ]
-                        [ Element.row []
-                            [ Element.text "Donate an extra 1% to "
-                            , Element.newTabLink
-                                [ Element.Font.color EH.blue ]
-                                { url = "https://foundrydao.com/"
-                                , label = Element.text "Foundry"
-                                }
-                            ]
-                        , Element.text "so we can build more cool stuff!"
+    Element.el
+        [ Element.centerY
+        , Element.width <| Element.px 260
+        ]
+    <|
+        Element.el [ Element.centerX ] <|
+            case composeUXModel.miningUnlockTx of
+                Just txHash ->
+                    Element.column
+                        [ Element.spacing 4
+                        , Element.Font.color (Element.rgb 0.3 0.3 0.3)
+                        , Element.centerY
                         ]
-                    ]
-                ]
+                        [ Element.el
+                            [ Element.centerX ]
+                            (Element.text "Mining DAI unlock tx...")
+                        , Element.newTabLink
+                            [ Element.Font.color EH.blue
+                            , Element.Font.size 14
+                            , Element.centerX
+                            ]
+                            { url = EthHelpers.etherscanTxUrl txHash
+                            , label = Element.text "(track on etherscan)"
+                            }
+                        , Element.el
+                            [ Element.centerX ]
+                            (Element.text "Feel free to draft your message")
+                        , Element.el
+                            [ Element.centerX ]
+                            (Element.text "while waiting!")
+                        ]
+
+                Nothing ->
+                    case userInfo.daiUnlocked of
+                        Nothing ->
+                            loadingElement
+                                [ Element.centerX
+                                , Element.centerY
+                                ]
+                            <|
+                                Just "Checking DAI lock..."
+
+                        Just False ->
+                            unlockButton
+                                [ Element.centerX
+                                , Element.centerY
+                                ]
+
+                        Just True ->
+                            Element.column
+                                [ Element.spacing 10 ]
+                                [ Element.row
+                                    [ Element.spacing 10
+                                    , Element.centerX
+                                    ]
+                                    [ Element.text "Burn"
+                                    , burnAmountInput composeUXModel.daiInput
+                                    , Element.text "DAI"
+                                    ]
+                                , Element.row
+                                    [ Element.Font.size 14
+                                    , Element.spacing 5
+                                    ]
+                                    [ Element.Input.checkbox [ Element.alignTop ]
+                                        { onChange = DonationCheckboxSet
+                                        , icon = Element.Input.defaultCheckbox
+                                        , checked = composeUXModel.donateChecked
+                                        , label = Element.Input.labelHidden "Donate an extra 1% to Foundry"
+                                        }
+                                    , Element.column
+                                        [ Element.spacing 5 ]
+                                        [ Element.row []
+                                            [ Element.text "Donate an extra 1% to "
+                                            , Element.newTabLink
+                                                [ Element.Font.color EH.blue ]
+                                                { url = "https://foundrydao.com/"
+                                                , label = Element.text "Foundry"
+                                                }
+                                            ]
+                                        , Element.text "so we can build more cool stuff!"
+                                        ]
+                                    ]
+                                ]
 
 
 goButtonAndMaybeError : UserInfo -> ComposeUXModel -> ( Element Msg, Maybe (List (Element Msg)) )

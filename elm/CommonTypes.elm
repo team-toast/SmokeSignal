@@ -28,10 +28,10 @@ withBalance balance userInfo =
     }
 
 
-withAllowance : TokenValue -> UserInfo -> UserInfo
-withAllowance allowance userInfo =
+withIsUnlocked : Bool -> UserInfo -> UserInfo
+withIsUnlocked unlocked userInfo =
     { userInfo
-        | daiUnlocked = Just <| TokenValue.isMaxTokenValue allowance
+        | daiUnlocked = Just <| unlocked
     }
 
 

@@ -71,7 +71,12 @@ init flags =
       , messages = Dict.empty
       , showingAddress = Nothing
       , showComposeUX = False
-      , composeUXModel = ComposeUXModel "" "" True
+      , composeUXModel =
+            { message = ""
+            , daiInput = ""
+            , donateChecked = True
+            , miningUnlockTx = Nothing
+            }
       , blockTimes = Dict.empty
       , showAddress = Nothing
       , userNotices =
@@ -221,7 +226,7 @@ update msg prevModel =
 
                         listeners =
                             { onMined = Nothing
-                            , onSign = Nothing
+                            , onSign = Just UnlockMining
                             , onBroadcast = Nothing
                             }
                     in
@@ -232,6 +237,24 @@ update msg prevModel =
               }
             , cmd
             )
+
+        UnlockMining broadcastResult ->
+            case broadcastResult of
+                Err errStr ->
+                    ( prevModel
+                        |> addUserNotice
+                            (UN.web3BroadcastError "unlock DAI" errStr)
+                    , Cmd.none
+                    )
+
+                Ok txHash ->
+                    ( { prevModel
+                        | composeUXModel =
+                            prevModel.composeUXModel
+                                |> updateMiningUnlockTx (Just txHash)
+                      }
+                    , Cmd.none
+                    )
 
         BalanceFetched address fetchResult ->
             let
@@ -270,9 +293,19 @@ update msg prevModel =
             else
                 case fetchResult of
                     Ok allowance ->
+                        let
+                            isUnlocked =
+                                TokenValue.isMaxTokenValue allowance
+                        in
                         ( { prevModel
                             | wallet =
-                                prevModel.wallet |> Wallet.withFetchedAllowance allowance
+                                prevModel.wallet |> Wallet.withIsUnlocked isUnlocked
+                            , composeUXModel =
+                                if isUnlocked then
+                                    prevModel.composeUXModel
+                                        |> updateMiningUnlockTx Nothing
+                                else
+                                    prevModel.composeUXModel
                           }
                         , Cmd.none
                         )

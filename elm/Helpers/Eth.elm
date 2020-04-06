@@ -4,7 +4,7 @@ import Array
 import BigInt exposing (BigInt)
 import Eth.Net
 import Eth.Sentry.Tx as TxSentry
-import Eth.Types exposing (Address, HttpProvider, TxHash, WebsocketProvider)
+import Eth.Types exposing (Address, HttpProvider, Tx, TxHash, WebsocketProvider)
 import Eth.Utils
 
 
@@ -48,3 +48,9 @@ maxUintValue =
             (BigInt.fromInt 256)
         )
         (BigInt.fromInt 1)
+
+
+etherscanTxUrl : TxHash -> String
+etherscanTxUrl txHash =
+    "https://etherscan.io/tx/"
+        ++ Eth.Utils.txHashToString txHash
