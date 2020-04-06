@@ -187,66 +187,72 @@ viewMessages blockTimes messages maybeShowAddressForMessage =
             (Element.text "Searching for SmokeSignal messages...")
 
     else
-        Element.column
+        Element.el
             [ Element.width Element.fill
             , Element.height Element.fill
             , Element.scrollbarY
-            , Element.spacing 20
-            , Element.paddingEach
-                { bottom = 140
-                , top = 20
-                , right = 20
-                , left = 20
-                }
             ]
         <|
-            List.map
-                (\( blocknum, messagesForBlock ) ->
-                    Element.column
-                        [ Element.width Element.fill
-                        , Element.spacing 10
-                        ]
-                        [ Element.column
+            Element.column
+                [ Element.width Element.fill
+                , Element.height Element.fill
+                , Element.explain Debug.todo
+                , Element.spacing 20
+                , Element.paddingEach
+                    { bottom = 140
+                    , top = 20
+                    , right = 20
+                    , left = 20
+                    }
+                ]
+            <|
+                List.map
+                    (\( blocknum, messagesForBlock ) ->
+                        Element.column
                             [ Element.width Element.fill
-                            , Element.spacing 5
-                            , Element.Font.italic
-                            , Element.Font.size 14
+                            , Element.spacing 10
                             ]
-                            [ Element.row
+                            [ Element.column
                                 [ Element.width Element.fill
                                 , Element.spacing 5
+                                , Element.Font.italic
+                                , Element.Font.size 14
                                 ]
-                                [ Element.text <| "block " ++ String.fromInt blocknum
-                                , Element.el
+                                [ Element.row
                                     [ Element.width Element.fill
-                                    , Element.height <| Element.px 1
-                                    , Element.Border.color EH.black
-                                    , Element.Border.widthEach
-                                        { top = 1
-                                        , bottom = 0
-                                        , right = 0
-                                        , left = 0
-                                        }
-                                    , Element.Border.dashed
+                                    , Element.spacing 5
                                     ]
-                                    Element.none
+                                    [ Element.text <| "block " ++ String.fromInt blocknum
+                                    , Element.el
+                                        [ Element.width Element.fill
+                                        , Element.height <| Element.px 1
+                                        , Element.Border.color EH.black
+                                        , Element.Border.widthEach
+                                            { top = 1
+                                            , bottom = 0
+                                            , right = 0
+                                            , left = 0
+                                            }
+                                        , Element.Border.dashed
+                                        ]
+                                        Element.none
+                                    ]
+                                , blockTimes
+                                    |> Dict.get blocknum
+                                    |> Maybe.map posixToString
+                                    |> Maybe.withDefault "???"
+                                    |> Element.text
                                 ]
-                            , blockTimes
-                                |> Dict.get blocknum
-                                |> Maybe.map posixToString
-                                |> Maybe.withDefault "???"
-                                |> Element.text
+                            , Element.column
+                                [ Element.paddingXY 20 0 ]
+                                (Dict.map
+                                    (viewMessage maybeShowAddressForMessage)
+                                    messagesForBlock
+                                    |> Dict.values
+                                )
                             ]
-                        , Element.column
-                            [ Element.paddingXY 20 0 ]
-                            (Dict.map
-                                (viewMessage maybeShowAddressForMessage)
-                                messagesForBlock
-                                |> Dict.values
-                            )
-                        ]
-                )
-                structuredMessageList
+                    )
+                    structuredMessageList
 
 
 posixToString : Time.Posix -> String
