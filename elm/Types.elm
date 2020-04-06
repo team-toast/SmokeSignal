@@ -48,8 +48,7 @@ type Msg
     | TxSentryMsg TxSentry.Msg
     | EventSentryMsg EventSentry.Msg
     | MessageLogReceived Eth.Types.Log
-    | ShowAddress PhaceId
-    | HideAddress
+    | ShowOrHideAddress PhaceId
     | ConnectToWeb3
     | UnlockDai
     | UnlockMining (Result String TxHash)
@@ -62,6 +61,7 @@ type Msg
     | Submit ValidInputs
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
     | DismissNotice Int
+    | ClickHappened
 
 
 type alias Message =
@@ -100,7 +100,7 @@ updateDonateChecked flag m =
     { m | donateChecked = flag }
 
 
-updateMiningUnlockTx : (Maybe TxHash) -> ComposeUXModel -> ComposeUXModel
+updateMiningUnlockTx : Maybe TxHash -> ComposeUXModel -> ComposeUXModel
 updateMiningUnlockTx maybeTxHash m =
     { m | miningUnlockTx = maybeTxHash }
 

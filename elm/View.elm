@@ -30,7 +30,9 @@ root model =
     { title = "SmokeSignal"
     , body =
         [ Element.layout
-            [ Element.width Element.fill ]
+            [ Element.width Element.fill
+            , Element.Events.onClick ClickHappened
+            ]
           <|
             body model
         ]
@@ -141,9 +143,7 @@ viewMinimizedComposeUX maybeUserInfoAndShowAddress =
         Just ( accountInfo, showAddress ) ->
             Element.column
                 (commonAttributes
-                    ++ [ Element.pointer
-                       , Element.Events.onClick (ShowComposeUX True)
-                       , Element.spacing 3
+                    ++ [ Element.spacing 3
                        ]
                 )
             <|
@@ -196,7 +196,6 @@ viewMessages blockTimes messages maybeShowAddressForMessage =
             Element.column
                 [ Element.width Element.fill
                 , Element.height Element.fill
-                , Element.explain Debug.todo
                 , Element.spacing 20
                 , Element.paddingEach
                     { bottom = 140
@@ -745,30 +744,26 @@ phaceElement phaceId fromAddress showAddress =
     let
         addressOutputEl isInFront =
             Element.el
-                [ Element.alignTop
-                , Element.alignLeft
-                , Element.Border.widthEach
-                    { top = 2
-                    , bottom =
-                        if isInFront then
-                            1
+                ([ Element.alignBottom
+                 , Element.alignLeft
+                 , Element.Border.width 2
+                 , Element.Border.color EH.black
+                 , Element.Background.color EH.white
+                 , Element.Font.size 12
+                 ]
+                    ++ (if isInFront then
+                            [ EH.moveToFront ]
 
                         else
-                            2
-                    , right = 2
-                    , left = 2
-                    }
-                , Element.Border.color EH.black
-                , Element.Background.color EH.white
-                , Element.Font.size 12
-                ]
+                            []
+                       )
+                )
                 (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
     in
     Element.el
         (if showAddress then
             [ Element.inFront (addressOutputEl True)
-            , Element.behindContent (addressOutputEl False)
-            , EH.moveToFront
+            -- , Element.behindContent (addressOutputEl False)
             , Element.alignTop
             ]
 
@@ -781,8 +776,8 @@ phaceElement phaceId fromAddress showAddress =
             , Element.clip
             , Element.Border.width 2
             , Element.Border.color EH.black
-            , Element.Events.onMouseEnter (ShowAddress phaceId)
-            , Element.Events.onMouseLeave HideAddress
+            , Element.pointer
+            , EH.onClickNoPropagation (ShowOrHideAddress phaceId)
             ]
         <|
             Element.html

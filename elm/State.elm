@@ -194,13 +194,15 @@ update msg prevModel =
                         Cmd.none
                     )
 
-        ShowAddress phaceId ->
-            ( { prevModel | showAddress = Just phaceId }
-            , Cmd.none
-            )
+        ShowOrHideAddress phaceId ->
+            ( { prevModel
+                | showAddress =
+                    if prevModel.showAddress == Just phaceId then
+                        Nothing
 
-        HideAddress ->
-            ( { prevModel | showAddress = Nothing }
+                    else
+                        Just phaceId
+              }
             , Cmd.none
             )
 
@@ -304,6 +306,7 @@ update msg prevModel =
                                 if isUnlocked then
                                     prevModel.composeUXModel
                                         |> updateMiningUnlockTx Nothing
+
                                 else
                                     prevModel.composeUXModel
                           }
@@ -399,6 +402,13 @@ update msg prevModel =
 
         NoOp ->
             ( prevModel, Cmd.none )
+
+        ClickHappened ->
+            ( { prevModel
+                | showAddress = Nothing
+              }
+            , Cmd.none
+            )
 
 
 fetchMessagesFromBlockrangeCmd : Eth.Types.BlockId -> Eth.Types.BlockId -> Bool -> EventSentry Msg -> ( EventSentry Msg, Cmd Msg, EventSentry.Ref )
