@@ -58,7 +58,7 @@ type Msg
     | MessageInputChanged String
     | DaiInputChanged String
     | DonationCheckboxSet Bool
-    | Submit ValidatedInputs
+    | Submit ValidInputs
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
     | DismissNotice Int
 
@@ -98,40 +98,42 @@ updateDonateChecked flag m =
     { m | donateChecked = flag }
 
 
-type alias ValidatedInputs =
+type alias CheckedMaybeValidInputs =
+    { message : Maybe String
+    , burnAndDonateAmount : Maybe (Result String ( TokenValue, TokenValue ))
+    }
+
+
+type alias ValidInputs =
     { message : String
     , burnAmount : TokenValue
     , donateAmount : TokenValue
     }
 
 
-validateInputs : ComposeUXModel -> Maybe (Result String ValidatedInputs)
+validateInputs : ComposeUXModel -> CheckedMaybeValidInputs
 validateInputs composeModel =
-    case validateBurnAmount composeModel.daiInput of
-        Nothing ->
+    { message =
+        if composeModel.message == "" then
             Nothing
 
-        Just (Err errStr) ->
-            Just <| Err errStr
+        else
+            Just composeModel.message
+    , burnAndDonateAmount =
+        validateBurnAmount composeModel.daiInput
+            |> Maybe.map
+                (Result.map
+                    (\burnAmount ->
+                        ( burnAmount
+                        , if composeModel.donateChecked then
+                            TokenValue.div burnAmount 100
 
-        Just (Ok burnAmount) ->
-            if composeModel.message == "" then
-                Nothing
-
-            else
-                Just
-                    (Ok
-                        (ValidatedInputs
-                            composeModel.message
-                            burnAmount
-                            (if composeModel.donateChecked then
-                                TokenValue.div burnAmount 100
-
-                             else
-                                TokenValue.zero
-                            )
+                          else
+                            TokenValue.zero
                         )
                     )
+                )
+    }
 
 
 validateBurnAmount : String -> Maybe (Result String TokenValue)

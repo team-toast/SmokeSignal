@@ -389,7 +389,7 @@ viewComposeUX maybeUserInfoAndShowAddress composeUXModel =
                     (ShowComposeUX False)
         ]
         [ messageInputBox composeUXModel.message
-        , actionFormAndMaybeError maybeUserInfoAndShowAddress composeUXModel
+        , actionFormAndMaybeErrorEl maybeUserInfoAndShowAddress composeUXModel
         ]
 
 
@@ -420,58 +420,45 @@ messageInputBox input =
             }
 
 
-actionFormAndMaybeError : Maybe ( UserInfo, Bool ) -> ComposeUXModel -> Element Msg
-actionFormAndMaybeError maybeUserInfoAndShowAddress composeUXModel =
-    let
-        ( actionFormEl, maybeInputErrorStr ) =
-            actionFormElAndMaybeError maybeUserInfoAndShowAddress composeUXModel
-    in
-    Element.row
-        [ Element.alignLeft
-        , Element.spacing 10
-        ]
-        [ actionFormEl
-        , maybeInputErrorStr
-            |> Maybe.map inputErrorEl
-            |> Maybe.withDefault Element.none
-        ]
-
-
-actionFormElAndMaybeError : Maybe ( UserInfo, Bool ) -> ComposeUXModel -> ( Element Msg, Maybe String )
-actionFormElAndMaybeError maybeUserInfoAndShowAddress composeUXModel =
+actionFormAndMaybeErrorEl : Maybe ( UserInfo, Bool ) -> ComposeUXModel -> Element Msg
+actionFormAndMaybeErrorEl maybeUserInfoAndShowAddress composeUXModel =
     case maybeUserInfoAndShowAddress of
         Just ( userInfo, showAddress ) ->
             let
-                ( goButtonEl, maybeError ) =
+                ( goButtonEl, maybeErrorEls ) =
                     goButtonAndMaybeError userInfo composeUXModel
             in
-            ( Element.row
-                [ Element.spacing 15
-                , Element.padding 10
-                , Element.Background.color <| Element.rgb 0.8 0.8 1
-                , Element.Border.rounded 10
+            Element.row
+                [ Element.alignLeft
+                , Element.spacing 10
                 ]
-                [ phaceElement User userInfo.address showAddress
-                , inputsElement userInfo composeUXModel
-                , goButtonEl
+                [ Element.row
+                    [ Element.spacing 15
+                    , Element.padding 10
+                    , Element.Background.color <| Element.rgb 0.8 0.8 1
+                    , Element.Border.rounded 10
+                    ]
+                    [ phaceElement User userInfo.address showAddress
+                    , inputsElement userInfo composeUXModel
+                    , goButtonEl
+                    ]
+                , inputErrorEl maybeErrorEls
                 ]
-            , maybeError
-            )
 
         Nothing ->
-            ( web3ConnectButton [ Element.centerX, Element.centerY ]
-            , Nothing
-            )
+            web3ConnectButton [ Element.centerX, Element.centerY ]
 
 
-inputErrorEl : String -> Element Msg
-inputErrorEl error =
-    Element.paragraph
-        [ Element.width <| Element.px 300
-        , Element.Font.color EH.softRed
-        , Element.Font.italic
-        ]
-        [ Element.text error ]
+inputErrorEl : Maybe (List (Element Msg)) -> Element Msg
+inputErrorEl =
+    Maybe.map
+        (Element.paragraph
+            [ Element.width (Element.fill |> Element.maximum 700)
+            , Element.Font.color EH.softRed
+            , Element.Font.italic
+            ]
+        )
+        >> Maybe.withDefault Element.none
 
 
 inputsElement : UserInfo -> ComposeUXModel -> Element Msg
@@ -528,35 +515,84 @@ inputsElement userInfo composeUXModel =
                 ]
 
 
-goButtonAndMaybeError : UserInfo -> ComposeUXModel -> ( Element Msg, Maybe String )
+goButtonAndMaybeError : UserInfo -> ComposeUXModel -> ( Element Msg, Maybe (List (Element Msg)) )
 goButtonAndMaybeError userInfo composeUXModel =
-    case ( userInfo.balance, userInfo.daiUnlocked ) of
-        ( Just balance, Just True ) ->
-            case validateInputs composeUXModel of
-                Just (Ok validatedInputs) ->
-                    let
-                        balanceTooLow =
-                            TokenValue.compare validatedInputs.burnAmount balance == GT
-                    in
-                    if balanceTooLow then
-                        ( maybeGoButton Nothing
-                        , Just "You don't have that much DAI in your wallet!"
-                        )
+    case userInfo.balance of
+        Just balance ->
+            if TokenValue.isZero balance then
+                ( maybeGoButton Nothing
+                , Just
+                    [ Element.text <|
+                        "That account ("
+                            ++ Eth.Utils.addressToChecksumString userInfo.address
+                            ++ ") doesn't have any DAI! "
+                    , Element.newTabLink [ Element.Font.color EH.blue ]
+                        { url = "https://kyberswap.com/swap/eth-dai"
+                        , label = Element.text "Kyberswap"
+                        }
+                    , Element.text " can swap your ETH for DAI in a single transaction."
+                    ]
+                )
 
-                    else
-                        ( maybeGoButton <| Just validatedInputs
+            else
+                case userInfo.daiUnlocked of
+                    Just True ->
+                        let
+                            validateResults =
+                                validateInputs composeUXModel
+                        in
+                        case validateResults.burnAndDonateAmount of
+                            Just (Ok ( burnAmount, donateAmount )) ->
+                                let
+                                    balanceTooLow =
+                                        TokenValue.compare
+                                            (TokenValue.add burnAmount donateAmount)
+                                            balance
+                                            == GT
+                                in
+                                if balanceTooLow then
+                                    ( maybeGoButton Nothing
+                                    , Just
+                                        [ Element.text "You don't have that much DAI in your wallet! "
+                                        , Element.newTabLink [ Element.Font.color EH.blue ]
+                                            { url = "https://kyberswap.com/swap/eth-dai"
+                                            , label = Element.text "Kyberswap"
+                                            }
+                                        , Element.text " can swap your ETH for DAI in a single transaction."
+                                        ]
+                                    )
+
+                                else
+                                    case validateResults.message of
+                                        Just message ->
+                                            ( maybeGoButton <|
+                                                Just <|
+                                                    ValidInputs
+                                                        message
+                                                        burnAmount
+                                                        donateAmount
+                                            , Nothing
+                                            )
+
+                                        Nothing ->
+                                            ( maybeGoButton Nothing
+                                            , Nothing
+                                            )
+
+                            Just (Err errStr) ->
+                                ( maybeGoButton Nothing
+                                , Just [ Element.text errStr ]
+                                )
+
+                            Nothing ->
+                                ( maybeGoButton Nothing
+                                , Nothing
+                                )
+
+                    _ ->
+                        ( maybeGoButton Nothing
                         , Nothing
                         )
-
-                Just (Err errStr) ->
-                    ( maybeGoButton Nothing
-                    , Just errStr
-                    )
-
-                Nothing ->
-                    ( maybeGoButton Nothing
-                    , Nothing
-                    )
 
         _ ->
             ( maybeGoButton Nothing
@@ -564,7 +600,7 @@ goButtonAndMaybeError userInfo composeUXModel =
             )
 
 
-maybeGoButton : Maybe ValidatedInputs -> Element Msg
+maybeGoButton : Maybe ValidInputs -> Element Msg
 maybeGoButton maybeValidInputs =
     let
         commonStyles =
