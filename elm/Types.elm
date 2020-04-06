@@ -151,6 +151,6 @@ validateBurnAmount input =
                             Ok tv
 
                         else
-                            Err "Must be greater than 0"
+                            Err "Minimum amount is 0.000000000000000001 DAI"
                     )
             )
