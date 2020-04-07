@@ -10,7 +10,7 @@ import Element.Border
 import Element.Events
 import Element.Font
 import Element.Input
-import Eth.Types exposing (Address, Hex)
+import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
 import Helpers.Element as EH
 import Helpers.Eth as EthHelpers
@@ -64,20 +64,11 @@ body model =
                 (userNoticeEls Desktop model.userNotices)
         )
         [ title
-        , viewMessages
+        , viewMessagesAndDrafts
             model.blockTimes
             model.messages
-            (model.showAddress
-                |> Maybe.andThen
-                    (\phaceId ->
-                        case phaceId of
-                            MessageAuthor hash ->
-                                Just hash
-
-                            User ->
-                                Nothing
-                    )
-            )
+            model.miningMessages
+            model.showAddress
         , if model.showComposeUX then
             Element.el
                 [ Element.width Element.fill
@@ -169,8 +160,8 @@ composeUXShadow =
         }
 
 
-viewMessages : Dict Int Time.Posix -> Dict String Message -> Maybe Hex -> Element Msg
-viewMessages blockTimes messages maybeShowAddressForMessage =
+viewMessagesAndDrafts : Dict Int Time.Posix -> Dict String Message -> Dict String MiningMessage -> Maybe PhaceId -> Element Msg
+viewMessagesAndDrafts blockTimes messages miningMessages maybeShowAddressForPhace =
     let
         structuredMessageList =
             sortMessagesByBlock messages
@@ -187,6 +178,89 @@ viewMessages blockTimes messages maybeShowAddressForMessage =
             (Element.text "Searching for SmokeSignal messages...")
 
     else
+        let
+            messagesList =
+                structuredMessageList
+                    |> List.map
+                        (\( blocknum, messagesForBlock ) ->
+                            Element.column
+                                [ Element.width Element.fill
+                                , Element.spacing 10
+                                ]
+                                [ Element.column
+                                    [ Element.width Element.fill
+                                    , Element.spacing 5
+                                    , Element.Font.italic
+                                    , Element.Font.size 14
+                                    ]
+                                    [ Element.row
+                                        [ Element.width Element.fill
+                                        , Element.spacing 5
+                                        ]
+                                        [ Element.text <| "block " ++ String.fromInt blocknum
+                                        , Element.el
+                                            [ Element.width Element.fill
+                                            , Element.height <| Element.px 1
+                                            , Element.Border.color EH.black
+                                            , Element.Border.widthEach
+                                                { top = 1
+                                                , bottom = 0
+                                                , right = 0
+                                                , left = 0
+                                                }
+                                            , Element.Border.dashed
+                                            ]
+                                            Element.none
+                                        ]
+                                    , blockTimes
+                                        |> Dict.get blocknum
+                                        |> Maybe.map posixToString
+                                        |> Maybe.withDefault "???"
+                                        |> Element.text
+                                    ]
+                                , Element.column
+                                    [ Element.paddingXY 20 0 ]
+                                    (Dict.map
+                                        (viewMessage
+                                            (case maybeShowAddressForPhace of
+                                                Just (MessageAuthor messageHash) ->
+                                                    Just messageHash
+
+                                                _ ->
+                                                    Nothing
+                                            )
+                                        )
+                                        messagesForBlock
+                                        |> Dict.values
+                                    )
+                                ]
+                        )
+
+            miningMessagesList =
+                if (List.length <| Dict.toList miningMessages) == 0 then
+                    []
+
+                else
+                    [ Element.el
+                        [ Element.Font.size 26 ]
+                        (Element.text "Your mining messages")
+                    , Element.column
+                        [ Element.paddingXY 20 0 ]
+                        (Dict.map
+                            (viewMiningMessage
+                                (case maybeShowAddressForPhace of
+                                    Just (UserMiningMessage txHash) ->
+                                        Just txHash
+
+                                    _ ->
+                                        Nothing
+                                )
+                            )
+                            miningMessages
+                            |> Dict.values
+                        )
+                    ]
+        in
         Element.el
             [ Element.width Element.fill
             , Element.height Element.fill
@@ -205,53 +279,8 @@ viewMessages blockTimes messages maybeShowAddressForMessage =
                     }
                 ]
             <|
-                List.map
-                    (\( blocknum, messagesForBlock ) ->
-                        Element.column
-                            [ Element.width Element.fill
-                            , Element.spacing 10
-                            ]
-                            [ Element.column
-                                [ Element.width Element.fill
-                                , Element.spacing 5
-                                , Element.Font.italic
-                                , Element.Font.size 14
-                                ]
-                                [ Element.row
-                                    [ Element.width Element.fill
-                                    , Element.spacing 5
-                                    ]
-                                    [ Element.text <| "block " ++ String.fromInt blocknum
-                                    , Element.el
-                                        [ Element.width Element.fill
-                                        , Element.height <| Element.px 1
-                                        , Element.Border.color EH.black
-                                        , Element.Border.widthEach
-                                            { top = 1
-                                            , bottom = 0
-                                            , right = 0
-                                            , left = 0
-                                            }
-                                        , Element.Border.dashed
-                                        ]
-                                        Element.none
-                                    ]
-                                , blockTimes
-                                    |> Dict.get blocknum
-                                    |> Maybe.map posixToString
-                                    |> Maybe.withDefault "???"
-                                    |> Element.text
-                                ]
-                            , Element.column
-                                [ Element.paddingXY 20 0 ]
-                                (Dict.map
-                                    (viewMessage maybeShowAddressForMessage)
-                                    messagesForBlock
-                                    |> Dict.values
-                                )
-                            ]
-                    )
-                    structuredMessageList
+                messagesList
+                    ++ miningMessagesList
 
 
 posixToString : Time.Posix -> String
@@ -302,18 +331,99 @@ viewMessage maybeShowAddressForMessage hashIdString message =
             , Element.alignTop
             , Element.width Element.fill
             ]
-            [ viewDaiBurned message.burnAmount
-            , viewMessageContent message.message
+            [ viewDaiBurned True message.burnAmount
+            , viewMessageContent True message.message
             ]
         ]
 
 
-viewDaiBurned : TokenValue -> Element Msg
-viewDaiBurned amount =
-    Element.el
-        [ Element.Font.size 22
+viewMiningMessage : Maybe TxHash -> String -> MiningMessage -> Element Msg
+viewMiningMessage maybeShowAddressForMessage txHashIdString miningMessage =
+    Element.row
+        [ Element.width Element.fill
+        , Element.spacing 20
+        ]
+        [ Element.el
+            [ Element.alignTop
+            , Element.height <| Element.px 100
+            ]
+          <|
+            phaceElement
+                (UserMiningMessage (Eth.Utils.unsafeToTxHash txHashIdString))
+                miningMessage.draft.author
+                (maybeShowAddressForMessage == Just (Eth.Utils.unsafeToTxHash txHashIdString))
+        , Element.column
+            [ Element.width <| Element.px 100
+            , Element.alignTop
+            , Element.width Element.fill
+            ]
+            [ Element.row
+                [ Element.spacing 5 ]
+                [ viewDaiBurned False miningMessage.draft.burnAmount
+                , viewMiningMessageStatus txHashIdString miningMessage.status
+                ]
+            , viewMessageContent False miningMessage.draft.message
+            ]
+        ]
+
+
+viewMiningMessageStatus : String -> MiningMessageStatus -> Element Msg
+viewMiningMessageStatus txHashString status =
+    Element.column
+        [ Element.alignBottom
+        , Element.Font.size 22
         , Element.paddingXY 10 5
-        , Element.Background.color EH.lightRed
+        , Element.spacing 5
+        , Element.Background.color <|
+            case status of
+                Failed _ ->
+                    EH.softRed
+
+                _ ->
+                    Element.rgb 1 1 0
+        , Element.Border.roundEach
+            { bottomLeft = 0
+            , bottomRight = 0
+            , topLeft = 5
+            , topRight = 5
+            }
+        , Element.alignLeft
+        ]
+        [ Element.text (statusToString status)
+        , Element.row
+            [ Element.spacing 8 ]
+            [ Element.text "Tx hash:"
+            , Element.newTabLink
+                [ Element.Font.color EH.blue ]
+                { url = EthHelpers.etherscanTxUrl (Eth.Utils.unsafeToTxHash txHashString)
+                , label = Element.text txHashString
+                }
+            ]
+        ]
+
+
+statusToString : MiningMessageStatus -> String
+statusToString status =
+    case status of
+        Mining ->
+            "Mining"
+
+        Failed errStr ->
+            "Error: " ++ errStr
+
+
+viewDaiBurned : Bool -> TokenValue -> Element Msg
+viewDaiBurned mined amount =
+    Element.el
+        [ Element.alignBottom
+        , Element.Font.size 22
+        , Element.paddingXY 10 5
+        , Element.Background.color <|
+            if mined then
+                EH.lightRed
+
+            else
+                Element.rgb 1 0.9 0.9
         , Element.Border.roundEach
             { bottomLeft = 0
             , bottomRight = 0
@@ -331,20 +441,28 @@ viewDaiBurned amount =
             ]
 
 
-viewMessageContent : String -> Element Msg
-viewMessageContent content =
+viewMessageContent : Bool -> String -> Element Msg
+viewMessageContent mined content =
     renderMarkdownParagraphs
-        [ Element.spacing 2
-        , Element.paddingXY 20 0
-        , Element.Border.roundEach
+        ([ Element.spacing 2
+         , Element.paddingXY 20 0
+         , Element.Border.roundEach
             { topLeft = 0
             , topRight = 10
             , bottomRight = 10
             , bottomLeft = 10
             }
-        , Element.Background.color (Element.rgb 0.8 0.8 1)
-        , Element.alignTop
-        ]
+         , Element.alignTop
+         ]
+            ++ (if mined then
+                    [ Element.Background.color (Element.rgb 0.8 0.8 1) ]
+
+                else
+                    [ Element.Background.color (Element.rgb 0.9 0.9 1)
+                    , Element.Font.color EH.darkGray
+                    ]
+               )
+        )
         content
 
 
@@ -371,21 +489,6 @@ viewComposeUX maybeUserInfoAndShowAddress composeUXModel =
         , Element.above <|
             Element.el
                 [ Element.alignLeft
-
-                -- , Element.Background.color EH.lightBlue
-                -- , composeUXShadow
-                -- , Element.paddingEach
-                --     { bottom = 0
-                --     , top = 10
-                --     , right = 10
-                --     , left = 10
-                --     }
-                -- , Element.Border.roundEach
-                --     { topRight = 10
-                --     , topLeft = 10
-                --     , bottomRight = 0
-                --     , bottomLeft = 0
-                --     }
                 ]
             <|
                 EH.blueButton
@@ -606,7 +709,8 @@ goButtonAndMaybeError userInfo composeUXModel =
                                         Just message ->
                                             ( maybeGoButton <|
                                                 Just <|
-                                                    ValidInputs
+                                                    MessageDraft
+                                                        userInfo.address
                                                         message
                                                         burnAmount
                                                         donateAmount
@@ -639,8 +743,8 @@ goButtonAndMaybeError userInfo composeUXModel =
             )
 
 
-maybeGoButton : Maybe ValidInputs -> Element Msg
-maybeGoButton maybeValidInputs =
+maybeGoButton : Maybe MessageDraft -> Element Msg
+maybeGoButton maybeDraft =
     let
         commonStyles =
             [ Element.height <| Element.px 100
@@ -649,13 +753,13 @@ maybeGoButton maybeValidInputs =
             , Element.Border.rounded 10
             ]
     in
-    case maybeValidInputs of
-        Just validInputs ->
+    case maybeDraft of
+        Just draft ->
             EH.redButton
                 Desktop
                 commonStyles
                 [ "Post" ]
-                (Submit validInputs)
+                (Submit draft)
 
         Nothing ->
             EH.disabledButton
@@ -742,28 +846,21 @@ messageInputPlaceholder =
 phaceElement : PhaceId -> Address -> Bool -> Element Msg
 phaceElement phaceId fromAddress showAddress =
     let
-        addressOutputEl isInFront =
+        addressOutputEl =
             Element.el
-                ([ Element.alignBottom
-                 , Element.alignLeft
-                 , Element.Border.width 2
-                 , Element.Border.color EH.black
-                 , Element.Background.color EH.white
-                 , Element.Font.size 12
-                 ]
-                    ++ (if isInFront then
-                            [ EH.moveToFront ]
-
-                        else
-                            []
-                       )
-                )
+                [ Element.alignBottom
+                , Element.alignLeft
+                , Element.Border.width 2
+                , Element.Border.color EH.black
+                , Element.Background.color EH.white
+                , Element.Font.size 12
+                , EH.moveToFront
+                ]
                 (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
     in
     Element.el
         (if showAddress then
-            [ Element.inFront (addressOutputEl True)
-            -- , Element.behindContent (addressOutputEl False)
+            [ Element.inFront addressOutputEl
             , Element.alignTop
             ]
 

@@ -135,6 +135,10 @@ eventDecodeError decodeErr =
 
 web3FetchError : String -> Http.Error -> UserNotice msg
 web3FetchError label httpError =
+    let
+        _ =
+            maybeDebugLog "http error for web3 fetch" httpError
+    in
     { label = "web3FetchError"
     , noticeType = Error
     , mainParagraphs =

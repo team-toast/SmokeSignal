@@ -69,7 +69,7 @@ init flags =
       , txSentry = txSentry
       , eventSentry = eventSentry
       , messages = Dict.empty
-      , showingAddress = Nothing
+      , miningMessages = Dict.empty
       , showComposeUX = False
       , composeUXModel =
             { message = ""
@@ -104,6 +104,67 @@ update msg prevModel =
                     )
                 |> Maybe.withDefault Cmd.none
             )
+
+        CheckMiningMessagesStatus ->
+            ( prevModel
+            , Dict.keys prevModel.miningMessages
+                |> List.map Eth.Utils.unsafeToTxHash
+                |> List.map (Eth.getTxReceipt Config.httpProviderUrl)
+                |> List.map (Task.attempt MiningMessageStatusResult)
+                |> Cmd.batch
+            )
+
+        MiningMessageStatusResult txReceiptResult ->
+            case txReceiptResult of
+                Err _ ->
+                    -- Hasn't yet been mined; make no change
+                    ( prevModel, Cmd.none )
+
+                Ok txReceipt ->
+                    let
+                        txHashStr =
+                            txReceipt.hash |> Eth.Utils.txHashToString
+
+                        maybeDraft =
+                            prevModel.miningMessages
+                                |> Dict.get txHashStr
+                                |> Maybe.map .draft
+
+                        maybeSsMessageHash =
+                            txReceipt.logs
+                                |> List.filter
+                                    (\log ->
+                                        List.head log.topics == Just Config.messageBurnEventSig
+                                    )
+                                |> List.head
+                                |> Maybe.map (Eth.Decode.event SSContract.messageBurnDecoder)
+                                |> Maybe.andThen (.returnData >> Result.toMaybe)
+                                |> Maybe.map .hash
+                    in
+                    case ( maybeDraft, maybeSsMessageHash ) of
+                        ( Nothing, _ ) ->
+                            -- No matching draft found in miningMessages; ignore
+                            ( prevModel, Cmd.none )
+
+                        ( _, Nothing ) ->
+                            ( prevModel
+                                |> addUserNotice
+                                    (UN.unexpectedError "Unexpected error when checking mining message status. Your message may have failed to mine." Nothing)
+                            , Cmd.none
+                            )
+
+                        ( Just draft, Just ssMessageHash ) ->
+                            ( prevModel
+                                |> addMessage (Eth.Utils.hexToString ssMessageHash)
+                                    (Message
+                                        txReceipt.blockNumber
+                                        draft.author
+                                        draft.burnAmount
+                                        draft.message
+                                    )
+                                |> removeMiningMessage txHashStr
+                            , getBlockTimeIfNeededCmd prevModel.blockTimes txReceipt.blockNumber
+                            )
 
         WalletStatus walletSentryResult ->
             case walletSentryResult of
@@ -176,22 +237,16 @@ update msg prevModel =
                     )
 
                 Ok ssMessage ->
-                    ( { prevModel
-                        | messages =
-                            prevModel.messages
-                                |> Dict.insert (Eth.Utils.hexToString ssMessage.hash)
-                                    (Message
-                                        log.blockNumber
-                                        ssMessage.from
-                                        ssMessage.burnAmount
-                                        ssMessage.message
-                                    )
-                      }
-                    , if Dict.get log.blockNumber prevModel.blockTimes == Nothing then
-                        getBlockTimeCmd log.blockNumber
-
-                      else
-                        Cmd.none
+                    ( prevModel
+                        |> addMessage (Eth.Utils.hexToString ssMessage.hash)
+                            (Message
+                                log.blockNumber
+                                ssMessage.from
+                                ssMessage.burnAmount
+                                ssMessage.message
+                            )
+                        |> removeMiningMessage (Eth.Utils.txHashToString log.transactionHash)
+                    , getBlockTimeIfNeededCmd prevModel.blockTimes log.blockNumber
                     )
 
         ShowOrHideAddress phaceId ->
@@ -350,20 +405,20 @@ update msg prevModel =
             , Cmd.none
             )
 
-        Submit validatedInputs ->
+        Submit messageDraft ->
             let
                 ( newTxSentry, cmd ) =
                     let
                         txParams =
                             SSContract.burnMessage
-                                validatedInputs.message
-                                validatedInputs.burnAmount
-                                validatedInputs.donateAmount
+                                messageDraft.message
+                                messageDraft.burnAmount
+                                messageDraft.donateAmount
                                 |> Eth.toSend
 
                         listeners =
                             { onMined = Nothing
-                            , onSign = Nothing
+                            , onSign = Just <| SubmitSigned messageDraft
                             , onBroadcast = Nothing
                             }
                     in
@@ -374,6 +429,31 @@ update msg prevModel =
               }
             , cmd
             )
+
+        SubmitSigned messageDraft txHashResult ->
+            case txHashResult of
+                Ok txHash ->
+                    ( { prevModel
+                        | composeUXModel =
+                            prevModel.composeUXModel
+                                |> updateMessage ""
+                        , miningMessages =
+                            prevModel.miningMessages
+                                |> Dict.insert (Eth.Utils.txHashToString txHash)
+                                    (MiningMessage
+                                        messageDraft
+                                        Mining
+                                    )
+                      }
+                    , Cmd.none
+                    )
+
+                Err errStr ->
+                    ( prevModel
+                        |> addUserNotice
+                            (UN.web3SigError "post" errStr)
+                    , Cmd.none
+                    )
 
         BlockTimeFetched blocknum timeResult ->
             case timeResult of
@@ -409,6 +489,33 @@ update msg prevModel =
               }
             , Cmd.none
             )
+
+
+addMessage : String -> Message -> Model -> Model
+addMessage ssMessageHashString message prevModel =
+    { prevModel
+        | messages =
+            prevModel.messages
+                |> Dict.insert ssMessageHashString message
+    }
+
+
+removeMiningMessage : String -> Model -> Model
+removeMiningMessage txHashString prevModel =
+    { prevModel
+        | miningMessages =
+            prevModel.miningMessages
+                |> Dict.remove txHashString
+    }
+
+
+getBlockTimeIfNeededCmd : Dict Int Time.Posix -> Int -> Cmd Msg
+getBlockTimeIfNeededCmd blockTimes blockNumber =
+    if Dict.get blockNumber blockTimes == Nothing then
+        getBlockTimeCmd blockNumber
+
+    else
+        Cmd.none
 
 
 fetchMessagesFromBlockrangeCmd : Eth.Types.BlockId -> Eth.Types.BlockId -> Bool -> EventSentry Msg -> ( EventSentry Msg, Cmd Msg, EventSentry.Ref )
@@ -462,6 +569,7 @@ subscriptions model =
     Sub.batch
         [ Time.every 200 Tick
         , Time.every 2500 (always EveryFewSeconds)
+        , Time.every 5000 (always CheckMiningMessagesStatus)
         , walletSentryPort
             (WalletSentry.decodeToMsg
                 (WalletStatus << Err)

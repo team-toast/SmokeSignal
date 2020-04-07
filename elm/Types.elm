@@ -8,7 +8,7 @@ import Dict exposing (Dict)
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet as WalletSentry exposing (WalletSentry)
-import Eth.Types exposing (Address, Hex, Tx, TxHash)
+import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt)
 import Http
 import Time
 import TokenValue exposing (TokenValue)
@@ -31,7 +31,7 @@ type alias Model =
     , txSentry : TxSentry Msg
     , eventSentry : EventSentry Msg
     , messages : Dict String Message -- Can't use Hex as a key; Elm is silly with what is and is not comparable
-    , showingAddress : Maybe Address
+    , miningMessages : Dict String MiningMessage -- key is the txHash of the mining tx
     , showComposeUX : Bool
     , composeUXModel : ComposeUXModel
     , blockTimes : Dict Int Time.Posix
@@ -58,7 +58,10 @@ type Msg
     | MessageInputChanged String
     | DaiInputChanged String
     | DonationCheckboxSet Bool
-    | Submit ValidInputs
+    | Submit MessageDraft
+    | SubmitSigned MessageDraft (Result String TxHash)
+    | CheckMiningMessagesStatus
+    | MiningMessageStatusResult (Result Http.Error TxReceipt)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
     | DismissNotice Int
     | ClickHappened
@@ -72,8 +75,36 @@ type alias Message =
     }
 
 
+type alias MiningMessage =
+    { draft : MessageDraft
+    , status : MiningMessageStatus
+    }
+
+
+type MiningMessageStatus
+    = Mining
+    | Failed String
+
+
+updateMiningMessageByMessageDraft : MessageDraft -> (MiningMessage -> MiningMessage) -> Dict String MiningMessage -> Dict String MiningMessage
+updateMiningMessageByMessageDraft draft updateFunc =
+    let
+        isSameMessage m =
+            m.draft == draft
+    in
+    Dict.map
+        (\_ message ->
+            if isSameMessage message then
+                updateFunc message
+
+            else
+                message
+        )
+
+
 type PhaceId
     = MessageAuthor Hex
+    | UserMiningMessage TxHash
     | User
 
 
@@ -111,8 +142,9 @@ type alias CheckedMaybeValidInputs =
     }
 
 
-type alias ValidInputs =
-    { message : String
+type alias MessageDraft =
+    { author : Address
+    , message : String
     , burnAmount : TokenValue
     , donateAmount : TokenValue
     }
