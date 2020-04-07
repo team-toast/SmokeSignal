@@ -155,9 +155,10 @@ update msg prevModel =
 
                         ( Just draft, Just ssMessageHash ) ->
                             ( prevModel
-                                |> addMessage (Eth.Utils.hexToString ssMessageHash)
+                                |> addMessage txReceipt.blockNumber
                                     (Message
-                                        txReceipt.blockNumber
+                                        txReceipt.hash
+                                        ssMessageHash
                                         draft.author
                                         draft.burnAmount
                                         draft.message
@@ -238,9 +239,10 @@ update msg prevModel =
 
                 Ok ssMessage ->
                     ( prevModel
-                        |> addMessage (Eth.Utils.hexToString ssMessage.hash)
+                        |> addMessage log.blockNumber
                             (Message
-                                log.blockNumber
+                                log.transactionHash
+                                ssMessage.hash
                                 ssMessage.from
                                 ssMessage.burnAmount
                                 ssMessage.message
@@ -491,13 +493,38 @@ update msg prevModel =
             )
 
 
-addMessage : String -> Message -> Model -> Model
-addMessage ssMessageHashString message prevModel =
-    { prevModel
-        | messages =
+addMessage : Int -> Message -> Model -> Model
+addMessage blockNumber message prevModel =
+    let
+        alreadyHaveMessage =
             prevModel.messages
-                |> Dict.insert ssMessageHashString message
-    }
+                |> Dict.get blockNumber
+                |> Maybe.map
+                    (List.any
+                        (\listedMessage ->
+                            listedMessage.transactionHash == message.transactionHash
+                        )
+                    )
+                |> Maybe.withDefault False
+    in
+    if alreadyHaveMessage then
+        prevModel
+
+    else
+        { prevModel
+            | messages =
+                prevModel.messages
+                    |> Dict.update blockNumber
+                        (\maybeMessagesForBlock ->
+                            Just <|
+                                case maybeMessagesForBlock of
+                                    Nothing ->
+                                        [ message ]
+
+                                    Just messages ->
+                                        List.append messages [ message ]
+                        )
+        }
 
 
 removeMiningMessage : String -> Model -> Model

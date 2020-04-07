@@ -10,6 +10,7 @@ import Element.Border
 import Element.Events
 import Element.Font
 import Element.Input
+import Element.Lazy
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
 import Helpers.Element as EH
@@ -64,7 +65,8 @@ body model =
                 (userNoticeEls Desktop model.userNotices)
         )
         [ title
-        , viewMessagesAndDrafts
+        , Element.Lazy.lazy4
+            viewMessagesAndDrafts
             model.blockTimes
             model.messages
             model.miningMessages
@@ -160,14 +162,9 @@ composeUXShadow =
         }
 
 
-viewMessagesAndDrafts : Dict Int Time.Posix -> Dict String Message -> Dict String MiningMessage -> Maybe PhaceId -> Element Msg
+viewMessagesAndDrafts : Dict Int Time.Posix -> Dict Int (List Message) -> Dict String MiningMessage -> Maybe PhaceId -> Element Msg
 viewMessagesAndDrafts blockTimes messages miningMessages maybeShowAddressForPhace =
-    let
-        structuredMessageList =
-            sortMessagesByBlock messages
-                |> Dict.toList
-    in
-    if List.length structuredMessageList == 0 then
+    if Dict.isEmpty messages then
         Element.el
             [ Element.centerX
             , Element.centerY
@@ -180,9 +177,28 @@ viewMessagesAndDrafts blockTimes messages miningMessages maybeShowAddressForPhac
     else
         let
             messagesList =
-                structuredMessageList
+                messages
+                    |> Dict.map
+                        (\blocknum messagesForBlock ->
+                            Element.column
+                                [ Element.paddingXY 20 0 ]
+                                (List.map
+                                    (viewMessage
+                                        (case maybeShowAddressForPhace of
+                                            Just (MinedMessage messageIdInfo) ->
+                                                Just messageIdInfo
+
+                                            _ ->
+                                                Nothing
+                                        )
+                                        blocknum
+                                    )
+                                    messagesForBlock
+                                )
+                        )
+                    |> Dict.toList
                     |> List.map
-                        (\( blocknum, messagesForBlock ) ->
+                        (\( blocknum, messagesEl ) ->
                             Element.column
                                 [ Element.width Element.fill
                                 , Element.spacing 10
@@ -218,21 +234,7 @@ viewMessagesAndDrafts blockTimes messages miningMessages maybeShowAddressForPhac
                                         |> Maybe.withDefault "???"
                                         |> Element.text
                                     ]
-                                , Element.column
-                                    [ Element.paddingXY 20 0 ]
-                                    (Dict.map
-                                        (viewMessage
-                                            (case maybeShowAddressForPhace of
-                                                Just (MessageAuthor messageHash) ->
-                                                    Just messageHash
-
-                                                _ ->
-                                                    Nothing
-                                            )
-                                        )
-                                        messagesForBlock
-                                        |> Dict.values
-                                    )
+                                , messagesEl
                                 ]
                         )
 
@@ -301,18 +303,8 @@ posixToString t =
         ++ " (UTC)"
 
 
-sortMessagesByBlock : Dict String Message -> Dict Int (Dict String Message)
-sortMessagesByBlock messages =
-    messages
-        |> Dict.toList
-        |> Dict.Extra.groupBy
-            (Tuple.second >> .block)
-        |> Dict.map
-            (always Dict.fromList)
-
-
-viewMessage : Maybe Hex -> String -> Message -> Element Msg
-viewMessage maybeShowAddressForMessage hashIdString message =
+viewMessage : Maybe ( Int, TxHash ) -> Int -> Message -> Element Msg
+viewMessage maybeShowAddressIdInfo blocknum message =
     Element.row
         [ Element.width Element.fill
         , Element.spacing 20
@@ -323,9 +315,9 @@ viewMessage maybeShowAddressForMessage hashIdString message =
             ]
           <|
             phaceElement
-                (MessageAuthor (Eth.Utils.unsafeToHex hashIdString))
-                message.author
-                (maybeShowAddressForMessage == Just (Eth.Utils.unsafeToHex hashIdString))
+                (MinedMessage ( blocknum, message.transactionHash ))
+                message.from
+                (maybeShowAddressIdInfo == Just ( blocknum, message.transactionHash ))
         , Element.column
             [ Element.width <| Element.px 100
             , Element.alignTop

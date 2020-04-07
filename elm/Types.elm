@@ -30,8 +30,8 @@ type alias Model =
     , now : Time.Posix
     , txSentry : TxSentry Msg
     , eventSentry : EventSentry Msg
-    , messages : Dict String Message -- Can't use Hex as a key; Elm is silly with what is and is not comparable
-    , miningMessages : Dict String MiningMessage -- key is the txHash of the mining tx
+    , messages : Dict Int (List Message )
+    , miningMessages : Dict String MiningMessage -- Can't use TxHash as a key; Elm is silly with what is and is not comparable
     , showComposeUX : Bool
     , composeUXModel : ComposeUXModel
     , blockTimes : Dict Int Time.Posix
@@ -68,8 +68,9 @@ type Msg
 
 
 type alias Message =
-    { block : Int
-    , author : Address
+    { transactionHash : TxHash
+    , messageHash : Hex
+    , from : Address
     , burnAmount : TokenValue
     , message : String
     }
@@ -103,7 +104,7 @@ updateMiningMessageByMessageDraft draft updateFunc =
 
 
 type PhaceId
-    = MessageAuthor Hex
+    = MinedMessage (Int, TxHash)
     | UserMiningMessage TxHash
     | User
 
