@@ -231,7 +231,7 @@ viewMessagesAndDrafts blockTimes messages miningMessages maybeShowAddressForPhac
                                     , blockTimes
                                         |> Dict.get blocknum
                                         |> Maybe.map posixToString
-                                        |> Maybe.withDefault "???"
+                                        |> Maybe.withDefault "[fetching block timestamp]"
                                         |> Element.text
                                     ]
                                 , messagesEl
