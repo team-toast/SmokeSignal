@@ -10,9 +10,10 @@ import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet as WalletSentry exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt)
 import Http
+import Routing exposing (Route)
 import Time
 import TokenValue exposing (TokenValue)
-import Url
+import Url exposing (Url)
 import UserNotice as UN exposing (UserNotice)
 import Wallet
 
@@ -26,11 +27,14 @@ type alias Flags =
 
 
 type alias Model =
-    { wallet : Wallet.State
+    { navKey : Browser.Navigation.Key
+    , route : Route
+    , wallet : Wallet.State
     , now : Time.Posix
     , txSentry : TxSentry Msg
     , eventSentry : EventSentry Msg
-    , messages : Dict Int (List Message )
+    , messages : Dict Int (List Message)
+    , viewFilter : ViewFilter
     , miningMessages : Dict String MiningMessage -- Can't use TxHash as a key; Elm is silly with what is and is not comparable
     , showComposeUX : Bool
     , composeUXModel : ComposeUXModel
@@ -42,6 +46,8 @@ type alias Model =
 
 type Msg
     = NoOp
+    | LinkClicked Browser.UrlRequest
+    | UrlChanged Url
     | Tick Time.Posix
     | EveryFewSeconds
     | WalletStatus (Result String WalletSentry)
@@ -65,6 +71,11 @@ type Msg
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
     | DismissNotice Int
     | ClickHappened
+
+
+type ViewFilter
+    = None
+    | Post (Result String PostIdInfo)
 
 
 type alias Message =
@@ -104,7 +115,7 @@ updateMiningMessageByMessageDraft draft updateFunc =
 
 
 type PhaceId
-    = MinedMessage (Int, TxHash)
+    = MinedMessage ( Int, TxHash )
     | UserMiningMessage TxHash
     | User
 
@@ -194,3 +205,16 @@ validateBurnAmount input =
                             Err "Minimum amount is 0.000000000000000001 DAI"
                     )
             )
+
+
+getPostFromIdInfo : PostIdInfo -> Model -> Maybe Message
+getPostFromIdInfo postIdInfo model =
+    model.messages
+        |> Dict.get postIdInfo.block
+        |> Maybe.map
+            (List.filter
+                (\message ->
+                    message.messageHash == postIdInfo.messageHash
+                )
+            )
+        |> Maybe.andThen List.head

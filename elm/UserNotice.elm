@@ -199,6 +199,16 @@ inputError errStr =
     }
 
 
+routeNotFound : UserNotice msg
+routeNotFound =
+    { label = "routeNotFound"
+    , noticeType = Error
+    , mainParagraphs =
+        [ [ Element.text "I don't understand that url..." ] ]
+    , align = BottomRight
+    }
+
+
 debugMsg : String -> UserNotice msg
 debugMsg s =
     { label = "debug"

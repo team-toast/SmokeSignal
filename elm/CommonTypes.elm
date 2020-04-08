@@ -2,7 +2,7 @@ module CommonTypes exposing (..)
 
 import Dict
 import Eth.Net
-import Eth.Types exposing (Address)
+import Eth.Types exposing (Address, Hex)
 import Json.Decode
 import Json.Encode
 import TokenValue exposing (TokenValue)
@@ -18,6 +18,12 @@ type alias UserInfo =
     , address : Address
     , balance : Maybe TokenValue
     , daiUnlocked : Maybe Bool
+    }
+
+
+type alias PostIdInfo =
+    { block : Int
+    , messageHash : Hex
     }
 
 

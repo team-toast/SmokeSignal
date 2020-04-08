@@ -32,6 +32,8 @@ root model =
     , body =
         [ Element.layout
             [ Element.width Element.fill
+            , Element.height Element.fill
+            , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
             , Element.Events.onClick ClickHappened
             ]
           <|
@@ -44,8 +46,92 @@ body : Model -> Element Msg
 body model =
     Element.column
         ([ Element.width Element.fill
-         , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
-         , Element.inFront <|
+         , Element.height Element.fill
+         ]
+            ++ List.map
+                Element.inFront
+                (userNoticeEls
+                    Desktop
+                    model.userNotices
+                )
+        )
+        [ header model.viewFilter
+        , case model.viewFilter of
+            None ->
+                viewDefault model
+
+            Post (Err errStr) ->
+                appStatusMessage EH.softRed <|
+                    "Error interpreting a post url: "
+                        ++ errStr
+
+            Post (Ok postIdInfo) ->
+                viewPost postIdInfo model
+        ]
+
+
+appStatusMessage : Element.Color -> String -> Element Msg
+appStatusMessage color errStr =
+    Element.el [ Element.width Element.fill, Element.height Element.fill ] <|
+        Element.paragraph
+            [ Element.centerX
+            , Element.centerY
+            , Element.Font.center
+            , Element.Font.italic
+            , Element.Font.color color
+            , Element.Font.size 36
+            , Element.width (Element.fill |> Element.maximum 800)
+            , Element.padding 40
+            ]
+            [ Element.text errStr ]
+
+
+header : ViewFilter -> Element Msg
+header viewFilter =
+    Element.el
+        [ Element.Font.size 40
+        , Element.Font.bold
+        , Element.padding 30
+        ]
+    <|
+        Element.text <|
+            case viewFilter of
+                None ->
+                    "SmokeSignal"
+
+                Post postIdInfoResult ->
+                    "SmokeSignal - View Post "
+                        ++ (postIdInfoResult
+                                |> Result.map
+                                    (.messageHash
+                                        >> shortenedMessageHash
+                                    )
+                                |> Result.withDefault ""
+                           )
+
+
+shortenedMessageHash : Hex -> String
+shortenedMessageHash hash =
+    let
+        hashStr =
+            Eth.Utils.hexToString hash
+    in
+    if String.length hashStr <= 10 then
+        hashStr
+
+    else
+        String.left 6 hashStr
+            ++ "..."
+            ++ String.right 4 hashStr
+
+
+viewDefault : Model -> Element Msg
+viewDefault model =
+    Element.column
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        , Element.scrollbarY
+        , Element.inFront <|
             if model.showComposeUX then
                 Element.none
 
@@ -59,13 +145,8 @@ body model =
                                 )
                             )
                     )
-         ]
-            ++ List.map
-                Element.inFront
-                (userNoticeEls Desktop model.userNotices)
-        )
-        [ title
-        , Element.Lazy.lazy4
+        ]
+        [ Element.Lazy.lazy4
             viewMessagesAndDrafts
             model.blockTimes
             model.messages
@@ -93,15 +174,30 @@ body model =
         ]
 
 
-title : Element Msg
-title =
+viewPost : PostIdInfo -> Model -> Element Msg
+viewPost postIdInfo model =
     Element.el
-        [ Element.Font.size 40
-        , Element.Font.bold
-        , Element.padding 30
+        [ Element.width Element.fill
+        , Element.padding 20
         ]
     <|
-        Element.text "SmokeSignal"
+        (getPostFromIdInfo postIdInfo model
+            |> Maybe.map
+                (viewMessage
+                    (case model.showAddress of
+                        Just (MinedMessage messageIdInfo) ->
+                            Just messageIdInfo
+
+                        _ ->
+                            Nothing
+                    )
+                    postIdInfo.block
+                )
+            |> Maybe.withDefault
+                (appStatusMessage EH.darkGray
+                    "Loading post..."
+                )
+        )
 
 
 viewMinimizedComposeUX : Maybe ( UserInfo, Bool ) -> Element Msg
@@ -165,14 +261,8 @@ composeUXShadow =
 viewMessagesAndDrafts : Dict Int Time.Posix -> Dict Int (List Message) -> Dict String MiningMessage -> Maybe PhaceId -> Element Msg
 viewMessagesAndDrafts blockTimes messages miningMessages maybeShowAddressForPhace =
     if Dict.isEmpty messages then
-        Element.el
-            [ Element.centerX
-            , Element.centerY
-            , Element.Font.size 36
-            , Element.Font.color EH.darkGray
-            , Element.Font.italic
-            ]
-            (Element.text "Searching for SmokeSignal messages...")
+        appStatusMessage EH.darkGray
+            "Searching for SmokeSignal messages..."
 
     else
         let

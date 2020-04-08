@@ -21,6 +21,7 @@ import Json.Encode
 import List.Extra
 import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
+import Routing exposing (Route)
 import Task
 import Time
 import TokenValue exposing (TokenValue)
@@ -30,12 +31,11 @@ import UserNotice as UN exposing (UserNotice)
 import Wallet
 
 
-init : Flags -> ( Model, Cmd Msg )
-init flags =
+init : Flags -> Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
+init flags url key =
     let
-        -- until decided otherwise
-        testMode =
-            False
+        route =
+            Routing.urlToRoute url
 
         ( wallet, walletNotices ) =
             if flags.networkId == 0 then
@@ -61,11 +61,12 @@ init flags =
             fetchMessagesFromBlockrangeCmd
                 (Eth.Types.BlockNum Config.startScanBlock)
                 Eth.Types.LatestBlock
-                testMode
                 initEventSentry
     in
-    ( { wallet = wallet
+    { navKey = key
+    , wallet = wallet
       , now = Time.millisToPosix flags.nowInMillis
+    , route = Routing.InitialBlank
       , txSentry = txSentry
       , eventSentry = eventSentry
       , messages = Dict.empty
@@ -79,12 +80,16 @@ init flags =
             }
       , blockTimes = Dict.empty
       , showAddress = Nothing
-      , userNotices =
-            walletNotices
+    , userNotices = walletNotices
+    , viewFilter = None
       }
-    , Cmd.batch
+        |> gotoRoute route
+        |> Tuple.mapSecond
+            (\routeCmd ->
+                Cmd.batch
         [ initEventSentryCmd
         , secondEventSentryCmd
+                    , routeCmd
         ]
     )
 
@@ -92,6 +97,21 @@ init flags =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg prevModel =
     case msg of
+        LinkClicked urlRequest ->
+            let
+                cmd =
+                    case urlRequest of
+                        Browser.Internal url ->
+                            Browser.Navigation.pushUrl prevModel.navKey (Url.toString url)
+
+                        Browser.External href ->
+                            Browser.Navigation.load href
+            in
+            ( prevModel, cmd )
+
+        UrlChanged url ->
+            prevModel |> updateFromPageRoute (url |> Routing.urlToRoute)
+
         Tick newTime ->
             ( { prevModel | now = newTime }, Cmd.none )
 
@@ -493,6 +513,48 @@ update msg prevModel =
             )
 
 
+updateFromPageRoute : Route -> Model -> ( Model, Cmd Msg )
+updateFromPageRoute route model =
+    if model.route == route then
+        ( model
+        , Cmd.none
+        )
+
+    else
+        gotoRoute route model
+
+
+gotoRoute : Route -> Model -> ( Model, Cmd Msg )
+gotoRoute route prevModel =
+    case route of
+        Routing.InitialBlank ->
+            ( prevModel, Cmd.none )
+
+        Routing.Default ->
+            ( { prevModel
+                | viewFilter = None
+                , route = route
+              }
+            , Cmd.none
+            )
+
+        Routing.ViewPost postIdInfoResult ->
+            ( { prevModel
+                | viewFilter = Post postIdInfoResult
+                , route = route
+              }
+            , Cmd.none
+            )
+
+        Routing.NotFound ->
+            ( { prevModel
+                | route = route
+              }
+                |> addUserNotice UN.routeNotFound
+            , Cmd.none
+            )
+
+
 addMessage : Int -> Message -> Model -> Model
 addMessage blockNumber message prevModel =
     let
@@ -545,8 +607,8 @@ getBlockTimeIfNeededCmd blockTimes blockNumber =
         Cmd.none
 
 
-fetchMessagesFromBlockrangeCmd : Eth.Types.BlockId -> Eth.Types.BlockId -> Bool -> EventSentry Msg -> ( EventSentry Msg, Cmd Msg, EventSentry.Ref )
-fetchMessagesFromBlockrangeCmd from to testMode sentry =
+fetchMessagesFromBlockrangeCmd : Eth.Types.BlockId -> Eth.Types.BlockId -> EventSentry Msg -> ( EventSentry Msg, Cmd Msg, EventSentry.Ref )
+fetchMessagesFromBlockrangeCmd from to sentry =
     EventSentry.watch
         MessageLogReceived
         sentry

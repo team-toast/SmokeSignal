@@ -23,6 +23,7 @@
             "elm-community/list-extra": "8.2.3",
             "elm-community/maybe-extra": "5.2.0",
             "mdgriffith/elm-ui": "1.1.5",
+            "mthadley/elm-hash-routing": "1.0.1",
             "myrho/elm-round": "1.0.4",
             "pablohirafuji/elm-markdown": "2.0.5",
             "rtfeldman/elm-css": "16.0.1",
