@@ -55,6 +55,11 @@ routeToString route =
                 []
 
 
+routeToFullDotEthUrlString : Route -> String
+routeToFullDotEthUrlString route =
+    "https://smokesignal.eth" ++ routeToString route
+
+
 postIdInfoParser : Query.Parser (Result String PostIdInfo)
 postIdInfoParser =
     Query.map2

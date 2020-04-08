@@ -19,6 +19,7 @@ import Helpers.Time as TimeHelpers
 import Html.Attributes
 import Markdown
 import Phace
+import Routing exposing (Route)
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
@@ -413,7 +414,15 @@ viewMessage maybeShowAddressIdInfo blocknum message =
             , Element.alignTop
             , Element.width Element.fill
             ]
-            [ viewDaiBurned True message.burnAmount
+            [ Element.row
+                [ Element.width Element.fill ]
+                [ viewDaiBurned True message.burnAmount
+                , viewPermalink
+                    (PostIdInfo
+                        blocknum
+                        message.messageHash
+                    )
+                ]
             , viewMessageContent True message.message
             ]
         ]
@@ -523,6 +532,33 @@ viewDaiBurned mined amount =
             ]
 
 
+viewPermalink : PostIdInfo -> Element Msg
+viewPermalink postIdInfo =
+    Element.el
+        [ Element.alignBottom
+        , Element.Font.size 22
+        , Element.paddingXY 10 5
+        , Element.Background.color EH.lightBlue
+        , Element.Border.roundEach
+            { bottomLeft = 0
+            , bottomRight = 0
+            , topLeft = 5
+            , topRight = 5
+            }
+        , Element.alignRight
+        ]
+    <|
+        Element.link
+            [ Element.Font.color EH.blue
+            , Element.Font.size 16 ]
+            { url =
+                Routing.routeToFullDotEthUrlString <|
+                    Routing.ViewPost <|
+                        Ok postIdInfo
+            , label = Element.text ".eth permalink"
+            }
+
+
 viewMessageContent : Bool -> String -> Element Msg
 viewMessageContent mined content =
     renderMarkdownParagraphs
@@ -530,7 +566,12 @@ viewMessageContent mined content =
          , Element.paddingXY 20 0
          , Element.Border.roundEach
             { topLeft = 0
-            , topRight = 10
+            , topRight =
+                if mined then
+                    0
+
+                else
+                    10
             , bottomRight = 10
             , bottomLeft = 10
             }
