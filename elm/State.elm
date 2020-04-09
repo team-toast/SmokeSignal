@@ -21,6 +21,7 @@ import Json.Encode
 import List.Extra
 import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
+import Message exposing (Message)
 import Routing exposing (Route)
 import Task
 import Time
@@ -65,33 +66,38 @@ init flags url key =
     in
     { navKey = key
     , wallet = wallet
-      , now = Time.millisToPosix flags.nowInMillis
+    , now = Time.millisToPosix flags.nowInMillis
     , route = Routing.InitialBlank
-      , txSentry = txSentry
-      , eventSentry = eventSentry
-      , messages = Dict.empty
-      , miningMessages = Dict.empty
-      , showComposeUX = False
-      , composeUXModel =
-            { message = ""
-            , daiInput = ""
-            , donateChecked = True
-            , miningUnlockTx = Nothing
-            }
-      , blockTimes = Dict.empty
-      , showAddress = Nothing
+    , txSentry = txSentry
+    , eventSentry = eventSentry
+    , messages = Dict.empty
+    , miningMessages = Dict.empty
+    , showComposeUX = False
+    , composeUXModel = initialComposeUXModel
+    , blockTimes = Dict.empty
+    , showAddress = Nothing
     , userNotices = walletNotices
     , viewFilter = None
-      }
+    }
         |> gotoRoute route
         |> Tuple.mapSecond
             (\routeCmd ->
                 Cmd.batch
-        [ initEventSentryCmd
-        , secondEventSentryCmd
+                    [ initEventSentryCmd
+                    , secondEventSentryCmd
                     , routeCmd
-        ]
-    )
+                    ]
+            )
+
+
+initialComposeUXModel : ComposeUXModel
+initialComposeUXModel =
+    { message = ""
+    , daiInput = ""
+    , donateChecked = True
+    , miningUnlockTx = Nothing
+    , metadata = Message.noMetadata
+    }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -150,7 +156,7 @@ update msg prevModel =
                                 |> Dict.get txHashStr
                                 |> Maybe.map .draft
 
-                        maybeSsMessageHash =
+                        maybeSsMessage =
                             txReceipt.logs
                                 |> List.filter
                                     (\log ->
@@ -159,9 +165,8 @@ update msg prevModel =
                                 |> List.head
                                 |> Maybe.map (Eth.Decode.event SSContract.messageBurnDecoder)
                                 |> Maybe.andThen (.returnData >> Result.toMaybe)
-                                |> Maybe.map .hash
                     in
-                    case ( maybeDraft, maybeSsMessageHash ) of
+                    case ( maybeDraft, maybeSsMessage ) of
                         ( Nothing, _ ) ->
                             -- No matching draft found in miningMessages; ignore
                             ( prevModel, Cmd.none )
@@ -173,15 +178,12 @@ update msg prevModel =
                             , Cmd.none
                             )
 
-                        ( Just draft, Just ssMessageHash ) ->
+                        ( Just draft, Just ssMessage ) ->
                             ( prevModel
                                 |> addMessage txReceipt.blockNumber
-                                    (Message
+                                    (Message.fromContractEvent
                                         txReceipt.hash
-                                        ssMessageHash
-                                        draft.author
-                                        draft.burnAmount
-                                        draft.message
+                                        ssMessage
                                     )
                                 |> removeMiningMessage txHashStr
                             , getBlockTimeIfNeededCmd prevModel.blockTimes txReceipt.blockNumber
@@ -260,12 +262,9 @@ update msg prevModel =
                 Ok ssMessage ->
                     ( prevModel
                         |> addMessage log.blockNumber
-                            (Message
+                            (Message.fromContractEvent
                                 log.transactionHash
-                                ssMessage.hash
-                                ssMessage.from
-                                ssMessage.burnAmount
-                                ssMessage.message
+                                ssMessage
                             )
                         |> removeMiningMessage (Eth.Utils.txHashToString log.transactionHash)
                     , getBlockTimeIfNeededCmd prevModel.blockTimes log.blockNumber
@@ -432,10 +431,9 @@ update msg prevModel =
                 ( newTxSentry, cmd ) =
                     let
                         txParams =
-                            SSContract.burnMessage
-                                messageDraft.message
-                                messageDraft.burnAmount
-                                messageDraft.donateAmount
+                            messageDraft
+                                |> Message.encodeDraft
+                                |> SSContract.burnEncodedMessage
                                 |> Eth.toSend
 
                         listeners =

@@ -1,5 +1,6 @@
 module Contracts.SmokeSignal exposing (..)
 
+import CommonTypes exposing (..)
 import Config
 import Contracts.Generated.SmokeSignal as G
 import Eth.Types exposing (..)
@@ -46,10 +47,10 @@ messageBurnDecoder =
         |> Decode.map convertBurnAmount
 
 
-burnMessage : String -> TokenValue -> TokenValue -> Call Hex
-burnMessage message burnAmount donateAmount =
+burnEncodedMessage : EncodedMessageDraft -> Call Hex
+burnEncodedMessage encodedMessage =
     G.burnMessage
         Config.smokesignalContractAddress
-        message
-        (TokenValue.getEvmValue burnAmount)
-        (TokenValue.getEvmValue donateAmount)
+        encodedMessage.encodedMessageAndMetadata
+        (TokenValue.getEvmValue encodedMessage.burnAmount)
+        (TokenValue.getEvmValue encodedMessage.donateAmount)

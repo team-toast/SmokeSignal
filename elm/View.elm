@@ -19,6 +19,7 @@ import Helpers.Time as TimeHelpers
 import Html.Attributes
 import Markdown
 import Phace
+import Message exposing (Message)
 import Routing exposing (Route)
 import Time
 import TokenValue exposing (TokenValue)
@@ -830,11 +831,12 @@ goButtonAndMaybeError userInfo composeUXModel =
                                         Just message ->
                                             ( maybeGoButton <|
                                                 Just <|
-                                                    MessageDraft
+                                                    Message.Draft
                                                         userInfo.address
                                                         message
                                                         burnAmount
                                                         donateAmount
+                                                        validateResults.metadata
                                             , Nothing
                                             )
 
@@ -864,7 +866,7 @@ goButtonAndMaybeError userInfo composeUXModel =
             )
 
 
-maybeGoButton : Maybe MessageDraft -> Element Msg
+maybeGoButton : Maybe Message.Draft -> Element Msg
 maybeGoButton maybeDraft =
     let
         commonStyles =

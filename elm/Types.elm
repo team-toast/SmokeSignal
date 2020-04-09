@@ -10,6 +10,7 @@ import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet as WalletSentry exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt)
 import Http
+import Message exposing (Message)
 import Routing exposing (Route)
 import Time
 import TokenValue exposing (TokenValue)
@@ -64,8 +65,8 @@ type Msg
     | MessageInputChanged String
     | DaiInputChanged String
     | DonationCheckboxSet Bool
-    | Submit MessageDraft
-    | SubmitSigned MessageDraft (Result String TxHash)
+    | Submit Message.Draft
+    | SubmitSigned Message.Draft (Result String TxHash)
     | CheckMiningMessagesStatus
     | MiningMessageStatusResult (Result Http.Error TxReceipt)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
@@ -78,17 +79,8 @@ type ViewFilter
     | Post (Result String PostIdInfo)
 
 
-type alias Message =
-    { transactionHash : TxHash
-    , messageHash : Hex
-    , from : Address
-    , burnAmount : TokenValue
-    , message : String
-    }
-
-
 type alias MiningMessage =
-    { draft : MessageDraft
+    { draft : Message.Draft
     , status : MiningMessageStatus
     }
 
@@ -98,7 +90,7 @@ type MiningMessageStatus
     | Failed String
 
 
-updateMiningMessageByMessageDraft : MessageDraft -> (MiningMessage -> MiningMessage) -> Dict String MiningMessage -> Dict String MiningMessage
+updateMiningMessageByMessageDraft : Message.Draft -> (MiningMessage -> MiningMessage) -> Dict String MiningMessage -> Dict String MiningMessage
 updateMiningMessageByMessageDraft draft updateFunc =
     let
         isSameMessage m =
@@ -124,6 +116,7 @@ type alias ComposeUXModel =
     { message : String
     , daiInput : String
     , donateChecked : Bool
+    , metadata : Message.Metadata
     , miningUnlockTx : Maybe TxHash
     }
 
@@ -143,6 +136,17 @@ updateDonateChecked flag m =
     { m | donateChecked = flag }
 
 
+updateReply : Maybe Hex -> ComposeUXModel -> ComposeUXModel
+updateReply maybeHash m =
+    { m
+        | metadata =
+            m.metadata
+                |> (\metadata ->
+                        { metadata | reply = maybeHash }
+                   )
+    }
+
+
 updateMiningUnlockTx : Maybe TxHash -> ComposeUXModel -> ComposeUXModel
 updateMiningUnlockTx maybeTxHash m =
     { m | miningUnlockTx = maybeTxHash }
@@ -151,14 +155,7 @@ updateMiningUnlockTx maybeTxHash m =
 type alias CheckedMaybeValidInputs =
     { message : Maybe String
     , burnAndDonateAmount : Maybe (Result String ( TokenValue, TokenValue ))
-    }
-
-
-type alias MessageDraft =
-    { author : Address
-    , message : String
-    , burnAmount : TokenValue
-    , donateAmount : TokenValue
+    , metadata : Message.Metadata
     }
 
 
@@ -184,6 +181,8 @@ validateInputs composeModel =
                         )
                     )
                 )
+    , metadata =
+        composeModel.metadata
     }
 
 

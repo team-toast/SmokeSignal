@@ -58,3 +58,10 @@ changeForMobile changed dProfile original =
 
         Mobile ->
             changed
+
+type alias EncodedMessageDraft =
+    { author : Address
+    , encodedMessageAndMetadata : String
+    , burnAmount : TokenValue
+    , donateAmount : TokenValue
+    }
