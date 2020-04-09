@@ -209,8 +209,8 @@ validateBurnAmount input =
             )
 
 
-getPostFromIdInfo : PostId -> Model -> Maybe Message
-getPostFromIdInfo postId model =
+getPostFromId : Model -> PostId -> Maybe Message
+getPostFromId model postId =
     model.messages
         |> Dict.get postId.block
         |> Maybe.map

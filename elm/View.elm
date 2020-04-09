@@ -188,18 +188,9 @@ viewPost postId model =
         , Element.padding 20
         ]
     <|
-        (getPostFromIdInfo postId model
+        (getPostFromId model postId
             |> Maybe.map
-                (viewEntireMessage
-                    (case model.showAddress of
-                        Just (PhaceForMinedMessage messageIdInfo) ->
-                            Just messageIdInfo
-
-                        _ ->
-                            Nothing
-                    )
-                    Nothing
-                )
+                (viewEntireMessageAndReplies model)
             |> Maybe.withDefault
                 (appStatusMessage EH.darkGray
                     "Loading post..."
@@ -272,107 +263,6 @@ viewMessagesAndDrafts blockTimes messages replies miningMessages maybeShowAddres
             "Searching for SmokeSignal messages..."
 
     else
-        let
-            messagesList =
-                messages
-                    |> Dict.map
-                        (\blocknum messagesForBlock ->
-                            Element.column
-                                [ Element.paddingXY 20 0 ]
-                                (List.map
-                                    (\message ->
-                                        viewEntireMessage
-                                            (case maybeShowAddressForPhace of
-                                                Just (PhaceForMinedMessage postId) ->
-                                                    Just postId
-
-                                                _ ->
-                                                    Nothing
-                                            )
-                                            (replies
-                                                |> List.Extra.count
-                                                    (.to >> (==) message.postId)
-                                                |> (\n ->
-                                                        if n > 0 then
-                                                            Just n
-
-                                                        else
-                                                            Nothing
-                                                   )
-                                            )
-                                            message
-                                    )
-                                    messagesForBlock
-                                )
-                        )
-                    |> Dict.toList
-                    |> List.reverse
-                    |> List.map
-                        (\( blocknum, messagesEl ) ->
-                            Element.column
-                                [ Element.width Element.fill
-                                , Element.spacing 10
-                                ]
-                                [ Element.column
-                                    [ Element.width Element.fill
-                                    , Element.spacing 5
-                                    , Element.Font.italic
-                                    , Element.Font.size 14
-                                    ]
-                                    [ Element.row
-                                        [ Element.width Element.fill
-                                        , Element.spacing 5
-                                        ]
-                                        [ Element.text <| "block " ++ String.fromInt blocknum
-                                        , Element.el
-                                            [ Element.width Element.fill
-                                            , Element.height <| Element.px 1
-                                            , Element.Border.color EH.black
-                                            , Element.Border.widthEach
-                                                { top = 1
-                                                , bottom = 0
-                                                , right = 0
-                                                , left = 0
-                                                }
-                                            , Element.Border.dashed
-                                            ]
-                                            Element.none
-                                        ]
-                                    , blockTimes
-                                        |> Dict.get blocknum
-                                        |> Maybe.map posixToString
-                                        |> Maybe.withDefault "[fetching block timestamp]"
-                                        |> Element.text
-                                    ]
-                                , messagesEl
-                                ]
-                        )
-
-            miningMessagesList =
-                if (List.length <| Dict.toList miningMessages) == 0 then
-                    []
-
-                else
-                    [ Element.el
-                        [ Element.Font.size 26 ]
-                        (Element.text "Your mining messages")
-                    , Element.column
-                        [ Element.paddingXY 20 0 ]
-                        (Dict.map
-                            (viewMiningMessage
-                                (case maybeShowAddressForPhace of
-                                    Just (PhaceForUserMiningMessage txHash) ->
-                                        Just txHash
-
-                                    _ ->
-                                        Nothing
-                                )
-                            )
-                            miningMessages
-                            |> Dict.values
-                        )
-                    ]
-        in
         Element.el
             [ Element.width Element.fill
             , Element.height Element.fill
@@ -390,9 +280,129 @@ viewMessagesAndDrafts blockTimes messages replies miningMessages maybeShowAddres
                     , left = 20
                     }
                 ]
-            <|
-                miningMessagesList
-                    ++ messagesList
+                [ viewMiningMessages miningMessages maybeShowAddressForPhace
+                , viewMinedMessages blockTimes messages replies maybeShowAddressForPhace
+                ]
+
+
+viewMiningMessages : Dict String MiningMessage -> Maybe PhaceId -> Element Msg
+viewMiningMessages miningMessages showAddress =
+    let
+        miningMessagesList =
+            if (List.length <| Dict.toList miningMessages) == 0 then
+                []
+
+            else
+                [ Element.el
+                    [ Element.Font.size 26 ]
+                    (Element.text "Your mining messages")
+                , Element.column
+                    [ Element.paddingXY 20 0 ]
+                    (Dict.map
+                        (viewMiningMessage
+                            (case showAddress of
+                                Just (PhaceForUserMiningMessage txHash) ->
+                                    Just txHash
+
+                                _ ->
+                                    Nothing
+                            )
+                        )
+                        miningMessages
+                        |> Dict.values
+                    )
+                ]
+    in
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing 20
+        ]
+        miningMessagesList
+
+
+viewMinedMessages : Dict Int Time.Posix -> Dict Int (List Message) -> List Reply -> Maybe PhaceId -> Element Msg
+viewMinedMessages blockTimes messages replies showAddress =
+    let
+        messagesList =
+            messages
+                |> Dict.map
+                    (\blocknum messagesForBlock ->
+                        Element.column
+                            [ Element.paddingXY 20 0 ]
+                            (List.map
+                                (\message ->
+                                    viewEntireMessage
+                                        (case showAddress of
+                                            Just (PhaceForMinedMessage postId) ->
+                                                Just postId
+
+                                            _ ->
+                                                Nothing
+                                        )
+                                        (replies
+                                            |> List.Extra.count
+                                                (.to >> (==) message.postId)
+                                            |> (\n ->
+                                                    if n > 0 then
+                                                        Just n
+
+                                                    else
+                                                        Nothing
+                                               )
+                                        )
+                                        message
+                                )
+                                messagesForBlock
+                            )
+                    )
+                |> Dict.toList
+                |> List.reverse
+                |> List.map
+                    (\( blocknum, messagesEl ) ->
+                        Element.column
+                            [ Element.width Element.fill
+                            , Element.spacing 10
+                            ]
+                            [ Element.column
+                                [ Element.width Element.fill
+                                , Element.spacing 5
+                                , Element.Font.italic
+                                , Element.Font.size 14
+                                ]
+                                [ Element.row
+                                    [ Element.width Element.fill
+                                    , Element.spacing 5
+                                    ]
+                                    [ Element.text <| "block " ++ String.fromInt blocknum
+                                    , Element.el
+                                        [ Element.width Element.fill
+                                        , Element.height <| Element.px 1
+                                        , Element.Border.color EH.black
+                                        , Element.Border.widthEach
+                                            { top = 1
+                                            , bottom = 0
+                                            , right = 0
+                                            , left = 0
+                                            }
+                                        , Element.Border.dashed
+                                        ]
+                                        Element.none
+                                    ]
+                                , blockTimes
+                                    |> Dict.get blocknum
+                                    |> Maybe.map posixToString
+                                    |> Maybe.withDefault "[fetching block timestamp]"
+                                    |> Element.text
+                                ]
+                            , messagesEl
+                            ]
+                    )
+    in
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing 20
+        ]
+        messagesList
 
 
 posixToString : Time.Posix -> String
@@ -411,6 +421,65 @@ posixToString t =
         ++ ":"
         ++ String.padLeft 2 '0' (String.fromInt (Time.toMinute z t))
         ++ " (UTC)"
+
+
+viewEntireMessageAndReplies : Model -> Message -> Element Msg
+viewEntireMessageAndReplies model message =
+    let
+        replyingMessages =
+            let
+                messageIds =
+                    model.replies
+                        |> List.filterMap
+                            (\reply ->
+                                if reply.to == message.postId then
+                                    Just reply.from
+
+                                else
+                                    Nothing
+                            )
+            in
+            messageIds
+                |> List.map (getPostFromId model)
+                |> Maybe.Extra.values
+                |> Dict.Extra.groupBy (.postId >> .block)
+    in
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing 40
+        ]
+        [ viewEntireMessage
+            (case model.showAddress of
+                Just (PhaceForMinedMessage messageIdInfo) ->
+                    Just messageIdInfo
+
+                _ ->
+                    Nothing
+            )
+            Nothing
+            message
+        , Element.column
+            [ Element.width Element.fill
+            , Element.spacing 20
+            , Element.paddingEach
+                { left = 40
+                , right = 0
+                , top = 0
+                , bottom = 0
+                }
+            ]
+            [ Element.el
+                [ Element.Font.size 40
+                , Element.Font.bold
+                ]
+                (Element.text "Replies")
+            , viewMinedMessages
+                model.blockTimes
+                replyingMessages
+                model.replies
+                model.showAddress
+            ]
+        ]
 
 
 viewEntireMessage : Maybe PostId -> Maybe Int -> Message -> Element Msg
