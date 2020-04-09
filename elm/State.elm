@@ -490,6 +490,7 @@ update msg prevModel =
                         | composeUXModel =
                             prevModel.composeUXModel
                                 |> updateMessage ""
+                                |> updateReply Nothing
                         , miningMessages =
                             prevModel.miningMessages
                                 |> Dict.insert (Eth.Utils.txHashToString txHash)

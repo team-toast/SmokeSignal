@@ -312,7 +312,9 @@ viewMiningMessages miningMessages showAddress =
                     [ Element.Font.size 26 ]
                     (Element.text "Your mining messages")
                 , Element.column
-                    [ Element.paddingXY 20 0 ]
+                    [ Element.paddingXY 20 0
+                    , Element.spacing 20
+                    ]
                     (Dict.map
                         (viewMiningMessage
                             (case showAddress of
@@ -343,7 +345,9 @@ viewMinedMessages blockTimes messages replies showAddress =
                 |> Dict.map
                     (\blocknum messagesForBlock ->
                         Element.column
-                            [ Element.paddingXY 20 0 ]
+                            [ Element.paddingXY 20 0
+                            , Element.spacing 20
+                            ]
                             (List.map
                                 (\message ->
                                     viewEntireMessage
