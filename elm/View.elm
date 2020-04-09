@@ -113,26 +113,39 @@ appStatusMessage color errStr =
 
 header : ViewFilter -> Element Msg
 header viewFilter =
-    Element.el
-        [ Element.Font.size 40
-        , Element.Font.bold
-        , Element.padding 30
+    Element.column
+        [ Element.Font.bold
+        , Element.padding 10
+        , Element.spacing 10
         ]
-    <|
-        Element.text <|
+        [ Element.el
+            [ Element.pointer
+            , Element.Font.size 50
+            , Element.Events.onClick <|
+                GotoRoute <|
+                    Routing.Default
+            ]
+            (Element.text "SmokeSignal")
+        , Element.el
+            [ Element.Font.size 40
+            , Element.padding 10
+            ]
+          <|
             case viewFilter of
                 None ->
-                    "SmokeSignal"
+                    Element.none
 
                 Post postIdInfoResult ->
-                    "SmokeSignal - View Post "
-                        ++ (postIdInfoResult
-                                |> Result.map
-                                    (.messageHash
-                                        >> shortenedMessageHash
-                                    )
-                                |> Result.withDefault ""
-                           )
+                    Element.text <|
+                        "View Post "
+                            ++ (postIdInfoResult
+                                    |> Result.map
+                                        (.messageHash
+                                            >> shortenedMessageHash
+                                        )
+                                    |> Result.withDefault ""
+                               )
+        ]
 
 
 shortenedMessageHash : Hex -> String
@@ -178,7 +191,6 @@ viewDefault model =
             model.replies
             model.miningMessages
             model.showAddress
-        
         ]
 
 
