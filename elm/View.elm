@@ -501,9 +501,8 @@ viewEntireMessage maybeShowAddressPostId maybeNumReplies message =
                 message.from
                 (maybeShowAddressPostId == Just message.postId)
         , Element.column
-            [ Element.width <| Element.px 100
+            [ Element.width Element.fill
             , Element.alignTop
-            , Element.width Element.fill
             ]
             [ Element.row
                 [ Element.width Element.fill ]
@@ -704,7 +703,8 @@ getMetadata possiblyMiningMessage =
 viewMainMessageBlock : PossiblyMiningMessage -> Element Msg
 viewMainMessageBlock possiblyMiningMessage =
     Element.column
-        [ Element.paddingEach
+        [ Element.width Element.fill
+        , Element.paddingEach
             { top = 0
             , bottom = 20
             , right = 20
