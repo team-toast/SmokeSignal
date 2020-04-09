@@ -288,6 +288,7 @@ viewMessagesAndDrafts blockTimes messages miningMessages maybeShowAddressForPhac
                                 )
                         )
                     |> Dict.toList
+                    |> List.reverse
                     |> List.map
                         (\( blocknum, messagesEl ) ->
                             Element.column
@@ -372,8 +373,8 @@ viewMessagesAndDrafts blockTimes messages miningMessages maybeShowAddressForPhac
                     }
                 ]
             <|
-                messagesList
-                    ++ miningMessagesList
+                miningMessagesList
+                    ++ messagesList
 
 
 posixToString : Time.Posix -> String
@@ -416,7 +417,7 @@ viewMessage maybeShowAddressIdInfo blocknum message =
             ]
             [ Element.row
                 [ Element.width Element.fill ]
-                [ viewDaiBurned True message.burnAmount
+                [ viewDaiBurned message.burnAmount
                 , viewPermalink
                     (PostIdInfo
                         blocknum
@@ -433,6 +434,13 @@ viewMiningMessage maybeShowAddressForMessage txHashIdString miningMessage =
     Element.row
         [ Element.width Element.fill
         , Element.spacing 20
+        , Element.inFront <|
+            Element.el
+                [ Element.width Element.fill
+                , Element.height Element.fill
+                , Element.Background.color <| Element.rgba 1 1 1 0.6
+                ]
+                Element.none
         ]
         [ Element.el
             [ Element.alignTop
@@ -450,7 +458,7 @@ viewMiningMessage maybeShowAddressForMessage txHashIdString miningMessage =
             ]
             [ Element.row
                 [ Element.spacing 5 ]
-                [ viewDaiBurned False miningMessage.draft.burnAmount
+                [ viewDaiBurned miningMessage.draft.burnAmount
                 , viewMiningMessageStatus txHashIdString miningMessage.status
                 ]
             , viewMessageContent False miningMessage.draft.message
@@ -503,18 +511,13 @@ statusToString status =
             "Error: " ++ errStr
 
 
-viewDaiBurned : Bool -> TokenValue -> Element Msg
-viewDaiBurned mined amount =
+viewDaiBurned : TokenValue -> Element Msg
+viewDaiBurned amount =
     Element.el
         [ Element.alignBottom
         , Element.Font.size 22
         , Element.paddingXY 10 5
-        , Element.Background.color <|
-            if mined then
-                EH.lightRed
-
-            else
-                Element.rgb 1 0.9 0.9
+        , Element.Background.color EH.lightRed
         , Element.Border.roundEach
             { bottomLeft = 0
             , bottomRight = 0
@@ -550,7 +553,8 @@ viewPermalink postIdInfo =
     <|
         Element.link
             [ Element.Font.color EH.blue
-            , Element.Font.size 16 ]
+            , Element.Font.size 16
+            ]
             { url =
                 Routing.routeToFullDotEthUrlString <|
                     Routing.ViewPost <|
@@ -564,6 +568,7 @@ viewMessageContent mined content =
     renderMarkdownParagraphs
         ([ Element.spacing 2
          , Element.paddingXY 20 0
+         , Element.Background.color (Element.rgb 0.8 0.8 1)
          , Element.Border.roundEach
             { topLeft = 0
             , topRight =
@@ -577,14 +582,7 @@ viewMessageContent mined content =
             }
          , Element.alignTop
          ]
-            ++ (if mined then
-                    [ Element.Background.color (Element.rgb 0.8 0.8 1) ]
-
-                else
-                    [ Element.Background.color (Element.rgb 0.9 0.9 1)
-                    , Element.Font.color EH.darkGray
-                    ]
-               )
+            
         )
         content
 
