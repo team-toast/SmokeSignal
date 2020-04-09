@@ -15,10 +15,13 @@ import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
 import Helpers.Element as EH
 import Helpers.Eth as EthHelpers
+import Helpers.List as ListHelpers
 import Helpers.Time as TimeHelpers
 import Html.Attributes
 import Json.Decode
+import List.Extra
 import Markdown
+import Maybe.Extra
 import Message exposing (Message)
 import Phace
 import Routing exposing (Route)
@@ -635,7 +638,7 @@ metadataStuff possiblyMiningMessage =
                 Just <| viewMetadataDecodeError jsonDecodeErr
 
             Ok metadata ->
-                maybeViewReplyInfo metadata.reply
+                maybeViewReplyInfo metadata.reply Nothing
         )
         |> Maybe.withDefault Element.none
 
@@ -653,32 +656,51 @@ viewMetadataDecodeError error =
         )
 
 
-maybeViewReplyInfo : Maybe PostId -> Maybe (Element Msg)
-maybeViewReplyInfo maybePostId =
+maybeViewReplyInfo : Maybe PostId -> Maybe Msg -> Maybe (Element Msg)
+maybeViewReplyInfo maybePostId maybeCloseMsg =
     case maybePostId of
         Nothing ->
             Nothing
 
         Just postId ->
             Just <|
-                Element.column
+                Element.row
                     [ Element.padding 10
                     , Element.Border.rounded 5
                     , Element.Font.size 20
                     , Element.Font.italic
                     , Element.Background.color <| Element.rgba 1 1 1 0.5
+                    , Element.spacing 5
                     ]
-                    [ Element.text "Replying to "
-                    , Element.el
-                        [ Element.Font.color EH.blue
-                        , Element.pointer
-                        , Element.Events.onClick <|
-                            GotoRoute <|
-                                Routing.ViewPost (Ok postId)
+                    [ Element.column
+                        [ Element.spacing 3
                         ]
-                        (Element.text <|
-                            shortenedMessageHash postId.messageHash
-                        )
+                        [ Element.text "Replying to "
+                        , Element.el
+                            [ Element.Font.color EH.blue
+                            , Element.pointer
+                            , Element.Events.onClick <|
+                                GotoRoute <|
+                                    Routing.ViewPost (Ok postId)
+                            ]
+                            (Element.text <|
+                                shortenedMessageHash postId.messageHash
+                            )
+                        ]
+                    , case maybeCloseMsg of
+                        Just closeMsg ->
+                            Element.image
+                                [ Element.padding 4
+                                , Element.alignTop
+                                , Element.pointer
+                                , Element.Events.onClick closeMsg
+                                ]
+                                { src = "img/remove-circle-black.svg"
+                                , description = "remove"
+                                }
+
+                        Nothing ->
+                            Element.none
                     ]
 
 
@@ -731,6 +753,7 @@ viewComposeUX maybeUserInfoAndShowAddress composeUXModel =
     Element.column
         [ Element.width Element.fill
         , Element.Background.color EH.lightBlue
+        , Element.padding 10
         , composeUXShadow
         , Element.Border.roundEach
             { topLeft = 0
@@ -749,9 +772,24 @@ viewComposeUX maybeUserInfoAndShowAddress composeUXModel =
                     [ "Hide" ]
                     (ShowComposeUX False)
         ]
-        [ messageInputBox composeUXModel.message
+        [ viewComposeMetadata composeUXModel.metadata
+        , messageInputBox composeUXModel.message
         , actionFormAndMaybeErrorEl maybeUserInfoAndShowAddress composeUXModel
         ]
+
+
+viewComposeMetadata : Message.Metadata -> Element Msg
+viewComposeMetadata metadata =
+    Maybe.map
+        (Element.row
+            [ Element.spacing 10
+            , Element.paddingXY 30 10]
+        )
+        ([ maybeViewReplyInfo metadata.reply (Just <| ReplyTo Nothing) ]
+            |> Maybe.Extra.values
+            |> ListHelpers.nonEmpty
+        )
+        |> Maybe.withDefault Element.none
 
 
 messageInputBox : String -> Element Msg
