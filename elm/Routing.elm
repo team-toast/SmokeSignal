@@ -12,7 +12,7 @@ import Url.Parser.Query as Query
 type Route
     = InitialBlank
     | Default
-    | ViewPost (Result String PostIdInfo)
+    | ViewPost (Result String PostId)
     | NotFound
 
 
@@ -60,17 +60,17 @@ routeToFullDotEthUrlString route =
     "https://smokesignal.eth" ++ routeToString route
 
 
-postIdInfoParser : Query.Parser (Result String PostIdInfo)
+postIdInfoParser : Query.Parser (Result String PostId)
 postIdInfoParser =
     Query.map2
-        (Result.map2 PostIdInfo)
+        (Result.map2 PostId)
         (Query.int "block"
             |> Query.map (Result.fromMaybe "Can't interpret 'block'")
         )
         (hexQueryParser "hash")
 
 
-encodePostIdInfoQueryParameters : PostIdInfo -> List Builder.QueryParameter
+encodePostIdInfoQueryParameters : PostId -> List Builder.QueryParameter
 encodePostIdInfoQueryParameters postIdInfo =
     [ Builder.string "block" (String.fromInt postIdInfo.block)
     , Builder.string "hash" (Eth.Utils.hexToString postIdInfo.messageHash)

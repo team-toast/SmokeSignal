@@ -21,7 +21,7 @@ type alias UserInfo =
     }
 
 
-type alias PostIdInfo =
+type alias PostId =
     { block : Int
     , messageHash : Hex
     }

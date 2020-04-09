@@ -118,6 +118,20 @@ update msg prevModel =
         UrlChanged url ->
             prevModel |> updateFromPageRoute (url |> Routing.urlToRoute)
 
+        GotoRoute route ->
+            prevModel
+                |> gotoRoute route
+                |> Tuple.mapSecond
+                    (\cmd ->
+                        Cmd.batch
+                            [ cmd
+                            , Browser.Navigation.pushUrl
+                                prevModel.navKey
+                                (Routing.routeToString route
+                                )
+                            ]
+                    )
+
         Tick newTime ->
             ( { prevModel | now = newTime }, Cmd.none )
 
@@ -182,7 +196,7 @@ update msg prevModel =
                             ( prevModel
                                 |> addMessage txReceipt.blockNumber
                                     (Message.fromContractEvent
-                                        txReceipt.hash
+                                        txReceipt.blockNumber
                                         ssMessage
                                     )
                                 |> removeMiningMessage txHashStr
@@ -263,7 +277,7 @@ update msg prevModel =
                     ( prevModel
                         |> addMessage log.blockNumber
                             (Message.fromContractEvent
-                                log.transactionHash
+                                log.blockNumber
                                 ssMessage
                             )
                         |> removeMiningMessage (Eth.Utils.txHashToString log.transactionHash)
@@ -398,6 +412,25 @@ update msg prevModel =
         ShowComposeUX flag ->
             ( { prevModel
                 | showComposeUX = flag
+              }
+            , Cmd.none
+            )
+
+        ReplyTo maybePostId ->
+            let
+                newShowComposeUX =
+                    case maybePostId of
+                        Just _ ->
+                            True
+
+                        _ ->
+                            prevModel.showComposeUX
+            in
+            ( { prevModel
+                | composeUXModel =
+                    prevModel.composeUXModel
+                        |> updateReply maybePostId
+                , showComposeUX = newShowComposeUX
               }
             , Cmd.none
             )
@@ -562,7 +595,7 @@ addMessage blockNumber message prevModel =
                 |> Maybe.map
                     (List.any
                         (\listedMessage ->
-                            listedMessage.transactionHash == message.transactionHash
+                            listedMessage.postId == message.postId
                         )
                     )
                 |> Maybe.withDefault False

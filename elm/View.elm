@@ -17,9 +17,10 @@ import Helpers.Element as EH
 import Helpers.Eth as EthHelpers
 import Helpers.Time as TimeHelpers
 import Html.Attributes
+import Json.Decode
 import Markdown
-import Phace
 import Message exposing (Message)
+import Phace
 import Routing exposing (Route)
 import Time
 import TokenValue exposing (TokenValue)
@@ -176,7 +177,7 @@ viewDefault model =
         ]
 
 
-viewPost : PostIdInfo -> Model -> Element Msg
+viewPost : PostId -> Model -> Element Msg
 viewPost postIdInfo model =
     Element.el
         [ Element.width Element.fill
@@ -185,9 +186,9 @@ viewPost postIdInfo model =
     <|
         (getPostFromIdInfo postIdInfo model
             |> Maybe.map
-                (viewMessage
+                (viewMessageAndAuthor
                     (case model.showAddress of
-                        Just (MinedMessage messageIdInfo) ->
+                        Just (PhaceForMinedMessage messageIdInfo) ->
                             Just messageIdInfo
 
                         _ ->
@@ -275,10 +276,10 @@ viewMessagesAndDrafts blockTimes messages miningMessages maybeShowAddressForPhac
                             Element.column
                                 [ Element.paddingXY 20 0 ]
                                 (List.map
-                                    (viewMessage
+                                    (viewMessageAndAuthor
                                         (case maybeShowAddressForPhace of
-                                            Just (MinedMessage messageIdInfo) ->
-                                                Just messageIdInfo
+                                            Just (PhaceForMinedMessage postId) ->
+                                                Just postId
 
                                             _ ->
                                                 Nothing
@@ -344,7 +345,7 @@ viewMessagesAndDrafts blockTimes messages miningMessages maybeShowAddressForPhac
                         (Dict.map
                             (viewMiningMessage
                                 (case maybeShowAddressForPhace of
-                                    Just (UserMiningMessage txHash) ->
+                                    Just (PhaceForUserMiningMessage txHash) ->
                                         Just txHash
 
                                     _ ->
@@ -396,8 +397,8 @@ posixToString t =
         ++ " (UTC)"
 
 
-viewMessage : Maybe ( Int, TxHash ) -> Int -> Message -> Element Msg
-viewMessage maybeShowAddressIdInfo blocknum message =
+viewMessageAndAuthor : Maybe PostId -> Int -> Message -> Element Msg
+viewMessageAndAuthor maybeShowAddressPostId blocknum message =
     Element.row
         [ Element.width Element.fill
         , Element.spacing 20
@@ -408,9 +409,9 @@ viewMessage maybeShowAddressIdInfo blocknum message =
             ]
           <|
             phaceElement
-                (MinedMessage ( blocknum, message.transactionHash ))
+                (PhaceForMinedMessage message.postId)
                 message.from
-                (maybeShowAddressIdInfo == Just ( blocknum, message.transactionHash ))
+                (maybeShowAddressPostId == Just message.postId)
         , Element.column
             [ Element.width <| Element.px 100
             , Element.alignTop
@@ -419,13 +420,9 @@ viewMessage maybeShowAddressIdInfo blocknum message =
             [ Element.row
                 [ Element.width Element.fill ]
                 [ viewDaiBurned message.burnAmount
-                , viewPermalink
-                    (PostIdInfo
-                        blocknum
-                        message.messageHash
-                    )
+                , viewPermalink message.postId
                 ]
-            , viewMessageContent True message.message
+            , viewMainMessageBlock (MinedMessage message)
             ]
         ]
 
@@ -449,7 +446,7 @@ viewMiningMessage maybeShowAddressForMessage txHashIdString miningMessage =
             ]
           <|
             phaceElement
-                (UserMiningMessage (Eth.Utils.unsafeToTxHash txHashIdString))
+                (PhaceForUserMiningMessage (Eth.Utils.unsafeToTxHash txHashIdString))
                 miningMessage.draft.author
                 (maybeShowAddressForMessage == Just (Eth.Utils.unsafeToTxHash txHashIdString))
         , Element.column
@@ -462,7 +459,7 @@ viewMiningMessage maybeShowAddressForMessage txHashIdString miningMessage =
                 [ viewDaiBurned miningMessage.draft.burnAmount
                 , viewMiningMessageStatus txHashIdString miningMessage.status
                 ]
-            , viewMessageContent False miningMessage.draft.message
+            , viewMainMessageBlock (MiningMessage miningMessage)
             ]
         ]
 
@@ -536,7 +533,7 @@ viewDaiBurned amount =
             ]
 
 
-viewPermalink : PostIdInfo -> Element Msg
+viewPermalink : PostId -> Element Msg
 viewPermalink postIdInfo =
     Element.el
         [ Element.alignBottom
@@ -564,28 +561,161 @@ viewPermalink postIdInfo =
             }
 
 
-viewMessageContent : Bool -> String -> Element Msg
-viewMessageContent mined content =
-    renderMarkdownParagraphs
-        ([ Element.spacing 2
-         , Element.paddingXY 20 0
-         , Element.Background.color (Element.rgb 0.8 0.8 1)
-         , Element.Border.roundEach
+type PossiblyMiningMessage
+    = MinedMessage Message
+    | MiningMessage MiningMessage
+
+
+getContent : PossiblyMiningMessage -> String
+getContent possiblyMiningMessage =
+    case possiblyMiningMessage of
+        MinedMessage message ->
+            message.message
+
+        MiningMessage miningMessage ->
+            miningMessage.draft.message
+
+
+getMetadata : PossiblyMiningMessage -> Result Json.Decode.Error Message.Metadata
+getMetadata possiblyMiningMessage =
+    case possiblyMiningMessage of
+        MinedMessage message ->
+            message.metadata
+
+        MiningMessage miningMessage ->
+            Ok <| miningMessage.draft.metadata
+
+
+viewMainMessageBlock : PossiblyMiningMessage -> Element Msg
+viewMainMessageBlock possiblyMiningMessage =
+    Element.column
+        [ Element.paddingEach
+            { top = 0
+            , bottom = 20
+            , right = 20
+            , left = 20
+            }
+        , Element.Background.color (Element.rgb 0.8 0.8 1)
+        , Element.Border.roundEach
             { topLeft = 0
             , topRight =
-                if mined then
-                    0
+                case possiblyMiningMessage of
+                    MinedMessage _ ->
+                        0
 
-                else
-                    10
+                    _ ->
+                        10
             , bottomRight = 10
             , bottomLeft = 10
             }
-         , Element.alignTop
-         ]
-            
+        , Element.alignTop
+        ]
+        [ metadataStuff possiblyMiningMessage
+        , renderMarkdownParagraphs
+            [ Element.spacing 2 ]
+            (getContent possiblyMiningMessage)
+        , messageActions possiblyMiningMessage
+        ]
+
+
+metadataStuff : PossiblyMiningMessage -> Element Msg
+metadataStuff possiblyMiningMessage =
+    Maybe.map
+        (Element.el
+            [ Element.paddingEach
+                { top = 20
+                , bottom = 0
+                , left = 0
+                , right = 0
+                }
+            ]
         )
-        content
+        (case getMetadata possiblyMiningMessage of
+            Err jsonDecodeErr ->
+                Just <| viewMetadataDecodeError jsonDecodeErr
+
+            Ok metadata ->
+                maybeViewReplyInfo metadata.reply
+        )
+        |> Maybe.withDefault Element.none
+
+
+viewMetadataDecodeError : Json.Decode.Error -> Element Msg
+viewMetadataDecodeError error =
+    Element.el
+        [ Element.Font.color EH.softRed
+        , Element.Font.italic
+        , Element.Font.size 18
+        ]
+        (Element.text <|
+            "Message contains malformed metadata: "
+                ++ Json.Decode.errorToString error
+        )
+
+
+maybeViewReplyInfo : Maybe PostId -> Maybe (Element Msg)
+maybeViewReplyInfo maybePostId =
+    case maybePostId of
+        Nothing ->
+            Nothing
+
+        Just postId ->
+            Just <|
+                Element.column
+                    [ Element.padding 10
+                    , Element.Border.rounded 5
+                    , Element.Font.size 20
+                    , Element.Font.italic
+                    , Element.Background.color <| Element.rgba 1 1 1 0.5
+                    ]
+                    [ Element.text "Replying to "
+                    , Element.el
+                        [ Element.Font.color EH.blue
+                        , Element.pointer
+                        , Element.Events.onClick <|
+                            GotoRoute <|
+                                Routing.ViewPost (Ok postId)
+                        ]
+                        (Element.text <|
+                            shortenedMessageHash postId.messageHash
+                        )
+                    ]
+
+
+messageActions : PossiblyMiningMessage -> Element Msg
+messageActions possiblyMiningMessage =
+    case possiblyMiningMessage of
+        MinedMessage message ->
+            Element.row
+                [ Element.alignRight ]
+                [ replyButton message.postId ]
+
+        MiningMessage _ ->
+            Element.none
+
+
+replyButton : PostId -> Element Msg
+replyButton postId =
+    Element.el
+        [ Element.padding 7
+        , Element.pointer
+        , Element.Border.rounded 4
+        , Element.Background.color <| Element.rgba 1 1 1 0.3
+        , Element.Border.shadow
+            { offset = ( 0, 0 )
+            , size = 0
+            , blur = 5
+            , color = Element.rgba 0 0 0 0.1
+            }
+        , Element.Events.onClick (ReplyTo <| Just postId)
+        , Element.width <| Element.px 30
+        ]
+    <|
+        Element.image
+            [ Element.width Element.fill ]
+            { src = "img/reply-arrow.svg"
+            , description = "reply"
+            }
 
 
 renderMarkdownParagraphs : List (Attribute Msg) -> String -> Element Msg

@@ -49,6 +49,7 @@ type Msg
     = NoOp
     | LinkClicked Browser.UrlRequest
     | UrlChanged Url
+    | GotoRoute Route
     | Tick Time.Posix
     | EveryFewSeconds
     | WalletStatus (Result String WalletSentry)
@@ -62,6 +63,7 @@ type Msg
     | AllowanceFetched Address (Result Http.Error TokenValue)
     | BalanceFetched Address (Result Http.Error TokenValue)
     | ShowComposeUX Bool
+    | ReplyTo (Maybe PostId)
     | MessageInputChanged String
     | DaiInputChanged String
     | DonationCheckboxSet Bool
@@ -76,7 +78,7 @@ type Msg
 
 type ViewFilter
     = None
-    | Post (Result String PostIdInfo)
+    | Post (Result String PostId)
 
 
 type alias MiningMessage =
@@ -107,8 +109,8 @@ updateMiningMessageByMessageDraft draft updateFunc =
 
 
 type PhaceId
-    = MinedMessage ( Int, TxHash )
-    | UserMiningMessage TxHash
+    = PhaceForMinedMessage PostId
+    | PhaceForUserMiningMessage TxHash
     | User
 
 
@@ -136,13 +138,13 @@ updateDonateChecked flag m =
     { m | donateChecked = flag }
 
 
-updateReply : Maybe Hex -> ComposeUXModel -> ComposeUXModel
-updateReply maybeHash m =
+updateReply : Maybe PostId -> ComposeUXModel -> ComposeUXModel
+updateReply maybePostId m =
     { m
         | metadata =
             m.metadata
                 |> (\metadata ->
-                        { metadata | reply = maybeHash }
+                        { metadata | reply = maybePostId }
                    )
     }
 
@@ -206,14 +208,14 @@ validateBurnAmount input =
             )
 
 
-getPostFromIdInfo : PostIdInfo -> Model -> Maybe Message
-getPostFromIdInfo postIdInfo model =
+getPostFromIdInfo : PostId -> Model -> Maybe Message
+getPostFromIdInfo postId model =
     model.messages
-        |> Dict.get postIdInfo.block
+        |> Dict.get postId.block
         |> Maybe.map
             (List.filter
                 (\message ->
-                    message.messageHash == postIdInfo.messageHash
+                    message.postId.messageHash == postId.messageHash
                 )
             )
         |> Maybe.andThen List.head

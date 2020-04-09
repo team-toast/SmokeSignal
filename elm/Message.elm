@@ -21,8 +21,7 @@ type alias Draft =
 
 
 type alias Message =
-    { transactionHash : TxHash
-    , messageHash : Hex
+    { postId : PostId
     , from : Address
     , burnAmount : TokenValue
     , message : String
@@ -30,8 +29,8 @@ type alias Message =
     }
 
 
-fromContractEvent : TxHash -> SSContract.MessageBurn -> Message
-fromContractEvent txHash messageEvent =
+fromContractEvent : Int -> SSContract.MessageBurn -> Message
+fromContractEvent block messageEvent =
     let
         ( extractedMessage, extractedMetadata ) =
             case ( String.left 12 messageEvent.message, String.dropLeft 12 messageEvent.message ) of
@@ -49,8 +48,10 @@ fromContractEvent txHash messageEvent =
                     )
     in
     Message
-        txHash
-        messageEvent.hash
+        (PostId
+            block
+            messageEvent.hash
+        )
         messageEvent.from
         messageEvent.burnAmount
         extractedMessage
@@ -58,11 +59,33 @@ fromContractEvent txHash messageEvent =
 
 
 type alias Metadata =
-    { reply : Maybe Hex }
+    { reply : Maybe PostId }
 
 
 noMetadata =
     Metadata Nothing
+
+
+encodeDraft : Draft -> EncodedMessageDraft
+encodeDraft draft =
+    EncodedMessageDraft
+        draft.author
+        ("!smokesignal" ++ encodeMessageAndMetadataToString ( draft.message, draft.metadata ))
+        draft.burnAmount
+        draft.donateAmount
+
+
+encodeMessageAndMetadataToString : ( String, Metadata ) -> String
+encodeMessageAndMetadataToString ( message, metadata ) =
+    E.encode 0
+        (E.object <|
+            Maybe.Extra.values <|
+                [ Just ( "m", E.string message )
+                , metadata.reply
+                    |> Maybe.map encodePostId
+                    |> Maybe.map (Tuple.pair "re")
+                ]
+        )
 
 
 decodeMessageAndMetadata : String -> Result D.Error ( String, Metadata )
@@ -78,11 +101,32 @@ messageDecoder =
         metadataDecoder
 
 
+encodePostId : PostId -> E.Value
+encodePostId postId =
+    E.list identity
+        [ E.int postId.block
+        , encodeHex postId.messageHash
+        ]
+
+
 metadataDecoder : D.Decoder Metadata
 metadataDecoder =
     D.map
         Metadata
-        (D.maybe (D.field "re" hexDecoder))
+        (D.maybe (D.field "re" postIdDecoder))
+
+
+postIdDecoder : D.Decoder PostId
+postIdDecoder =
+    D.map2
+        PostId
+        (D.index 0 D.int)
+        (D.index 1 hexDecoder)
+
+
+encodeHex : Hex -> E.Value
+encodeHex =
+    Eth.Utils.hexToString >> E.string
 
 
 hexDecoder : D.Decoder Hex
@@ -98,30 +142,3 @@ hexDecoder =
                     Ok hex ->
                         D.succeed hex
             )
-
-
-encodeDraft : Draft -> EncodedMessageDraft
-encodeDraft draft =
-    EncodedMessageDraft
-        draft.author
-        ("!smokesignal" ++ (encodeMessageAndMetadataToString ( draft.message, draft.metadata )))
-        draft.burnAmount
-        draft.donateAmount
-
-
-encodeMessageAndMetadataToString : ( String, Metadata ) -> String
-encodeMessageAndMetadataToString ( message, metadata ) =
-    E.encode 0
-        (E.object <|
-            Maybe.Extra.values <|
-                [ Just ( "m", E.string message )
-                , metadata.reply
-                    |> Maybe.map encodeHex
-                    |> Maybe.map (Tuple.pair "re")
-                ]
-        )
-
-
-encodeHex : Hex -> E.Value
-encodeHex =
-    Eth.Utils.hexToString >> E.string
