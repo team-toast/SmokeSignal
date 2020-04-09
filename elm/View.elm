@@ -73,6 +73,25 @@ body model =
 
             Post (Ok postIdInfo) ->
                 viewPost postIdInfo model
+        , if model.showComposeUX then
+            Element.el
+                [ Element.width Element.fill
+                , Element.alignBottom
+                ]
+                (viewComposeUX
+                    (Wallet.userInfo model.wallet
+                        |> Maybe.map
+                            (\userInfo ->
+                                ( userInfo
+                                , model.showAddress == Just User
+                                )
+                            )
+                    )
+                    model.composeUXModel
+                )
+
+          else
+            Element.none
         ]
 
 
@@ -159,25 +178,7 @@ viewDefault model =
             model.replies
             model.miningMessages
             model.showAddress
-        , if model.showComposeUX then
-            Element.el
-                [ Element.width Element.fill
-                , Element.alignBottom
-                ]
-                (viewComposeUX
-                    (Wallet.userInfo model.wallet
-                        |> Maybe.map
-                            (\userInfo ->
-                                ( userInfo
-                                , model.showAddress == Just User
-                                )
-                            )
-                    )
-                    model.composeUXModel
-                )
-
-          else
-            Element.none
+        
         ]
 
 
@@ -185,6 +186,8 @@ viewPost : PostId -> Model -> Element Msg
 viewPost postId model =
     Element.el
         [ Element.width Element.fill
+        , Element.height Element.fill
+        , Element.scrollbarY
         , Element.padding 20
         ]
     <|
