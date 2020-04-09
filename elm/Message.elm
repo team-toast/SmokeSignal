@@ -59,7 +59,7 @@ fromContractEvent block messageEvent =
 
 
 type alias Metadata =
-    { reply : Maybe PostId }
+    { replyTo : Maybe PostId }
 
 
 noMetadata =
@@ -81,7 +81,7 @@ encodeMessageAndMetadataToString ( message, metadata ) =
         (E.object <|
             Maybe.Extra.values <|
                 [ Just ( "m", E.string message )
-                , metadata.reply
+                , metadata.replyTo
                     |> Maybe.map encodePostId
                     |> Maybe.map (Tuple.pair "re")
                 ]

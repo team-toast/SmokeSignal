@@ -35,6 +35,7 @@ type alias Model =
     , txSentry : TxSentry Msg
     , eventSentry : EventSentry Msg
     , messages : Dict Int (List Message)
+    , replies : List Reply
     , viewFilter : ViewFilter
     , miningMessages : Dict String MiningMessage -- Can't use TxHash as a key; Elm is silly with what is and is not comparable
     , showComposeUX : Bool
@@ -144,7 +145,7 @@ updateReply maybePostId m =
         | metadata =
             m.metadata
                 |> (\metadata ->
-                        { metadata | reply = maybePostId }
+                        { metadata | replyTo = maybePostId }
                    )
     }
 
@@ -219,3 +220,9 @@ getPostFromIdInfo postId model =
                 )
             )
         |> Maybe.andThen List.head
+
+
+type alias Reply =
+    { from : PostId
+    , to : PostId
+    }

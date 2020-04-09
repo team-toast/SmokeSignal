@@ -152,10 +152,11 @@ viewDefault model =
                             )
                     )
         ]
-        [ Element.Lazy.lazy4
+        [ Element.Lazy.lazy5
             viewMessagesAndDrafts
             model.blockTimes
             model.messages
+            model.replies
             model.miningMessages
             model.showAddress
         , if model.showComposeUX then
@@ -181,15 +182,15 @@ viewDefault model =
 
 
 viewPost : PostId -> Model -> Element Msg
-viewPost postIdInfo model =
+viewPost postId model =
     Element.el
         [ Element.width Element.fill
         , Element.padding 20
         ]
     <|
-        (getPostFromIdInfo postIdInfo model
+        (getPostFromIdInfo postId model
             |> Maybe.map
-                (viewMessageAndAuthor
+                (viewEntireMessage
                     (case model.showAddress of
                         Just (PhaceForMinedMessage messageIdInfo) ->
                             Just messageIdInfo
@@ -197,7 +198,7 @@ viewPost postIdInfo model =
                         _ ->
                             Nothing
                     )
-                    postIdInfo.block
+                    Nothing
                 )
             |> Maybe.withDefault
                 (appStatusMessage EH.darkGray
@@ -264,8 +265,8 @@ composeUXShadow =
         }
 
 
-viewMessagesAndDrafts : Dict Int Time.Posix -> Dict Int (List Message) -> Dict String MiningMessage -> Maybe PhaceId -> Element Msg
-viewMessagesAndDrafts blockTimes messages miningMessages maybeShowAddressForPhace =
+viewMessagesAndDrafts : Dict Int Time.Posix -> Dict Int (List Message) -> List Reply -> Dict String MiningMessage -> Maybe PhaceId -> Element Msg
+viewMessagesAndDrafts blockTimes messages replies miningMessages maybeShowAddressForPhace =
     if Dict.isEmpty messages then
         appStatusMessage EH.darkGray
             "Searching for SmokeSignal messages..."
@@ -279,15 +280,27 @@ viewMessagesAndDrafts blockTimes messages miningMessages maybeShowAddressForPhac
                             Element.column
                                 [ Element.paddingXY 20 0 ]
                                 (List.map
-                                    (viewMessageAndAuthor
-                                        (case maybeShowAddressForPhace of
-                                            Just (PhaceForMinedMessage postId) ->
-                                                Just postId
+                                    (\message ->
+                                        viewEntireMessage
+                                            (case maybeShowAddressForPhace of
+                                                Just (PhaceForMinedMessage postId) ->
+                                                    Just postId
 
-                                            _ ->
-                                                Nothing
-                                        )
-                                        blocknum
+                                                _ ->
+                                                    Nothing
+                                            )
+                                            (replies
+                                                |> List.Extra.count
+                                                    (.to >> (==) message.postId)
+                                                |> (\n ->
+                                                        if n > 0 then
+                                                            Just n
+
+                                                        else
+                                                            Nothing
+                                                   )
+                                            )
+                                            message
                                     )
                                     messagesForBlock
                                 )
@@ -400,8 +413,8 @@ posixToString t =
         ++ " (UTC)"
 
 
-viewMessageAndAuthor : Maybe PostId -> Int -> Message -> Element Msg
-viewMessageAndAuthor maybeShowAddressPostId blocknum message =
+viewEntireMessage : Maybe PostId -> Maybe Int -> Message -> Element Msg
+viewEntireMessage maybeShowAddressPostId maybeNumReplies message =
     Element.row
         [ Element.width Element.fill
         , Element.spacing 20
@@ -426,8 +439,35 @@ viewMessageAndAuthor maybeShowAddressPostId blocknum message =
                 , viewPermalink message.postId
                 ]
             , viewMainMessageBlock (MinedMessage message)
+            , Maybe.map
+                (viewNumReplies message.postId)
+                maybeNumReplies
+                |> Maybe.withDefault Element.none
             ]
         ]
+
+
+viewNumReplies : PostId -> Int -> Element Msg
+viewNumReplies postId numReplies =
+    Element.el
+        [ Element.Font.color EH.blue
+        , Element.pointer
+        , Element.Events.onClick <|
+            GotoRoute <|
+                Routing.ViewPost <|
+                    Ok postId
+        , Element.Font.italic
+        , Element.paddingXY 20 10
+        ]
+        (Element.text <|
+            String.fromInt numReplies
+                ++ (if numReplies == 1 then
+                        " reply"
+
+                    else
+                        " replies"
+                   )
+        )
 
 
 viewMiningMessage : Maybe TxHash -> String -> MiningMessage -> Element Msg
@@ -638,7 +678,7 @@ metadataStuff possiblyMiningMessage =
                 Just <| viewMetadataDecodeError jsonDecodeErr
 
             Ok metadata ->
-                maybeViewReplyInfo metadata.reply Nothing
+                maybeViewReplyInfo metadata.replyTo Nothing
         )
         |> Maybe.withDefault Element.none
 
@@ -783,9 +823,10 @@ viewComposeMetadata metadata =
     Maybe.map
         (Element.row
             [ Element.spacing 10
-            , Element.paddingXY 30 10]
+            , Element.paddingXY 30 10
+            ]
         )
-        ([ maybeViewReplyInfo metadata.reply (Just <| ReplyTo Nothing) ]
+        ([ maybeViewReplyInfo metadata.replyTo (Just <| ReplyTo Nothing) ]
             |> Maybe.Extra.values
             |> ListHelpers.nonEmpty
         )

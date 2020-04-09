@@ -71,6 +71,7 @@ init flags url key =
     , txSentry = txSentry
     , eventSentry = eventSentry
     , messages = Dict.empty
+    , replies = []
     , miningMessages = Dict.empty
     , showComposeUX = False
     , composeUXModel = initialComposeUXModel
@@ -127,8 +128,7 @@ update msg prevModel =
                             [ cmd
                             , Browser.Navigation.pushUrl
                                 prevModel.navKey
-                                (Routing.routeToString route
-                                )
+                                (Routing.routeToString route)
                             ]
                     )
 
@@ -617,6 +617,19 @@ addMessage blockNumber message prevModel =
                                     Just messages ->
                                         List.append messages [ message ]
                         )
+            , replies =
+                List.append
+                    prevModel.replies
+                    (case message.metadata |> Result.toMaybe |> Maybe.andThen .replyTo of
+                        Just replyTo ->
+                            [ { from = message.postId
+                              , to = replyTo
+                              }
+                            ]
+
+                        Nothing ->
+                            []
+                    )
         }
 
 
