@@ -695,6 +695,7 @@ addUserNotices notices model =
             List.append
                 model.userNotices
                 notices
+                |> List.Extra.uniqueBy .uniqueLabel
     }
 
 

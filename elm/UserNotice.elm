@@ -11,7 +11,7 @@ type alias UserNotice msg =
     { noticeType : NoticeType
     , mainParagraphs : List (List (Element msg))
     , align : Alignment
-    , label : String
+    , uniqueLabel : String
     }
 
 
@@ -28,7 +28,7 @@ map f userNotice =
             |> List.map (List.map (Element.map f))
         )
         userNotice.align
-        userNotice.label
+        userNotice.uniqueLabel
 
 
 type NoticeType
@@ -46,7 +46,7 @@ placeholderNotice s =
 
 screenToSmall : Int -> UserNotice msg
 screenToSmall width =
-    { label = "screenToSmall"
+    { uniqueLabel = "screenToSmall " ++ (String.fromInt width)
     , noticeType = Caution
     , mainParagraphs =
         [ [ Element.text <| "Your screen is quite small (" ++ String.fromInt width ++ " across)--things may be broken!." ] ]
@@ -56,7 +56,7 @@ screenToSmall width =
 
 noWeb3Provider : UserNotice msg
 noWeb3Provider =
-    { label = "noWeb3Provider"
+    { uniqueLabel = "noWeb3Provider"
     , noticeType = Caution
     , mainParagraphs =
         [ [ Element.text "No web3 provider detected. Is "
@@ -73,7 +73,7 @@ noWeb3Provider =
 
 noWeb3Account : UserNotice msg
 noWeb3Account =
-    { label = "noWeb3Account"
+    { uniqueLabel = "noWeb3Account"
     , noticeType = Caution
     , mainParagraphs =
         [ [ Element.text "I can't detect a web3 account. Your wallet may be locked." ]
@@ -84,7 +84,7 @@ noWeb3Account =
 
 cantConnectNoWeb3 : UserNotice msg
 cantConnectNoWeb3 =
-    { label = "cantConnectNoWeb3"
+    { uniqueLabel = "cantConnectNoWeb3"
     , noticeType = Caution
     , mainParagraphs =
         [ [ Element.text "You need a web3 provider (such as "
@@ -102,7 +102,7 @@ cantConnectNoWeb3 =
 
 wrongWeb3Network : UserNotice msg
 wrongWeb3Network =
-    { label = "wrongWeb3Network"
+    { uniqueLabel = "wrongWeb3Network"
     , noticeType = Error
     , mainParagraphs =
         [ [ Element.text "SmokeSignal only works on Ethereum mainnet. Make sure your wallet is set to Ethereum mainnet." ]
@@ -117,7 +117,7 @@ unexpectedError text debugObj =
         _ =
             maybeDebugLog text debugObj
     in
-    { label = "unexpectedError"
+    { uniqueLabel = "unexpectedError " ++ text
     , noticeType = ShouldBeImpossible
     , mainParagraphs = [ [ Element.text text ] ]
     , align = BottomRight
@@ -126,7 +126,7 @@ unexpectedError text debugObj =
 
 eventDecodeError : Json.Decode.Error -> UserNotice msg
 eventDecodeError decodeErr =
-    { label = "eventDecodeError"
+    { uniqueLabel = "eventDecodeError" ++ (Json.Decode.errorToString decodeErr)
     , noticeType = Error
     , mainParagraphs = [ [ Element.text <| "Error decoding event: " ++ Json.Decode.errorToString decodeErr ] ]
     , align = BottomRight
@@ -139,7 +139,7 @@ web3FetchError label httpError =
         _ =
             maybeDebugLog "http error for web3 fetch" httpError
     in
-    { label = "web3FetchError"
+    { uniqueLabel = "web3FetchError " ++ label
     , noticeType = Error
     , mainParagraphs =
         [ [ Element.text <|
@@ -154,7 +154,7 @@ web3FetchError label httpError =
 
 web3SigError : String -> String -> UserNotice msg
 web3SigError label errStr =
-    { label = "web3SigError"
+    { uniqueLabel = "web3SigError " ++ label
     , noticeType = Caution
     , mainParagraphs =
         [ [ Element.text <| "Error signing \"" ++ label ++ "\" transaction: " ++ errStr ] ]
@@ -164,7 +164,7 @@ web3SigError label errStr =
 
 web3BroadcastError : String -> String -> UserNotice msg
 web3BroadcastError label errStr =
-    { label = "web3BroadcastError"
+    { uniqueLabel = "web3BroadcastError " ++ label
     , noticeType = Error
     , mainParagraphs =
         [ [ Element.text <| "Error broadcasting \"" ++ label ++ "\" transaction: " ++ errStr ] ]
@@ -174,7 +174,7 @@ web3BroadcastError label errStr =
 
 web3MiningError : String -> String -> UserNotice msg
 web3MiningError label errStr =
-    { label = "web3MiningError"
+    { uniqueLabel = "web3MiningError " ++ label
     , noticeType = Error
     , mainParagraphs =
         [ [ Element.text <| "Error mining \"" ++ label ++ "\" transaction: " ++ errStr ] ]
@@ -191,7 +191,7 @@ walletError errStr =
 
 inputError : String -> UserNotice msg
 inputError errStr =
-    { label = "inputError"
+    { uniqueLabel = "inputError" ++ errStr
     , noticeType = Error
     , mainParagraphs =
         [ [ Element.text errStr ] ]
@@ -201,7 +201,7 @@ inputError errStr =
 
 routeNotFound : UserNotice msg
 routeNotFound =
-    { label = "routeNotFound"
+    { uniqueLabel = "routeNotFound"
     , noticeType = Error
     , mainParagraphs =
         [ [ Element.text "I don't understand that url..." ] ]
@@ -211,7 +211,7 @@ routeNotFound =
 
 debugMsg : String -> UserNotice msg
 debugMsg s =
-    { label = "debug"
+    { uniqueLabel = "debug"
     , noticeType = Caution
     , mainParagraphs =
         [ [ Element.text <| "debug: " ++ s ] ]
