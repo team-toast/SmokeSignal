@@ -11,6 +11,7 @@ import Element.Events
 import Element.Font
 import Element.Input
 import Element.Lazy
+import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
 import Helpers.Element as EH
@@ -20,7 +21,6 @@ import Helpers.Time as TimeHelpers
 import Html.Attributes
 import Json.Decode
 import List.Extra
-import Markdown
 import Maybe.Extra
 import Message exposing (Message)
 import Phace
@@ -718,14 +718,16 @@ getMetadata possiblyMiningMessage =
 
 viewMainMessageBlock : PossiblyMiningMessage -> Element Msg
 viewMainMessageBlock possiblyMiningMessage =
+    let
+        renderResult =
+            renderMarkdownParagraphs
+                [ Element.spacing 15 ]
+                (getContent possiblyMiningMessage)
+    in
     Element.column
         [ Element.width Element.fill
-        , Element.paddingEach
-            { top = 0
-            , bottom = 20
-            , right = 20
-            , left = 20
-            }
+        , Element.padding 20
+        , Element.spacing 20
         , Element.Background.color (Element.rgb 0.8 0.8 1)
         , Element.Border.roundEach
             { topLeft = 0
@@ -742,32 +744,32 @@ viewMainMessageBlock possiblyMiningMessage =
         , Element.alignTop
         ]
         [ metadataStuff possiblyMiningMessage
-        , renderMarkdownParagraphs
-            [ Element.spacing 2 ]
-            (getContent possiblyMiningMessage)
+        , case renderResult of
+            Ok rendered ->
+                rendered
+
+            Err errStr ->
+                Element.el
+                    [ Element.Font.color EH.softRed
+                    , Element.Font.italic
+                    ]
+                <|
+                    Element.text <|
+                        "Error parsing/rendering markdown:"
+                            ++ errStr
         , messageActions possiblyMiningMessage
         ]
 
 
 metadataStuff : PossiblyMiningMessage -> Element Msg
 metadataStuff possiblyMiningMessage =
-    Maybe.map
-        (Element.el
-            [ Element.paddingEach
-                { top = 20
-                , bottom = 0
-                , left = 0
-                , right = 0
-                }
-            ]
-        )
-        (case getMetadata possiblyMiningMessage of
-            Err jsonDecodeErr ->
-                Just <| viewMetadataDecodeError jsonDecodeErr
+    (case getMetadata possiblyMiningMessage of
+        Err jsonDecodeErr ->
+            Just <| viewMetadataDecodeError jsonDecodeErr
 
-            Ok metadata ->
-                maybeViewReplyInfo metadata.replyTo Nothing
-        )
+        Ok metadata ->
+            maybeViewReplyInfo metadata.replyTo Nothing
+    )
         |> Maybe.withDefault Element.none
 
 
@@ -868,12 +870,9 @@ replyButton postId =
             }
 
 
-renderMarkdownParagraphs : List (Attribute Msg) -> String -> Element Msg
+renderMarkdownParagraphs : List (Attribute Msg) -> String -> Result String (Element Msg)
 renderMarkdownParagraphs attributes =
-    Markdown.toHtml Nothing
-        >> List.map Element.html
-        >> Element.paragraph
-            attributes
+    ElementMarkdown.renderString attributes
 
 
 viewComposeUX : Maybe ( UserInfo, Bool ) -> ComposeUXModel -> Element Msg
