@@ -4,6 +4,7 @@ import CommonTypes exposing (..)
 import Contracts.SmokeSignal as SSContract
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
+import Helpers.List as ListHelpers
 import Json.Decode as D
 import Json.Encode as E
 import Maybe.Extra
@@ -44,7 +45,7 @@ fromContractEvent block messageEvent =
 
                 _ ->
                     ( messageEvent.message
-                    , Ok noMetadata
+                    , Ok nullMetadata
                     )
     in
     Message
@@ -59,11 +60,37 @@ fromContractEvent block messageEvent =
 
 
 type alias Metadata =
-    { replyTo : Maybe PostId }
+    { metadataVersion : Int
+    , replyTo : Maybe PostId
+    , topic : Maybe String
+    }
+
+nullMetadata =
+    Metadata
+        0
+        Nothing
+        Nothing
 
 
-noMetadata =
-    Metadata Nothing
+getTopic : Message -> Maybe String
+getTopic message =
+    message.metadata
+        |> Result.toMaybe
+        |> Maybe.andThen .topic
+
+
+currentMetadataVersion =
+    2
+
+
+versionedMetadata : Maybe PostId -> Maybe String -> Metadata
+versionedMetadata =
+    Metadata currentMetadataVersion
+
+
+blankVersionedMetadata : Metadata
+blankVersionedMetadata =
+    versionedMetadata Nothing Nothing
 
 
 encodeDraft : Draft -> EncodedMessageDraft
@@ -81,9 +108,11 @@ encodeMessageAndMetadataToString ( message, metadata ) =
         (E.object <|
             Maybe.Extra.values <|
                 [ Just ( "m", E.string message )
-                , metadata.replyTo
-                    |> Maybe.map encodePostId
-                    |> Maybe.map (Tuple.pair "re")
+                , Just ( "v", E.int metadata.metadataVersion )
+                , Maybe.map (Tuple.pair "re") <|
+                    Maybe.map encodePostId metadata.replyTo
+                , Maybe.map (Tuple.pair "topic") <|
+                    Maybe.map E.string metadata.topic
                 ]
         )
 
@@ -101,6 +130,18 @@ messageDecoder =
         metadataDecoder
 
 
+metadataDecoder : D.Decoder Metadata
+metadataDecoder =
+    D.map3
+        Metadata
+        (D.maybe
+            (D.field "v" D.int)
+            |> D.map (Maybe.withDefault 1)
+        )
+        (D.maybe (D.field "re" postIdDecoder))
+        (D.maybe (D.field "topic" D.string))
+
+
 encodePostId : PostId -> E.Value
 encodePostId postId =
     E.list identity
@@ -109,19 +150,22 @@ encodePostId postId =
         ]
 
 
-metadataDecoder : D.Decoder Metadata
-metadataDecoder =
-    D.map
-        Metadata
-        (D.maybe (D.field "re" postIdDecoder))
-
-
 postIdDecoder : D.Decoder PostId
 postIdDecoder =
     D.map2
         PostId
         (D.index 0 D.int)
         (D.index 1 hexDecoder)
+
+
+encodeTopicList : List String -> E.Value
+encodeTopicList topics =
+    E.list E.string topics
+
+
+topicListDecoder : D.Decoder (List String)
+topicListDecoder =
+    D.list D.string
 
 
 encodeHex : Hex -> E.Value

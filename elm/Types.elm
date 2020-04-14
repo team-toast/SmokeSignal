@@ -10,6 +10,7 @@ import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet as WalletSentry exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt)
 import Http
+import List.Extra
 import Message exposing (Message)
 import Routing exposing (Route)
 import Time
@@ -64,7 +65,7 @@ type Msg
     | AllowanceFetched Address (Result Http.Error TokenValue)
     | BalanceFetched Address (Result Http.Error TokenValue)
     | ShowComposeUX Bool
-    | ReplyTo (Maybe PostId)
+    | UpdateReplyTo (Maybe PostId)
     | MessageInputChanged String
     | DaiInputChanged String
     | DonationCheckboxSet Bool
@@ -77,9 +78,24 @@ type Msg
     | ClickHappened
 
 
+filterBlockMessages : (Message -> Bool) -> Dict Int (List Message) -> Dict Int (List Message)
+filterBlockMessages filterFunc =
+    Dict.map
+        (always <| List.filter filterFunc)
+        >> Dict.filter
+            (\_ messages ->
+                if messages == [] then
+                    False
+
+                else
+                    True
+            )
+
+
 type ViewFilter
     = None
     | Post (Result String PostId)
+    | Topic String
 
 
 type alias MiningMessage =
@@ -119,7 +135,7 @@ type alias ComposeUXModel =
     { message : String
     , daiInput : String
     , donateChecked : Bool
-    , metadata : Message.Metadata
+    , replyTo : Maybe PostId
     , miningUnlockTx : Maybe TxHash
     }
 
@@ -142,11 +158,7 @@ updateDonateChecked flag m =
 updateReply : Maybe PostId -> ComposeUXModel -> ComposeUXModel
 updateReply maybePostId m =
     { m
-        | metadata =
-            m.metadata
-                |> (\metadata ->
-                        { metadata | replyTo = maybePostId }
-                   )
+        | replyTo = maybePostId
     }
 
 
@@ -158,7 +170,7 @@ updateMiningUnlockTx maybeTxHash m =
 type alias CheckedMaybeValidInputs =
     { message : Maybe String
     , burnAndDonateAmount : Maybe (Result String ( TokenValue, TokenValue ))
-    , metadata : Message.Metadata
+    , replyTo : Maybe PostId
     }
 
 
@@ -184,8 +196,8 @@ validateInputs composeModel =
                         )
                     )
                 )
-    , metadata =
-        composeModel.metadata
+    , replyTo =
+        composeModel.replyTo
     }
 
 

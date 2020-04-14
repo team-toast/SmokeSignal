@@ -13,6 +13,7 @@ type Route
     = InitialBlank
     | Default
     | ViewPost (Result String PostId)
+    | ViewTopic String
     | NotFound
 
 
@@ -21,6 +22,7 @@ routeParser =
     Parser.oneOf
         [ Parser.map Default Parser.top
         , Parser.map ViewPost (Parser.s "viewpost" <?> postIdInfoParser)
+        , Parser.map ViewTopic (Parser.s "topic" </> Parser.string)
         ]
 
 
@@ -48,6 +50,11 @@ routeToString route =
                     Builder.absolute
                         [ "#" ]
                         []
+
+        ViewTopic topic ->
+            Builder.absolute
+                [ "#", "topic", topic ]
+                []
 
         NotFound ->
             Builder.absolute

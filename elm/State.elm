@@ -97,7 +97,7 @@ initialComposeUXModel =
     , daiInput = ""
     , donateChecked = True
     , miningUnlockTx = Nothing
-    , metadata = Message.noMetadata
+    , replyTo = Nothing
     }
 
 
@@ -416,7 +416,7 @@ update msg prevModel =
             , Cmd.none
             )
 
-        ReplyTo maybePostId ->
+        UpdateReplyTo maybePostId ->
             let
                 newShowComposeUX =
                     case maybePostId of
@@ -434,6 +434,7 @@ update msg prevModel =
               }
             , Cmd.none
             )
+
 
         MessageInputChanged input ->
             ( { prevModel
@@ -573,6 +574,14 @@ gotoRoute route prevModel =
         Routing.ViewPost postIdInfoResult ->
             ( { prevModel
                 | viewFilter = Post postIdInfoResult
+                , route = route
+              }
+            , Cmd.none
+            )
+
+        Routing.ViewTopic topic ->
+            ( { prevModel
+                | viewFilter = Topic topic
                 , route = route
               }
             , Cmd.none

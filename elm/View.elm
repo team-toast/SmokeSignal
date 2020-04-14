@@ -22,7 +22,7 @@ import Html.Attributes
 import Json.Decode
 import List.Extra
 import Maybe.Extra
-import Message exposing (Message)
+import Message exposing (Message, blankVersionedMetadata)
 import Phace
 import Routing exposing (Route)
 import Time
@@ -73,6 +73,9 @@ body model =
 
             Post (Ok postIdInfo) ->
                 viewPost postIdInfo model
+
+            Topic topic ->
+                viewMessagesForTopic topic model
         , if model.showComposeUX then
             Element.el
                 [ Element.width Element.fill
@@ -88,6 +91,13 @@ body model =
                             )
                     )
                     model.composeUXModel
+                    (case model.viewFilter of
+                        Topic topic ->
+                            Just topic
+
+                        _ ->
+                            Nothing
+                    )
                 )
 
           else
@@ -145,6 +155,9 @@ header viewFilter =
                                         )
                                     |> Result.withDefault ""
                                )
+
+                Topic topic ->
+                    Element.text <| "View Topic " ++ topic
         ]
 
 
@@ -211,6 +224,48 @@ viewPost postId model =
                     "Loading post..."
                 )
         )
+
+
+viewMessagesForTopic : String -> Model -> Element Msg
+viewMessagesForTopic topic model =
+    let
+        filteredMessages =
+            model.messages
+                |> filterBlockMessages
+                    (\message ->
+                        Message.getTopic message == Just topic
+                    )
+    in
+    Element.el
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        , Element.scrollbarY
+        , Element.padding 20
+        , Element.inFront <|
+            if model.showComposeUX then
+                Element.none
+
+            else
+                viewMinimizedComposeUX
+                    (Wallet.userInfo model.wallet
+                        |> Maybe.map
+                            (\userInfo ->
+                                ( userInfo
+                                , model.showAddress == Just User
+                                )
+                            )
+                    )
+        ]
+    <|
+        if Dict.isEmpty filteredMessages then
+            appStatusMessage EH.darkGray <| "No messages found with topic '" ++ topic ++ "'"
+
+        else
+            viewMinedMessages
+                model.blockTimes
+                filteredMessages
+                model.replies
+                model.showAddress
 
 
 viewMinimizedComposeUX : Maybe ( UserInfo, Bool ) -> Element Msg
@@ -763,14 +818,22 @@ viewMainMessageBlock possiblyMiningMessage =
 
 metadataStuff : PossiblyMiningMessage -> Element Msg
 metadataStuff possiblyMiningMessage =
-    (case getMetadata possiblyMiningMessage of
+    case getMetadata possiblyMiningMessage of
         Err jsonDecodeErr ->
-            Just <| viewMetadataDecodeError jsonDecodeErr
+            viewMetadataDecodeError jsonDecodeErr
 
         Ok metadata ->
-            maybeViewReplyInfo metadata.replyTo Nothing
-    )
-        |> Maybe.withDefault Element.none
+            Element.row
+                [ Element.width Element.fill
+                , Element.spacing 20
+                ]
+                ([ maybeViewReplyInfo metadata.replyTo Nothing
+                 , Maybe.map
+                    (Element.el [ Element.alignRight ])
+                    (maybeViewTopic metadata.topic)
+                 ]
+                    |> Maybe.Extra.values
+                )
 
 
 viewMetadataDecodeError : Json.Decode.Error -> Element Msg
@@ -805,7 +868,7 @@ maybeViewReplyInfo maybePostId maybeCloseMsg =
                     [ Element.column
                         [ Element.spacing 3
                         ]
-                        [ Element.text "Replying to "
+                        [ Element.text "Replying to:"
                         , Element.el
                             [ Element.Font.color EH.blue
                             , Element.pointer
@@ -834,6 +897,42 @@ maybeViewReplyInfo maybePostId maybeCloseMsg =
                     ]
 
 
+maybeViewTopic : Maybe String -> Maybe (Element Msg)
+maybeViewTopic maybeTopic =
+    case maybeTopic of
+        Nothing ->
+            Nothing
+
+        Just topic ->
+            Just <|
+                viewTopic topic
+
+
+viewTopic : String -> Element Msg
+viewTopic topic =
+    Element.column
+        [ Element.padding 10
+        , Element.Border.rounded 5
+        , Element.Font.size 20
+        , Element.Font.italic
+        , Element.Background.color <| Element.rgba 1 1 1 0.5
+        , Element.spacing 5
+        , Element.clipX
+        , Element.scrollbarX
+        , Element.width (Element.shrink |> Element.maximum 400)
+        ]
+        [ Element.text "Message topic:"
+        , Element.el
+            [ Element.Font.color EH.blue
+            , Element.pointer
+            , Element.Events.onClick <|
+                GotoRoute <|
+                    Routing.ViewTopic topic
+            ]
+            (Element.text topic)
+        ]
+
+
 messageActions : PossiblyMiningMessage -> Element Msg
 messageActions possiblyMiningMessage =
     case possiblyMiningMessage of
@@ -859,7 +958,7 @@ replyButton postId =
             , blur = 5
             , color = Element.rgba 0 0 0 0.1
             }
-        , Element.Events.onClick (ReplyTo <| Just postId)
+        , Element.Events.onClick (UpdateReplyTo <| Just postId)
         , Element.width <| Element.px 30
         ]
     <|
@@ -875,8 +974,8 @@ renderMarkdownParagraphs attributes =
     ElementMarkdown.renderString attributes
 
 
-viewComposeUX : Maybe ( UserInfo, Bool ) -> ComposeUXModel -> Element Msg
-viewComposeUX maybeUserInfoAndShowAddress composeUXModel =
+viewComposeUX : Maybe ( UserInfo, Bool ) -> ComposeUXModel -> Maybe String -> Element Msg
+viewComposeUX maybeUserInfoAndShowAddress composeUXModel maybeTopic =
     Element.column
         [ Element.width Element.fill
         , Element.Background.color EH.lightBlue
@@ -899,21 +998,24 @@ viewComposeUX maybeUserInfoAndShowAddress composeUXModel =
                     [ "Hide" ]
                     (ShowComposeUX False)
         ]
-        [ viewComposeMetadata composeUXModel.metadata
+        [ viewComposeMetadata composeUXModel.replyTo maybeTopic
         , messageInputBox composeUXModel.message
-        , actionFormAndMaybeErrorEl maybeUserInfoAndShowAddress composeUXModel
+        , actionFormAndMaybeErrorEl maybeUserInfoAndShowAddress composeUXModel maybeTopic
         ]
 
 
-viewComposeMetadata : Message.Metadata -> Element Msg
-viewComposeMetadata metadata =
+viewComposeMetadata : Maybe PostId -> Maybe String -> Element Msg
+viewComposeMetadata maybeReplyTo maybeTopic =
     Maybe.map
         (Element.row
             [ Element.spacing 10
             , Element.paddingXY 30 10
+            , Element.width Element.fill
             ]
         )
-        ([ maybeViewReplyInfo metadata.replyTo (Just <| ReplyTo Nothing) ]
+        ([ maybeViewReplyInfo maybeReplyTo (Just <| UpdateReplyTo Nothing)
+         , Maybe.map (Element.el [ Element.alignRight ] << viewTopic) maybeTopic
+         ]
             |> Maybe.Extra.values
             |> ListHelpers.nonEmpty
         )
@@ -947,13 +1049,13 @@ messageInputBox input =
             }
 
 
-actionFormAndMaybeErrorEl : Maybe ( UserInfo, Bool ) -> ComposeUXModel -> Element Msg
-actionFormAndMaybeErrorEl maybeUserInfoAndShowAddress composeUXModel =
+actionFormAndMaybeErrorEl : Maybe ( UserInfo, Bool ) -> ComposeUXModel -> Maybe String -> Element Msg
+actionFormAndMaybeErrorEl maybeUserInfoAndShowAddress composeUXModel maybeTopic =
     case maybeUserInfoAndShowAddress of
         Just ( userInfo, showAddress ) ->
             let
                 ( goButtonEl, maybeErrorEls ) =
-                    goButtonAndMaybeError userInfo composeUXModel
+                    goButtonAndMaybeError userInfo composeUXModel maybeTopic
             in
             Element.row
                 [ Element.alignLeft
@@ -1075,8 +1177,8 @@ inputsElement userInfo composeUXModel =
                                 ]
 
 
-goButtonAndMaybeError : UserInfo -> ComposeUXModel -> ( Element Msg, Maybe (List (Element Msg)) )
-goButtonAndMaybeError userInfo composeUXModel =
+goButtonAndMaybeError : UserInfo -> ComposeUXModel -> Maybe String -> ( Element Msg, Maybe (List (Element Msg)) )
+goButtonAndMaybeError userInfo composeUXModel maybeTopic =
     case userInfo.balance of
         Just balance ->
             if TokenValue.isZero balance then
@@ -1132,7 +1234,10 @@ goButtonAndMaybeError userInfo composeUXModel =
                                                         message
                                                         burnAmount
                                                         donateAmount
-                                                        validateResults.metadata
+                                                        (Message.versionedMetadata
+                                                            validateResults.replyTo
+                                                            maybeTopic
+                                                        )
                                             , Nothing
                                             )
 
