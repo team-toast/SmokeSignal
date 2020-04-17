@@ -43,9 +43,9 @@ withFetchedBalance balance wallet =
         Active uInfo ->
             Active <|
                 (uInfo |> withBalance balance)
+
         _ ->
             wallet
-    
 
 
 withIsUnlocked : Bool -> Wallet -> Wallet
@@ -54,6 +54,6 @@ withIsUnlocked isUnlocked wallet =
         Active uInfo ->
             Active <|
                 (uInfo |> Common.Types.withIsUnlocked isUnlocked)
+
         _ ->
             wallet
-    

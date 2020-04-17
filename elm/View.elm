@@ -53,32 +53,14 @@ root model =
     }
 
 
-type WalletUXPhaceInfo
-    = UserPhaceInfo ( UserInfo, Bool )
-    | DemoPhaceInfo String
-
-
 body : Model -> Element Msg
 body model =
     let
-        ( walletUXPhaceInfo, maybeUserInfoAndShowAddress ) =
-            case Wallet.userInfo model.wallet of
-                Just userInfo ->
-                    let
-                        userInfoAndShowAddress =
-                            ( userInfo
-                            , model.showAddress == Just UserPhace
-                            )
-                    in
-                    ( UserPhaceInfo
-                        userInfoAndShowAddress
-                    , Just userInfoAndShowAddress
-                    )
-
-                Nothing ->
-                    ( DemoPhaceInfo model.demoPhaceSrc
-                    , Nothing
-                    )
+        walletUXPhaceInfo =
+            makeWalletUXPhaceInfo
+                (Wallet.userInfo model.wallet)
+                model.showAddress
+                model.demoPhaceSrc
     in
     Element.column
         ([ Element.width Element.fill
@@ -93,6 +75,7 @@ body model =
         )
         [ header
             model.dProfile
+            model.mode
             walletUXPhaceInfo
         , case model.mode of
             Home ->
@@ -102,7 +85,7 @@ body model =
                 Element.map ComposeUXMsg <|
                     ComposeUX.View.viewFull
                         model.dProfile
-                        maybeUserInfoAndShowAddress
+                        walletUXPhaceInfo
                         model.composeUXModel
                         (getMaybeTopic model)
 
@@ -122,7 +105,7 @@ body model =
                 (Element.map ComposeUXMsg <|
                     ComposeUX.View.viewHalf
                         model.dProfile
-                        maybeUserInfoAndShowAddress
+                        walletUXPhaceInfo
                         model.composeUXModel
                         (getMaybeTopic model)
                 )
@@ -132,11 +115,12 @@ body model =
         ]
 
 
-header : EH.DisplayProfile -> WalletUXPhaceInfo -> Element Msg
-header dProfile walletUXPhaceInfo =
+header : EH.DisplayProfile -> Mode -> WalletUXPhaceInfo -> Element Msg
+header dProfile mode walletUXPhaceInfo =
     Element.row
         [ Element.width Element.fill
         , Element.Background.color darkBlue
+        , Element.height <| Element.px 130
         ]
         [ Element.el
             [ Element.width <| Element.fillPortion 1
@@ -152,98 +136,43 @@ header dProfile walletUXPhaceInfo =
             [ Element.width <| Element.fillPortion 1
             ]
           <|
-            Element.el
-                [ Element.alignRight
-                , Element.alignTop
-                ]
-            <|
-                walletUX dProfile walletUXPhaceInfo
+            if mode == Home then
+                Element.none
+
+            else
+                Element.el
+                    [ Element.alignRight
+                    , Element.alignTop
+                    ]
+                <|
+                    Element.map MsgUp <|
+                        walletUX dProfile walletUXPhaceInfo
         ]
 
 
 logoBlock : Element Msg
 logoBlock =
-    Element.row
+    Element.column
         [ Element.spacing 15 ]
         [ Element.row
-            [ Element.Font.size 50
-            , Element.Font.bold
+            [ Element.spacing 15
+            , Element.centerX
             ]
-            [ Element.el [ Element.Font.color darkGray ] <| Element.text "Smoke"
-            , Element.el [ Element.Font.color <| Element.rgb 1 0.5 0 ] <| Element.text "Signal"
-            ]
-        ]
-
-
-walletUX : EH.DisplayProfile -> WalletUXPhaceInfo -> Element Msg
-walletUX dProfile walletUXPhaceInfo =
-    let
-        commonAttributes =
-            [ Element.alignRight
-            , Element.alignTop
-            , Element.padding 10
-            , Element.Border.roundEach
-                { bottomLeft = 10
-                , topLeft = 0
-                , topRight = 0
-                , bottomRight = 0
-                }
-            , commonShadow
-            , Element.Background.color blue
-            , Element.Border.color (Element.rgba 0 0 1 0.5)
-            , Element.Border.widthEach
-                { top = 1
-                , right = 1
-                , bottom = 0
-                , left = 0
-                }
-            ]
-    in
-    case walletUXPhaceInfo of
-        DemoPhaceInfo demoAddress ->
-            Element.column
-                (commonAttributes
-                    ++ [ Element.spacing 5 ]
-                )
-                [ Element.map MsgUp <|
-                    Element.el
-                        [ Element.inFront <|
-                            Element.el
-                                [ Element.width Element.fill
-                                , Element.height Element.fill
-                                , Element.Background.color <| Element.rgba 0 0 0 0.4
-                                , Element.Border.rounded 10
-                                , Element.pointer
-                                , Element.Events.onClick <|
-                                    ConnectToWeb3
-                                ]
-                            <|
-                                Element.el
-                                    [ Element.alignBottom
-                                    , Element.width Element.fill
-                                    , Element.Background.color <| Element.rgba 0 0 0 0.4
-                                    , Element.Font.color EH.white
-                                    , Element.Font.bold
-                                    , Element.Font.size 14
-                                    ]
-                                <|
-                                    Element.text "Connect Wallet"
-                        ]
-                    <|
-                        phaceElement
-                            MorphingPhace
-                            (Eth.Utils.unsafeToAddress demoAddress)
-                            False
+            [ Element.row
+                [ Element.Font.size 50
+                , Element.Font.bold
                 ]
-
-        -- Element.el commonAttributes <|
-        UserPhaceInfo ( accountInfo, showAddress ) ->
-            Element.el commonAttributes <|
-                Element.map MsgUp <|
-                    Common.View.phaceElement
-                        UserPhace
-                        accountInfo.address
-                        showAddress
+                [ Element.el [ Element.Font.color darkGray ] <| Element.text "Smoke"
+                , Element.el [ Element.Font.color <| Element.rgb 1 0.5 0 ] <| Element.text "Signal"
+                ]
+            ]
+        , Element.el
+            [ Element.Font.size 20
+            , Element.centerX
+            , Element.Font.color softRed
+            ]
+            (Element.text "Free Speech at the Protocol Level")
+        ]
 
 
 userNoticeEls : EH.DisplayProfile -> List UserNotice -> List (Element Msg)

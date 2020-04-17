@@ -10,6 +10,7 @@ import ComposeUX.Types as ComposeUX
 import Config
 import Contracts.Dai as Dai
 import Contracts.SmokeSignal as SSContract
+import DemoPhaceSrcMutator exposing (mutateInfoGenerator)
 import Dict exposing (Dict)
 import Eth
 import Eth.Decode
@@ -26,6 +27,7 @@ import List.Extra
 import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
 import Post exposing (Post)
+import Random
 import Routing exposing (Route)
 import Task
 import Time
@@ -84,6 +86,7 @@ init flags url key =
     , showAddress = Nothing
     , userNotices = walletNotices
     , trackedTxs = Dict.empty
+    , demoPhaceSrc = initDemoPhaceSrc
     }
         |> gotoRoute route
         |> Tuple.mapSecond
@@ -94,6 +97,11 @@ init flags url key =
                     , routeCmd
                     ]
             )
+
+
+initDemoPhaceSrc : String
+initDemoPhaceSrc =
+    "2222222222222222222222222228083888c8f222"
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -400,6 +408,23 @@ update msg prevModel =
                         |> updateTrackedTxStatusByTxInfo txInfo (Failed errStr)
                     , Cmd.none
                     )
+
+        MsgUp msgUp ->
+            prevModel |> handleMsgUp msgUp
+
+        ChangeDemoPhaceSrc ->
+            ( prevModel
+            , Random.generate MutateDemoSrcWith mutateInfoGenerator
+            )
+
+        MutateDemoSrcWith mutateInfo ->
+            ( { prevModel
+                | demoPhaceSrc =
+                    prevModel.demoPhaceSrc
+                        |> DemoPhaceSrcMutator.mutateSrc mutateInfo
+              }
+            , Cmd.none
+            )
 
         NoOp ->
             ( prevModel, Cmd.none )
@@ -738,6 +763,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Time.every 200 Tick
+        , Time.every 150 (always ChangeDemoPhaceSrc)
         , Time.every 2500 (always EveryFewSeconds)
         , Time.every 5000 (always CheckTrackedTxsStatus)
         , walletSentryPort

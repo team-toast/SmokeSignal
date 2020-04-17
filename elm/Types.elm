@@ -1,8 +1,9 @@
 module Types exposing (..)
 
+import DemoPhaceSrcMutator exposing (MutateInfo)
 import Browser
 import Browser.Navigation
-import Common.Msg
+import Common.Msg exposing (..)
 import Common.Types as Common exposing (..)
 import ComposeUX.Types as ComposeUX
 import Contracts.SmokeSignal as SSContract
@@ -49,6 +50,7 @@ type alias Model =
     , showAddress : Maybe PhaceIconId
     , userNotices : List UserNotice
     , trackedTxs : Dict String TrackedTx -- Can't use TxHash as a key; Elm is silly with what is and is not comparable
+    , demoPhaceSrc : String
     }
 
 
@@ -58,6 +60,8 @@ type Msg
     | UrlChanged Url
     | Tick Time.Posix
     | EveryFewSeconds
+    | ChangeDemoPhaceSrc
+    | MutateDemoSrcWith MutateInfo
     | Resize Int Int
     | WalletStatus (Result String WalletSentry)
     | TxSentryMsg TxSentry.Msg
@@ -73,6 +77,7 @@ type Msg
     | ComposeUXMsg ComposeUX.Msg
     | AllowanceFetched Address (Result Http.Error TokenValue)
     | BalanceFetched Address (Result Http.Error TokenValue)
+    | MsgUp MsgUp
 
 
 filterBlockPosts : (Post -> Bool) -> Dict Int (List Post) -> Dict Int (List Post)

@@ -35,7 +35,8 @@ withIsUnlocked unlocked userInfo =
 type PhaceIconId
     = PhaceForMinedMessage Post.Id
     | PhaceForUserMiningMessage TxHash
-    | User
+    | UserPhace
+    | MorphingPhace
 
 
 type alias TrackedTx =
@@ -62,3 +63,18 @@ txInfoToNameStr txInfo =
 
         PostTx _ ->
             "Post Submit"
+
+
+type WalletUXPhaceInfo
+    = UserPhaceInfo ( UserInfo, Bool )
+    | DemoPhaceInfo String
+
+
+makeWalletUXPhaceInfo : Maybe UserInfo -> Maybe PhaceIconId -> String -> WalletUXPhaceInfo
+makeWalletUXPhaceInfo maybeUserInfo maybeShowAddressId demoPhaceSrc =
+    case maybeUserInfo of
+        Just userInfo ->
+            UserPhaceInfo ( userInfo, maybeShowAddressId == Just UserPhace )
+
+        Nothing ->
+            DemoPhaceInfo demoPhaceSrc
