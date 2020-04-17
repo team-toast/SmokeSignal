@@ -39,7 +39,7 @@ type alias EncodedDraft =
 type alias Metadata =
     { metadataVersion : Int
     , replyTo : Maybe Id
-    , topic : Maybe String
+    , topic : String
     }
 
 
@@ -49,18 +49,23 @@ type alias Id =
     }
 
 
+defaultTopic =
+    "misc"
+
+
 nullMetadata =
     Metadata
         0
         Nothing
-        Nothing
+        defaultTopic
 
 
-getTopic : Post -> Maybe String
+getTopic : Post -> String
 getTopic post =
     post.metadata
         |> Result.toMaybe
-        |> Maybe.andThen .topic
+        |> Maybe.map .topic
+        |> Maybe.withDefault defaultTopic
 
 
 currentMetadataVersion =
@@ -68,8 +73,11 @@ currentMetadataVersion =
 
 
 versionedMetadata : Maybe Id -> Maybe String -> Metadata
-versionedMetadata =
-    Metadata currentMetadataVersion
+versionedMetadata maybeReply maybeTopic =
+    Metadata
+        currentMetadataVersion
+        maybeReply
+        (maybeTopic |> Maybe.withDefault defaultTopic)
 
 
 blankVersionedMetadata : Metadata
@@ -95,8 +103,11 @@ encodeMessageAndMetadataToString ( message, metadata ) =
                 , Just ( "v", E.int metadata.metadataVersion )
                 , Maybe.map (Tuple.pair "re") <|
                     Maybe.map encodePostId metadata.replyTo
-                , Maybe.map (Tuple.pair "topic") <|
-                    Maybe.map E.string metadata.topic
+                , if metadata.topic == defaultTopic then
+                    Nothing
+
+                  else
+                    Just <| Tuple.pair "topic" <| E.string metadata.topic
                 ]
         )
 
@@ -123,7 +134,9 @@ metadataDecoder =
             |> D.map (Maybe.withDefault 1)
         )
         (D.maybe (D.field "re" postIdDecoder))
-        (D.maybe (D.field "topic" D.string))
+        (D.maybe (D.field "topic" D.string)
+            |> D.map (Maybe.withDefault defaultTopic)
+        )
 
 
 encodePostId : Id -> E.Value

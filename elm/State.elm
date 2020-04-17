@@ -21,6 +21,7 @@ import Eth.Sentry.Wallet as WalletSentry
 import Eth.Types exposing (Address, TxHash)
 import Eth.Utils
 import Helpers.Element as EH
+import Home.State as Home
 import Json.Decode
 import Json.Encode
 import List.Extra
@@ -71,7 +72,7 @@ init flags url key =
                 initEventSentry
     in
     { navKey = key
-    , route = Routing.InitialBlank
+    , route = route
     , wallet = wallet
     , now = Time.millisToPosix flags.nowInMillis
     , dProfile = EH.screenWidthToDisplayProfile flags.width
@@ -79,7 +80,7 @@ init flags url key =
     , eventSentry = eventSentry
     , posts = Dict.empty
     , replies = []
-    , mode = Home
+    , mode = BlankMode
     , showHalfComposeUX = False
     , composeUXModel = ComposeUX.init wallet
     , blockTimes = Dict.empty
@@ -364,6 +365,25 @@ update msg prevModel =
             )
                 |> withMsgUps updateResult.msgUps
 
+        HomeMsg homeMsg ->
+            case prevModel.mode of
+                Home homeModel ->
+                    let
+                        updateResult =
+                            homeModel
+                                |> Home.update homeMsg
+                    in
+                    ( { prevModel
+                        | mode =
+                            Home updateResult.newModel
+                      }
+                    , Cmd.map HomeMsg updateResult.cmd
+                    )
+                        |> withMsgUps updateResult.msgUps
+
+                _ ->
+                    ( prevModel, Cmd.none )
+
         TxSigned txInfo txHashResult ->
             case txHashResult of
                 Ok txHash ->
@@ -414,15 +434,20 @@ update msg prevModel =
 
         ChangeDemoPhaceSrc ->
             ( prevModel
-            , Random.generate MutateDemoSrcWith mutateInfoGenerator
+              --, Random.generate MutateDemoSrcWith mutateInfoGenerator
+            , Random.generate NewDemoSrc DemoPhaceSrcMutator.addressSrcGenerator
             )
 
-        MutateDemoSrcWith mutateInfo ->
-            ( { prevModel
-                | demoPhaceSrc =
-                    prevModel.demoPhaceSrc
-                        |> DemoPhaceSrcMutator.mutateSrc mutateInfo
-              }
+        -- MutateDemoSrcWith mutateInfo ->
+        --     ( { prevModel
+        --         | demoPhaceSrc =
+        --             prevModel.demoPhaceSrc
+        --                 |> DemoPhaceSrcMutator.mutateSrc mutateInfo
+        --       }
+        --     , Cmd.none
+        --     )
+        NewDemoSrc src ->
+            ( { prevModel | demoPhaceSrc = src }
             , Cmd.none
             )
 
@@ -618,39 +643,48 @@ updateFromPageRoute route model =
 
 gotoRoute : Route -> Model -> ( Model, Cmd Msg )
 gotoRoute route prevModel =
-    ( case routeToMode route of
-        Ok mode ->
-            { prevModel
+    case routeToModeAndCmd route of
+        Ok ( mode, cmd ) ->
+            ( { prevModel
                 | route = route
                 , mode = mode
-            }
+              }
+            , cmd
+            )
 
         Err errStr ->
-            { prevModel
+            ( { prevModel
                 | route = route
-            }
+              }
                 |> addUserNotice UN.routeNotFound
-    , Cmd.none
-    )
+            , Cmd.none
+            )
 
 
-routeToMode : Route -> Result String Mode
-routeToMode route =
+routeToModeAndCmd : Route -> Result String ( Mode, Cmd Msg )
+routeToModeAndCmd route =
     case route of
-        Routing.InitialBlank ->
-            Ok Home
-
         Routing.Home ->
-            Ok Home
+            let
+                ( homeModel, cmd ) =
+                    Home.init
+            in
+            Ok
+                ( Home homeModel
+                , Cmd.map HomeMsg cmd
+                )
+
+        Routing.Compose ->
+            Ok ( Compose, Cmd.none )
 
         Routing.ViewAll ->
-            Ok ViewAll
+            Ok ( ViewAll, Cmd.none )
 
         Routing.ViewPost postId ->
-            Ok <| ViewPost postId
+            Ok ( ViewPost postId, Cmd.none )
 
         Routing.ViewTopic topic ->
-            Ok <| ViewTopic topic
+            Ok ( ViewTopic topic, Cmd.none )
 
         Routing.NotFound err ->
             Err err
@@ -763,7 +797,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Time.every 200 Tick
-        , Time.every 150 (always ChangeDemoPhaceSrc)
+        , Time.every 2000 (always ChangeDemoPhaceSrc)
         , Time.every 2500 (always EveryFewSeconds)
         , Time.every 5000 (always CheckTrackedTxsStatus)
         , walletSentryPort

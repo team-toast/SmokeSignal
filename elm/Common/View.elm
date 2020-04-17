@@ -171,3 +171,20 @@ walletUX dProfile walletUXPhaceInfo =
                     UserPhace
                     accountInfo.address
                     showAddress
+
+
+emphasizedText : String -> Element msg
+emphasizedText =
+    Element.el
+        [ Element.Font.bold
+        , Element.Font.color EH.white
+        ]
+        << Element.text
+
+
+daiSymbol : List (Attribute msg) -> Element msg
+daiSymbol attributes =
+    Element.image attributes
+        { src = "img/dai-unit-char.svg"
+        , description = ""
+        }

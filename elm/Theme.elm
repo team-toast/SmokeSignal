@@ -30,7 +30,8 @@ lightGray =
 lightBlue =
     Element.rgb 0.8 0.8 1
 
-
+almostWhite =
+    Element.rgb 0.8 0.8 0.8
 
 commonShadow : Attribute msg
 commonShadow =

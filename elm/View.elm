@@ -78,8 +78,18 @@ body model =
             model.mode
             walletUXPhaceInfo
         , case model.mode of
-            Home ->
-                Home.View.view model
+            BlankMode ->
+                Element.none
+
+            Home homeModel ->
+                Element.map HomeMsg <|
+                    Element.Lazy.lazy
+                        (Home.View.view
+                            model.dProfile
+                            homeModel
+                            walletUXPhaceInfo
+                        )
+                        model.posts
 
             Compose ->
                 Element.map ComposeUXMsg <|
@@ -136,17 +146,18 @@ header dProfile mode walletUXPhaceInfo =
             [ Element.width <| Element.fillPortion 1
             ]
           <|
-            if mode == Home then
-                Element.none
+            case mode of
+                Home _ ->
+                    Element.none
 
-            else
-                Element.el
-                    [ Element.alignRight
-                    , Element.alignTop
-                    ]
-                <|
-                    Element.map MsgUp <|
-                        walletUX dProfile walletUXPhaceInfo
+                _ ->
+                    Element.el
+                        [ Element.alignRight
+                        , Element.alignTop
+                        ]
+                    <|
+                        Element.map MsgUp <|
+                            walletUX dProfile walletUXPhaceInfo
         ]
 
 

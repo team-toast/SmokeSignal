@@ -12,8 +12,8 @@ import Url.Parser.Query as Query
 
 
 type Route
-    = InitialBlank
-    | Home
+    = Home
+    | Compose
     | ViewAll
     | ViewPost Post.Id
     | ViewTopic String
@@ -40,14 +40,14 @@ viewPostOrParseFail =
 routeToString : Route -> String
 routeToString route =
     case route of
-        InitialBlank ->
+        Home ->
             Builder.absolute
                 [ "#" ]
                 []
 
-        Home ->
+        Compose ->
             Builder.absolute
-                [ "#" ]
+                [ "#", "compose" ]
                 []
 
         ViewAll ->

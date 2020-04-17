@@ -18,15 +18,23 @@ mutateInfoGenerator =
         (Random.int -2 2)
 
 
--- hexCharGenerator : Random.Generator Char
--- hexCharGenerator =
---     Random.int 0 15
---         |> Random.map
---             (Hex.toString
---                 >> String.toList
---                 >> List.head
---                 >> Maybe.withDefault '0'
-            -- )
+addressSrcGenerator : Random.Generator String
+addressSrcGenerator =
+    Random.list 40
+        hexCharGenerator
+        |> Random.map String.fromList
+
+
+hexCharGenerator : Random.Generator Char
+hexCharGenerator =
+    Random.int 0 15
+        |> Random.map
+            (Hex.toString
+                >> String.toList
+                >> List.head
+                >> Maybe.withDefault '0'
+            )
+
 
 mutateSrc : MutateInfo -> String -> String
 mutateSrc mutateInfo src =
@@ -46,6 +54,7 @@ mutateSrc mutateInfo src =
                         |> String.toList
                         |> List.head
                         |> Maybe.withDefault '0'
+
                 else
                     c
             )

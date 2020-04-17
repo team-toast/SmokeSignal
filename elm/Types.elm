@@ -1,12 +1,12 @@
 module Types exposing (..)
 
-import DemoPhaceSrcMutator exposing (MutateInfo)
 import Browser
 import Browser.Navigation
 import Common.Msg exposing (..)
 import Common.Types as Common exposing (..)
 import ComposeUX.Types as ComposeUX
 import Contracts.SmokeSignal as SSContract
+import DemoPhaceSrcMutator exposing (MutateInfo)
 import Dict exposing (Dict)
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
@@ -14,6 +14,7 @@ import Eth.Sentry.Wallet as WalletSentry exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt)
 import Eth.Utils
 import Helpers.Element as EH
+import Home.Types as Home
 import Http
 import List.Extra
 import Post exposing (Post)
@@ -61,7 +62,8 @@ type Msg
     | Tick Time.Posix
     | EveryFewSeconds
     | ChangeDemoPhaceSrc
-    | MutateDemoSrcWith MutateInfo
+    | NewDemoSrc String
+      -- | MutateDemoSrcWith MutateInfo
     | Resize Int Int
     | WalletStatus (Result String WalletSentry)
     | TxSentryMsg TxSentry.Msg
@@ -75,6 +77,7 @@ type Msg
     | DismissNotice Int
     | ClickHappened
     | ComposeUXMsg ComposeUX.Msg
+    | HomeMsg Home.Msg
     | AllowanceFetched Address (Result Http.Error TokenValue)
     | BalanceFetched Address (Result Http.Error TokenValue)
     | MsgUp MsgUp
@@ -95,7 +98,8 @@ filterBlockPosts filterFunc =
 
 
 type Mode
-    = Home
+    = BlankMode
+    | Home Home.Model
     | Compose
     | ViewAll
     | ViewPost Post.Id
