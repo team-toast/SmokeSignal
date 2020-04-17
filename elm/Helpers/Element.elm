@@ -29,6 +29,61 @@ import Time
 import TokenValue exposing (TokenValue)
 
 
+forgedByFoundry : Element msg
+forgedByFoundry =
+    Element.newTabLink
+        [ Element.padding 8
+        , Element.Background.color <| Element.rgb 0.3 0.3 0.3
+        , Element.Border.rounded 5
+        , Element.inFront <|
+            Element.el
+                [ Element.width Element.fill
+                , Element.height Element.fill
+                , Element.Border.rounded 5
+                , Element.Border.innerShadow
+                    { offset = ( 2, 2 )
+                    , size = 0
+                    , blur = 5
+                    , color = Element.rgba 1 1 1 0.4
+                    }
+                ]
+                Element.none
+        , Element.inFront <|
+            Element.el
+                [ Element.width Element.fill
+                , Element.height Element.fill
+                , Element.Border.rounded 5
+                , Element.Border.innerShadow
+                    { offset = ( -2, -2 )
+                    , size = 0
+                    , blur = 5
+                    , color = Element.rgba 0 0 0 0.4
+                    }
+                ]
+                Element.none
+        ]
+        { url = "https://foundrydao.com/"
+        , label =
+            Element.column
+                [ Element.spacing 4
+                ]
+                [ Element.el
+                    [ Element.Font.color white
+                    , Element.Font.size 20
+                    ]
+                  <|
+                    Element.text "Forged by"
+                , Element.el
+                    [ Element.Font.size 22
+                    , Element.Font.bold
+                    , Element.Font.color <| Element.rgb255 255 0 110
+                    ]
+                  <|
+                    Element.text "Foundry"
+                ]
+        }
+
+
 type DisplayProfile
     = Desktop
     | Mobile
@@ -323,6 +378,7 @@ modal overlayColor includeScrollbarY clickInsideMsg clickOutsideMsg el =
 --                     )
 --             )
 
+
 subtleShadow : Attribute msg
 subtleShadow =
     Element.Border.shadow
@@ -331,6 +387,7 @@ subtleShadow =
         , blur = 20
         , color = Element.rgba255 0 0 0 0.04
         }
+
 
 closeButton : Bool -> msg -> Element msg
 closeButton isBlack msg =
@@ -349,6 +406,7 @@ closeButton isBlack msg =
             , description = "close"
             }
         )
+
 
 elOnCircle : List (Attribute msg) -> Int -> Element.Color -> Element msg -> Element msg
 elOnCircle attributes width color el =
