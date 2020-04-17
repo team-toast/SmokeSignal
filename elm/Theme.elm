@@ -19,12 +19,27 @@ blue =
     Element.rgb 0 0 1
 
 
+darkBlue =
+    Element.rgb255 7 27 92
+
+
 lightGray =
     Element.rgb255 233 237 242
 
 
 lightBlue =
     Element.rgb 0.8 0.8 1
+
+
+
+commonShadow : Attribute msg
+commonShadow =
+    Element.Border.shadow
+        { offset = ( 0, 0 )
+        , size = 0
+        , blur = 10
+        , color = darkGray
+        }
 
 -- lightRed =
 --     Element.rgb 1 0.8 0.8
@@ -50,16 +65,6 @@ lightBlue =
 --     Element.rgb 0.95 0.98 1
 -- pageBackgroundColor =
 --     Element.rgb255 242 243 247
--- disabledTextColor =
---     Element.rgba255 1 31 52 0.13
--- currencyLabelColor =
---     Element.rgb255 109 127 138
--- releasedIconColor =
---     Element.rgb255 0 255 0
--- abortedIconColor =
---     Element.rgb255 250 165 22
--- burnedIconColor =
---     Element.rgb255 255 0 0
 
 
 blueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
