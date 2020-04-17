@@ -1,7 +1,5 @@
-module Message exposing (..)
+module Post exposing (..)
 
-import CommonTypes exposing (..)
-import Contracts.SmokeSignal as SSContract
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
 import Helpers.List as ListHelpers
@@ -21,8 +19,8 @@ type alias Draft =
     }
 
 
-type alias Message =
-    { postId : PostId
+type alias Post =
+    { postId : Id
     , from : Address
     , burnAmount : TokenValue
     , message : String
@@ -30,40 +28,26 @@ type alias Message =
     }
 
 
-fromContractEvent : Int -> SSContract.MessageBurn -> Message
-fromContractEvent block messageEvent =
-    let
-        ( extractedMessage, extractedMetadata ) =
-            case ( String.left 12 messageEvent.message, String.dropLeft 12 messageEvent.message ) of
-                ( "!smokesignal", jsonStr ) ->
-                    case decodeMessageAndMetadata jsonStr of
-                        Ok ( message, metadata ) ->
-                            ( message, Ok metadata )
-
-                        Err errStr ->
-                            ( messageEvent.message, Err errStr )
-
-                _ ->
-                    ( messageEvent.message
-                    , Ok nullMetadata
-                    )
-    in
-    Message
-        (PostId
-            block
-            messageEvent.hash
-        )
-        messageEvent.from
-        messageEvent.burnAmount
-        extractedMessage
-        extractedMetadata
+type alias EncodedDraft =
+    { author : Address
+    , encodedMessageAndMetadata : String
+    , burnAmount : TokenValue
+    , donateAmount : TokenValue
+    }
 
 
 type alias Metadata =
     { metadataVersion : Int
-    , replyTo : Maybe PostId
+    , replyTo : Maybe Id
     , topic : Maybe String
     }
+
+
+type alias Id =
+    { block : Int
+    , messageHash : Hex
+    }
+
 
 nullMetadata =
     Metadata
@@ -72,9 +56,9 @@ nullMetadata =
         Nothing
 
 
-getTopic : Message -> Maybe String
-getTopic message =
-    message.metadata
+getTopic : Post -> Maybe String
+getTopic post =
+    post.metadata
         |> Result.toMaybe
         |> Maybe.andThen .topic
 
@@ -83,7 +67,7 @@ currentMetadataVersion =
     2
 
 
-versionedMetadata : Maybe PostId -> Maybe String -> Metadata
+versionedMetadata : Maybe Id -> Maybe String -> Metadata
 versionedMetadata =
     Metadata currentMetadataVersion
 
@@ -93,9 +77,9 @@ blankVersionedMetadata =
     versionedMetadata Nothing Nothing
 
 
-encodeDraft : Draft -> EncodedMessageDraft
+encodeDraft : Draft -> EncodedDraft
 encodeDraft draft =
-    EncodedMessageDraft
+    EncodedDraft
         draft.author
         ("!smokesignal" ++ encodeMessageAndMetadataToString ( draft.message, draft.metadata ))
         draft.burnAmount
@@ -142,7 +126,7 @@ metadataDecoder =
         (D.maybe (D.field "topic" D.string))
 
 
-encodePostId : PostId -> E.Value
+encodePostId : Id -> E.Value
 encodePostId postId =
     E.list identity
         [ E.int postId.block
@@ -150,10 +134,10 @@ encodePostId postId =
         ]
 
 
-postIdDecoder : D.Decoder PostId
+postIdDecoder : D.Decoder Id
 postIdDecoder =
     D.map2
-        PostId
+        Id
         (D.index 0 D.int)
         (D.index 1 hexDecoder)
 

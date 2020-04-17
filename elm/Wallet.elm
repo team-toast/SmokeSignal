@@ -1,6 +1,6 @@
 module Wallet exposing (..)
 
-import CommonTypes exposing (..)
+import Common.Types exposing (..)
 import Config
 import Eth.Net
 import Eth.Types exposing (Address, HttpProvider, TxHash, WebsocketProvider)
@@ -8,13 +8,13 @@ import Helpers.Eth as EthHelpers
 import TokenValue exposing (TokenValue)
 
 
-type State
+type Wallet
     = NoneDetected
     | OnlyNetwork Eth.Net.NetworkId
     | Active UserInfo
 
 
-userInfo : State -> Maybe UserInfo
+userInfo : Wallet -> Maybe UserInfo
 userInfo walletState =
     case walletState of
         Active uInfo ->
@@ -24,7 +24,7 @@ userInfo walletState =
             Nothing
 
 
-network : State -> Maybe Eth.Net.NetworkId
+network : Wallet -> Maybe Eth.Net.NetworkId
 network walletState =
     case walletState of
         NoneDetected ->
@@ -37,7 +37,7 @@ network walletState =
             Just uInfo.network
 
 
-withFetchedBalance : TokenValue -> State -> State
+withFetchedBalance : TokenValue -> Wallet -> Wallet
 withFetchedBalance balance wallet =
     case wallet of
         Active uInfo ->
@@ -48,12 +48,12 @@ withFetchedBalance balance wallet =
     
 
 
-withIsUnlocked : Bool -> State -> State
+withIsUnlocked : Bool -> Wallet -> Wallet
 withIsUnlocked isUnlocked wallet =
     case wallet of
         Active uInfo ->
             Active <|
-                (uInfo |> CommonTypes.withIsUnlocked isUnlocked)
+                (uInfo |> Common.Types.withIsUnlocked isUnlocked)
         _ ->
             wallet
     

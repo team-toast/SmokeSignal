@@ -1,12 +1,13 @@
 module Contracts.SmokeSignal exposing (..)
 
-import CommonTypes exposing (..)
 import Config
+import Post exposing (Post)
 import Contracts.Generated.SmokeSignal as G
 import Eth.Types exposing (..)
 import Eth.Utils as U
 import Json.Decode as Decode exposing (Decoder, succeed)
 import Json.Decode.Pipeline exposing (custom)
+import Post
 import TokenValue exposing (TokenValue)
 
 
@@ -47,10 +48,39 @@ messageBurnDecoder =
         |> Decode.map convertBurnAmount
 
 
-burnEncodedMessage : EncodedMessageDraft -> Call Hex
-burnEncodedMessage encodedMessage =
+burnEncodedPost : Post.EncodedDraft -> Call Hex
+burnEncodedPost encodedPost =
     G.burnMessage
         Config.smokesignalContractAddress
-        encodedMessage.encodedMessageAndMetadata
-        (TokenValue.getEvmValue encodedMessage.burnAmount)
-        (TokenValue.getEvmValue encodedMessage.donateAmount)
+        encodedPost.encodedMessageAndMetadata
+        (TokenValue.getEvmValue encodedPost.burnAmount)
+        (TokenValue.getEvmValue encodedPost.donateAmount)
+
+
+fromMessageBurn : Int -> MessageBurn -> Post
+fromMessageBurn block messageEvent =
+    let
+        ( extractedMessage, extractedMetadata ) =
+            case ( String.left 12 messageEvent.message, String.dropLeft 12 messageEvent.message ) of
+                ( "!smokesignal", jsonStr ) ->
+                    case Post.decodeMessageAndMetadata jsonStr of
+                        Ok ( message, metadata ) ->
+                            ( message, Ok metadata )
+
+                        Err errStr ->
+                            ( messageEvent.message, Err errStr )
+
+                _ ->
+                    ( messageEvent.message
+                    , Ok Post.nullMetadata
+                    )
+    in
+    Post
+        (Post.Id
+            block
+            messageEvent.hash
+        )
+        messageEvent.from
+        messageEvent.burnAmount
+        extractedMessage
+        extractedMetadata

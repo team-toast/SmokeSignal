@@ -4,7 +4,6 @@ import Browser.Dom
 import Collage exposing (Collage)
 import Collage.Render
 import Color exposing (Color)
-import CommonTypes exposing (..)
 import Config
 import Css
 import Dict
@@ -30,6 +29,30 @@ import Time
 import TokenValue exposing (TokenValue)
 
 
+type DisplayProfile
+    = Desktop
+    | Mobile
+
+
+screenWidthToDisplayProfile : Int -> DisplayProfile
+screenWidthToDisplayProfile width =
+    if width >= 1150 then
+        Desktop
+
+    else
+        Mobile
+
+
+changeForMobile : a -> DisplayProfile -> a -> a
+changeForMobile changed dProfile original =
+    case dProfile of
+        Desktop ->
+            original
+
+        Mobile ->
+            changed
+
+
 
 -- COLORS
 
@@ -44,94 +67,6 @@ black =
 
 white =
     Element.rgb 1 1 1
-
-
-softRed =
-    Element.rgb255 255 0 110
-
-
-lightRed =
-    Element.rgb 1 0.8 0.8
-
-
-green =
-    Element.rgb255 51 183 2
-
-
-blue =
-    Element.rgb 0 0 1
-
-
-lightBlue =
-    Element.rgb 0.8 0.8 1
-
-
-yellow =
-    Element.rgb 1 1 0
-
-
-daiYellow =
-    yellow
-
-
-dollarGreen =
-    green
-
-
-darkYellow =
-    Element.rgb 0.6 0.6 0
-
-
-lightGray =
-    Element.rgb255 233 237 242
-
-
-placeholderTextColor =
-    Element.rgb255 213 217 222
-
-
-mediumGray =
-    Element.rgb255 200 205 210
-
-
-darkGray =
-    Element.rgb255 150 150 150
-
-
-activePhaseBackgroundColor =
-    Element.rgb255 9 32 107
-
-
-permanentTextColor =
-    Element.rgba255 1 31 52 0.8
-
-
-submodelBackgroundColor =
-    Element.rgb 0.95 0.98 1
-
-
-pageBackgroundColor =
-    Element.rgb255 242 243 247
-
-
-disabledTextColor =
-    Element.rgba255 1 31 52 0.13
-
-
-currencyLabelColor =
-    Element.rgb255 109 127 138
-
-
-releasedIconColor =
-    Element.rgb255 0 255 0
-
-
-abortedIconColor =
-    Element.rgb255 250 165 22
-
-
-burnedIconColor =
-    Element.rgb255 255 0 0
 
 
 addAlpha : Float -> Element.Color -> Element.Color
@@ -162,371 +97,35 @@ fakeLink name =
 
 
 
--- VALUE RENDERERS
--- daiValue : TokenValue -> Element msg
--- daiValue tv =
---     let
---         numStr =
---             TokenValue.toConciseString tv
---     in
---     Element.row [ Element.spacing 4 ]
---         [ daiSymbol []
---         , Element.el [ Element.Font.size 16 ] <| Element.text numStr
---         ]
-
-
-coloredResponderProfit : Bool -> Float -> Element msg
-coloredResponderProfit upIsGreen responderProfitFloat =
-    case responderProfitFloatToConciseString responderProfitFloat of
-        "0%" ->
-            Element.el [ Element.Font.size 16 ] (Element.text "0%")
-
-        unsignedPercentString ->
-            let
-                isUp =
-                    responderProfitFloat >= 0
-
-                isGreen =
-                    not <| xor isUp upIsGreen
-
-                textColor =
-                    if isGreen then
-                        green
-
-                    else
-                        softRed
-            in
-            Element.el [ Element.Font.color textColor, Element.Font.size 16 ]
-                (Element.text unsignedPercentString)
-
-
-uncoloredResponderProfit : Float -> Element msg
-uncoloredResponderProfit responderProfitFloat =
-    case responderProfitFloatToConciseString responderProfitFloat of
-        "0%" ->
-            Element.el [ Element.Font.size 16 ] (Element.text "0%")
-
-        unsignedPercentString ->
-            let
-                isUp =
-                    responderProfitFloat >= 0
-            in
-            Element.row [ Element.spacing 4 ]
-                [ Element.el [ Element.Font.size 18 ]
-                    (Element.text unsignedPercentString)
-                ]
-
-
-interval : List (Attribute msg) -> List (Attribute msg) -> ( Element.Color, Element.Color ) -> Time.Posix -> Element msg
-interval containerAttributes textAttributes ( defaultColor, zeroColor ) i =
-    if TimeHelpers.isNegative i then
-        interval
-            containerAttributes
-            textAttributes
-            ( defaultColor, zeroColor )
-            (Time.millisToPosix 0)
-
-    else
-        let
-            hrInterval =
-                TimeHelpers.toHumanReadableInterval i
-
-            dc =
-                if hrInterval.days == 0 then
-                    zeroColor
-
-                else
-                    defaultColor
-
-            hc =
-                if hrInterval.days == 0 && hrInterval.hours == 0 then
-                    zeroColor
-
-                else
-                    defaultColor
-
-            mc =
-                if Time.posixToMillis i > 0 then
-                    defaultColor
-
-                else
-                    zeroColor
-
-            numStr num unitStr =
-                (String.fromInt num
-                    |> String.padLeft 2 '0'
-                )
-                    ++ unitStr
-        in
-        Element.row
-            ([ Element.spacing 5 ] ++ containerAttributes)
-            [ Element.el
-                ([ Element.Font.color dc ] ++ textAttributes)
-                (Element.text <| numStr hrInterval.days "d")
-            , Element.el
-                ([ Element.Font.color hc ] ++ textAttributes)
-                (Element.text <| numStr hrInterval.hours "h")
-            , Element.el
-                ([ Element.Font.color mc ] ++ textAttributes)
-                (Element.text <| numStr hrInterval.min "m")
-            ]
-
-
-intervalWithElapsedBar : List (Attribute msg) -> List (Attribute msg) -> ( Element.Color, Element.Color ) -> ( Time.Posix, Time.Posix ) -> Element msg
-intervalWithElapsedBar containerAttributes textAttributes ( defaultColor, zeroColor ) ( i, total ) =
-    let
-        timeLeftRatio =
-            TimeHelpers.getRatio
-                i
-                total
-
-        color =
-            if timeLeftRatio < 0.1 then
-                softRed
-
-            else if timeLeftRatio < 0.2 then
-                yellow
-
-            else
-                green
-
-        intervalEl =
-            Element.el
-                [ Element.centerX ]
-                (interval
-                    []
-                    []
-                    ( defaultColor, zeroColor )
-                    i
-                )
-    in
-    Element.column
-        ([ Element.spacing 5 ] ++ containerAttributes)
-        [ interval
-            [ Element.centerX ]
-            textAttributes
-            ( defaultColor, zeroColor )
-            i
-        , elapsedBar (1 - timeLeftRatio) color
-        ]
-
-
-elapsedBar : Float -> Element.Color -> Element msg
-elapsedBar ratio filledBarColor =
-    let
-        barStyles =
-            [ Element.height <| Element.px 3
-            , Element.Border.rounded 20
-            ]
-
-        filledFillPortion =
-            round (ratio * 200.0)
-
-        unfilledFillPortion =
-            200 - filledFillPortion
-
-        backgroundBarEl =
-            Element.el
-                (barStyles ++ [ Element.width Element.fill, Element.Background.color lightGray ])
-                Element.none
-
-        filledBarEl =
-            Element.el
-                (barStyles ++ [ Element.width <| Element.fillPortion filledFillPortion, Element.Background.color filledBarColor ])
-                Element.none
-
-        spacerEl =
-            Element.el
-                [ Element.width <| Element.fillPortion unfilledFillPortion ]
-                Element.none
-    in
-    Element.row
-        [ Element.width Element.fill
-        , Element.behindContent backgroundBarEl
-        ]
-        [ filledBarEl
-        , spacerEl
-        ]
-
-
-bigTimeUnitElement : Int -> Element.Color -> String -> Int -> Element msg
-bigTimeUnitElement numDigits color labelString num =
-    let
-        numStr =
-            String.fromInt num
-                |> String.padLeft numDigits '0'
-    in
-    Element.el
-        [ Element.Font.size 22
-        , Element.Font.color color
-        ]
-        (Element.text <| numStr ++ labelString)
-
-
-
 -- INPUTS
-
-
-roundedComplexInputBox :
-    List (Attribute msg)
-    -> List (Element msg)
-    ->
-        { onChange : String.String -> msg
-        , text : String.String
-        , placeholder : Maybe.Maybe (Element.Input.Placeholder msg)
-        , label : Element.Input.Label msg
-        }
-    -> List (Element msg)
-    -> Element msg
-roundedComplexInputBox extraAttributes leftItems inputConfig rightItems =
-    Element.row
-        (extraAttributes
-            ++ [ Element.Border.rounded 20
-               , Element.paddingXY 20 0
-               , Element.Border.width 1
-               , Element.Background.color white
-               , Element.Border.color <| Element.rgba 0 0 0 0.1
-               , Element.height <| Element.px 60
-               ]
-        )
-        (leftItems
-            ++ [ Element.Input.text
-                    [ Element.Border.width 0
-                    , Element.width Element.fill
-                    , Element.Font.alignRight
-                    ]
-                    inputConfig
-               ]
-            ++ rightItems
-        )
-
-
-fancyInput : List (Attribute msg) -> ( Maybe (Element msg), Maybe (Element msg) ) -> String -> Maybe (Element.Input.Placeholder msg) -> String -> (String -> msg) -> Element msg
-fancyInput attributes ( maybeLeftElement, maybeRightElement ) labelStr placeholder value msgConstructor =
-    let
-        inputElement =
-            Element.Input.text
-                [ Element.width Element.fill
-                , Element.height <| Element.px 40
-                , Element.Border.width 0
-                ]
-                { onChange = msgConstructor
-                , text = value
-                , placeholder = placeholder
-                , label = Element.Input.labelHidden labelStr
-                }
-    in
-    Element.row
-        ([ Element.spacing 5
-         ]
-            ++ attributes
-        )
-        ([ Maybe.map
-            (Element.el [ Element.alignLeft ])
-            maybeLeftElement
-         , Just inputElement
-         , Maybe.map
-            (Element.el [ Element.alignRight ])
-            maybeRightElement
-         ]
-            |> Maybe.Extra.values
-        )
-
-
-textInputWithElement : List (Attribute msg) -> List (Attribute msg) -> Element msg -> String -> String -> Maybe (Element.Input.Placeholder msg) -> Maybe (Bool -> msg) -> (String -> msg) -> Element msg
-textInputWithElement attributes inputAttributes addedElement labelStr value placeholder maybeShowHideDropdownMsg msgConstructor =
-    let
-        focusEventAttributes =
-            case maybeShowHideDropdownMsg of
-                Nothing ->
-                    []
-
-                Just showHideMsgConstructor ->
-                    [ Element.Events.onFocus <| showHideMsgConstructor True
-                    , onClickNoPropagation <| showHideMsgConstructor True
-                    ]
-    in
-    Element.row
-        (attributes
-            ++ [ Element.height <| Element.px 40
-               , Element.Border.shadow
-                    { offset = ( 0, 3 )
-                    , size = 0
-                    , blur = 20
-                    , color = Element.rgba255 233 237 242 0.05
-                    }
-               ]
-        )
-        [ Element.el
-            [ Element.Background.color lightGray
-            , Element.height <| Element.px 40
-            , Element.Border.roundEach
-                { topLeft = 4
-                , bottomLeft = 4
-                , topRight = 0
-                , bottomRight = 0
-                }
-            ]
-            (Element.el [ Element.centerY, Element.paddingXY 10 0 ] addedElement)
-        , Element.Input.text
-            (focusEventAttributes
-                ++ inputAttributes
-                ++ [ Element.width <| Element.px 100
-                   , Element.height <| Element.px 40
-                   , Element.Border.color lightGray
-                   , Element.Border.roundEach
-                        { topLeft = 0
-                        , bottomLeft = 0
-                        , topRight = 4
-                        , bottomRight = 4
-                        }
-                   , Element.Border.widthEach
-                        { top = 1
-                        , bottom = 1
-                        , right = 1
-                        , left = 0
-                        }
-                   ]
-            )
-            { onChange = msgConstructor
-            , text = value
-            , placeholder = placeholder
-            , label = Element.Input.labelHidden labelStr
-            }
-        ]
-
-
-dropdownSelector : List ( Element msg, msg ) -> Element msg
-dropdownSelector itemsAndMsgs =
-    Element.column
-        [ Element.Border.color <| Element.rgba 0 0 0 0.2
-        , Element.Border.width 1
-        , Element.Border.rounded 5
-        , Element.Background.color white
-        , Element.padding 10
-        , Element.htmlAttribute <| Html.Attributes.style "position" "fixed"
-        , Element.htmlAttribute <| Html.Attributes.style "z-index" "1000"
-        , Element.Border.shadow
-            { offset = ( 2, 2 )
-            , size = 0
-            , blur = 10
-            , color = Element.rgba 0 0 0 0.1
-            }
-        ]
-        (itemsAndMsgs
-            |> List.map
-                (\( el, msg ) ->
-                    Element.el
-                        [ Element.paddingXY 0 5
-                        , onClickNoPropagation msg
-                        , Element.mouseOver [ Element.Background.color <| Element.rgb 0.8 0.8 1 ]
-                        ]
-                        el
-                )
-        )
-
-
-
+-- dropdownSelector : List ( Element msg, msg ) -> Element msg
+-- dropdownSelector itemsAndMsgs =
+--     Element.column
+--         [ Element.Border.color <| Element.rgba 0 0 0 0.2
+--         , Element.Border.width 1
+--         , Element.Border.rounded 5
+--         , Element.Background.color white
+--         , Element.padding 10
+--         , Element.htmlAttribute <| Html.Attributes.style "position" "fixed"
+--         , Element.htmlAttribute <| Html.Attributes.style "z-index" "1000"
+--         , Element.Border.shadow
+--             { offset = ( 2, 2 )
+--             , size = 0
+--             , blur = 10
+--             , color = Element.rgba 0 0 0 0.1
+--             }
+--         ]
+--         (itemsAndMsgs
+--             |> List.map
+--                 (\( el, msg ) ->
+--                     Element.el
+--                         [ Element.paddingXY 0 5
+--                         , onClickNoPropagation msg
+--                         , Element.mouseOver [ Element.Background.color <| Element.rgb 0.8 0.8 1 ]
+--                         ]
+--                         el
+--                 )
+--         )
 -- BUTTONS
 
 
@@ -551,127 +150,6 @@ button dProfile attributes ( bgColor, bgHoverColor, bgPressedColor ) textColor l
         (List.map
             (Element.el [ Element.centerX, Element.centerY ] << Element.text)
             lines
-        )
-
-
-blueButton : DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-blueButton dProfile attributes text msg =
-    button dProfile
-        attributes
-        ( Element.rgba 0 0 1 1
-        , Element.rgba 0 0 1 0.8
-        , Element.rgba 0 0 1 0.6
-        )
-        white
-        text
-        msg
-
-
-lightBlueButton : DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-lightBlueButton dProfile attributes text msg =
-    let
-        color =
-            Element.rgb255 25 169 214
-    in
-    button dProfile
-        attributes
-        ( color
-        , color |> addAlpha 0.8
-        , color |> addAlpha 0.6
-        )
-        white
-        text
-        msg
-
-
-inverseBlueButton : DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-inverseBlueButton dProfile attributes text msg =
-    button dProfile
-        attributes
-        ( Element.rgba 0 0 1 0.05
-        , Element.rgba 0 0 1 0.1
-        , Element.rgba 0 0 1 0.2
-        )
-        blue
-        text
-        msg
-
-
-redButton : DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-redButton dProfile attributes text msg =
-    button dProfile
-        attributes
-        ( Element.rgba 1 0 0 1
-        , Element.rgba 1 0 0 0.8
-        , Element.rgba 1 0 0 0.6
-        )
-        white
-        text
-        msg
-
-
-disabledButton : DisplayProfile -> List (Attribute msg) -> String -> Maybe String -> Element msg
-disabledButton dProfile attributes text maybeTipText =
-    Element.el
-        ([ Element.Border.rounded 4
-         , Element.paddingXY 25 17 |> changeForMobile (Element.paddingXY 10 5) dProfile
-         , Element.Font.size (18 |> changeForMobile 16 dProfile)
-         , Element.Font.semiBold
-         , Element.Background.color lightGray
-         , Element.Font.center
-         , noSelectText
-         , Element.above <|
-            maybeErrorElement
-                [ Element.moveUp 5 ]
-                maybeTipText
-         ]
-            ++ attributes
-        )
-        (Element.el [ Element.centerY, Element.centerX ] <| Element.text text)
-
-
-orangeButton : DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-orangeButton dProfile attributes text msg =
-    button dProfile
-        attributes
-        ( Element.rgba 1 0.6 0.2 1
-        , Element.rgba 1 0.6 0.2 0.8
-        , Element.rgba 1 0.6 0.2 0.6
-        )
-        white
-        text
-        msg
-
-
-grayButton : DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-grayButton dProfile attributes text msg =
-    button dProfile
-        attributes
-        ( Element.rgba 0 0 0 0.05
-        , Element.rgba 0 0 0 0.1
-        , Element.rgba 0 0 0 0.12
-        )
-        black
-        text
-        msg
-
-
-closeButton : Bool -> msg -> Element msg
-closeButton isBlack msg =
-    Element.el
-        [ Element.padding 10
-        , Element.Events.onClick msg
-        , Element.pointer
-        ]
-        (Element.image [ Element.width <| Element.px 22 ]
-            { src =
-                if isBlack then
-                    "img/remove-circle-black.svg"
-
-                else
-                    "img/remove-circle-white.svg"
-            , description = "close"
-            }
         )
 
 
@@ -736,29 +214,6 @@ withHeader headerString element =
         ]
 
 
-subtleShadow : Attribute msg
-subtleShadow =
-    Element.Border.shadow
-        { offset = ( 0, 3 )
-        , size = 0
-        , blur = 20
-        , color = Element.rgba255 0 0 0 0.04
-        }
-
-
-niceBottomBorderEl : Element msg -> Element msg
-niceBottomBorderEl =
-    Element.el
-        [ Element.Border.color lightGray
-        , Element.Border.widthEach
-            { bottom = 2
-            , top = 0
-            , right = 0
-            , left = 0
-            }
-        ]
-
-
 
 -- SPECIAL CHARS
 
@@ -770,62 +225,7 @@ bulletPointString =
 
 
 
--- IMAGES
--- daiSymbol : List (Attribute msg) -> Element msg
--- daiSymbol attributes =
---     Images.toElement
---         ((Element.height <| Element.px 26) :: attributes)
---         Images.daiSymbol
--- daiSymbolAndLabel : Element msg
--- daiSymbolAndLabel =
---     Element.row
---         []
---         [ daiSymbol []
---         , Element.el
---             [ Element.Font.size 24
---             , Element.Font.medium
---             , Element.Font.color currencyLabelColor
---             ]
---             (Element.text " DAI")
---         ]
--- DEBUG
-
-
-testBorderStyles : List (Attribute msg)
-testBorderStyles =
-    [ Element.Border.width 1
-    , Element.Border.color (Element.rgb 1 0 1)
-    ]
-
-
-
 -- ETC
-
-
-responderProfitFloatToConciseString : Float -> String
-responderProfitFloatToConciseString f =
-    (if f > 0 then
-        "+"
-
-     else
-        ""
-    )
-        ++ (if f < 0.1 then
-                f
-                    |> (*) 1000
-                    |> round
-                    |> toFloat
-                    |> (\f_ -> f_ / 10)
-                    |> String.fromFloat
-                    |> (\s -> s ++ "%")
-
-            else
-                f
-                    |> (*) 100
-                    |> round
-                    |> String.fromInt
-                    |> (\s -> s ++ "%")
-           )
 
 
 modal : Element.Color -> Bool -> msg -> msg -> Element msg -> Element msg
@@ -923,29 +323,32 @@ modal overlayColor includeScrollbarY clickInsideMsg clickOutsideMsg el =
 --                     )
 --             )
 
+subtleShadow : Attribute msg
+subtleShadow =
+    Element.Border.shadow
+        { offset = ( 0, 3 )
+        , size = 0
+        , blur = 20
+        , color = Element.rgba255 0 0 0 0.04
+        }
 
-comingSoonMsg : List (Attribute msg) -> String -> Element msg
-comingSoonMsg attributes text =
-    Element.paragraph
-        ([ Element.Font.size 12
-         , Element.Font.color softRed
-         ]
-            ++ attributes
-        )
-        [ Element.text text ]
-
-
-niceFloatingRow : List (Element msg) -> Element msg
-niceFloatingRow =
-    Element.row
-        [ Element.width Element.fill
-        , Element.Background.color white
-        , Element.Border.rounded 5
-        , Element.padding 20
-        , Element.spaceEvenly
-        , subtleShadow
+closeButton : Bool -> msg -> Element msg
+closeButton isBlack msg =
+    Element.el
+        [ Element.padding 10
+        , Element.Events.onClick msg
+        , Element.pointer
         ]
+        (Element.image [ Element.width <| Element.px 22 ]
+            { src =
+                if isBlack then
+                    "img/remove-circle-black.svg"
 
+                else
+                    "img/remove-circle-white.svg"
+            , description = "close"
+            }
+        )
 
 elOnCircle : List (Attribute msg) -> Int -> Element.Color -> Element msg -> Element msg
 elOnCircle attributes width color el =
@@ -981,45 +384,6 @@ elementColorToAvh4Color c =
            )
 
 
-maybeErrorElement : List (Attribute msg) -> Maybe String -> Element msg
-maybeErrorElement attributes maybeError =
-    case maybeError of
-        Nothing ->
-            Element.none
-
-        Just errorString ->
-            Element.el
-                ([ Element.Border.rounded 5
-                 , Element.Border.color softRed
-                 , Element.Border.width 1
-                 , Element.Background.color <| Element.rgb 1 0.4 0.4
-                 , Element.padding 5
-                 , Element.centerX
-                 , Element.centerY
-                 , Element.width (Element.shrink |> Element.maximum 200)
-                 , Element.Font.size 14
-                 ]
-                    ++ attributes
-                )
-                (Element.paragraph
-                    []
-                    [ Element.text errorString ]
-                )
-
-
-ethAddress : Int -> Address -> Element msg
-ethAddress fontSize address =
-    Element.el
-        [ Element.Border.rounded 4
-        , Element.Background.color <| Element.rgba 0 0 1 0.1
-        , Element.Font.color <| Element.rgb255 16 7 234
-        , Element.Font.size fontSize
-        , Element.Font.semiBold
-        , Element.paddingXY 15 13
-        ]
-        (Element.text <| Eth.Utils.addressToString address)
-
-
 scrollbarYEl : List (Attribute msg) -> Element msg -> Element msg
 scrollbarYEl attrs body =
     Element.el [ Element.height Element.fill, Element.width Element.fill ] <|
@@ -1036,142 +400,6 @@ scrollbarYEl attrs body =
             body
 
 
-simpleSubmodelContainer : Int -> Element msg -> Element msg
-simpleSubmodelContainer maxWidth el =
-    Element.el
-        [ Element.width Element.fill
-        ]
-    <|
-        Element.el
-            [ Element.Background.color white
-            , Element.Border.rounded 8
-            , Element.centerX
-            , Element.width (Element.fill |> Element.maximum maxWidth)
-            , Element.Border.shadow
-                { offset = ( 0, 3 )
-                , size = 0
-                , blur = 20
-                , color = Element.rgba 0 0 0 0.06
-                }
-            ]
-            el
-
-
-submodelContainer : Int -> DisplayProfile -> Maybe String -> Maybe (Element msg) -> Element msg -> Element msg
-submodelContainer maxWidth dProfile maybeBigTitleText maybeTitleEl el =
-    Element.column
-        [ Element.spacing 60
-        , Element.width Element.fill
-        ]
-        [ Maybe.map
-            (Element.el
-                [ Element.Font.color white
-                , Element.Font.size 38
-                , Element.centerX
-                ]
-                << Element.text
-            )
-            maybeBigTitleText
-            |> Maybe.withDefault Element.none
-        , Element.column
-            [ Element.Background.color <| submodelBackgroundColor
-            , Element.spacing (20 |> changeForMobile 5 dProfile)
-            , Element.Border.rounded 8
-            , Element.clip
-            , Element.centerX
-            , Element.width (Element.fill |> Element.maximum maxWidth)
-            , Element.Border.shadow
-                { offset = ( 0, 0 )
-                , size = 1
-                , blur = 3
-                , color = Element.rgba 0 0 0 0.2
-                }
-            ]
-            [ Maybe.map
-                (Element.el
-                    [ Element.width Element.fill
-                    , Element.padding (15 |> changeForMobile 5 dProfile)
-                    , Element.Background.color white
-                    , Element.Border.shadow
-                        { offset = ( 0, 0 )
-                        , size = 0
-                        , blur = 30
-                        , color = Element.rgba 0 0 0 0.15
-                        }
-                    ]
-                )
-                maybeTitleEl
-                |> Maybe.withDefault Element.none
-            , el
-            ]
-        ]
-
-
-withInputHeader : DisplayProfile -> List (Attribute msg) -> String -> Element msg -> Element msg
-withInputHeader dProfile attributes titleStr el =
-    withInputHeaderAndMaybeError dProfile attributes titleStr Nothing el
-
-
-withInputHeaderAndMaybeError : DisplayProfile -> List (Attribute msg) -> String -> Maybe String -> Element msg -> Element msg
-withInputHeaderAndMaybeError dProfile attributes titleStr maybeError el =
-    Element.column
-        (attributes
-            ++ [ Element.spacing 10
-               ]
-        )
-        [ Element.row
-            [ Element.spacing (20 |> changeForMobile 10 dProfile)
-            ]
-            [ Element.el
-                [ Element.Font.size (18 |> changeForMobile 16 dProfile)
-                , Element.Font.semiBold
-                , Element.Font.color <| Element.rgb255 1 31 52
-                , Element.alignLeft
-                ]
-                (Element.text titleStr)
-            , case maybeError of
-                Just error ->
-                    Element.el
-                        [ Element.Font.size (12 |> changeForMobile 10 dProfile)
-                        , Element.Font.color softRed
-                        ]
-                        (Element.text error)
-
-                Nothing ->
-                    Element.none
-            ]
-        , el
-        ]
-
-
-withSelectedUnderline : List (Attribute msg) -> Bool -> Element msg -> Element msg
-withSelectedUnderline attributes selected el =
-    Element.el
-        (attributes
-            ++ [ Element.Border.widthEach
-                    { bottom = 2
-                    , top = 0
-                    , right = 0
-                    , left = 0
-                    }
-               , Element.paddingEach
-                    { bottom = 2
-                    , top = 0
-                    , right = 0
-                    , left = 0
-                    }
-               , Element.Border.color
-                    (if selected then
-                        blue
-
-                     else
-                        Element.rgba 0 0 0 0
-                    )
-               ]
-        )
-        el
-
-
 thinGrayHRuler : Element msg
 thinGrayHRuler =
     Element.el
@@ -1182,73 +410,6 @@ thinGrayHRuler =
         Element.none
 
 
-basicOpenDropdown : List (Attribute msg) -> Maybe (Element msg) -> List ( Element msg, msg ) -> Element msg
-basicOpenDropdown attributes maybeFirstEl items =
-    Element.el
-        (attributes
-            ++ [ Element.Background.color white
-               , Element.Border.rounded 6
-               , Element.Border.shadow
-                    { offset = ( 0, 3 )
-                    , size = 0
-                    , blur = 20
-                    , color = Element.rgba 0 0 0 0.08
-                    }
-               ]
-        )
-    <|
-        Element.column
-            [ Element.Background.color lightGray
-            , Element.spacing 1
-            , Element.width Element.fill
-            , Element.height (Element.shrink |> Element.maximum 340)
-            ]
-            [ maybeFirstEl |> Maybe.withDefault Element.none
-            , Element.column
-                [ Element.scrollbarY
-                , Element.width Element.fill
-                , Element.height Element.fill
-                , Element.Background.color lightGray
-                , Element.spacing 1
-                ]
-                (items
-                    |> List.map
-                        (\( el, onClick ) ->
-                            Element.el
-                                [ Element.paddingXY 14 10
-                                , Element.Background.color white
-                                , Element.width Element.fill
-                                , Element.Events.onClick onClick
-                                , Element.pointer
-                                , Element.mouseOver
-                                    [ Element.Background.color <| Element.rgba 0 0 1 0.15 ]
-                                ]
-                                el
-                        )
-                )
-            ]
-
-
-inputContainer : DisplayProfile -> List (Element.Attribute msg) -> List (Element msg) -> Element msg
-inputContainer dProfile attributes =
-    Element.row <|
-        [ Element.Background.color lightGray
-        , Element.height <| Element.px (55 |> changeForMobile 40 dProfile)
-        , Element.Border.rounded 4
-        , Element.Border.width 1
-        , Element.Border.color lightGray
-        , Element.spacing 1
-        ]
-            ++ attributes
-            ++ (case dProfile of
-                    Desktop ->
-                        []
-
-                    Mobile ->
-                        [ Element.Font.size 14 ]
-               )
-
-
 moveToFront : Attribute msg
 moveToFront =
     Element.htmlAttribute <| Html.Attributes.style "z-index" "1000"
@@ -1256,5 +417,5 @@ moveToFront =
 
 noSelectText : Attribute msg
 noSelectText =
-    Html.Attributes.style "user-select" "none"
-        |> Element.htmlAttribute
+    Element.htmlAttribute <|
+        Html.Attributes.style "user-select" "none"
