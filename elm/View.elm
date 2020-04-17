@@ -1,7 +1,9 @@
 module View exposing (root)
 
 import Browser
+import Common.Msg exposing (..)
 import Common.Types exposing (..)
+import Common.View exposing (..)
 import ComposeUX.View
 import Dict exposing (Dict)
 import Dict.Extra
@@ -24,9 +26,10 @@ import Html.Attributes
 import Json.Decode
 import List.Extra
 import Maybe.Extra
-import Post exposing (Post)
 import Phace
+import Post exposing (Post)
 import Routing exposing (Route)
+import Theme exposing (..)
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
@@ -50,16 +53,31 @@ root model =
     }
 
 
+type WalletUXPhaceInfo
+    = UserPhaceInfo ( UserInfo, Bool )
+    | DemoPhaceInfo String
+
+
 body : Model -> Element Msg
 body model =
     let
-        maybeUserInfoAndShowAddress =
-            Wallet.userInfo model.wallet
-                |> Maybe.map
-                    (\userInfo ->
-                        ( userInfo
-                        , model.showAddress == Just User
-                        )
+        ( walletUXPhaceInfo, maybeUserInfoAndShowAddress ) =
+            case Wallet.userInfo model.wallet of
+                Just userInfo ->
+                    let
+                        userInfoAndShowAddress =
+                            ( userInfo
+                            , model.showAddress == Just UserPhace
+                            )
+                    in
+                    ( UserPhaceInfo
+                        userInfoAndShowAddress
+                    , Just userInfoAndShowAddress
+                    )
+
+                Nothing ->
+                    ( DemoPhaceInfo model.demoPhaceSrc
+                    , Nothing
                     )
     in
     Element.column
@@ -73,7 +91,9 @@ body model =
                     model.userNotices
                 )
         )
-        [ header model.mode
+        [ header
+            model.dProfile
+            walletUXPhaceInfo
         , case model.mode of
             Home ->
                 Home.View.view model
@@ -112,9 +132,118 @@ body model =
         ]
 
 
-header : Mode -> Element Msg
-header mode =
-    Debug.todo "header"
+header : EH.DisplayProfile -> WalletUXPhaceInfo -> Element Msg
+header dProfile walletUXPhaceInfo =
+    Element.row
+        [ Element.width Element.fill
+        , Element.Background.color darkBlue
+        ]
+        [ Element.el
+            [ Element.width <| Element.fillPortion 1
+            , Element.padding 10
+            ]
+            EH.forgedByFoundry
+        , Element.el
+            [ Element.width <| Element.fillPortion 3
+            ]
+          <|
+            Element.el [ Element.centerX ] logoBlock
+        , Element.el
+            [ Element.width <| Element.fillPortion 1
+            ]
+          <|
+            Element.el
+                [ Element.alignRight
+                , Element.alignTop
+                ]
+            <|
+                walletUX dProfile walletUXPhaceInfo
+        ]
+
+
+logoBlock : Element Msg
+logoBlock =
+    Element.row
+        [ Element.spacing 15 ]
+        [ Element.row
+            [ Element.Font.size 50
+            , Element.Font.bold
+            ]
+            [ Element.el [ Element.Font.color darkGray ] <| Element.text "Smoke"
+            , Element.el [ Element.Font.color <| Element.rgb 1 0.5 0 ] <| Element.text "Signal"
+            ]
+        ]
+
+
+walletUX : EH.DisplayProfile -> WalletUXPhaceInfo -> Element Msg
+walletUX dProfile walletUXPhaceInfo =
+    let
+        commonAttributes =
+            [ Element.alignRight
+            , Element.alignTop
+            , Element.padding 10
+            , Element.Border.roundEach
+                { bottomLeft = 10
+                , topLeft = 0
+                , topRight = 0
+                , bottomRight = 0
+                }
+            , commonShadow
+            , Element.Background.color blue
+            , Element.Border.color (Element.rgba 0 0 1 0.5)
+            , Element.Border.widthEach
+                { top = 1
+                , right = 1
+                , bottom = 0
+                , left = 0
+                }
+            ]
+    in
+    case walletUXPhaceInfo of
+        DemoPhaceInfo demoAddress ->
+            Element.column
+                (commonAttributes
+                    ++ [ Element.spacing 5 ]
+                )
+                [ Element.map MsgUp <|
+                    Element.el
+                        [ Element.inFront <|
+                            Element.el
+                                [ Element.width Element.fill
+                                , Element.height Element.fill
+                                , Element.Background.color <| Element.rgba 0 0 0 0.4
+                                , Element.Border.rounded 10
+                                , Element.pointer
+                                , Element.Events.onClick <|
+                                    ConnectToWeb3
+                                ]
+                            <|
+                                Element.el
+                                    [ Element.alignBottom
+                                    , Element.width Element.fill
+                                    , Element.Background.color <| Element.rgba 0 0 0 0.4
+                                    , Element.Font.color EH.white
+                                    , Element.Font.bold
+                                    , Element.Font.size 14
+                                    ]
+                                <|
+                                    Element.text "Connect Wallet"
+                        ]
+                    <|
+                        phaceElement
+                            MorphingPhace
+                            (Eth.Utils.unsafeToAddress demoAddress)
+                            False
+                ]
+
+        -- Element.el commonAttributes <|
+        UserPhaceInfo ( accountInfo, showAddress ) ->
+            Element.el commonAttributes <|
+                Element.map MsgUp <|
+                    Common.View.phaceElement
+                        UserPhace
+                        accountInfo.address
+                        showAddress
 
 
 userNoticeEls : EH.DisplayProfile -> List UserNotice -> List (Element Msg)
@@ -226,13 +355,16 @@ mapNever =
     Element.map (always NoOp)
 
 
-viewAllPosts =
-    Debug.todo ""
+viewAllPosts : Model -> Element Msg
+viewAllPosts model =
+    Element.text "todo"
 
 
-viewPostAndReplies =
-    Debug.todo ""
+viewPostAndReplies : Post.Id -> Model -> Element Msg
+viewPostAndReplies postId model =
+    Element.text "todo"
 
 
-viewPostsForTopic =
-    Debug.todo ""
+viewPostsForTopic : String -> Model -> Element Msg
+viewPostsForTopic topic model =
+    Element.text "todo"
