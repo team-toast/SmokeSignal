@@ -32,9 +32,14 @@ withIsUnlocked unlocked userInfo =
     }
 
 
+type ComposeContext
+    = ComposingReply Post.Id
+    | ComposingForTopic String
+
+
 type alias ViewContext =
-    { topic : Maybe String
-    , replyTo : Maybe Post.Id
+    { showReplyTo : Bool
+    , showTopic : Bool
     }
 
 

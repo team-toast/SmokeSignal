@@ -162,18 +162,6 @@ composeActionBlock dProfile walletUXPhaceInfo =
                     , [ Element.text "Connect your Web3 Wallet to see your Phace." ]
                     ]
         , case walletUXPhaceInfo of
-            UserPhaceInfo _ ->
-                Element.column
-                    [ Element.width Element.fill
-                    , Element.spacing 10
-                    ]
-                    [ darkTheme.emphasizedActionButton
-                        dProfile
-                        [ Element.width Element.fill ]
-                        [ "Compose SmokeSignal Post" ]
-                        (MsgUp <| GotoRoute <| Routing.Compose)
-                    ]
-
             DemoPhaceInfo _ ->
                 Element.column
                     [ Element.width Element.fill
@@ -182,6 +170,9 @@ composeActionBlock dProfile walletUXPhaceInfo =
                     [ Element.map MsgUp <|
                         web3ConnectButton dProfile [ Element.width Element.fill ]
                     ]
+
+            _ ->
+                Element.none
         ]
 
 
@@ -240,8 +231,8 @@ topicsBlock dProfile model posts =
                             [ Element.Font.color <| Element.rgba 1 1 1 0.4
                             , Element.Font.italic
                             ]
-                            (Element.text "Search Topics")
-                , label = Element.Input.labelHidden "search topics"
+                            (Element.text "Find or Create Topic")
+                , label = Element.Input.labelHidden "topic"
                 }
             , topicsColumn dProfile model.topicInput posts
             ]
@@ -277,55 +268,98 @@ topicsColumn dProfile topicSearchStr posts =
                     (\( topic, _ ) ->
                         String.contains topicSearchStr topic
                     )
-    in
-    Element.column
-        [ Element.Border.roundEach
-            { topRight = 0
-            , topLeft = 0
-            , bottomRight = 5
-            , bottomLeft = 5
-            }
-        , Element.width Element.fill
-        , Element.height <| Element.px 300
-        , Element.scrollbarY
-        , Element.Background.color <| Element.rgba 1 1 1 0.2
-        , Element.padding 5
-        , Element.spacing 5
-        ]
-        (filteredTalliedTopics
-            |> List.map
-                (\( topic, ( totalBurned, count ) ) ->
-                    Element.row
-                        [ Element.spacing 5
-                        , Element.padding 5
-                        , Element.Border.width 1
-                        , Element.Border.color <| Element.rgba 1 1 1 0.3
-                        , Element.width Element.fill
-                        , Element.Background.color <| Element.rgba 0 0 1 0.2
-                        , Element.pointer
-                        , Element.Events.onClick <|
-                            MsgUp <|
-                                GotoRoute <|
-                                    Routing.ViewTopic topic
-                        ]
-                        [ Element.row
-                            [ Element.padding 5
-                            , Element.spacing 3
-                            , Element.Border.rounded 5
-                            , Element.Background.color darkTheme.daiBurnedBackground
-                            , Element.Font.color
-                                (if darkTheme.daiBurnedTextIsWhite then
-                                    EH.white
 
-                                 else
-                                    EH.black
-                                )
+        commonElStyles =
+            [ Element.spacing 5
+            , Element.padding 5
+            , Element.Border.width 1
+            , Element.Border.color <| Element.rgba 1 1 1 0.3
+            , Element.width Element.fill
+            , Element.pointer
+            , Element.height <| Element.px 40
+            ]
+
+        topicEls =
+            filteredTalliedTopics
+                |> List.map
+                    (\( topic, ( totalBurned, count ) ) ->
+                        Element.row
+                            (commonElStyles
+                                ++ [ Element.Background.color <| Element.rgba 0 0 1 0.2
+                                   , Element.Events.onClick <|
+                                        GotoRoute <|
+                                            Routing.ViewTopic topic
+                                   ]
+                            )
+                            [ Element.row
+                                [ Element.padding 5
+                                , Element.spacing 3
+                                , Element.Border.rounded 5
+                                , Element.Background.color darkTheme.daiBurnedBackground
+                                , Element.Font.color
+                                    (if darkTheme.daiBurnedTextIsWhite then
+                                        EH.white
+
+                                     else
+                                        EH.black
+                                    )
+                                ]
+                                [ daiSymbol darkTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
+                                , Element.text <| TokenValue.toConciseString totalBurned
+                                ]
+                            , Element.el [ Element.centerX ] <| Element.text topic
+                            , Element.el [ Element.alignRight ] <| Element.text <| String.fromInt count
                             ]
-                            [ daiSymbol darkTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
-                            , Element.text <| TokenValue.toConciseString totalBurned
+                    )
+
+        exactTopicFound =
+            talliedTopics
+                |> List.any (Tuple.first >> (==) topicSearchStr)
+
+        maybeCreateTopicEl =
+            if topicSearchStr /= "" && not exactTopicFound then
+                Just <|
+                    Element.el
+                        (commonElStyles
+                            ++ [ Element.Background.color <| Element.rgba 0.5 0.5 1 0.4
+                               , Element.Events.onClick <| GotoRoute <| Routing.Compose topicSearchStr
+                               ]
+                        )
+                    <|
+                        Element.row
+                            [ Element.centerX
+                            , Element.centerY
                             ]
-                        , Element.el [ Element.centerX ] <| Element.text topic
-                        , Element.el [ Element.alignRight ] <| Element.text <| String.fromInt count
-                        ]
-                )
-        )
+                            [ Element.text "Start new topic "
+                            , Element.el
+                                [ Element.Font.italic
+                                , Element.Font.bold
+                                , Element.Font.color EH.white
+                                ]
+                              <|
+                                Element.text topicSearchStr
+                            ]
+
+            else
+                Nothing
+    in
+    Element.map MsgUp <|
+        Element.column
+            [ Element.Border.roundEach
+                { topRight = 0
+                , topLeft = 0
+                , bottomRight = 5
+                , bottomLeft = 5
+                }
+            , Element.width Element.fill
+            , Element.height <| Element.px 300
+            , Element.scrollbarY
+            , Element.Background.color <| Element.rgba 1 1 1 0.2
+            , Element.padding 5
+            , Element.spacing 5
+            ]
+            ((Maybe.map List.singleton maybeCreateTopicEl
+                |> Maybe.withDefault []
+             )
+                ++ topicEls
+            )

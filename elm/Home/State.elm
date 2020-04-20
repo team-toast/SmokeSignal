@@ -16,7 +16,7 @@ update msg prevModel =
     case msg of
         TopicInputChanged newInput ->
             justModelUpdate
-                { prevModel | topicInput = newInput }
+                { prevModel | topicInput = String.toLower newInput }
 
         MsgUp msgUp ->
             UpdateResult

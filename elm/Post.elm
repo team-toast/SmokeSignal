@@ -139,6 +139,7 @@ metadataDecoder =
         )
         (D.maybe (D.field "re" postIdDecoder))
         (D.maybe (D.field "topic" D.string)
+            |> D.map (Maybe.map String.toLower)
             |> D.map (Maybe.withDefault defaultTopic)
         )
 

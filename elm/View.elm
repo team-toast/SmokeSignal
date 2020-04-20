@@ -5,7 +5,7 @@ import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Common.View exposing (..)
 import ComposeUX.Types as ComposeUX
-import ComposeUX.View
+import ComposeUX.View as ComposeUX
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element)
@@ -44,7 +44,6 @@ root model =
     , body =
         [ Element.layout
             [ Element.width Element.fill
-            , Element.height Element.fill
             , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
             , Element.Events.onClick ClickHappened
             ]
@@ -65,7 +64,7 @@ body model =
     in
     Element.column
         ([ Element.width Element.fill
-         , Element.height Element.fill
+         , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
          ]
             ++ List.map
                 Element.inFront
@@ -78,59 +77,75 @@ body model =
             model.dProfile
             model.mode
             walletUXPhaceInfo
-        , case model.mode of
-            BlankMode ->
-                Element.none
+        , Element.el
+            [ Element.width Element.fill
+            , Element.height Element.fill
+            , Element.scrollbarY
+            ]
+          <|
+            case model.mode of
+                BlankMode ->
+                    Element.none
 
-            Home homeModel ->
-                Element.map HomeMsg <|
-                    Element.Lazy.lazy
-                        (Home.View.view
-                            model.dProfile
-                            homeModel
-                            walletUXPhaceInfo
-                        )
-                        model.posts
-
-            Compose ->
-                Debug.todo ""
-
-            -- Element.map ComposeUXMsg <|
-            --     ComposeUX.View.viewFull
-            --         model.dProfile
-            --         walletUXPhaceInfo
-            --         model.composeUXModel
-            --         (getMaybeTopic model)
-            ViewPost postId ->
-                case getPostFromId model.posts postId of
-                    Just post ->
-                        viewPostAndReplies
+                Home homeModel ->
+                    Element.map HomeMsg <|
+                        Element.Lazy.lazy
+                            (Home.View.view
+                                model.dProfile
+                                homeModel
+                                walletUXPhaceInfo
+                            )
                             model.posts
-                            model.blockTimes
-                            model.replies
-                            model.showAddressId
-                            post
 
-                    Nothing ->
-                        appStatusMessage
-                            defaultTheme.appStatusTextColor
-                            "Loading post..."
+                Compose topic ->
+                    Element.map ComposeUXMsg <|
+                        ComposeUX.view
+                            model.dProfile
+                            walletUXPhaceInfo
+                            model.composeUXModel
+                            topic
 
-            ViewTopic topic ->
-                Element.Lazy.lazy5
-                    viewPostsForTopic
-                    model.posts
-                    model.blockTimes
-                    model.replies
-                    model.showAddressId
-                    topic
+                ViewPost postId ->
+                    case getPostFromId model.posts postId of
+                        Just post ->
+                            viewPostAndReplies
+                                model.posts
+                                model.blockTimes
+                                model.replies
+                                model.showAddressId
+                                post
+
+                        Nothing ->
+                            appStatusMessage
+                                defaultTheme.appStatusTextColor
+                                "Loading post..."
+
+                ViewTopic topic ->
+                    Element.Lazy.lazy5
+                        viewPostsForTopic
+                        model.posts
+                        model.blockTimes
+                        model.replies
+                        model.showAddressId
+                        topic
         , if model.showHalfComposeUX then
             Element.el
                 [ Element.width Element.fill
-                , Element.alignBottom
+                , Element.height Element.fill
+                , Element.mapAttribute MsgUp <|
+                    Element.above <|
+                        Element.el
+                            [ Element.alignLeft
+                            ]
+                        <|
+                            defaultTheme.secondaryActionButton
+                                EH.Mobile
+                                []
+                                [ "Hide" ]
+                                (ShowHalfComposeUX False)
                 ]
                 (Element.map ComposeUXMsg <|
-                    ComposeUX.View.viewHalf
+                    ComposeUX.view
                         model.dProfile
                         walletUXPhaceInfo
                         model.composeUXModel
@@ -344,8 +359,8 @@ viewPostAndReplies allPosts blockTimes replies showAddressId post =
         , Element.spacing 40
         ]
         [ viewEntirePost
-            { replyTo = Nothing
-            , topic = Nothing
+            { showReplyTo = True
+            , showTopic = True
             }
             (case showAddressId of
                 Just (PhaceForPostAuthor postId) ->
@@ -372,8 +387,8 @@ viewPostAndReplies allPosts blockTimes replies showAddressId post =
                 ]
                 (Element.text "Replies")
             , viewPostsGroupedByBlock
-                { replyTo = Just post.postId
-                , topic = Just <| Post.getTopic post
+                { showReplyTo = False
+                , showTopic = False
                 }
                 blockTimes
                 replies
@@ -396,7 +411,7 @@ viewPostsForTopic allPosts blockTimes replies showAddressId topic =
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
-        , Element.scrollbarY
+        
         , Element.padding 20
         ]
     <|
@@ -406,8 +421,8 @@ viewPostsForTopic allPosts blockTimes replies showAddressId topic =
         else
             Element.Lazy.lazy5
                 viewPostsGroupedByBlock
-                { topic = Just topic
-                , replyTo = Nothing
+                { showTopic = False
+                , showReplyTo = True
                 }
                 blockTimes
                 replies
@@ -621,15 +636,18 @@ metadataStuff context metadataResult =
                 [ Element.width Element.fill
                 , Element.spacing 20
                 ]
-                ([ maybeViewReplyInfo metadata.replyTo Nothing
-                 , case context.topic of
-                    Nothing ->
-                        Just <|
-                            Element.el [ Element.alignRight ] <|
-                                viewTopic metadata.topic
+                ([ if context.showReplyTo then
+                    maybeViewReplyInfo metadata.replyTo Nothing
 
-                    Just _ ->
-                        Nothing
+                   else
+                    Nothing
+                 , if context.showTopic then
+                    Just <|
+                        Element.el [ Element.alignRight ] <|
+                            viewTopic metadata.topic
+
+                   else
+                    Nothing
                  ]
                     |> Maybe.Extra.values
                 )

@@ -87,7 +87,7 @@ type Msg
 type Mode
     = BlankMode
     | Home Home.Model
-    | Compose
+    | Compose String
     | ViewPost Post.Id
     | ViewTopic String
 

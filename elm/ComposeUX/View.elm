@@ -21,15 +21,11 @@ import Theme exposing (defaultTheme)
 import TokenValue exposing (TokenValue)
 
 
-viewFull : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> Maybe String -> Element Msg
-viewFull dProfile walletUXPhaceInfo model maybeTopic =
-    Debug.todo ""
-
-
-viewHalf : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> String -> Element Msg
-viewHalf dProfile walletUXPhaceInfo model topic =
+view : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> String -> Element Msg
+view dProfile walletUXPhaceInfo model topic =
     Element.column
         [ Element.width Element.fill
+        , Element.height Element.fill
         , Element.Background.color defaultTheme.postBodyBackground
         , Element.padding 10
         , composeUXShadow
@@ -39,17 +35,6 @@ viewHalf dProfile walletUXPhaceInfo model topic =
             , bottomRight = 10
             , bottomLeft = 10
             }
-        , Element.mapAttribute MsgUp <|
-            Element.above <|
-                Element.el
-                    [ Element.alignLeft
-                    ]
-                <|
-                    defaultTheme.secondaryActionButton
-                        EH.Mobile
-                        []
-                        [ "Hide" ]
-                        (ShowHalfComposeUX False)
         ]
         [ viewComposeMetadata model.replyTo topic
         , viewInputAndPreview model.message
@@ -91,6 +76,7 @@ viewInputAndPreview : String -> Element Msg
 viewInputAndPreview input =
     Element.row
         [ Element.width Element.fill
+        , Element.height Element.fill
         , Element.padding 10
         , Element.spacing 20
         , Element.Border.roundEach
@@ -103,7 +89,7 @@ viewInputAndPreview input =
         ]
         [ Element.Input.multiline
             [ Element.width Element.fill
-            , Element.height (Element.px 300)
+            , Element.height Element.fill
             , Element.Background.color <| Element.rgba 1 1 1 0.5
             ]
             { onChange = MessageInputChanged
@@ -114,7 +100,7 @@ viewInputAndPreview input =
             }
         , Element.el
             [ Element.width Element.fill
-            , Element.height (Element.px 300)
+            , Element.height Element.fill
             , Element.Background.color <| Element.rgba 1 1 1 0.5
             , Element.Border.width 1
             , Element.Border.color <| Element.rgba 0 0 0 0.5

@@ -346,11 +346,12 @@ update msg prevModel =
         ReplyToClicked postId ->
             { prevModel
                 | showHalfComposeUX =
-                    if prevModel.mode /= Compose then
-                        True
+                    case prevModel.mode of
+                        Compose _ ->
+                            True
 
-                    else
-                        False
+                        _ ->
+                            False
             }
                 |> update
                     (ComposeUXMsg <| ComposeUX.UpdateReplyTo <| Just postId)
@@ -686,8 +687,8 @@ routeToModeAndCmd route =
                 , Cmd.map HomeMsg cmd
                 )
 
-        Routing.Compose ->
-            Ok ( Compose, Cmd.none )
+        Routing.Compose topic ->
+            Ok ( Compose topic, Cmd.none )
 
         Routing.ViewPost postId ->
             Ok ( ViewPost postId, Cmd.none )

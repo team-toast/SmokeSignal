@@ -13,7 +13,7 @@ import Url.Parser.Query as Query
 
 type Route
     = Home
-    | Compose
+    | Compose String
     | ViewPost Post.Id
     | ViewTopic String
     | NotFound String
@@ -25,7 +25,7 @@ routeParser =
         [ Parser.map Home Parser.top
         , Parser.map viewPostOrParseFail (Parser.s "viewpost" <?> postIdInfoParser)
         , Parser.map ViewTopic (Parser.s "topic" </> Parser.string)
-        , Parser.map Compose (Parser.s "compose")
+        , Parser.map Compose (Parser.s "compose" </> Parser.string)
         ]
 
 
@@ -44,9 +44,9 @@ routeToString route =
                 [ "#" ]
                 []
 
-        Compose ->
+        Compose topic ->
             Builder.absolute
-                [ "#", "compose" ]
+                [ "#", "compose", topic ]
                 []
 
         ViewPost postId ->
