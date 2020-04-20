@@ -16,7 +16,7 @@ import Helpers.Element as EH exposing (changeForMobile)
 import Home.Types exposing (..)
 import Post exposing (Post)
 import Routing exposing (Route)
-import Theme exposing (..)
+import Theme exposing (darkTheme, defaultTheme)
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
@@ -25,10 +25,12 @@ view : EH.DisplayProfile -> Model -> WalletUXPhaceInfo -> Dict Int (List Post) -
 view dProfile model walletUXPhaceInfo posts =
     Element.column
         [ Element.width Element.fill
+        , Element.height Element.fill
+        , Element.Background.color darkTheme.appBackground
         , Element.paddingXY 20 40
             |> changeForMobile (Element.paddingXY 10 20) dProfile
         , Element.spacing (60 |> changeForMobile 15 dProfile)
-        , Element.Font.color EH.white
+        , Element.Font.color darkTheme.emphasizedTextColor
         ]
         [ Element.column
             [ Element.centerX
@@ -74,15 +76,16 @@ view dProfile model walletUXPhaceInfo posts =
             ]
         ]
 
+
 infoBlock : Element Msg
 infoBlock =
     Element.column
         [ Element.Border.rounded 15
-        , Element.Background.color <| darkBlue
+        , Element.Background.color darkTheme.blockBackground
         , Element.padding 25
         , Element.Font.color <| EH.white
         , Element.Font.size 26
-        , Element.Font.color almostWhite
+        , Element.Font.color darkTheme.mainTextColor
         , Element.centerX
         , Element.spacing 20
         ]
@@ -110,7 +113,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
                     (Element.paragraph
                         [ Element.Font.size 24
                         , Element.width Element.fill
-                        , Element.Font.color almostWhite
+                        , Element.Font.color darkTheme.mainTextColor
                         ]
                     )
                     paras
@@ -164,7 +167,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
                     [ Element.width Element.fill
                     , Element.spacing 10
                     ]
-                    [ redButton
+                    [ darkTheme.emphasizedActionButton
                         dProfile
                         [ Element.width Element.fill ]
                         [ "Compose SmokeSignal Post" ]
@@ -309,10 +312,16 @@ topicsColumn dProfile topicSearchStr posts =
                             [ Element.padding 5
                             , Element.spacing 3
                             , Element.Border.rounded 5
-                            , Element.Background.color darkRed
-                            , Element.Font.color EH.black
+                            , Element.Background.color darkTheme.daiBurnedBackground
+                            , Element.Font.color
+                                (if darkTheme.daiBurnedTextIsWhite then
+                                    EH.white
+
+                                 else
+                                    EH.black
+                                )
                             ]
-                            [ daiSymbol True [ Element.height <| Element.px 18 ]
+                            [ daiSymbol darkTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
                             , Element.text <| TokenValue.toConciseString totalBurned
                             ]
                         , Element.el [ Element.centerX ] <| Element.text topic

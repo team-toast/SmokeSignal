@@ -10,6 +10,7 @@ import Helpers.Element as EH
 type alias Theme msg =
     { headerBackground : Color
     , appBackground : Color
+    , blockBackground : Color
     , postBodyBackground : Color
     , mainTextColor : Color
     , linkTextColor : Color
@@ -36,6 +37,7 @@ basicTheme : Theme msg
 basicTheme =
     { headerBackground = darkBlue
     , appBackground = almostWhite
+    , blockBackground = lightBlue
     , postBodyBackground = lightBlue
     , mainTextColor = EH.black
     , linkTextColor = blue
@@ -50,6 +52,20 @@ basicTheme =
     , emphasizedActionButton = redButton
     , secondaryActionButton = blueButton
     , disabledActionButton = disabledButton
+    }
+
+
+darkTheme : Theme msg
+darkTheme =
+    { basicTheme
+        | appBackground = veryDarkGray
+        , blockBackground = darkBlue
+        , mainTextColor = almostWhite
+        , emphasizedTextColor = EH.white
+        , loadingTextColor = lightGray
+        , appStatusTextColor = lightGray
+        , daiBurnedBackground = darkRed
+        , daiBurnedTextIsWhite = True
     }
 
 
@@ -87,6 +103,10 @@ almostWhite =
 
 lightRed =
     Element.rgb 1 0.8 0.8
+
+
+veryDarkGray =
+    Element.rgb 0.1 0.1 0.1
 
 
 commonShadow : Attribute msg
