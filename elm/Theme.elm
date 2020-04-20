@@ -15,6 +15,7 @@ type alias Theme msg =
     , linkTextColor : Color
     , emphasizedTextColor : Color
     , postBodyTextColor : Color
+    , messageInputPlaceholderTextColor : Color
     , loadingTextColor : Color
     , errorTextColor : Color
     , appStatusTextColor : Color
@@ -22,6 +23,7 @@ type alias Theme msg =
     , daiBurnedTextIsWhite : Bool
     , emphasizedActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
     , secondaryActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
+    , disabledActionButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Element msg
     }
 
 
@@ -39,6 +41,7 @@ basicTheme =
     , linkTextColor = blue
     , emphasizedTextColor = EH.black
     , postBodyTextColor = EH.black
+    , messageInputPlaceholderTextColor = darkGray
     , loadingTextColor = darkGray
     , errorTextColor = softRed
     , appStatusTextColor = darkGray
@@ -46,6 +49,7 @@ basicTheme =
     , daiBurnedTextIsWhite = False
     , emphasizedActionButton = redButton
     , secondaryActionButton = blueButton
+    , disabledActionButton = disabledButton
     }
 
 

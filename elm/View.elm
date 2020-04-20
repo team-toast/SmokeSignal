@@ -93,13 +93,14 @@ body model =
                         model.posts
 
             Compose ->
-                Element.map ComposeUXMsg <|
-                    ComposeUX.View.viewFull
-                        model.dProfile
-                        walletUXPhaceInfo
-                        model.composeUXModel
-                        (getMaybeTopic model)
+                Debug.todo ""
 
+            -- Element.map ComposeUXMsg <|
+            --     ComposeUX.View.viewFull
+            --         model.dProfile
+            --         walletUXPhaceInfo
+            --         model.composeUXModel
+            --         (getMaybeTopic model)
             ViewPost postId ->
                 case getPostFromId model.posts postId of
                     Just post ->
@@ -109,6 +110,7 @@ body model =
                             model.replies
                             model.showAddressId
                             post
+
                     Nothing ->
                         appStatusMessage
                             defaultTheme.appStatusTextColor
@@ -132,7 +134,13 @@ body model =
                         model.dProfile
                         walletUXPhaceInfo
                         model.composeUXModel
-                        (getMaybeTopic model)
+                        (case model.mode of
+                            ViewTopic topic ->
+                                topic
+
+                            _ ->
+                                Post.defaultTopic
+                        )
                 )
 
           else

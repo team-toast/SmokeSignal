@@ -152,13 +152,3 @@ getPostFromId posts postId =
                 )
             )
         |> Maybe.andThen List.head
-
-
-getMaybeTopic : Model -> Maybe String
-getMaybeTopic model =
-    case model.mode of
-        ViewTopic topic ->
-            Just topic
-
-        _ ->
-            Nothing
