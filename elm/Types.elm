@@ -48,7 +48,7 @@ type alias Model =
     , showHalfComposeUX : Bool
     , composeUXModel : ComposeUX.Model
     , blockTimes : Dict Int Time.Posix
-    , showAddress : Maybe PhaceIconId
+    , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
     , trackedTxs : Dict String TrackedTx -- Can't use TxHash as a key; Elm is silly with what is and is not comparable
     , demoPhaceSrc : String
@@ -74,6 +74,7 @@ type Msg
     | TxSigned TxInfo (Result String TxHash)
     | TxMined TxInfo (Result String TxReceipt)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
+    | ReplyToClicked Post.Id
     | DismissNotice Int
     | ClickHappened
     | ComposeUXMsg ComposeUX.Msg
@@ -151,12 +152,6 @@ getPostFromId model postId =
                 )
             )
         |> Maybe.andThen List.head
-
-
-type alias Reply =
-    { from : Post.Id
-    , to : Post.Id
-    }
 
 
 getMaybeTopic : Model -> Maybe String

@@ -25,7 +25,7 @@ view : EH.DisplayProfile -> Model -> WalletUXPhaceInfo -> Dict Int (List Post) -
 view dProfile model walletUXPhaceInfo posts =
     Element.column
         [ Element.width Element.fill
-        , Element.paddingXY 20 80
+        , Element.paddingXY 20 40
             |> changeForMobile (Element.paddingXY 10 20) dProfile
         , Element.spacing (60 |> changeForMobile 15 dProfile)
         , Element.Font.color EH.white
@@ -74,7 +74,7 @@ view dProfile model walletUXPhaceInfo posts =
             ]
         ]
 
-
+infoBlock : Element Msg
 infoBlock =
     Element.column
         [ Element.Border.rounded 15
@@ -218,15 +218,9 @@ topicsBlock dProfile model posts =
     Element.column
         [ Element.spacing 25
         , Element.alignTop
+        , Element.width Element.fill
         ]
-        [ Element.el
-            [ Element.Font.size 50
-            , Element.Font.bold
-            , Element.alignTop
-            ]
-          <|
-            Element.text "Browse Topics"
-        , Element.column
+        [ Element.column
             [ Element.width Element.fill
             , Element.alignTop
             ]
@@ -305,6 +299,11 @@ topicsColumn dProfile topicSearchStr posts =
                         , Element.Border.color <| Element.rgba 1 1 1 0.3
                         , Element.width Element.fill
                         , Element.Background.color <| Element.rgba 0 0 1 0.2
+                        , Element.pointer
+                        , Element.Events.onClick <|
+                            MsgUp <|
+                                GotoRoute <|
+                                    Routing.ViewTopic topic
                         ]
                         [ Element.row
                             [ Element.padding 5

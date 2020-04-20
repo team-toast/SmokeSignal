@@ -84,7 +84,7 @@ init flags url key =
     , showHalfComposeUX = False
     , composeUXModel = ComposeUX.init wallet
     , blockTimes = Dict.empty
-    , showAddress = Nothing
+    , showAddressId = Nothing
     , userNotices = walletNotices
     , trackedTxs = Dict.empty
     , demoPhaceSrc = initDemoPhaceSrc
@@ -342,6 +342,9 @@ update msg prevModel =
                       }
                     , Cmd.none
                     )
+        
+        ReplyToClicked postId ->
+            Debug.todo ""
 
         DismissNotice id ->
             ( { prevModel
@@ -456,7 +459,7 @@ update msg prevModel =
 
         ClickHappened ->
             ( { prevModel
-                | showAddress = Nothing
+                | showAddressId = Nothing
               }
             , Cmd.none
             )
@@ -492,8 +495,8 @@ handleMsgUp msgUp prevModel =
 
         ShowOrHideAddress phaceId ->
             ( { prevModel
-                | showAddress =
-                    if prevModel.showAddress == Just phaceId then
+                | showAddressId =
+                    if prevModel.showAddressId == Just phaceId then
                         Nothing
 
                     else

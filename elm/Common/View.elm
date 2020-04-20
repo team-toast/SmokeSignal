@@ -10,8 +10,10 @@ import Element.Font
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Helpers.Element as EH
+import Helpers.Time as TimeHelpers
 import Phace
 import Theme exposing (..)
+import Time
 
 
 shortenedHash : Hex -> String
@@ -188,3 +190,37 @@ daiSymbol attributes =
         { src = "img/dai-unit-char.svg"
         , description = ""
         }
+
+
+appStatusMessage : Element.Color -> String -> Element msg
+appStatusMessage color errStr =
+    Element.el [ Element.width Element.fill, Element.height Element.fill ] <|
+        Element.paragraph
+            [ Element.centerX
+            , Element.centerY
+            , Element.Font.center
+            , Element.Font.italic
+            , Element.Font.color color
+            , Element.Font.size 36
+            , Element.width (Element.fill |> Element.maximum 800)
+            , Element.padding 40
+            ]
+            [ Element.text errStr ]
+
+
+posixToString : Time.Posix -> String
+posixToString t =
+    let
+        z =
+            Time.utc
+    in
+    String.fromInt (Time.toYear z t)
+        ++ "-"
+        ++ String.padLeft 2 '0' (String.fromInt <| TimeHelpers.monthToInt <| Time.toMonth z t)
+        ++ "-"
+        ++ String.padLeft 2 '0' (String.fromInt (Time.toDay z t))
+        ++ " "
+        ++ String.padLeft 2 '0' (String.fromInt (Time.toHour z t))
+        ++ ":"
+        ++ String.padLeft 2 '0' (String.fromInt (Time.toMinute z t))
+        ++ " (UTC)"

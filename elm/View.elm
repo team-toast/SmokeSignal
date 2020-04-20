@@ -4,6 +4,7 @@ import Browser
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Common.View exposing (..)
+import ComposeUX.Types as ComposeUX
 import ComposeUX.View
 import Dict exposing (Dict)
 import Dict.Extra
@@ -59,7 +60,7 @@ body model =
         walletUXPhaceInfo =
             makeWalletUXPhaceInfo
                 (Wallet.userInfo model.wallet)
-                model.showAddress
+                model.showAddressId
                 model.demoPhaceSrc
     in
     Element.column
@@ -103,7 +104,13 @@ body model =
                 viewPostAndReplies postId model
 
             ViewTopic topic ->
-                viewPostsForTopic topic model
+                Element.Lazy.lazy5
+                    viewPostsForTopic
+                    model.posts
+                    model.blockTimes
+                    model.replies
+                    model.showAddressId
+                    topic
         , if model.showHalfComposeUX then
             Element.el
                 [ Element.width Element.fill
@@ -297,6 +304,409 @@ viewPostAndReplies postId model =
     Element.text "todo"
 
 
-viewPostsForTopic : String -> Model -> Element Msg
-viewPostsForTopic topic model =
-    Element.text "todo"
+viewPostsForTopic : Dict Int (List Post) -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> String -> Element Msg
+viewPostsForTopic allPosts blockTimes replies showAddressId topic =
+    let
+        filteredPosts =
+            allPosts
+                |> filterBlockPosts
+                    (\post ->
+                        Post.getTopic post == topic
+                    )
+    in
+    Element.el
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        , Element.scrollbarY
+        , Element.padding 20
+        ]
+    <|
+        if Dict.isEmpty filteredPosts then
+            appStatusMessage darkGray <| "No posts found with topic '" ++ topic ++ "'"
+
+        else
+            Element.Lazy.lazy5
+                viewPostsGroupedByBlock
+                { topic = Just topic
+                , replyTo = Nothing
+                }
+                blockTimes
+                replies
+                showAddressId
+                filteredPosts
+
+
+viewPostsGroupedByBlock : ViewContext -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> Dict Int (List Post) -> Element Msg
+viewPostsGroupedByBlock viewContext blockTimes replies showAddressId posts =
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing 20
+        ]
+        (posts
+            |> Dict.toList
+            |> List.reverse
+            |> List.map (viewBlocknumAndPosts viewContext blockTimes replies showAddressId)
+        )
+
+
+viewBlocknumAndPosts : ViewContext -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List Post ) -> Element Msg
+viewBlocknumAndPosts viewContext blockTimes replies showAddressId ( blocknum, posts ) =
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing 10
+        ]
+        [ Element.column
+            [ Element.width Element.fill
+            , Element.spacing 5
+            , Element.Font.italic
+            , Element.Font.size 14
+            ]
+            [ Element.row
+                [ Element.width Element.fill
+                , Element.spacing 5
+                ]
+                [ Element.text <| "block " ++ String.fromInt blocknum
+                , Element.el
+                    [ Element.width Element.fill
+                    , Element.height <| Element.px 1
+                    , Element.Border.color EH.black
+                    , Element.Border.widthEach
+                        { top = 1
+                        , bottom = 0
+                        , right = 0
+                        , left = 0
+                        }
+                    , Element.Border.dashed
+                    ]
+                    Element.none
+                ]
+            , blockTimes
+                |> Dict.get blocknum
+                |> Maybe.map posixToString
+                |> Maybe.withDefault "[fetching block timestamp]"
+                |> Element.text
+            ]
+        , viewPosts viewContext replies showAddressId posts
+        ]
+
+
+viewPosts : ViewContext -> List Reply -> Maybe PhaceIconId -> List Post -> Element Msg
+viewPosts viewContext replies showAddressId posts =
+    Element.column
+        [ Element.paddingXY 20 0
+        , Element.spacing 20
+        ]
+    <|
+        List.map
+            (\post ->
+                viewEntirePost
+                    viewContext
+                    (case showAddressId of
+                        Just (PhaceForPostAuthor postId) ->
+                            post.postId == postId
+
+                        _ ->
+                            False
+                    )
+                    (replies
+                        |> List.Extra.count
+                            (.to >> (==) post.postId)
+                    )
+                    post
+            )
+            posts
+
+
+viewEntirePost : ViewContext -> Bool -> Int -> Post -> Element Msg
+viewEntirePost viewContext showAddress numReplies post =
+    Element.row
+        [ Element.width Element.fill
+        , Element.spacing 20
+        ]
+        [ Element.el
+            [ Element.alignTop
+            , Element.height <| Element.px 100
+            ]
+          <|
+            Element.map MsgUp <|
+                phaceElement
+                    True
+                    (PhaceForPostAuthor post.postId)
+                    post.from
+                    showAddress
+        , Element.column
+            [ Element.width Element.fill
+            , Element.alignTop
+            ]
+            [ Element.row
+                [ Element.width Element.fill ]
+                [ viewDaiBurned post.burnAmount
+                , viewPermalink post.postId
+                ]
+            , viewMainPostBlock viewContext post
+            , viewNumRepliesIfNonzero post.postId numReplies
+            ]
+        ]
+
+
+viewDaiBurned : TokenValue -> Element Msg
+viewDaiBurned amount =
+    Element.el
+        [ Element.alignBottom
+        , Element.Font.size 22
+        , Element.paddingXY 10 5
+        , Element.Background.color lightRed
+        , Element.Border.roundEach
+            { bottomLeft = 0
+            , bottomRight = 0
+            , topLeft = 5
+            , topRight = 5
+            }
+        , Element.alignLeft
+        ]
+    <|
+        Element.row
+            [ Element.spacing 3
+            ]
+            [ daiSymbol [ Element.height <| Element.px 18 ]
+            , Element.text <| TokenValue.toConciseString amount
+            ]
+
+
+viewPermalink : Post.Id -> Element Msg
+viewPermalink postId =
+    Element.el
+        [ Element.alignBottom
+        , Element.Font.size 22
+        , Element.paddingXY 10 5
+        , Element.Background.color lightBlue
+        , Element.Border.roundEach
+            { bottomLeft = 0
+            , bottomRight = 0
+            , topLeft = 5
+            , topRight = 5
+            }
+        , Element.alignRight
+        ]
+    <|
+        Element.link
+            [ Element.Font.color blue
+            , Element.Font.size 16
+            ]
+            { url =
+                Routing.routeToFullDotEthUrlString <|
+                    Routing.ViewPost <|
+                        postId
+            , label = Element.text ".eth permalink"
+            }
+
+
+viewMainPostBlock : ViewContext -> Post -> Element Msg
+viewMainPostBlock viewContext post =
+    let
+        renderResult =
+            ElementMarkdown.renderString
+                [ Element.spacing 15 ]
+                post.message
+    in
+    Element.column
+        [ Element.width Element.fill
+        , Element.padding 20
+        , Element.spacing 20
+        , Element.Background.color (Element.rgb 0.8 0.8 1)
+        , Element.Border.roundEach
+            { topLeft = 0
+            , topRight = 0
+            , bottomRight = 10
+            , bottomLeft = 10
+            }
+        , Element.alignTop
+        ]
+        [ metadataStuff viewContext post.metadata
+        , case renderResult of
+            Ok rendered ->
+                rendered
+
+            Err errStr ->
+                Element.el
+                    [ Element.Font.color softRed
+                    , Element.Font.italic
+                    ]
+                <|
+                    Element.text <|
+                        "Error parsing/rendering markdown:"
+                            ++ errStr
+        , messageActions post
+        ]
+
+
+metadataStuff : ViewContext -> Result Json.Decode.Error Post.Metadata -> Element Msg
+metadataStuff context metadataResult =
+    case metadataResult of
+        Err jsonDecodeErr ->
+            viewMetadataDecodeError jsonDecodeErr
+
+        Ok metadata ->
+            Element.row
+                [ Element.width Element.fill
+                , Element.spacing 20
+                ]
+                ([ maybeViewReplyInfo metadata.replyTo Nothing
+                 , case context.topic of
+                    Nothing ->
+                        Just <|
+                            Element.el [ Element.alignRight ] <|
+                                viewTopic metadata.topic
+
+                    Just _ ->
+                        Nothing
+                 ]
+                    |> Maybe.Extra.values
+                )
+
+
+viewTopic : String -> Element Msg
+viewTopic topic =
+    Element.column
+        [ Element.padding 10
+        , Element.Border.rounded 5
+        , Element.Font.size 20
+        , Element.Font.italic
+        , Element.Background.color <| Element.rgba 1 1 1 0.5
+        , Element.spacing 5
+        , Element.clipX
+        , Element.scrollbarX
+        , Element.width (Element.shrink |> Element.maximum 400)
+        ]
+        [ Element.text "Message topic:"
+        , Element.el
+            [ Element.Font.color blue
+            , Element.pointer
+            , Element.Events.onClick <|
+                MsgUp <|
+                    GotoRoute <|
+                        Routing.ViewTopic topic
+            ]
+            (Element.text topic)
+        ]
+
+
+viewMetadataDecodeError : Json.Decode.Error -> Element Msg
+viewMetadataDecodeError error =
+    Element.el
+        [ Element.Font.color softRed
+        , Element.Font.italic
+        , Element.Font.size 18
+        ]
+        (Element.text <|
+            "Message contains malformed metadata: "
+                ++ Json.Decode.errorToString error
+        )
+
+
+messageActions : Post -> Element Msg
+messageActions post =
+    Element.row
+        [ Element.alignRight ]
+        [ replyButton post.postId ]
+
+
+replyButton : Post.Id -> Element Msg
+replyButton postId =
+    Element.el
+        [ Element.padding 7
+        , Element.pointer
+        , Element.Border.rounded 4
+        , Element.Background.color <| Element.rgba 1 1 1 0.3
+        , Element.Border.shadow
+            { offset = ( 0, 0 )
+            , size = 0
+            , blur = 5
+            , color = Element.rgba 0 0 0 0.1
+            }
+        , Element.Events.onClick (ReplyToClicked postId)
+        , Element.width <| Element.px 30
+        ]
+    <|
+        Element.image
+            [ Element.width Element.fill ]
+            { src = "img/reply-arrow.svg"
+            , description = "reply"
+            }
+
+
+maybeViewReplyInfo : Maybe Post.Id -> Maybe Msg -> Maybe (Element Msg)
+maybeViewReplyInfo maybePostId maybeCloseMsg =
+    case maybePostId of
+        Nothing ->
+            Nothing
+
+        Just postId ->
+            Just <|
+                Element.row
+                    [ Element.padding 10
+                    , Element.Border.rounded 5
+                    , Element.Font.size 20
+                    , Element.Font.italic
+                    , Element.Background.color <| Element.rgba 1 1 1 0.5
+                    , Element.spacing 5
+                    ]
+                    [ Element.column
+                        [ Element.spacing 3
+                        ]
+                        [ Element.text "Replying to:"
+                        , Element.el
+                            [ Element.Font.color blue
+                            , Element.pointer
+                            , Element.Events.onClick <|
+                                MsgUp <|
+                                    GotoRoute <|
+                                        Routing.ViewPost postId
+                            ]
+                            (Element.text <|
+                                shortenedHash postId.messageHash
+                            )
+                        ]
+                    , case maybeCloseMsg of
+                        Just closeMsg ->
+                            Element.image
+                                [ Element.padding 4
+                                , Element.alignTop
+                                , Element.pointer
+                                , Element.Events.onClick closeMsg
+                                ]
+                                { src = "img/remove-circle-black.svg"
+                                , description = "remove"
+                                }
+
+                        Nothing ->
+                            Element.none
+                    ]
+
+
+viewNumRepliesIfNonzero : Post.Id -> Int -> Element Msg
+viewNumRepliesIfNonzero postId numReplies =
+    if numReplies == 0 then
+        Element.none
+
+    else
+        Element.el
+            [ Element.Font.color blue
+            , Element.pointer
+            , Element.Events.onClick <|
+                MsgUp <|
+                    GotoRoute <|
+                        Routing.ViewPost <|
+                            postId
+            , Element.Font.italic
+            , Element.paddingXY 20 10
+            ]
+            (Element.text <|
+                String.fromInt numReplies
+                    ++ (if numReplies == 1 then
+                            " reply"
+
+                        else
+                            " replies"
+                       )
+            )

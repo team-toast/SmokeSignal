@@ -32,9 +32,20 @@ withIsUnlocked unlocked userInfo =
     }
 
 
+type alias ViewContext =
+    { topic : Maybe String
+    , replyTo : Maybe Post.Id
+    }
+
+
+type alias Reply =
+    { from : Post.Id
+    , to : Post.Id
+    }
+
+
 type PhaceIconId
-    = PhaceForMinedMessage Post.Id
-    | PhaceForUserMiningMessage TxHash
+    = PhaceForPostAuthor Post.Id
     | UserPhace
     | MorphingPhace
 
