@@ -101,7 +101,18 @@ body model =
                         (getMaybeTopic model)
 
             ViewPost postId ->
-                viewPostAndReplies postId model
+                case getPostFromId model.posts postId of
+                    Just post ->
+                        viewPostAndReplies
+                            model.posts
+                            model.blockTimes
+                            model.replies
+                            model.showAddressId
+                            post
+                    Nothing ->
+                        appStatusMessage
+                            defaultTheme.appStatusTextColor
+                            "Loading post..."
 
             ViewTopic topic ->
                 Element.Lazy.lazy5
@@ -299,9 +310,69 @@ mapNever =
     Element.map (always NoOp)
 
 
-viewPostAndReplies : Post.Id -> Model -> Element Msg
-viewPostAndReplies postId model =
-    Element.text "todo"
+viewPostAndReplies : Dict Int (List Post) -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> Post -> Element Msg
+viewPostAndReplies allPosts blockTimes replies showAddressId post =
+    let
+        replyingPosts =
+            let
+                postIds =
+                    replies
+                        |> List.filterMap
+                            (\reply ->
+                                if reply.to == post.postId then
+                                    Just reply.from
+
+                                else
+                                    Nothing
+                            )
+            in
+            postIds
+                |> List.map (getPostFromId allPosts)
+                |> Maybe.Extra.values
+                |> Dict.Extra.groupBy (.postId >> .block)
+    in
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing 40
+        ]
+        [ viewEntirePost
+            { replyTo = Nothing
+            , topic = Nothing
+            }
+            (case showAddressId of
+                Just (PhaceForPostAuthor postId) ->
+                    postId == post.postId
+
+                _ ->
+                    False
+            )
+            Nothing
+            post
+        , Element.column
+            [ Element.width Element.fill
+            , Element.spacing 20
+            , Element.paddingEach
+                { left = 40
+                , right = 0
+                , top = 0
+                , bottom = 0
+                }
+            ]
+            [ Element.el
+                [ Element.Font.size 40
+                , Element.Font.bold
+                ]
+                (Element.text "Replies")
+            , viewPostsGroupedByBlock
+                { replyTo = Just post.postId
+                , topic = Just <| Post.getTopic post
+                }
+                blockTimes
+                replies
+                showAddressId
+                replyingPosts
+            ]
+        ]
 
 
 viewPostsForTopic : Dict Int (List Post) -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> String -> Element Msg
@@ -411,16 +482,18 @@ viewPosts viewContext replies showAddressId posts =
                         _ ->
                             False
                     )
-                    (replies
-                        |> List.Extra.count
-                            (.to >> (==) post.postId)
+                    (Just
+                        (replies
+                            |> List.Extra.count
+                                (.to >> (==) post.postId)
+                        )
                     )
                     post
             )
             posts
 
 
-viewEntirePost : ViewContext -> Bool -> Int -> Post -> Element Msg
+viewEntirePost : ViewContext -> Bool -> Maybe Int -> Post -> Element Msg
 viewEntirePost viewContext showAddress numReplies post =
     Element.row
         [ Element.width Element.fill
@@ -447,7 +520,9 @@ viewEntirePost viewContext showAddress numReplies post =
                 , viewPermalink post.postId
                 ]
             , viewMainPostBlock viewContext post
-            , viewNumRepliesIfNonzero post.postId numReplies
+            , viewNumRepliesIfNonzero
+                post.postId
+                (numReplies |> Maybe.withDefault 0)
             ]
         ]
 

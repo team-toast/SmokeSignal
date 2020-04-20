@@ -342,9 +342,18 @@ update msg prevModel =
                       }
                     , Cmd.none
                     )
-        
+
         ReplyToClicked postId ->
-            Debug.todo ""
+            { prevModel
+                | showHalfComposeUX =
+                    if prevModel.mode /= Compose then
+                        True
+
+                    else
+                        False
+            }
+                |> update
+                    (ComposeUXMsg <| ComposeUX.UpdateReplyTo <| Just postId)
 
         DismissNotice id ->
             ( { prevModel

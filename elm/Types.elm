@@ -141,9 +141,9 @@ updateTrackedTxStatus txHash newStatus model =
     }
 
 
-getPostFromId : Model -> Post.Id -> Maybe Post
-getPostFromId model postId =
-    model.posts
+getPostFromId : Dict Int (List Post) -> Post.Id -> Maybe Post
+getPostFromId posts postId =
+    posts
         |> Dict.get postId.block
         |> Maybe.map
             (List.filter
