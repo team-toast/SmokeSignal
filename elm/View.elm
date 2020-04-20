@@ -30,7 +30,7 @@ import Maybe.Extra
 import Phace
 import Post exposing (Post)
 import Routing exposing (Route)
-import Theme exposing (..)
+import Theme exposing (defaultTheme)
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
@@ -133,7 +133,7 @@ header : EH.DisplayProfile -> Mode -> WalletUXPhaceInfo -> Element Msg
 header dProfile mode walletUXPhaceInfo =
     Element.row
         [ Element.width Element.fill
-        , Element.Background.color darkBlue
+        , Element.Background.color defaultTheme.headerBackground
         , Element.height <| Element.px 130
         ]
         [ Element.el
@@ -177,14 +177,14 @@ logoBlock =
                 [ Element.Font.size 50
                 , Element.Font.bold
                 ]
-                [ Element.el [ Element.Font.color darkGray ] <| Element.text "Smoke"
+                [ Element.el [ Element.Font.color Theme.darkGray ] <| Element.text "Smoke"
                 , Element.el [ Element.Font.color <| Element.rgb 1 0.5 0 ] <| Element.text "Signal"
                 ]
             ]
         , Element.el
             [ Element.Font.size 20
             , Element.centerX
-            , Element.Font.color softRed
+            , Element.Font.color Theme.softRed
             ]
             (Element.text "Free Speech at the Protocol Level")
         ]
@@ -322,7 +322,7 @@ viewPostsForTopic allPosts blockTimes replies showAddressId topic =
         ]
     <|
         if Dict.isEmpty filteredPosts then
-            appStatusMessage darkGray <| "No posts found with topic '" ++ topic ++ "'"
+            appStatusMessage defaultTheme.appStatusTextColor <| "No posts found with topic '" ++ topic ++ "'"
 
         else
             Element.Lazy.lazy5
@@ -360,6 +360,8 @@ viewBlocknumAndPosts viewContext blockTimes replies showAddressId ( blocknum, po
             , Element.spacing 5
             , Element.Font.italic
             , Element.Font.size 14
+
+            -- , Element.Font.color EH.white
             ]
             [ Element.row
                 [ Element.width Element.fill
@@ -369,7 +371,8 @@ viewBlocknumAndPosts viewContext blockTimes replies showAddressId ( blocknum, po
                 , Element.el
                     [ Element.width Element.fill
                     , Element.height <| Element.px 1
-                    , Element.Border.color EH.black
+
+                    -- , Element.Border.color EH.white
                     , Element.Border.widthEach
                         { top = 1
                         , bottom = 0
@@ -455,7 +458,7 @@ viewDaiBurned amount =
         [ Element.alignBottom
         , Element.Font.size 22
         , Element.paddingXY 10 5
-        , Element.Background.color lightRed
+        , Element.Background.color defaultTheme.daiBurnedBackground
         , Element.Border.roundEach
             { bottomLeft = 0
             , bottomRight = 0
@@ -467,8 +470,10 @@ viewDaiBurned amount =
     <|
         Element.row
             [ Element.spacing 3
+
+            -- , Element.Font.color EH.white
             ]
-            [ daiSymbol [ Element.height <| Element.px 18 ]
+            [ daiSymbol defaultTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
             , Element.text <| TokenValue.toConciseString amount
             ]
 
@@ -479,7 +484,7 @@ viewPermalink postId =
         [ Element.alignBottom
         , Element.Font.size 22
         , Element.paddingXY 10 5
-        , Element.Background.color lightBlue
+        , Element.Background.color defaultTheme.postBodyBackground
         , Element.Border.roundEach
             { bottomLeft = 0
             , bottomRight = 0
@@ -490,7 +495,7 @@ viewPermalink postId =
         ]
     <|
         Element.link
-            [ Element.Font.color blue
+            [ Element.Font.color defaultTheme.linkTextColor
             , Element.Font.size 16
             ]
             { url =
@@ -506,7 +511,10 @@ viewMainPostBlock viewContext post =
     let
         renderResult =
             ElementMarkdown.renderString
-                [ Element.spacing 15 ]
+                [ Element.spacing 15
+
+                -- , Element.Font.color EH.white
+                ]
                 post.message
     in
     Element.column
@@ -529,7 +537,7 @@ viewMainPostBlock viewContext post =
 
             Err errStr ->
                 Element.el
-                    [ Element.Font.color softRed
+                    [ Element.Font.color defaultTheme.errorTextColor
                     , Element.Font.italic
                     ]
                 <|
@@ -580,7 +588,7 @@ viewTopic topic =
         ]
         [ Element.text "Message topic:"
         , Element.el
-            [ Element.Font.color blue
+            [ Element.Font.color defaultTheme.linkTextColor
             , Element.pointer
             , Element.Events.onClick <|
                 MsgUp <|
@@ -594,7 +602,7 @@ viewTopic topic =
 viewMetadataDecodeError : Json.Decode.Error -> Element Msg
 viewMetadataDecodeError error =
     Element.el
-        [ Element.Font.color softRed
+        [ Element.Font.color defaultTheme.errorTextColor
         , Element.Font.italic
         , Element.Font.size 18
         ]
@@ -656,7 +664,7 @@ maybeViewReplyInfo maybePostId maybeCloseMsg =
                         ]
                         [ Element.text "Replying to:"
                         , Element.el
-                            [ Element.Font.color blue
+                            [ Element.Font.color defaultTheme.linkTextColor
                             , Element.pointer
                             , Element.Events.onClick <|
                                 MsgUp <|
@@ -691,7 +699,7 @@ viewNumRepliesIfNonzero postId numReplies =
 
     else
         Element.el
-            [ Element.Font.color blue
+            [ Element.Font.color defaultTheme.linkTextColor
             , Element.pointer
             , Element.Events.onClick <|
                 MsgUp <|

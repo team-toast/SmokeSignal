@@ -12,7 +12,7 @@ import Eth.Utils
 import Helpers.Element as EH
 import Helpers.Time as TimeHelpers
 import Phace
-import Theme exposing (..)
+import Theme exposing (defaultTheme)
 import Time
 
 
@@ -33,7 +33,7 @@ shortenedHash hash =
 
 web3ConnectButton : EH.DisplayProfile -> List (Attribute MsgUp) -> Element MsgUp
 web3ConnectButton dProfile attrs =
-    redButton
+    defaultTheme.emphasizedActionButton
         dProfile
         attrs
         [ "Connect to Wallet" ]
@@ -96,7 +96,7 @@ loadingElement : List (Attribute msg) -> Maybe String -> Element msg
 loadingElement attrs maybeString =
     Element.el
         ([ Element.Font.italic
-         , Element.Font.color darkGray
+         , Element.Font.color defaultTheme.loadingTextColor
          , Element.Font.size 20
          ]
             ++ attrs
@@ -184,10 +184,14 @@ emphasizedText =
         << Element.text
 
 
-daiSymbol : List (Attribute msg) -> Element msg
-daiSymbol attributes =
+daiSymbol : Bool -> List (Attribute msg) -> Element msg
+daiSymbol isWhite attributes =
     Element.image attributes
-        { src = "img/dai-unit-char.svg"
+        { src =
+            if isWhite then
+                "img/dai-unit-char-white.svg"
+            else
+                "img/dai-unit-char-black.svg"
         , description = ""
         }
 

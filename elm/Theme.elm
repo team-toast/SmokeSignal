@@ -1,14 +1,60 @@
 module Theme exposing (..)
 
-import Element exposing (Attribute, Element)
+import Element exposing (Attribute, Color, Element)
 import Element.Background
 import Element.Border
 import Element.Font
 import Helpers.Element as EH
 
 
+type alias Theme msg =
+    { headerBackground : Color
+    , appBackground : Color
+    , postBodyBackground : Color
+    , mainTextColor : Color
+    , linkTextColor : Color
+    , emphasizedTextColor : Color
+    , postBodyTextColor : Color
+    , loadingTextColor : Color
+    , errorTextColor : Color
+    , appStatusTextColor : Color
+    , daiBurnedBackground : Color
+    , daiBurnedTextIsWhite : Bool
+    , emphasizedActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
+    , secondaryActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
+    }
+
+
+defaultTheme : Theme msg
+defaultTheme =
+    basicTheme
+
+
+basicTheme : Theme msg
+basicTheme =
+    { headerBackground = darkBlue
+    , appBackground = almostWhite
+    , postBodyBackground = lightBlue
+    , mainTextColor = EH.black
+    , linkTextColor = blue
+    , emphasizedTextColor = EH.black
+    , postBodyTextColor = EH.black
+    , loadingTextColor = darkGray
+    , errorTextColor = softRed
+    , appStatusTextColor = darkGray
+    , daiBurnedBackground = lightRed
+    , daiBurnedTextIsWhite = False
+    , emphasizedActionButton = redButton
+    , secondaryActionButton = blueButton
+    }
+
+
 softRed =
     Element.rgb255 255 0 110
+
+
+darkRed =
+    Element.rgb 0.7 0 0
 
 
 darkGray =

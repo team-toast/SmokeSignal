@@ -309,10 +309,10 @@ topicsColumn dProfile topicSearchStr posts =
                             [ Element.padding 5
                             , Element.spacing 3
                             , Element.Border.rounded 5
-                            , Element.Background.color softRed
+                            , Element.Background.color darkRed
                             , Element.Font.color EH.black
                             ]
-                            [ daiSymbol [ Element.height <| Element.px 18 ]
+                            [ daiSymbol True [ Element.height <| Element.px 18 ]
                             , Element.text <| TokenValue.toConciseString totalBurned
                             ]
                         , Element.el [ Element.centerX ] <| Element.text topic
