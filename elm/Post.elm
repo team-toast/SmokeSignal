@@ -1,5 +1,8 @@
 module Post exposing (..)
 
+import Element exposing (Element)
+import Element.Font
+import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
 import Helpers.List as ListHelpers
@@ -7,6 +10,7 @@ import Json.Decode as D
 import Json.Encode as E
 import Maybe.Extra
 import Result.Extra
+import Theme exposing (Theme)
 import TokenValue exposing (TokenValue)
 
 
@@ -183,3 +187,28 @@ hexDecoder =
                     Ok hex ->
                         D.succeed hex
             )
+
+
+renderContentOrError : Theme msg -> String -> Element msg
+renderContentOrError theme content =
+    let
+        renderResult =
+            ElementMarkdown.renderString
+                [ Element.spacing 15
+                , Element.Font.color theme.postBodyTextColor
+                ]
+                content
+    in
+    case renderResult of
+        Ok rendered ->
+            rendered
+
+        Err errStr ->
+            Element.el
+                [ Element.Font.color theme.errorTextColor
+                , Element.Font.italic
+                ]
+            <|
+                Element.text <|
+                    "Error parsing/rendering markdown: "
+                        ++ errStr

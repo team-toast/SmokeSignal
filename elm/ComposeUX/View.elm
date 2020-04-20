@@ -52,7 +52,7 @@ viewHalf dProfile walletUXPhaceInfo model topic =
                         (ShowHalfComposeUX False)
         ]
         [ viewComposeMetadata model.replyTo topic
-        , viewMessageInputBox model.message
+        , viewInputAndPreview model.message
         , actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model topic
         ]
 
@@ -87,11 +87,12 @@ viewComposeMetadata maybeReplyTo topic =
         |> Maybe.withDefault Element.none
 
 
-viewMessageInputBox : String -> Element Msg
-viewMessageInputBox input =
-    Element.el
+viewInputAndPreview : String -> Element Msg
+viewInputAndPreview input =
+    Element.row
         [ Element.width Element.fill
         , Element.padding 10
+        , Element.spacing 20
         , Element.Border.roundEach
             { bottomRight = 0
             , bottomLeft = 10
@@ -100,8 +101,7 @@ viewMessageInputBox input =
             }
         , Element.Background.color defaultTheme.postBodyBackground
         ]
-    <|
-        Element.Input.multiline
+        [ Element.Input.multiline
             [ Element.width Element.fill
             , Element.height (Element.px 300)
             , Element.Background.color <| Element.rgba 1 1 1 0.5
@@ -112,6 +112,23 @@ viewMessageInputBox input =
             , label = Element.Input.labelHidden "messageInput"
             , spellcheck = True
             }
+        , Element.el
+            [ Element.width Element.fill
+            , Element.height (Element.px 300)
+            , Element.Background.color <| Element.rgba 1 1 1 0.5
+            , Element.Border.width 1
+            , Element.Border.color <| Element.rgba 0 0 0 0.5
+            , Element.Border.rounded 10
+            , Element.padding 10
+            , Element.scrollbarX
+            ]
+            (if input == "" then
+                appStatusMessage defaultTheme.appStatusTextColor "Your post preview will appear here..."
+
+             else
+                Post.renderContentOrError defaultTheme input
+            )
+        ]
 
 
 messageInputPlaceholder : Element.Input.Placeholder Msg

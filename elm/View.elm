@@ -591,15 +591,6 @@ viewPermalink postId =
 
 viewMainPostBlock : ViewContext -> Post -> Element Msg
 viewMainPostBlock viewContext post =
-    let
-        renderResult =
-            ElementMarkdown.renderString
-                [ Element.spacing 15
-
-                -- , Element.Font.color EH.white
-                ]
-                post.message
-    in
     Element.column
         [ Element.width Element.fill
         , Element.padding 20
@@ -614,19 +605,7 @@ viewMainPostBlock viewContext post =
         , Element.alignTop
         ]
         [ metadataStuff viewContext post.metadata
-        , case renderResult of
-            Ok rendered ->
-                rendered
-
-            Err errStr ->
-                Element.el
-                    [ Element.Font.color defaultTheme.errorTextColor
-                    , Element.Font.italic
-                    ]
-                <|
-                    Element.text <|
-                        "Error parsing/rendering markdown:"
-                            ++ errStr
+        , Post.renderContentOrError defaultTheme post.message
         , messageActions post
         ]
 
