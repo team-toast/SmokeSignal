@@ -46,6 +46,7 @@ type alias Model =
     , replies : List Reply
     , mode : Mode
     , showHalfComposeUX : Bool
+    , replyTo : Maybe Post.Id
     , composeUXModel : ComposeUX.Model
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
@@ -74,7 +75,7 @@ type Msg
     | TxSigned TxInfo (Result String TxHash)
     | TxMined TxInfo (Result String TxReceipt)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
-    | ReplyToClicked Post.Id
+    | UpdateReplyTo (Maybe Post.Id)
     | DismissNotice Int
     | ClickHappened
     | ComposeUXMsg ComposeUX.Msg

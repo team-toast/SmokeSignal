@@ -21,13 +21,14 @@ import Theme exposing (defaultTheme)
 import TokenValue exposing (TokenValue)
 
 
-view : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> String -> Element Msg
-view dProfile walletUXPhaceInfo model topic =
-    Element.column
+view : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> ComposeContext -> Element Msg
+view dProfile walletUXPhaceInfo model context =
+    Element.row
         [ Element.width Element.fill
         , Element.height Element.fill
         , Element.Background.color defaultTheme.postBodyBackground
-        , Element.padding 10
+        , Element.padding 20
+        , Element.spacing 20
         , composeUXShadow
         , Element.Border.roundEach
             { topLeft = 0
@@ -36,9 +37,16 @@ view dProfile walletUXPhaceInfo model topic =
             , bottomLeft = 10
             }
         ]
-        [ viewComposeMetadata model.replyTo topic
-        , viewInputAndPreview model.message
-        , actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model topic
+        [ viewInput model.message
+        , Element.column
+            [ Element.width Element.fill
+            , Element.height Element.fill
+            , Element.spacing 15
+            ]
+            [ viewComposeContext context
+            , viewPreview model.message
+            , Element.el [ Element.centerX ] <| actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context
+            ]
         ]
 
 
@@ -52,19 +60,21 @@ composeUXShadow =
         }
 
 
-viewComposeMetadata : Maybe Post.Id -> String -> Element Msg
-viewComposeMetadata maybeReplyTo topic =
+viewComposeContext : ComposeContext -> Element Msg
+viewComposeContext context =
     Maybe.map
         (Element.row
-            [ Element.spacing 10
+            [ Element.spacing 20
             , Element.paddingXY 30 10
             , Element.width Element.fill
             ]
         )
         ([ Maybe.map
-            (viewReplyInfo (Just <| UpdateReplyTo Nothing))
-            maybeReplyTo
-         , Just <| Element.el [ Element.alignRight ] <| viewTopic topic
+            viewReplyInfo
+            (composeContextReplyTo context)
+         , Maybe.map
+            viewTopic
+            (composeContextTopic context)
          ]
             |> Maybe.Extra.values
             |> ListHelpers.nonEmpty
@@ -72,49 +82,40 @@ viewComposeMetadata maybeReplyTo topic =
         |> Maybe.withDefault Element.none
 
 
-viewInputAndPreview : String -> Element Msg
-viewInputAndPreview input =
-    Element.row
+viewInput : String -> Element Msg
+viewInput input =
+    Element.Input.multiline
         [ Element.width Element.fill
         , Element.height Element.fill
         , Element.padding 10
-        , Element.spacing 20
-        , Element.Border.roundEach
-            { bottomRight = 0
-            , bottomLeft = 10
-            , topRight = 10
-            , topLeft = 10
-            }
-        , Element.Background.color defaultTheme.postBodyBackground
+        , Element.Background.color <| Element.rgba 1 1 1 0.5
         ]
-        [ Element.Input.multiline
-            [ Element.width Element.fill
-            , Element.height Element.fill
-            , Element.Background.color <| Element.rgba 1 1 1 0.5
-            ]
-            { onChange = MessageInputChanged
-            , text = input
-            , placeholder = Just messageInputPlaceholder
-            , label = Element.Input.labelHidden "messageInput"
-            , spellcheck = True
-            }
-        , Element.el
-            [ Element.width Element.fill
-            , Element.height Element.fill
-            , Element.Background.color <| Element.rgba 1 1 1 0.5
-            , Element.Border.width 1
-            , Element.Border.color <| Element.rgba 0 0 0 0.5
-            , Element.Border.rounded 10
-            , Element.padding 10
-            , Element.scrollbarX
-            ]
-            (if input == "" then
-                appStatusMessage defaultTheme.appStatusTextColor "Your post preview will appear here..."
+        { onChange = MessageInputChanged
+        , text = input
+        , placeholder = Just messageInputPlaceholder
+        , label = Element.Input.labelHidden "messageInput"
+        , spellcheck = True
+        }
 
-             else
-                Post.renderContentOrError defaultTheme input
-            )
+
+viewPreview : String -> Element Msg
+viewPreview input =
+    Element.el
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        , Element.padding 10
+        , Element.Background.color <| Element.rgba 1 1 1 0.5
+        , Element.Border.width 1
+        , Element.Border.color <| Element.rgba 0 0 0 0.5
+        , Element.Border.rounded 10
+        , Element.scrollbars
         ]
+        (if input == "" then
+            appStatusMessage defaultTheme.appStatusTextColor "Start typing on the left"
+
+         else
+            Post.renderContentOrError defaultTheme input
+        )
 
 
 messageInputPlaceholder : Element.Input.Placeholder Msg
@@ -137,82 +138,65 @@ messageInputPlaceholder =
                 ]
 
 
-viewReplyInfo : Maybe Msg -> Post.Id -> Element Msg
-viewReplyInfo maybeCloseMsg postId =
-    Element.row
-        [ Element.padding 10
-        , Element.Border.rounded 5
-        , Element.Font.size 20
-        , Element.Font.italic
-        , Element.Background.color <| Element.rgba 1 1 1 0.5
-        , Element.spacing 5
-        ]
-        [ Element.column
-            [ Element.spacing 3
-            ]
-            [ Element.text "Replying to:"
-            , Element.el
-                [ Element.Font.color defaultTheme.linkTextColor
-                , Element.pointer
-                , Element.Events.onClick <|
-                    MsgUp <|
-                        GotoRoute <|
-                            Routing.ViewPost postId
-                ]
-                (Element.text <|
-                    shortenedHash postId.messageHash
-                )
-            ]
-        , case maybeCloseMsg of
-            Just closeMsg ->
-                Element.image
-                    [ Element.padding 4
-                    , Element.alignTop
-                    , Element.pointer
-                    , Element.Events.onClick closeMsg
-                    ]
-                    { src = "img/remove-circle-black.svg"
-                    , description = "remove"
-                    }
-
-            Nothing ->
-                Element.none
-        ]
-
-
-viewTopic : String -> Element Msg
-viewTopic topic =
+viewReplyInfo : Post.Id -> Element Msg
+viewReplyInfo postId =
     Element.column
         [ Element.padding 10
         , Element.Border.rounded 5
         , Element.Font.size 20
         , Element.Font.italic
         , Element.Background.color <| Element.rgba 1 1 1 0.5
-        , Element.spacing 5
-        , Element.clipX
-        , Element.scrollbarX
-        , Element.width (Element.shrink |> Element.maximum 400)
+        , Element.spacing 3
         ]
-        [ Element.text "topic:"
+        [ Element.text "Replying to:"
         , Element.el
             [ Element.Font.color defaultTheme.linkTextColor
             , Element.pointer
             , Element.Events.onClick <|
                 MsgUp <|
                     GotoRoute <|
-                        Routing.ViewTopic topic
+                        Routing.ViewPost postId
             ]
-            (Element.text topic)
+            (Element.text <|
+                shortenedHash postId.messageHash
+            )
         ]
 
 
-actionFormAndMaybeErrorEl : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> String -> Element Msg
-actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model topic =
+viewTopic : String -> Element Msg
+viewTopic topic =
+    Element.el
+        [ Element.width (Element.fill |> Element.maximum 400) ]
+    <|
+        Element.column
+            [ Element.padding 10
+            , Element.Border.rounded 5
+            , Element.Font.size 20
+            , Element.Font.italic
+            , Element.Background.color <| Element.rgba 1 1 1 0.5
+            , Element.spacing 5
+            , Element.scrollbarX
+            ]
+            [ Element.text "topic:"
+            , Element.el
+                [ Element.Font.color defaultTheme.linkTextColor
+                , Element.pointer
+                , Element.Events.onClick <|
+                    MsgUp <|
+                        GotoRoute <|
+                            Routing.ViewTopic topic
+                ]
+                (Element.text <| topic)
+            ]
+
+
+actionFormAndMaybeErrorEl : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> ComposeContext -> Element Msg
+actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context =
     case walletUXPhaceInfo of
         UserPhaceInfo ( userInfo, showAddress ) ->
             let
                 ( goButtonEl, maybeErrorEls ) =
-                    previewButtonAndMaybeError dProfile userInfo model topic
+                    previewButtonAndMaybeError dProfile userInfo model context
             in
             Element.row
                 [ Element.alignLeft
@@ -360,12 +344,12 @@ burnAmountInput daiInput =
         ]
 
 
-previewButtonAndMaybeError : EH.DisplayProfile -> UserInfo -> Model -> String -> ( Element Msg, Maybe (List (Element Msg)) )
-previewButtonAndMaybeError dProfile userInfo model topic =
+previewButtonAndMaybeError : EH.DisplayProfile -> UserInfo -> Model -> ComposeContext -> ( Element Msg, Maybe (List (Element Msg)) )
+previewButtonAndMaybeError dProfile userInfo model context =
     case userInfo.balance of
         Just balance ->
             if TokenValue.isZero balance then
-                ( maybePreviewButton dProfile Nothing
+                ( maybeGoButton dProfile Nothing
                 , Just
                     [ Element.text <|
                         "That account ("
@@ -396,7 +380,7 @@ previewButtonAndMaybeError dProfile userInfo model topic =
                                             == GT
                                 in
                                 if balanceTooLow then
-                                    ( maybePreviewButton dProfile Nothing
+                                    ( maybeGoButton dProfile Nothing
                                     , Just
                                         [ Element.text "You don't have that much DAI in your wallet! "
                                         , Element.newTabLink [ Element.Font.color defaultTheme.linkTextColor ]
@@ -410,48 +394,45 @@ previewButtonAndMaybeError dProfile userInfo model topic =
                                 else
                                     case validateResults.message of
                                         Just message ->
-                                            ( maybePreviewButton dProfile <|
+                                            ( maybeGoButton dProfile <|
                                                 Just <|
                                                     Post.Draft
                                                         userInfo.address
                                                         message
                                                         burnAmount
                                                         donateAmount
-                                                        (Post.versionedMetadata
-                                                            validateResults.replyTo
-                                                            (Just topic)
-                                                        )
+                                                        (composeContextToMetadata context)
                                             , Nothing
                                             )
 
                                         Nothing ->
-                                            ( maybePreviewButton dProfile Nothing
+                                            ( maybeGoButton dProfile Nothing
                                             , Nothing
                                             )
 
                             Just (Err errStr) ->
-                                ( maybePreviewButton dProfile Nothing
+                                ( maybeGoButton dProfile Nothing
                                 , Just [ Element.text errStr ]
                                 )
 
                             Nothing ->
-                                ( maybePreviewButton dProfile Nothing
+                                ( maybeGoButton dProfile Nothing
                                 , Nothing
                                 )
 
                     _ ->
-                        ( maybePreviewButton dProfile Nothing
+                        ( maybeGoButton dProfile Nothing
                         , Nothing
                         )
 
         _ ->
-            ( maybePreviewButton dProfile Nothing
+            ( maybeGoButton dProfile Nothing
             , Nothing
             )
 
 
-maybePreviewButton : EH.DisplayProfile -> Maybe Post.Draft -> Element Msg
-maybePreviewButton dProfile maybeDraft =
+maybeGoButton : EH.DisplayProfile -> Maybe Post.Draft -> Element Msg
+maybeGoButton dProfile maybeDraft =
     let
         commonStyles =
             [ Element.height <| Element.px 100
@@ -465,11 +446,11 @@ maybePreviewButton dProfile maybeDraft =
             defaultTheme.emphasizedActionButton
                 dProfile
                 commonStyles
-                [ "Preview" ]
+                [ "GO" ]
                 (MsgUp <| SubmitPost draft)
 
         Nothing ->
             defaultTheme.disabledActionButton
                 dProfile
                 commonStyles
-                "Preview"
+                "GO"

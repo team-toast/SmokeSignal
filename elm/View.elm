@@ -103,7 +103,7 @@ body model =
                             model.dProfile
                             walletUXPhaceInfo
                             model.composeUXModel
-                            topic
+                            (ComposeUX.ComposingForTopic topic)
 
                 ViewPost postId ->
                     case getPostFromId model.posts postId of
@@ -129,34 +129,59 @@ body model =
                         model.showAddressId
                         topic
         , if model.showHalfComposeUX then
-            Element.el
-                [ Element.width Element.fill
-                , Element.height Element.fill
-                , Element.mapAttribute MsgUp <|
-                    Element.above <|
-                        Element.el
-                            [ Element.alignLeft
-                            ]
-                        <|
-                            defaultTheme.secondaryActionButton
-                                EH.Mobile
-                                []
-                                [ "Hide" ]
-                                (ShowHalfComposeUX False)
-                ]
-                (Element.map ComposeUXMsg <|
-                    ComposeUX.view
-                        model.dProfile
-                        walletUXPhaceInfo
-                        model.composeUXModel
-                        (case model.mode of
-                            ViewTopic topic ->
-                                topic
+            let
+                maybeComposeContext =
+                    case model.mode of
+                        BlankMode ->
+                            Nothing
 
-                            _ ->
-                                Post.defaultTopic
+                        Home _ ->
+                            Nothing
+
+                        Compose topic ->
+                            Just <|
+                                ComposeUX.ComposingForTopic topic
+
+                        ViewPost replyTo ->
+                            getPostFromId model.posts replyTo
+                                |> Maybe.map
+                                    (\post ->
+                                        ComposeUX.ComposingReply
+                                            replyTo
+                                            (Post.getTopic post)
+                                    )
+
+                        ViewTopic topic ->
+                            Just <|
+                                ComposeUX.ComposingForTopic topic
+            in
+            case maybeComposeContext of
+                Just composeContext ->
+                    Element.el
+                        [ Element.width Element.fill
+                        , Element.height Element.fill
+                        , Element.mapAttribute MsgUp <|
+                            Element.above <|
+                                Element.el
+                                    [ Element.alignLeft
+                                    ]
+                                <|
+                                    defaultTheme.secondaryActionButton
+                                        EH.Mobile
+                                        []
+                                        [ "Hide" ]
+                                        (ShowHalfComposeUX False)
+                        ]
+                        (Element.map ComposeUXMsg <|
+                            ComposeUX.view
+                                model.dProfile
+                                walletUXPhaceInfo
+                                model.composeUXModel
+                                composeContext
                         )
-                )
+
+                Nothing ->
+                    Element.none
 
           else
             Element.none
@@ -411,7 +436,6 @@ viewPostsForTopic allPosts blockTimes replies showAddressId topic =
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
-        
         , Element.padding 20
         ]
     <|
@@ -712,7 +736,7 @@ replyButton postId =
             , blur = 5
             , color = Element.rgba 0 0 0 0.1
             }
-        , Element.Events.onClick (ReplyToClicked postId)
+        , Element.Events.onClick <| UpdateReplyTo <| Just postId
         , Element.width <| Element.px 30
         ]
     <|

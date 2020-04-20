@@ -13,7 +13,6 @@ type alias Model =
     { message : String
     , daiInput : String
     , donateChecked : Bool
-    , replyTo : Maybe Post.Id
     , miningUnlockTx : Maybe TxHash
     , wallet : Wallet
     }
@@ -21,7 +20,6 @@ type alias Model =
 
 type Msg
     = MsgUp MsgUp
-    | UpdateReplyTo (Maybe Post.Id)
     | MessageInputChanged String
     | DaiInputChanged String
     | DonationCheckboxSet Bool
@@ -33,6 +31,43 @@ type alias UpdateResult =
     , msgUps : List MsgUp
     }
 
+
+type ComposeContext
+    = ComposingReply Post.Id String
+    | ComposingForTopic String
+
+
+composeContextToMetadata : ComposeContext -> Post.Metadata
+composeContextToMetadata context =
+    case context of
+        ComposingReply replyTo topic ->
+            Post.versionedMetadata
+                (Just replyTo)
+                (Just topic)
+
+        ComposingForTopic topic ->
+            Post.versionedMetadata
+                Nothing
+                (Just topic)
+
+
+composeContextReplyTo : ComposeContext -> Maybe Post.Id
+composeContextReplyTo context =
+    case context of
+        ComposingReply replyTo _ ->
+            Just replyTo
+
+        _ ->
+            Nothing
+
+
+composeContextTopic context =
+    case context of
+        ComposingForTopic topic ->
+            Just topic
+
+        _ ->
+            Nothing
 
 updateMessage : String -> Model -> Model
 updateMessage message m =
@@ -49,13 +84,6 @@ updateDonateChecked flag m =
     { m | donateChecked = flag }
 
 
-updateReply : Maybe Post.Id -> Model -> Model
-updateReply maybePostId m =
-    { m
-        | replyTo = maybePostId
-    }
-
-
 updateMiningUnlockTx : Maybe TxHash -> Model -> Model
 updateMiningUnlockTx maybeTxHash m =
     { m | miningUnlockTx = maybeTxHash }
@@ -64,7 +92,6 @@ updateMiningUnlockTx maybeTxHash m =
 type alias CheckedMaybeValidInputs =
     { message : Maybe String
     , burnAndDonateAmount : Maybe (Result String ( TokenValue, TokenValue ))
-    , replyTo : Maybe Post.Id
     }
 
 
@@ -90,8 +117,6 @@ validateInputs composeModel =
                         )
                     )
                 )
-    , replyTo =
-        composeModel.replyTo
     }
 
 

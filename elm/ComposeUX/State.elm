@@ -20,7 +20,6 @@ init wallet =
     , daiInput = ""
     , donateChecked = True
     , miningUnlockTx = Nothing
-    , replyTo = Nothing
     , wallet = wallet
     }
 
@@ -28,18 +27,6 @@ init wallet =
 update : Msg -> Model -> UpdateResult
 update msg prevModel =
     case msg of
-        UpdateReplyTo maybePostId ->
-            UpdateResult
-                (prevModel |> updateReply maybePostId)
-                Cmd.none
-                (case maybePostId of
-                    Just _ ->
-                        [ ShowHalfComposeUX True ]
-
-                    _ ->
-                        []
-                )
-
         MessageInputChanged input ->
             justModelUpdate
                 (prevModel |> updateMessage input)
@@ -70,7 +57,6 @@ handleMsgDown msgDown prevModel =
             UpdateResult
                 (prevModel
                     |> updateMessage ""
-                    |> updateReply Nothing
                 )
                 Cmd.none
                 [ ShowHalfComposeUX False ]

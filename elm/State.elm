@@ -82,6 +82,7 @@ init flags url key =
     , replies = []
     , mode = BlankMode
     , showHalfComposeUX = False
+    , replyTo = Nothing
     , composeUXModel = ComposeUX.init wallet
     , blockTimes = Dict.empty
     , showAddressId = Nothing
@@ -343,18 +344,19 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-        ReplyToClicked postId ->
-            { prevModel
-                | showHalfComposeUX =
+        UpdateReplyTo replyTo ->
+            ( { prevModel
+                | replyTo = replyTo
+                , showHalfComposeUX =
                     case prevModel.mode of
                         Compose _ ->
-                            True
+                            False
 
                         _ ->
-                            False
-            }
-                |> update
-                    (ComposeUXMsg <| ComposeUX.UpdateReplyTo <| Just postId)
+                            True
+              }
+            , Cmd.none
+            )
 
         DismissNotice id ->
             ( { prevModel
