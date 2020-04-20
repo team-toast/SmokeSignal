@@ -47,34 +47,31 @@ view dProfile model walletUXPhaceInfo posts =
                 ]
                 [ Element.text "SmokeSignal makes this futile." ]
             ]
-        , actionRow dProfile model walletUXPhaceInfo posts
-        ]
-
-
-actionRow : EH.DisplayProfile -> Model -> WalletUXPhaceInfo -> Dict Int (List Post) -> Element Msg
-actionRow dProfile model walletUXPhaceInfo posts =
-    Element.row
-        [ Element.width Element.fill
-        , Element.spacing 20
-        ]
-        [ Element.el
-            [ Element.width (Element.fillPortion 1)
-            , Element.centerX
+        , Element.row
+            [ Element.width Element.fill
+            , Element.spacing 20
             ]
-          <|
-            infoBlock
-        , Element.el
-            [ Element.width (Element.fillPortion 2)
-            , Element.alignTop
+            [ Element.el
+                [ Element.width (Element.fillPortion 1)
+                , Element.alignTop
+                ]
+              <|
+                Element.none
+            , Element.column
+                [ Element.width (Element.fillPortion 2)
+                , Element.alignTop
+                , Element.spacing 40
+                ]
+                [ composeActionBlock dProfile walletUXPhaceInfo
+                , infoBlock
+                ]
+            , Element.el
+                [ Element.width (Element.fillPortion 1)
+                , Element.alignTop
+                ]
+              <|
+                topicsBlock dProfile model posts
             ]
-          <|
-            composeActionBlock dProfile walletUXPhaceInfo
-        , Element.el
-            [ Element.width (Element.fillPortion 1)
-            , Element.alignTop
-            ]
-          <|
-            topicsBlock dProfile model posts
         ]
 
 
@@ -172,11 +169,6 @@ composeActionBlock dProfile walletUXPhaceInfo =
                         [ Element.width Element.fill ]
                         [ "Compose SmokeSignal Post" ]
                         (MsgUp <| GotoRoute <| Routing.Compose)
-                    , blueButton
-                        dProfile
-                        [ Element.width Element.fill ]
-                        [ "See Latest Posts" ]
-                        (MsgUp <| GotoRoute <| Routing.ViewAll)
                     ]
 
             DemoPhaceInfo _ ->

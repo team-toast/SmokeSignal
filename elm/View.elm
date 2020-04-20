@@ -99,9 +99,6 @@ body model =
                         model.composeUXModel
                         (getMaybeTopic model)
 
-            ViewAll ->
-                viewAllPosts model
-
             ViewPost postId ->
                 viewPostAndReplies postId model
 
@@ -293,11 +290,6 @@ userNotice dProfile ( id, notice ) =
 mapNever : Element Never -> Element Msg
 mapNever =
     Element.map (always NoOp)
-
-
-viewAllPosts : Model -> Element Msg
-viewAllPosts model =
-    Element.text "todo"
 
 
 viewPostAndReplies : Post.Id -> Model -> Element Msg

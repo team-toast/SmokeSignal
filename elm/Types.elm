@@ -83,6 +83,14 @@ type Msg
     | MsgUp MsgUp
 
 
+type Mode
+    = BlankMode
+    | Home Home.Model
+    | Compose
+    | ViewPost Post.Id
+    | ViewTopic String
+
+
 filterBlockPosts : (Post -> Bool) -> Dict Int (List Post) -> Dict Int (List Post)
 filterBlockPosts filterFunc =
     Dict.map
@@ -95,15 +103,6 @@ filterBlockPosts filterFunc =
                 else
                     True
             )
-
-
-type Mode
-    = BlankMode
-    | Home Home.Model
-    | Compose
-    | ViewAll
-    | ViewPost Post.Id
-    | ViewTopic String
 
 
 updateTrackedTxStatusByTxInfo : TxInfo -> TxStatus -> Model -> Model

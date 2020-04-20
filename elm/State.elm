@@ -677,9 +677,6 @@ routeToModeAndCmd route =
         Routing.Compose ->
             Ok ( Compose, Cmd.none )
 
-        Routing.ViewAll ->
-            Ok ( ViewAll, Cmd.none )
-
         Routing.ViewPost postId ->
             Ok ( ViewPost postId, Cmd.none )
 
