@@ -15,7 +15,7 @@ import Helpers.Element as EH
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Maybe.Extra
-import Post
+import Post exposing (Post)
 import Routing exposing (Route)
 import Theme exposing (defaultTheme)
 import TokenValue exposing (TokenValue)
@@ -98,7 +98,7 @@ viewPreviewWithComposeContext input context =
                 viewReplyInfo
                 (composeContextReplyTo context)
              , Maybe.map
-                (Element.el [ Element.alignLeft] << viewTopic)
+                (Element.el [ Element.alignLeft ] << viewTopic)
                 (composeContextTopic context)
              ]
                 |> Maybe.Extra.values
@@ -167,7 +167,6 @@ viewTopic topic =
         , Element.Font.italic
         , Element.Background.color <| Element.rgba 1 1 1 0.5
         , Element.spacing 5
-        
         , Element.scrollbarX
         , Element.clipX
         , Element.width (Element.shrink |> Element.maximum 400)
@@ -392,11 +391,13 @@ previewButtonAndMaybeError dProfile userInfo model context =
                                             ( maybeGoButton dProfile <|
                                                 Just <|
                                                     Post.Draft
-                                                        userInfo.address
-                                                        message
-                                                        burnAmount
                                                         donateAmount
-                                                        (composeContextToMetadata context)
+                                                        (Post
+                                                            userInfo.address
+                                                            burnAmount
+                                                            message
+                                                            (composeContextToMetadata context)
+                                                        )
                                             , Nothing
                                             )
 

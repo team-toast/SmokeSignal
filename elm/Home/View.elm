@@ -14,14 +14,14 @@ import Element.Input
 import Eth.Utils
 import Helpers.Element as EH exposing (changeForMobile)
 import Home.Types exposing (..)
-import Post exposing (Post)
+import Post exposing (Post, PublishedPost)
 import Routing exposing (Route)
 import Theme exposing (darkTheme, defaultTheme)
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
 
-view : EH.DisplayProfile -> Model -> WalletUXPhaceInfo -> Dict Int (List Post) -> Element Msg
+view : EH.DisplayProfile -> Model -> WalletUXPhaceInfo -> PublishedPostsDict -> Element Msg
 view dProfile model walletUXPhaceInfo posts =
     Element.column
         [ Element.width Element.fill
@@ -207,7 +207,7 @@ homeWalletUX dProfile walletUXPhaceInfo =
                         showAddress
 
 
-topicsBlock : EH.DisplayProfile -> Model -> Dict Int (List Post) -> Element Msg
+topicsBlock : EH.DisplayProfile -> Model -> PublishedPostsDict -> Element Msg
 topicsBlock dProfile model posts =
     Element.column
         [ Element.spacing 25
@@ -239,7 +239,7 @@ topicsBlock dProfile model posts =
         ]
 
 
-topicsColumn : EH.DisplayProfile -> String -> Dict Int (List Post) -> Element Msg
+topicsColumn : EH.DisplayProfile -> String -> PublishedPostsDict -> Element Msg
 topicsColumn dProfile topicSearchStr posts =
     let
         talliedTopics : List ( String, ( TokenValue, Int ) )
@@ -247,15 +247,10 @@ topicsColumn dProfile topicSearchStr posts =
             posts
                 |> Dict.values
                 |> List.concat
-                |> Dict.Extra.groupBy
-                    (.metadata
-                        >> Result.toMaybe
-                        >> Maybe.map .topic
-                        >> Maybe.withDefault Post.defaultTopic
-                    )
+                |> Dict.Extra.groupBy (.post >> .metadata >> .topic)
                 |> Dict.map
                     (\topic messages ->
-                        ( List.foldl (.burnAmount >> TokenValue.add) TokenValue.zero messages
+                        ( List.foldl (.post >> .burnAmount >> TokenValue.add) TokenValue.zero messages
                         , List.length messages
                         )
                     )

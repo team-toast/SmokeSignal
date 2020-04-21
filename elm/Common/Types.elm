@@ -1,12 +1,12 @@
 module Common.Types exposing (..)
 
-import Dict
+import Dict exposing (Dict)
 import Eth.Net
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address, Hex, TxHash)
 import Json.Decode
 import Json.Encode
-import Post
+import Post exposing (Post, PublishedPost)
 import TokenValue exposing (TokenValue)
 
 
@@ -32,6 +32,35 @@ withIsUnlocked unlocked userInfo =
     }
 
 
+type alias PublishedPostsDict =
+    Dict Int (List PublishedPost)
+
+
+getPublishedPostFromId : PublishedPostsDict -> Post.Id -> Maybe PublishedPost
+getPublishedPostFromId publishedPosts postId =
+    publishedPosts
+        |> Dict.get postId.block
+        |> Maybe.map
+            (List.filter
+                (\post ->
+                    post.id.messageHash == postId.messageHash
+                )
+            )
+        |> Maybe.andThen List.head
+
+
+getPublishedPostFromTxHash : PublishedPostsDict -> TxHash -> Maybe PublishedPost
+getPublishedPostFromTxHash publishedPosts txHash =
+    publishedPosts
+        |> Dict.values
+        |> List.concat
+        |> List.filter
+            (\publishedPost ->
+                publishedPost.txHash == txHash
+            )
+        |> List.head
+
+
 type alias ViewContext =
     { showReplyTo : Bool
     , showTopic : Bool
@@ -45,13 +74,15 @@ type alias Reply =
 
 
 type PhaceIconId
-    = PhaceForPostAuthor Post.Id
+    = PhaceForPublishedPost Post.Id
+    | PhaceForDraft
     | UserPhace
     | MorphingPhace
 
 
 type alias TrackedTx =
-    { txInfo : TxInfo
+    { txHash : TxHash
+    , txInfo : TxInfo
     , status : TxStatus
     }
 

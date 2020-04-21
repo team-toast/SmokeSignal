@@ -124,8 +124,8 @@ white =
     Element.rgb 1 1 1
 
 
-addAlpha : Float -> Element.Color -> Element.Color
-addAlpha a color =
+withAlpha : Float -> Element.Color -> Element.Color
+withAlpha a color =
     let
         oldRgba =
             Element.toRgb color

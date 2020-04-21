@@ -33,7 +33,7 @@ ganacheHttpProviderUrl =
 daiContractAddress : Address
 daiContractAddress =
     if testMode then
-        Eth.Utils.unsafeToAddress "0xaD888d0Ade988EbEe74B8D4F39BF29a8d0fe8A8D"
+        Eth.Utils.unsafeToAddress "0xCfEB869F69431e42cdB54A4F4f105C19C080A601"
 
     else
         Eth.Utils.unsafeToAddress "0x6B175474E89094C44Da98b954EedeAC495271d0F"
@@ -42,7 +42,7 @@ daiContractAddress =
 smokesignalContractAddress : Address
 smokesignalContractAddress =
     if testMode then
-        Eth.Utils.unsafeToAddress "0x7c728214be9a0049e6a86f2137ec61030d0aa964"
+        Eth.Utils.unsafeToAddress "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B"
 
     else
         Eth.Utils.unsafeToAddress "0xf18407C16ACF13a0057b2746B29F580eb8343156"

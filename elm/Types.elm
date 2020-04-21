@@ -17,7 +17,7 @@ import Helpers.Element as EH
 import Home.Types as Home
 import Http
 import List.Extra
-import Post exposing (Post)
+import Post exposing (Post, PublishedPost)
 import Routing exposing (Route)
 import Time
 import TokenValue exposing (TokenValue)
@@ -42,7 +42,7 @@ type alias Model =
     , dProfile : EH.DisplayProfile
     , txSentry : TxSentry Msg
     , eventSentry : EventSentry Msg
-    , posts : Dict Int (List Post)
+    , publishedPosts : PublishedPostsDict
     , replies : List Reply
     , mode : Mode
     , showHalfComposeUX : Bool
@@ -51,7 +51,9 @@ type alias Model =
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
-    , trackedTxs : Dict String TrackedTx -- Can't use TxHash as a key; Elm is silly with what is and is not comparable
+    , trackedTxs : List TrackedTx -- Can't use TxHash as a key; Elm is silly with what is and is not comparable
+    , showExpandedTrackedTxs : Bool
+    , draftModal : Maybe Post.Draft
     , demoPhaceSrc : String
     }
 
@@ -70,10 +72,12 @@ type Msg
     | TxSentryMsg TxSentry.Msg
     | EventSentryMsg EventSentry.Msg
     | PostLogReceived Eth.Types.Log
+    | ShowExpandedTrackedTxs Bool
     | CheckTrackedTxsStatus
     | TrackedTxStatusResult (Result Http.Error TxReceipt)
     | TxSigned TxInfo (Result String TxHash)
     | TxMined TxInfo (Result String TxReceipt)
+    | ViewDraft (Maybe Post.Draft)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
     | UpdateReplyTo (Maybe Post.Id)
     | DismissNotice Int
@@ -93,13 +97,13 @@ type Mode
     | ViewTopic String
 
 
-filterBlockPosts : (Post -> Bool) -> Dict Int (List Post) -> Dict Int (List Post)
+filterBlockPosts : (PublishedPost -> Bool) -> PublishedPostsDict -> PublishedPostsDict
 filterBlockPosts filterFunc =
     Dict.map
         (always <| List.filter filterFunc)
         >> Dict.filter
-            (\_ messages ->
-                if messages == [] then
+            (\_ publishedPosts ->
+                if publishedPosts == [] then
                     False
 
                 else
@@ -112,8 +116,8 @@ updateTrackedTxStatusByTxInfo txInfo newStatus model =
     { model
         | trackedTxs =
             model.trackedTxs
-                |> Dict.map
-                    (\_ trackedTx ->
+                |> List.map
+                    (\trackedTx ->
                         if trackedTx.txInfo == txInfo then
                             { trackedTx
                                 | status = newStatus
@@ -130,26 +134,14 @@ updateTrackedTxStatus txHash newStatus model =
     { model
         | trackedTxs =
             model.trackedTxs
-                |> Dict.update
-                    (Eth.Utils.txHashToString txHash)
-                    (Maybe.map
-                        (\trackedTx ->
+                |> List.map
+                    (\trackedTx ->
+                        if trackedTx.txHash == txHash then
                             { trackedTx
                                 | status = newStatus
                             }
-                        )
+
+                        else
+                            trackedTx
                     )
     }
-
-
-getPostFromId : Dict Int (List Post) -> Post.Id -> Maybe Post
-getPostFromId posts postId =
-    posts
-        |> Dict.get postId.block
-        |> Maybe.map
-            (List.filter
-                (\message ->
-                    message.postId.messageHash == postId.messageHash
-                )
-            )
-        |> Maybe.andThen List.head

@@ -22,17 +22,19 @@ import Helpers.Element as EH
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Helpers.Time as TimeHelpers
+import Helpers.Tuple as TupleHelpers
 import Home.View
 import Html.Attributes
 import Json.Decode
 import List.Extra
 import Maybe.Extra
 import Phace
-import Post exposing (Post)
+import Post exposing (Post, PublishedPost)
 import Routing exposing (Route)
 import Theme exposing (defaultTheme)
 import Time
 import TokenValue exposing (TokenValue)
+import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import Wallet
@@ -65,6 +67,30 @@ body model =
     Element.column
         ([ Element.width Element.fill
          , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
+         , Element.inFront <|
+            case model.draftModal of
+                Just draft ->
+                    Element.el
+                        [ Element.centerX
+                        , Element.centerY
+                        , Element.Background.color defaultTheme.draftModalBackground
+                        , Element.padding 20
+                        , Element.Border.rounded 10
+                        , Element.Border.glow
+                            (Element.rgba 0 0 0 0.3)
+                            10
+                        , EH.onClickNoPropagation NoOp
+                        ]
+                    <|
+                        viewEntirePost
+                            (ViewContext True True)
+                            (model.showAddressId == Just PhaceForDraft)
+                            Nothing
+                            PhaceForDraft
+                            draft.post
+
+                Nothing ->
+                    Element.none
          ]
             ++ List.map
                 Element.inFront
@@ -77,6 +103,8 @@ body model =
             model.dProfile
             model.mode
             walletUXPhaceInfo
+            model.trackedTxs
+            model.showExpandedTrackedTxs
         , Element.el
             [ Element.width Element.fill
             , Element.height Element.fill
@@ -95,7 +123,7 @@ body model =
                                 homeModel
                                 walletUXPhaceInfo
                             )
-                            model.posts
+                            model.publishedPosts
 
                 Compose topic ->
                     Element.map ComposeUXMsg <|
@@ -106,10 +134,10 @@ body model =
                             (ComposeUX.ComposingForTopic topic)
 
                 ViewPost postId ->
-                    case getPostFromId model.posts postId of
+                    case getPublishedPostFromId model.publishedPosts postId of
                         Just post ->
                             viewPostAndReplies
-                                model.posts
+                                model.publishedPosts
                                 model.blockTimes
                                 model.replies
                                 model.showAddressId
@@ -123,7 +151,7 @@ body model =
                 ViewTopic topic ->
                     Element.Lazy.lazy5
                         viewPostsForTopic
-                        model.posts
+                        model.publishedPosts
                         model.blockTimes
                         model.replies
                         model.showAddressId
@@ -133,12 +161,12 @@ body model =
                 maybeComposeContext =
                     case model.replyTo of
                         Just replyTo ->
-                            getPostFromId model.posts replyTo
+                            getPublishedPostFromId model.publishedPosts replyTo
                                 |> Maybe.map
-                                    (\post ->
+                                    (\minedPost ->
                                         ComposeUX.ComposingReply
                                             replyTo
-                                            (Post.getTopic post)
+                                            minedPost.post.metadata.topic
                                     )
 
                         Nothing ->
@@ -154,12 +182,12 @@ body model =
                                         ComposeUX.ComposingForTopic topic
 
                                 ViewPost replyTo ->
-                                    getPostFromId model.posts replyTo
+                                    getPublishedPostFromId model.publishedPosts replyTo
                                         |> Maybe.map
-                                            (\post ->
+                                            (\publishedPost ->
                                                 ComposeUX.ComposingReply
                                                     replyTo
-                                                    (Post.getTopic post)
+                                                    publishedPost.post.metadata.topic
                                             )
 
                                 ViewTopic topic ->
@@ -199,8 +227,8 @@ body model =
         ]
 
 
-header : EH.DisplayProfile -> Mode -> WalletUXPhaceInfo -> Element Msg
-header dProfile mode walletUXPhaceInfo =
+header : EH.DisplayProfile -> Mode -> WalletUXPhaceInfo -> List TrackedTx -> Bool -> Element Msg
+header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
     Element.row
         [ Element.width Element.fill
         , Element.Background.color defaultTheme.headerBackground
@@ -216,11 +244,12 @@ header dProfile mode walletUXPhaceInfo =
             ]
           <|
             Element.el [ Element.centerX ] logoBlock
-        , Element.el
+        , Element.row
             [ Element.width <| Element.fillPortion 1
+            , Element.spacing 10
             ]
-          <|
-            case mode of
+            [ maybeTxTracker showExpandedTrackedTxs trackedTxs
+            , case mode of
                 Home _ ->
                     Element.none
 
@@ -232,6 +261,7 @@ header dProfile mode walletUXPhaceInfo =
                     <|
                         Element.map MsgUp <|
                             walletUX dProfile walletUXPhaceInfo
+            ]
         ]
 
 
@@ -258,6 +288,222 @@ logoBlock =
             ]
             (Element.text "Free Speech at the Protocol Level")
         ]
+
+
+maybeTxTracker : Bool -> List TrackedTx -> Element Msg
+maybeTxTracker showExpanded trackedTxs =
+    if List.isEmpty trackedTxs then
+        Element.none
+
+    else
+        let
+            tallyFunc : TrackedTx -> ( Int, Int, Int ) -> ( Int, Int, Int )
+            tallyFunc trackedTx totals =
+                case trackedTx.status of
+                    Mining ->
+                        Tuple3.mapFirst ((+) 1) totals
+
+                    Mined ->
+                        Tuple3.mapSecond ((+) 1) totals
+
+                    Failed _ ->
+                        Tuple3.mapThird ((+) 1) totals
+
+            tallies =
+                trackedTxs
+                    |> List.foldl tallyFunc ( 0, 0, 0 )
+
+            renderedTallyEls =
+                tallies
+                    |> TupleHelpers.mapTuple3
+                        (\n ->
+                            if n == 0 then
+                                Nothing
+
+                            else
+                                Just n
+                        )
+                    |> TupleHelpers.mapEachTuple3
+                        (Maybe.map
+                            (\n ->
+                                Element.el
+                                    [ Element.Font.color <| trackedTxStatusToColor Mining ]
+                                <|
+                                    Element.text <|
+                                        String.fromInt n
+                                            ++ " TXs mining"
+                            )
+                        )
+                        (Maybe.map
+                            (\n ->
+                                Element.el
+                                    [ Element.Font.color <| trackedTxStatusToColor Mined ]
+                                <|
+                                    Element.text <|
+                                        String.fromInt n
+                                            ++ " TXs mined"
+                            )
+                        )
+                        (Maybe.map
+                            (\n ->
+                                Element.el
+                                    [ Element.Font.color <| trackedTxStatusToColor (Failed "") ]
+                                <|
+                                    Element.text <|
+                                        String.fromInt n
+                                            ++ " TXs failed"
+                            )
+                        )
+                    |> TupleHelpers.tuple3ToList
+        in
+        if List.all Maybe.Extra.isNothing renderedTallyEls then
+            Element.none
+
+        else
+            Element.el
+                [ Element.alignRight
+                , Element.height Element.fill
+                , Element.below <|
+                    if showExpanded then
+                        Element.el
+                            [ Element.alignRight
+                            , Element.alignTop
+                            ]
+                        <|
+                            trackedTxsColumn trackedTxs
+
+                    else
+                        Element.none
+                ]
+            <|
+                Element.column
+                    [ Element.alignRight
+                    , Element.height Element.fill
+                    , Element.Border.rounded 5
+                    , Element.Background.color <| Element.rgba 1 1 1 0.3
+                    , Element.padding 10
+                    , Element.spacing 10
+                    , Element.pointer
+                    , EH.onClickNoPropagation <|
+                        if showExpanded then
+                            ShowExpandedTrackedTxs False
+
+                        else
+                            ShowExpandedTrackedTxs True
+                    ]
+                    (renderedTallyEls
+                        |> List.map (Maybe.withDefault Element.none)
+                        |> List.map (Element.el [ Element.height Element.fill ])
+                    )
+
+
+trackedTxsColumn : List TrackedTx -> Element Msg
+trackedTxsColumn trackedTxs =
+    Element.column
+        [ Element.Background.color <| Theme.lightBlue
+        , Element.Border.rounded 3
+        , Element.Border.glow
+            (Element.rgba 0 0 0 0.2)
+            4
+        , Element.padding 10
+        , Element.spacing 5
+        , EH.onClickNoPropagation NoOp
+        , Element.height (Element.shrink |> Element.maximum 400)
+        , Element.scrollbarY
+        , Element.alignRight
+        ]
+        (List.map viewTrackedTxRow trackedTxs)
+
+
+viewTrackedTxRow : TrackedTx -> Element Msg
+viewTrackedTxRow trackedTx =
+    Element.column
+        [ Element.width <| Element.px 300
+        , Element.Background.color
+            (trackedTxStatusToColor trackedTx.status
+                |> EH.withAlpha 0.3
+            )
+        , Element.Border.rounded 2
+        , Element.Border.width 1
+        , Element.Border.color <| Element.rgba 0 0 0 0.3
+        , Element.padding 4
+        , Element.spacing 4
+        , Element.Font.size 16
+        ]
+        [ Element.row
+            [ Element.width Element.fill
+            , Element.spacing 4
+            ]
+            [ viewTrackedTxInfo trackedTx.txInfo
+            , Element.el [ Element.alignRight ] <| viewTrackedTxStatus trackedTx.status
+            ]
+        , etherscanLink trackedTx.txHash
+        ]
+
+
+viewTrackedTxInfo : TxInfo -> Element Msg
+viewTrackedTxInfo txInfo =
+    case txInfo of
+        UnlockTx ->
+            Element.text "Unlock DAI"
+
+        PostTx draft ->
+            Element.row
+                [ Element.spacing 6 ]
+                [ Element.text "Post"
+                , Element.el
+                    [ Element.Font.color defaultTheme.linkTextColor
+                    , Element.pointer
+                    , Element.Events.onClick <| ViewDraft <| Just draft
+                    ]
+                    (Element.text "(View Draft)")
+                ]
+
+
+etherscanLink : TxHash -> Element Msg
+etherscanLink txHash =
+    Element.newTabLink
+        [ Element.Font.size 12
+        , Element.Font.color defaultTheme.linkTextColor
+        ]
+        { url = EthHelpers.etherscanTxUrl txHash
+        , label =
+            Element.text <|
+                "View on etherscan"
+        }
+
+
+viewTrackedTxStatus : TxStatus -> Element Msg
+viewTrackedTxStatus status =
+    Element.paragraph
+        [ Element.width Element.fill
+        , Element.Font.italic
+        ]
+        << List.singleton
+        << Element.text
+    <|
+        case status of
+            Mining ->
+                "Mining"
+
+            Mined ->
+                "Mined"
+
+            Failed errStr ->
+                "Failed: " ++ errStr
+
+
+trackedTxStatusToColor : TxStatus -> Element.Color
+trackedTxStatusToColor txStatus =
+    case txStatus of
+        Mining ->
+            Theme.darkYellow
+
+        Mined ->
+            Theme.green
+
+        Failed _ ->
+            Theme.softRed
 
 
 userNoticeEls : EH.DisplayProfile -> List UserNotice -> List (Element Msg)
@@ -369,8 +615,8 @@ mapNever =
     Element.map (always NoOp)
 
 
-viewPostAndReplies : Dict Int (List Post) -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> Post -> Element Msg
-viewPostAndReplies allPosts blockTimes replies showAddressId post =
+viewPostAndReplies : PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> PublishedPost -> Element Msg
+viewPostAndReplies allPosts blockTimes replies showAddressId publishedPost =
     let
         replyingPosts =
             let
@@ -378,7 +624,7 @@ viewPostAndReplies allPosts blockTimes replies showAddressId post =
                     replies
                         |> List.filterMap
                             (\reply ->
-                                if reply.to == post.postId then
+                                if reply.to == publishedPost.id then
                                     Just reply.from
 
                                 else
@@ -386,9 +632,9 @@ viewPostAndReplies allPosts blockTimes replies showAddressId post =
                             )
             in
             postIds
-                |> List.map (getPostFromId allPosts)
+                |> List.map (getPublishedPostFromId allPosts)
                 |> Maybe.Extra.values
-                |> Dict.Extra.groupBy (.postId >> .block)
+                |> Dict.Extra.groupBy (.id >> .block)
     in
     Element.column
         [ Element.width Element.fill
@@ -399,14 +645,15 @@ viewPostAndReplies allPosts blockTimes replies showAddressId post =
             , showTopic = True
             }
             (case showAddressId of
-                Just (PhaceForPostAuthor postId) ->
-                    postId == post.postId
+                Just (PhaceForPublishedPost postId) ->
+                    postId == publishedPost.id
 
                 _ ->
                     False
             )
             Nothing
-            post
+            (PhaceForPublishedPost publishedPost.id)
+            publishedPost.post
         , Element.column
             [ Element.width Element.fill
             , Element.spacing 20
@@ -434,14 +681,14 @@ viewPostAndReplies allPosts blockTimes replies showAddressId post =
         ]
 
 
-viewPostsForTopic : Dict Int (List Post) -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> String -> Element Msg
+viewPostsForTopic : PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> String -> Element Msg
 viewPostsForTopic allPosts blockTimes replies showAddressId topic =
     let
         filteredPosts =
             allPosts
                 |> filterBlockPosts
-                    (\post ->
-                        Post.getTopic post == topic
+                    (\publishedPost ->
+                        publishedPost.post.metadata.topic == topic
                     )
     in
     Element.el
@@ -465,21 +712,21 @@ viewPostsForTopic allPosts blockTimes replies showAddressId topic =
                 filteredPosts
 
 
-viewPostsGroupedByBlock : ViewContext -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> Dict Int (List Post) -> Element Msg
-viewPostsGroupedByBlock viewContext blockTimes replies showAddressId posts =
+viewPostsGroupedByBlock : ViewContext -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> PublishedPostsDict -> Element Msg
+viewPostsGroupedByBlock viewContext blockTimes replies showAddressId publishedPosts =
     Element.column
         [ Element.width Element.fill
         , Element.spacing 20
         ]
-        (posts
+        (publishedPosts
             |> Dict.toList
             |> List.reverse
             |> List.map (viewBlocknumAndPosts viewContext blockTimes replies showAddressId)
         )
 
 
-viewBlocknumAndPosts : ViewContext -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List Post ) -> Element Msg
-viewBlocknumAndPosts viewContext blockTimes replies showAddressId ( blocknum, posts ) =
+viewBlocknumAndPosts : ViewContext -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List PublishedPost ) -> Element Msg
+viewBlocknumAndPosts viewContext blockTimes replies showAddressId ( blocknum, publishedPosts ) =
     Element.column
         [ Element.width Element.fill
         , Element.spacing 10
@@ -518,24 +765,24 @@ viewBlocknumAndPosts viewContext blockTimes replies showAddressId ( blocknum, po
                 |> Maybe.withDefault "[fetching block timestamp]"
                 |> Element.text
             ]
-        , viewPosts viewContext replies showAddressId posts
+        , viewPosts viewContext replies showAddressId publishedPosts
         ]
 
 
-viewPosts : ViewContext -> List Reply -> Maybe PhaceIconId -> List Post -> Element Msg
-viewPosts viewContext replies showAddressId posts =
+viewPosts : ViewContext -> List Reply -> Maybe PhaceIconId -> List PublishedPost -> Element Msg
+viewPosts viewContext replies showAddressId pusblishedPosts =
     Element.column
         [ Element.paddingXY 20 0
         , Element.spacing 20
         ]
     <|
         List.map
-            (\post ->
+            (\publishedPost ->
                 viewEntirePost
                     viewContext
                     (case showAddressId of
-                        Just (PhaceForPostAuthor postId) ->
-                            post.postId == postId
+                        Just (PhaceForPublishedPost postId) ->
+                            publishedPost.id == postId
 
                         _ ->
                             False
@@ -543,16 +790,26 @@ viewPosts viewContext replies showAddressId posts =
                     (Just
                         (replies
                             |> List.Extra.count
-                                (.to >> (==) post.postId)
+                                (.to >> (==) publishedPost.id)
                         )
                     )
-                    post
+                    (PhaceForPublishedPost publishedPost.id)
+                    publishedPost.post
             )
-            posts
+            pusblishedPosts
 
 
-viewEntirePost : ViewContext -> Bool -> Maybe Int -> Post -> Element Msg
-viewEntirePost viewContext showAddress numReplies post =
+viewEntirePost : ViewContext -> Bool -> Maybe Int -> PhaceIconId -> Post -> Element Msg
+viewEntirePost viewContext showAddress maybeNumReplies phaceIconId post =
+    let
+        maybePostId =
+            case phaceIconId of
+                PhaceForPublishedPost postId ->
+                    Just postId
+
+                _ ->
+                    Nothing
+    in
     Element.row
         [ Element.width Element.fill
         , Element.spacing 20
@@ -565,7 +822,7 @@ viewEntirePost viewContext showAddress numReplies post =
             Element.map MsgUp <|
                 phaceElement
                     True
-                    (PhaceForPostAuthor post.postId)
+                    phaceIconId
                     post.from
                     showAddress
         , Element.column
@@ -575,12 +832,21 @@ viewEntirePost viewContext showAddress numReplies post =
             [ Element.row
                 [ Element.width Element.fill ]
                 [ viewDaiBurned post.burnAmount
-                , viewPermalink post.postId
+                , Maybe.map viewPermalink maybePostId
+                    |> Maybe.withDefault Element.none
                 ]
-            , viewMainPostBlock viewContext post
-            , viewNumRepliesIfNonzero
-                post.postId
-                (numReplies |> Maybe.withDefault 0)
+            , viewMainPostBlock viewContext maybePostId post
+            , case ( maybePostId, maybeNumReplies ) of
+                ( Nothing, _ ) ->
+                    Element.none
+
+                ( _, Nothing ) ->
+                    Element.none
+
+                ( Just postId, Just numReplies ) ->
+                    viewNumRepliesIfNonzero
+                        postId
+                        numReplies
             ]
         ]
 
@@ -639,8 +905,8 @@ viewPermalink postId =
             }
 
 
-viewMainPostBlock : ViewContext -> Post -> Element Msg
-viewMainPostBlock viewContext post =
+viewMainPostBlock : ViewContext -> Maybe Post.Id -> Post -> Element Msg
+viewMainPostBlock viewContext maybePostId post =
     Element.column
         [ Element.width Element.fill
         , Element.padding 20
@@ -656,17 +922,18 @@ viewMainPostBlock viewContext post =
         ]
         [ metadataStuff viewContext post.metadata
         , Post.renderContentOrError defaultTheme post.message
-        , messageActions post
+        , Maybe.map messageActions maybePostId
+            |> Maybe.withDefault Element.none
         ]
 
 
-metadataStuff : ViewContext -> Result Json.Decode.Error Post.Metadata -> Element Msg
-metadataStuff context metadataResult =
-    case metadataResult of
-        Err jsonDecodeErr ->
+metadataStuff : ViewContext -> Post.Metadata -> Element Msg
+metadataStuff context metadata =
+    case metadata.maybeDecodeError of
+        Just jsonDecodeErr ->
             viewMetadataDecodeError jsonDecodeErr
 
-        Ok metadata ->
+        Nothing ->
             Element.row
                 [ Element.spacing 20
                 , Element.width Element.fill
@@ -727,11 +994,11 @@ viewMetadataDecodeError error =
         )
 
 
-messageActions : Post -> Element Msg
-messageActions post =
+messageActions : Post.Id -> Element Msg
+messageActions postId =
     Element.row
         [ Element.alignRight ]
-        [ replyButton post.postId ]
+        [ replyButton postId ]
 
 
 replyButton : Post.Id -> Element Msg

@@ -14,21 +14,24 @@ import Theme exposing (Theme)
 import TokenValue exposing (TokenValue)
 
 
-type alias Draft =
-    { author : Address
-    , message : String
+type alias Post =
+    { from : Address
     , burnAmount : TokenValue
-    , donateAmount : TokenValue
+    , message : String
     , metadata : Metadata
     }
 
 
-type alias Post =
-    { postId : Id
-    , from : Address
-    , burnAmount : TokenValue
-    , message : String
-    , metadata : Result D.Error Metadata
+type alias Draft =
+    { donateAmount : TokenValue
+    , post : Post
+    }
+
+
+type alias PublishedPost =
+    { txHash : TxHash
+    , id : Id
+    , post : Post
     }
 
 
@@ -44,6 +47,7 @@ type alias Metadata =
     { metadataVersion : Int
     , replyTo : Maybe Id
     , topic : String
+    , maybeDecodeError : Maybe D.Error
     }
 
 
@@ -57,19 +61,13 @@ defaultTopic =
     "misc"
 
 
+nullMetadata : Metadata
 nullMetadata =
     Metadata
         0
         Nothing
         defaultTopic
-
-
-getTopic : Post -> String
-getTopic post =
-    post.metadata
-        |> Result.toMaybe
-        |> Maybe.map .topic
-        |> Maybe.withDefault defaultTopic
+        Nothing
 
 
 currentMetadataVersion =
@@ -82,6 +80,7 @@ versionedMetadata maybeReply maybeTopic =
         currentMetadataVersion
         maybeReply
         (maybeTopic |> Maybe.withDefault defaultTopic)
+        Nothing
 
 
 blankVersionedMetadata : Metadata
@@ -92,9 +91,9 @@ blankVersionedMetadata =
 encodeDraft : Draft -> EncodedDraft
 encodeDraft draft =
     EncodedDraft
-        draft.author
-        ("!smokesignal" ++ encodeMessageAndMetadataToString ( draft.message, draft.metadata ))
-        draft.burnAmount
+        draft.post.from
+        ("!smokesignal" ++ encodeMessageAndMetadataToString ( draft.post.message, draft.post.metadata ))
+        draft.post.burnAmount
         draft.donateAmount
 
 
@@ -116,9 +115,18 @@ encodeMessageAndMetadataToString ( message, metadata ) =
         )
 
 
-decodeMessageAndMetadata : String -> Result D.Error ( String, Metadata )
-decodeMessageAndMetadata =
-    D.decodeString messageDecoder
+decodeMessageAndMetadata : String -> ( String, Metadata )
+decodeMessageAndMetadata src =
+    src
+        |> D.decodeString messageDecoder
+        |> Result.Extra.extract
+            (\decodeErr ->
+                ( src
+                , { nullMetadata
+                    | maybeDecodeError = Just decodeErr
+                  }
+                )
+            )
 
 
 messageDecoder : D.Decoder ( String, Metadata )
@@ -131,7 +139,7 @@ messageDecoder =
 
 metadataDecoder : D.Decoder Metadata
 metadataDecoder =
-    D.map3
+    D.map4
         Metadata
         (D.maybe
             (D.field "v" D.int)
@@ -142,6 +150,7 @@ metadataDecoder =
             |> D.map (Maybe.map String.toLower)
             |> D.map (Maybe.withDefault defaultTopic)
         )
+        (D.succeed Nothing)
 
 
 encodePostId : Id -> E.Value

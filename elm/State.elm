@@ -27,7 +27,7 @@ import Json.Encode
 import List.Extra
 import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
-import Post exposing (Post)
+import Post exposing (Post, PublishedPost)
 import Random
 import Routing exposing (Route)
 import Task
@@ -78,7 +78,7 @@ init flags url key =
     , dProfile = EH.screenWidthToDisplayProfile flags.width
     , txSentry = txSentry
     , eventSentry = eventSentry
-    , posts = Dict.empty
+    , publishedPosts = Dict.empty
     , replies = []
     , mode = BlankMode
     , showHalfComposeUX = False
@@ -87,7 +87,9 @@ init flags url key =
     , blockTimes = Dict.empty
     , showAddressId = Nothing
     , userNotices = walletNotices
-    , trackedTxs = Dict.empty
+    , trackedTxs = []
+    , showExpandedTrackedTxs = False
+    , draftModal = Nothing
     , demoPhaceSrc = initDemoPhaceSrc
     }
         |> gotoRoute route
@@ -145,15 +147,21 @@ update msg prevModel =
                 |> Maybe.withDefault Cmd.none
             )
 
+        ShowExpandedTrackedTxs flag ->
+            ( { prevModel
+                | showExpandedTrackedTxs = flag
+              }
+            , Cmd.none
+            )
+
         CheckTrackedTxsStatus ->
             ( prevModel
             , prevModel.trackedTxs
-                |> Dict.filter
-                    (\_ trackedTx ->
-                        trackedTx.status /= Mined
+                |> List.filter
+                    (\trackedTx ->
+                        trackedTx.status == Mining
                     )
-                |> Dict.keys
-                |> List.map Eth.Utils.unsafeToTxHash
+                |> List.map .txHash
                 |> List.map (Eth.getTxReceipt Config.httpProviderUrl)
                 |> List.map (Task.attempt TrackedTxStatusResult)
                 |> Cmd.batch
@@ -170,22 +178,24 @@ update msg prevModel =
                     ( prevModel, Cmd.none )
 
                 Ok txReceipt ->
-                    case Dict.get (Eth.Utils.txHashToString txReceipt.hash) prevModel.trackedTxs of
-                        Nothing ->
-                            -- no matching trackedTx; ignore
-                            ( prevModel, Cmd.none )
+                    ( { prevModel
+                        | trackedTxs =
+                            prevModel.trackedTxs
+                                |> List.Extra.updateIf
+                                    (.txHash >> (==) txReceipt.hash)
+                                    (\trackedTx ->
+                                        case trackedTx.status of
+                                            Mining ->
+                                                { trackedTx
+                                                    | status = Mined
+                                                }
 
-                        Just trackedTx ->
-                            case trackedTx.status of
-                                Mined ->
-                                    -- Already updated; ignore
-                                    ( prevModel, Cmd.none )
-
-                                _ ->
-                                    ( prevModel
-                                        |> updateTrackedTxStatus txReceipt.hash Mined
-                                    , Cmd.none
+                                            _ ->
+                                                trackedTx
                                     )
+                      }
+                    , Cmd.none
+                    )
 
         WalletStatus walletSentryResult ->
             case walletSentryResult of
@@ -260,6 +270,7 @@ update msg prevModel =
                     ( prevModel
                         |> addPost log.blockNumber
                             (SSContract.fromMessageBurn
+                                log.transactionHash
                                 log.blockNumber
                                 ssPost
                             )
@@ -447,20 +458,19 @@ update msg prevModel =
         MsgUp msgUp ->
             prevModel |> handleMsgUp msgUp
 
+        ViewDraft maybeDraft ->
+            ( { prevModel
+                | draftModal = maybeDraft
+              }
+            , Cmd.none
+            )
+
         ChangeDemoPhaceSrc ->
             ( prevModel
               --, Random.generate MutateDemoSrcWith mutateInfoGenerator
             , Random.generate NewDemoSrc DemoPhaceSrcMutator.addressSrcGenerator
             )
 
-        -- MutateDemoSrcWith mutateInfo ->
-        --     ( { prevModel
-        --         | demoPhaceSrc =
-        --             prevModel.demoPhaceSrc
-        --                 |> DemoPhaceSrcMutator.mutateSrc mutateInfo
-        --       }
-        --     , Cmd.none
-        --     )
         NewDemoSrc src ->
             ( { prevModel | demoPhaceSrc = src }
             , Cmd.none
@@ -472,6 +482,8 @@ update msg prevModel =
         ClickHappened ->
             ( { prevModel
                 | showAddressId = Nothing
+                , showExpandedTrackedTxs = False
+                , draftModal = Nothing
               }
             , Cmd.none
             )
@@ -579,12 +591,12 @@ addTrackedTx txHash txInfo prevModel =
     { prevModel
         | trackedTxs =
             prevModel.trackedTxs
-                |> Dict.insert
-                    (Eth.Utils.txHashToString txHash)
-                    (TrackedTx
+                |> List.append
+                    [ TrackedTx
+                        txHash
                         txInfo
                         Mining
-                    )
+                    ]
     }
 
 
@@ -702,16 +714,16 @@ routeToModeAndCmd route =
             Err err
 
 
-addPost : Int -> Post -> Model -> Model
-addPost blockNumber post prevModel =
+addPost : Int -> PublishedPost -> Model -> Model
+addPost blockNumber publishedPost prevModel =
     let
         alreadyHavePost =
-            prevModel.posts
+            prevModel.publishedPosts
                 |> Dict.get blockNumber
                 |> Maybe.map
                     (List.any
                         (\listedPost ->
-                            listedPost.postId == post.postId
+                            listedPost.id == publishedPost.id
                         )
                     )
                 |> Maybe.withDefault False
@@ -721,24 +733,24 @@ addPost blockNumber post prevModel =
 
     else
         { prevModel
-            | posts =
-                prevModel.posts
+            | publishedPosts =
+                prevModel.publishedPosts
                     |> Dict.update blockNumber
                         (\maybePostsForBlock ->
                             Just <|
                                 case maybePostsForBlock of
                                     Nothing ->
-                                        [ post ]
+                                        [ publishedPost ]
 
                                     Just posts ->
-                                        List.append posts [ post ]
+                                        List.append posts [ publishedPost ]
                         )
             , replies =
                 List.append
                     prevModel.replies
-                    (case post.metadata |> Result.toMaybe |> Maybe.andThen .replyTo of
+                    (case publishedPost.post.metadata.replyTo of
                         Just replyTo ->
-                            [ { from = post.postId
+                            [ { from = publishedPost.id
                               , to = replyTo
                               }
                             ]

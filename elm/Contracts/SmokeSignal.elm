@@ -1,13 +1,12 @@
 module Contracts.SmokeSignal exposing (..)
 
 import Config
-import Post exposing (Post)
 import Contracts.Generated.SmokeSignal as G
 import Eth.Types exposing (..)
 import Eth.Utils as U
 import Json.Decode as Decode exposing (Decoder, succeed)
 import Json.Decode.Pipeline exposing (custom)
-import Post
+import Post exposing (PublishedPost)
 import TokenValue exposing (TokenValue)
 
 
@@ -57,30 +56,28 @@ burnEncodedPost encodedPost =
         (TokenValue.getEvmValue encodedPost.donateAmount)
 
 
-fromMessageBurn : Int -> MessageBurn -> Post
-fromMessageBurn block messageEvent =
+fromMessageBurn : TxHash -> Int -> MessageBurn -> PublishedPost
+fromMessageBurn txHash block messageEvent =
     let
         ( extractedMessage, extractedMetadata ) =
             case ( String.left 12 messageEvent.message, String.dropLeft 12 messageEvent.message ) of
                 ( "!smokesignal", jsonStr ) ->
-                    case Post.decodeMessageAndMetadata jsonStr of
-                        Ok ( message, metadata ) ->
-                            ( message, Ok metadata )
-
-                        Err errStr ->
-                            ( messageEvent.message, Err errStr )
+                    Post.decodeMessageAndMetadata jsonStr
 
                 _ ->
                     ( messageEvent.message
-                    , Ok Post.nullMetadata
+                    , Post.nullMetadata
                     )
     in
-    Post
+    PublishedPost
+        txHash
         (Post.Id
             block
             messageEvent.hash
         )
-        messageEvent.from
-        messageEvent.burnAmount
-        extractedMessage
-        extractedMetadata
+        (Post.Post
+            messageEvent.from
+            messageEvent.burnAmount
+            extractedMessage
+            extractedMetadata
+        )
