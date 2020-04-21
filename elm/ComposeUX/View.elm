@@ -37,16 +37,15 @@ view dProfile walletUXPhaceInfo model context =
             , bottomLeft = 10
             }
         ]
-        [ viewInput model.message
-        , Element.column
+        [ Element.column
             [ Element.width Element.fill
             , Element.height Element.fill
-            , Element.spacing 15
+            , Element.spacing 10
             ]
-            [ viewComposeContext context
-            , viewPreview model.message
+            [ viewInput model.message
             , Element.el [ Element.centerX ] <| actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context
             ]
+        , viewPreviewWithComposeContext model.message context
         ]
 
 
@@ -58,28 +57,6 @@ composeUXShadow =
         , blur = 10
         , color = Theme.darkGray
         }
-
-
-viewComposeContext : ComposeContext -> Element Msg
-viewComposeContext context =
-    Maybe.map
-        (Element.row
-            [ Element.spacing 20
-            , Element.paddingXY 30 10
-            , Element.width Element.fill
-            ]
-        )
-        ([ Maybe.map
-            viewReplyInfo
-            (composeContextReplyTo context)
-         , Maybe.map
-            viewTopic
-            (composeContextTopic context)
-         ]
-            |> Maybe.Extra.values
-            |> ListHelpers.nonEmpty
-        )
-        |> Maybe.withDefault Element.none
 
 
 viewInput : String -> Element Msg
@@ -98,24 +75,43 @@ viewInput input =
         }
 
 
-viewPreview : String -> Element Msg
-viewPreview input =
-    Element.el
+viewPreviewWithComposeContext : String -> ComposeContext -> Element Msg
+viewPreviewWithComposeContext input context =
+    Element.column
         [ Element.width Element.fill
         , Element.height Element.fill
-        , Element.padding 10
+        , Element.padding 15
         , Element.Background.color <| Element.rgba 1 1 1 0.5
         , Element.Border.width 1
         , Element.Border.color <| Element.rgba 0 0 0 0.5
         , Element.Border.rounded 10
         , Element.scrollbars
+        , Element.spacing 15
+        
         ]
-        (if input == "" then
-            appStatusMessage defaultTheme.appStatusTextColor "Start typing on the left"
+        [ Maybe.map
+            (Element.row
+                [ Element.spacing 10
+                , Element.width Element.fill
+                ]
+            )
+            ([ Maybe.map
+                viewReplyInfo
+                (composeContextReplyTo context)
+             , Maybe.map
+                viewTopic
+                (composeContextTopic context)
+             ]
+                |> Maybe.Extra.values
+                |> ListHelpers.nonEmpty
+            )
+            |> Maybe.withDefault Element.none
+        , if input == "" then
+            appStatusMessage defaultTheme.appStatusTextColor "[Preview Box]"
 
-         else
+          else
             Post.renderContentOrError defaultTheme input
-        )
+        ]
 
 
 messageInputPlaceholder : Element.Input.Placeholder Msg
@@ -177,7 +173,7 @@ viewTopic topic =
             , Element.spacing 5
             , Element.scrollbarX
             ]
-            [ Element.text "topic:"
+            [ Element.text "Topic:"
             , Element.el
                 [ Element.Font.color defaultTheme.linkTextColor
                 , Element.pointer

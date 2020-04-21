@@ -131,18 +131,8 @@ body model =
         , if model.showHalfComposeUX then
             let
                 maybeComposeContext =
-                    case model.mode of
-                        BlankMode ->
-                            Nothing
-
-                        Home _ ->
-                            Nothing
-
-                        Compose topic ->
-                            Just <|
-                                ComposeUX.ComposingForTopic topic
-
-                        ViewPost replyTo ->
+                    case model.replyTo of
+                        Just replyTo ->
                             getPostFromId model.posts replyTo
                                 |> Maybe.map
                                     (\post ->
@@ -151,9 +141,30 @@ body model =
                                             (Post.getTopic post)
                                     )
 
-                        ViewTopic topic ->
-                            Just <|
-                                ComposeUX.ComposingForTopic topic
+                        Nothing ->
+                            case model.mode of
+                                BlankMode ->
+                                    Nothing
+
+                                Home _ ->
+                                    Nothing
+
+                                Compose topic ->
+                                    Just <|
+                                        ComposeUX.ComposingForTopic topic
+
+                                ViewPost replyTo ->
+                                    getPostFromId model.posts replyTo
+                                        |> Maybe.map
+                                            (\post ->
+                                                ComposeUX.ComposingReply
+                                                    replyTo
+                                                    (Post.getTopic post)
+                                            )
+
+                                ViewTopic topic ->
+                                    Just <|
+                                        ComposeUX.ComposingForTopic topic
             in
             case maybeComposeContext of
                 Just composeContext ->
