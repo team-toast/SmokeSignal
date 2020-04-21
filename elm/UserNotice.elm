@@ -7,28 +7,17 @@ import Json.Decode
 import MaybeDebugLog exposing (maybeDebugLog)
 
 
-type alias UserNotice msg =
+type alias UserNotice =
     { noticeType : NoticeType
-    , mainParagraphs : List (List (Element msg))
+    , mainParagraphs : List (List (Element Never))
     , align : Alignment
-    , label : String
+    , uniqueLabel : String
     }
 
 
 type Alignment
     = BottomRight
     | TopLeft
-
-
-map : (msg1 -> msg2) -> UserNotice msg1 -> UserNotice msg2
-map f userNotice =
-    UserNotice
-        userNotice.noticeType
-        (userNotice.mainParagraphs
-            |> List.map (List.map (Element.map f))
-        )
-        userNotice.align
-        userNotice.label
 
 
 type NoticeType
@@ -44,9 +33,9 @@ placeholderNotice s =
         [ [ Element.text s ] ]
 
 
-screenToSmall : Int -> UserNotice msg
+screenToSmall : Int -> UserNotice
 screenToSmall width =
-    { label = "screenToSmall"
+    { uniqueLabel = "screenToSmall " ++ String.fromInt width
     , noticeType = Caution
     , mainParagraphs =
         [ [ Element.text <| "Your screen is quite small (" ++ String.fromInt width ++ " across)--things may be broken!." ] ]
@@ -54,9 +43,9 @@ screenToSmall width =
     }
 
 
-noWeb3Provider : UserNotice msg
+noWeb3Provider : UserNotice
 noWeb3Provider =
-    { label = "noWeb3Provider"
+    { uniqueLabel = "noWeb3Provider"
     , noticeType = Caution
     , mainParagraphs =
         [ [ Element.text "No web3 provider detected. Is "
@@ -71,9 +60,9 @@ noWeb3Provider =
     }
 
 
-noWeb3Account : UserNotice msg
+noWeb3Account : UserNotice
 noWeb3Account =
-    { label = "noWeb3Account"
+    { uniqueLabel = "noWeb3Account"
     , noticeType = Caution
     , mainParagraphs =
         [ [ Element.text "I can't detect a web3 account. Your wallet may be locked." ]
@@ -82,9 +71,9 @@ noWeb3Account =
     }
 
 
-cantConnectNoWeb3 : UserNotice msg
+cantConnectNoWeb3 : UserNotice
 cantConnectNoWeb3 =
-    { label = "cantConnectNoWeb3"
+    { uniqueLabel = "cantConnectNoWeb3"
     , noticeType = Caution
     , mainParagraphs =
         [ [ Element.text "You need a web3 provider (such as "
@@ -100,9 +89,9 @@ cantConnectNoWeb3 =
     }
 
 
-wrongWeb3Network : UserNotice msg
+wrongWeb3Network : UserNotice
 wrongWeb3Network =
-    { label = "wrongWeb3Network"
+    { uniqueLabel = "wrongWeb3Network"
     , noticeType = Error
     , mainParagraphs =
         [ [ Element.text "SmokeSignal only works on Ethereum mainnet. Make sure your wallet is set to Ethereum mainnet." ]
@@ -111,35 +100,35 @@ wrongWeb3Network =
     }
 
 
-unexpectedError : String -> a -> UserNotice msg
+unexpectedError : String -> a -> UserNotice
 unexpectedError text debugObj =
     let
         _ =
             maybeDebugLog text debugObj
     in
-    { label = "unexpectedError"
+    { uniqueLabel = "unexpectedError " ++ text
     , noticeType = ShouldBeImpossible
     , mainParagraphs = [ [ Element.text text ] ]
     , align = BottomRight
     }
 
 
-eventDecodeError : Json.Decode.Error -> UserNotice msg
+eventDecodeError : Json.Decode.Error -> UserNotice
 eventDecodeError decodeErr =
-    { label = "eventDecodeError"
+    { uniqueLabel = "eventDecodeError" ++ Json.Decode.errorToString decodeErr
     , noticeType = Error
     , mainParagraphs = [ [ Element.text <| "Error decoding event: " ++ Json.Decode.errorToString decodeErr ] ]
     , align = BottomRight
     }
 
 
-web3FetchError : String -> Http.Error -> UserNotice msg
+web3FetchError : String -> Http.Error -> UserNotice
 web3FetchError label httpError =
     let
         _ =
             maybeDebugLog "http error for web3 fetch" httpError
     in
-    { label = "web3FetchError"
+    { uniqueLabel = "web3FetchError " ++ label
     , noticeType = Error
     , mainParagraphs =
         [ [ Element.text <|
@@ -152,9 +141,9 @@ web3FetchError label httpError =
     }
 
 
-web3SigError : String -> String -> UserNotice msg
+web3SigError : String -> String -> UserNotice
 web3SigError label errStr =
-    { label = "web3SigError"
+    { uniqueLabel = "web3SigError " ++ label
     , noticeType = Caution
     , mainParagraphs =
         [ [ Element.text <| "Error signing \"" ++ label ++ "\" transaction: " ++ errStr ] ]
@@ -162,9 +151,9 @@ web3SigError label errStr =
     }
 
 
-web3BroadcastError : String -> String -> UserNotice msg
+web3BroadcastError : String -> String -> UserNotice
 web3BroadcastError label errStr =
-    { label = "web3BroadcastError"
+    { uniqueLabel = "web3BroadcastError " ++ label
     , noticeType = Error
     , mainParagraphs =
         [ [ Element.text <| "Error broadcasting \"" ++ label ++ "\" transaction: " ++ errStr ] ]
@@ -172,9 +161,9 @@ web3BroadcastError label errStr =
     }
 
 
-web3MiningError : String -> String -> UserNotice msg
+web3MiningError : String -> String -> UserNotice
 web3MiningError label errStr =
-    { label = "web3MiningError"
+    { uniqueLabel = "web3MiningError " ++ label
     , noticeType = Error
     , mainParagraphs =
         [ [ Element.text <| "Error mining \"" ++ label ++ "\" transaction: " ++ errStr ] ]
@@ -182,16 +171,16 @@ web3MiningError label errStr =
     }
 
 
-walletError : String -> UserNotice msg
+walletError : String -> UserNotice
 walletError errStr =
     unexpectedError
         ("Error decoding JS walletSentry: " ++ errStr)
         Nothing
 
 
-inputError : String -> UserNotice msg
+inputError : String -> UserNotice
 inputError errStr =
-    { label = "inputError"
+    { uniqueLabel = "inputError" ++ errStr
     , noticeType = Error
     , mainParagraphs =
         [ [ Element.text errStr ] ]
@@ -199,9 +188,9 @@ inputError errStr =
     }
 
 
-routeNotFound : UserNotice msg
+routeNotFound : UserNotice
 routeNotFound =
-    { label = "routeNotFound"
+    { uniqueLabel = "routeNotFound"
     , noticeType = Error
     , mainParagraphs =
         [ [ Element.text "I don't understand that url..." ] ]
@@ -209,9 +198,9 @@ routeNotFound =
     }
 
 
-debugMsg : String -> UserNotice msg
+debugMsg : String -> UserNotice
 debugMsg s =
-    { label = "debug"
+    { uniqueLabel = "debug"
     , noticeType = Caution
     , mainParagraphs =
         [ [ Element.text <| "debug: " ++ s ] ]

@@ -1,8 +1,10 @@
 module Routing exposing (..)
 
-import CommonTypes exposing (..)
+import Common.Types exposing (..)
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
+import Post exposing (Post)
+import Result.Extra
 import Url exposing (Url)
 import Url.Builder as Builder
 import Url.Parser as Parser exposing ((</>), (<?>), Parser)
@@ -10,46 +12,54 @@ import Url.Parser.Query as Query
 
 
 type Route
-    = InitialBlank
-    | Default
-    | ViewPost (Result String PostId)
-    | NotFound
+    = Home
+    | Compose String
+    | ViewPost Post.Id
+    | ViewTopic String
+    | NotFound String
 
 
 routeParser : Parser (Route -> a) a
 routeParser =
     Parser.oneOf
-        [ Parser.map Default Parser.top
-        , Parser.map ViewPost (Parser.s "viewpost" <?> postIdInfoParser)
+        [ Parser.map Home Parser.top
+        , Parser.map viewPostOrParseFail (Parser.s "viewpost" <?> postIdInfoParser)
+        , Parser.map ViewTopic (Parser.s "topic" </> Parser.string)
+        , Parser.map Compose (Parser.s "compose" </> Parser.string)
         ]
+
+
+viewPostOrParseFail : Result String Post.Id -> Route
+viewPostOrParseFail =
+    Result.Extra.unpack
+        NotFound
+        ViewPost
 
 
 routeToString : Route -> String
 routeToString route =
     case route of
-        InitialBlank ->
+        Home ->
             Builder.absolute
                 [ "#" ]
                 []
 
-        Default ->
+        Compose topic ->
             Builder.absolute
-                [ "#" ]
+                [ "#", "compose", topic ]
                 []
 
-        ViewPost postIdInfoResult ->
-            case postIdInfoResult of
-                Ok postIdInfo ->
-                    Builder.absolute
-                        [ "#", "viewpost" ]
-                        (encodePostIdInfoQueryParameters postIdInfo)
+        ViewPost postId ->
+            Builder.absolute
+                [ "#", "viewpost" ]
+                (encodePostIdInfoQueryParameters postId)
 
-                Err _ ->
-                    Builder.absolute
-                        [ "#" ]
-                        []
+        ViewTopic topic ->
+            Builder.absolute
+                [ "#", "topic", topic ]
+                []
 
-        NotFound ->
+        NotFound _ ->
             Builder.absolute
                 [ "#" ]
                 []
@@ -60,17 +70,17 @@ routeToFullDotEthUrlString route =
     "https://smokesignal.eth" ++ routeToString route
 
 
-postIdInfoParser : Query.Parser (Result String PostId)
+postIdInfoParser : Query.Parser (Result String Post.Id)
 postIdInfoParser =
     Query.map2
-        (Result.map2 PostId)
+        (Result.map2 Post.Id)
         (Query.int "block"
             |> Query.map (Result.fromMaybe "Can't interpret 'block'")
         )
         (hexQueryParser "hash")
 
 
-encodePostIdInfoQueryParameters : PostId -> List Builder.QueryParameter
+encodePostIdInfoQueryParameters : Post.Id -> List Builder.QueryParameter
 encodePostIdInfoQueryParameters postIdInfo =
     [ Builder.string "block" (String.fromInt postIdInfo.block)
     , Builder.string "hash" (Eth.Utils.hexToString postIdInfo.messageHash)
@@ -93,4 +103,4 @@ addressParser =
 
 urlToRoute : Url -> Route
 urlToRoute url =
-    Maybe.withDefault NotFound (Parser.parse routeParser url)
+    Maybe.withDefault (NotFound "url not found") (Parser.parse routeParser url)

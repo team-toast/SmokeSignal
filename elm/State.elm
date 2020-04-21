@@ -3,10 +3,14 @@ port module State exposing (init, subscriptions, update)
 import Browser
 import Browser.Events
 import Browser.Navigation
-import CommonTypes exposing (..)
+import Common.Msg exposing (..)
+import Common.Types exposing (..)
+import ComposeUX.State as ComposeUX
+import ComposeUX.Types as ComposeUX
 import Config
 import Contracts.Dai as Dai
 import Contracts.SmokeSignal as SSContract
+import DemoPhaceSrcMutator exposing (mutateInfoGenerator)
 import Dict exposing (Dict)
 import Eth
 import Eth.Decode
@@ -14,14 +18,17 @@ import Eth.Net
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry
 import Eth.Sentry.Wallet as WalletSentry
-import Eth.Types exposing (Address)
+import Eth.Types exposing (Address, TxHash)
 import Eth.Utils
+import Helpers.Element as EH
+import Home.State as Home
 import Json.Decode
 import Json.Encode
 import List.Extra
 import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
-import Message exposing (Message)
+import Post exposing (Post)
+import Random
 import Routing exposing (Route)
 import Task
 import Time
@@ -59,26 +66,29 @@ init flags url key =
             EventSentry.init EventSentryMsg Config.httpProviderUrl
 
         ( eventSentry, secondEventSentryCmd, _ ) =
-            fetchMessagesFromBlockrangeCmd
+            fetchPostsFromBlockrangeCmd
                 (Eth.Types.BlockNum Config.startScanBlock)
                 Eth.Types.LatestBlock
                 initEventSentry
     in
     { navKey = key
+    , route = route
     , wallet = wallet
     , now = Time.millisToPosix flags.nowInMillis
-    , route = Routing.InitialBlank
+    , dProfile = EH.screenWidthToDisplayProfile flags.width
     , txSentry = txSentry
     , eventSentry = eventSentry
-    , messages = Dict.empty
+    , posts = Dict.empty
     , replies = []
-    , miningMessages = Dict.empty
-    , showComposeUX = False
-    , composeUXModel = initialComposeUXModel
+    , mode = BlankMode
+    , showHalfComposeUX = False
+    , replyTo = Nothing
+    , composeUXModel = ComposeUX.init wallet
     , blockTimes = Dict.empty
-    , showAddress = Nothing
+    , showAddressId = Nothing
     , userNotices = walletNotices
-    , viewFilter = None
+    , trackedTxs = Dict.empty
+    , demoPhaceSrc = initDemoPhaceSrc
     }
         |> gotoRoute route
         |> Tuple.mapSecond
@@ -91,14 +101,9 @@ init flags url key =
             )
 
 
-initialComposeUXModel : ComposeUXModel
-initialComposeUXModel =
-    { message = ""
-    , daiInput = ""
-    , donateChecked = True
-    , miningUnlockTx = Nothing
-    , metadata = Message.noMetadata
-    }
+initDemoPhaceSrc : String
+initDemoPhaceSrc =
+    "2222222222222222222222222228083888c8f222"
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -119,21 +124,16 @@ update msg prevModel =
         UrlChanged url ->
             prevModel |> updateFromPageRoute (url |> Routing.urlToRoute)
 
-        GotoRoute route ->
-            prevModel
-                |> gotoRoute route
-                |> Tuple.mapSecond
-                    (\cmd ->
-                        Cmd.batch
-                            [ cmd
-                            , Browser.Navigation.pushUrl
-                                prevModel.navKey
-                                (Routing.routeToString route)
-                            ]
-                    )
-
         Tick newTime ->
             ( { prevModel | now = newTime }, Cmd.none )
+
+        Resize width _ ->
+            ( { prevModel
+                | dProfile =
+                    EH.screenWidthToDisplayProfile width
+              }
+            , Cmd.none
+            )
 
         EveryFewSeconds ->
             ( prevModel
@@ -145,63 +145,47 @@ update msg prevModel =
                 |> Maybe.withDefault Cmd.none
             )
 
-        CheckMiningMessagesStatus ->
+        CheckTrackedTxsStatus ->
             ( prevModel
-            , Dict.keys prevModel.miningMessages
+            , prevModel.trackedTxs
+                |> Dict.filter
+                    (\_ trackedTx ->
+                        trackedTx.status /= Mined
+                    )
+                |> Dict.keys
                 |> List.map Eth.Utils.unsafeToTxHash
                 |> List.map (Eth.getTxReceipt Config.httpProviderUrl)
-                |> List.map (Task.attempt MiningMessageStatusResult)
+                |> List.map (Task.attempt TrackedTxStatusResult)
                 |> Cmd.batch
             )
 
-        MiningMessageStatusResult txReceiptResult ->
+        TrackedTxStatusResult txReceiptResult ->
             case txReceiptResult of
-                Err _ ->
+                Err errStr ->
+                    let
+                        _ =
+                            Debug.log "txReceipt poll err. Important to catch? Currently ignoring." errStr
+                    in
                     -- Hasn't yet been mined; make no change
                     ( prevModel, Cmd.none )
 
                 Ok txReceipt ->
-                    let
-                        txHashStr =
-                            txReceipt.hash |> Eth.Utils.txHashToString
-
-                        maybeDraft =
-                            prevModel.miningMessages
-                                |> Dict.get txHashStr
-                                |> Maybe.map .draft
-
-                        maybeSsMessage =
-                            txReceipt.logs
-                                |> List.filter
-                                    (\log ->
-                                        List.head log.topics == Just Config.messageBurnEventSig
-                                    )
-                                |> List.head
-                                |> Maybe.map (Eth.Decode.event SSContract.messageBurnDecoder)
-                                |> Maybe.andThen (.returnData >> Result.toMaybe)
-                    in
-                    case ( maybeDraft, maybeSsMessage ) of
-                        ( Nothing, _ ) ->
-                            -- No matching draft found in miningMessages; ignore
+                    case Dict.get (Eth.Utils.txHashToString txReceipt.hash) prevModel.trackedTxs of
+                        Nothing ->
+                            -- no matching trackedTx; ignore
                             ( prevModel, Cmd.none )
 
-                        ( _, Nothing ) ->
-                            ( prevModel
-                                |> addUserNotice
-                                    (UN.unexpectedError "Unexpected error when checking mining message status. Your message may have failed to mine." Nothing)
-                            , Cmd.none
-                            )
+                        Just trackedTx ->
+                            case trackedTx.status of
+                                Mined ->
+                                    -- Already updated; ignore
+                                    ( prevModel, Cmd.none )
 
-                        ( Just draft, Just ssMessage ) ->
-                            ( prevModel
-                                |> addMessage txReceipt.blockNumber
-                                    (Message.fromContractEvent
-                                        txReceipt.blockNumber
-                                        ssMessage
+                                _ ->
+                                    ( prevModel
+                                        |> updateTrackedTxStatus txReceipt.hash Mined
+                                    , Cmd.none
                                     )
-                                |> removeMiningMessage txHashStr
-                            , getBlockTimeIfNeededCmd prevModel.blockTimes txReceipt.blockNumber
-                            )
 
         WalletStatus walletSentryResult ->
             case walletSentryResult of
@@ -230,11 +214,10 @@ update msg prevModel =
                                     , Cmd.none
                                     )
                     in
-                    ( { prevModel
+                    { prevModel
                         | wallet = newWallet
-                      }
-                    , Cmd.none
-                    )
+                    }
+                        |> sendMsgDown (UpdateWallet newWallet)
 
                 Err errStr ->
                     ( prevModel |> addUserNotice (UN.walletError errStr)
@@ -262,7 +245,7 @@ update msg prevModel =
             , cmd
             )
 
-        MessageLogReceived log ->
+        PostLogReceived log ->
             let
                 decodedEventLog =
                     Eth.Decode.event SSContract.messageBurnDecoder log
@@ -273,79 +256,17 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-                Ok ssMessage ->
+                Ok ssPost ->
                     ( prevModel
-                        |> addMessage log.blockNumber
-                            (Message.fromContractEvent
+                        |> addPost log.blockNumber
+                            (SSContract.fromMessageBurn
                                 log.blockNumber
-                                ssMessage
+                                ssPost
                             )
-                        |> removeMiningMessage (Eth.Utils.txHashToString log.transactionHash)
+                        |> updateTrackedTxStatus
+                            log.transactionHash
+                            Mined
                     , getBlockTimeIfNeededCmd prevModel.blockTimes log.blockNumber
-                    )
-
-        ShowOrHideAddress phaceId ->
-            ( { prevModel
-                | showAddress =
-                    if prevModel.showAddress == Just phaceId then
-                        Nothing
-
-                    else
-                        Just phaceId
-              }
-            , Cmd.none
-            )
-
-        ConnectToWeb3 ->
-            case prevModel.wallet of
-                Wallet.NoneDetected ->
-                    ( prevModel |> addUserNotice UN.cantConnectNoWeb3
-                    , Cmd.none
-                    )
-
-                _ ->
-                    ( prevModel
-                    , connectToWeb3 ()
-                    )
-
-        UnlockDai ->
-            let
-                ( newTxSentry, cmd ) =
-                    let
-                        txParams =
-                            Dai.unlockDaiCall
-                                |> Eth.toSend
-
-                        listeners =
-                            { onMined = Nothing
-                            , onSign = Just UnlockMining
-                            , onBroadcast = Nothing
-                            }
-                    in
-                    TxSentry.customSend prevModel.txSentry listeners txParams
-            in
-            ( { prevModel
-                | txSentry = newTxSentry
-              }
-            , cmd
-            )
-
-        UnlockMining broadcastResult ->
-            case broadcastResult of
-                Err errStr ->
-                    ( prevModel
-                        |> addUserNotice
-                            (UN.web3BroadcastError "unlock DAI" errStr)
-                    , Cmd.none
-                    )
-
-                Ok txHash ->
-                    ( { prevModel
-                        | composeUXModel =
-                            prevModel.composeUXModel
-                                |> updateMiningUnlockTx (Just txHash)
-                      }
-                    , Cmd.none
                     )
 
         BalanceFetched address fetchResult ->
@@ -360,12 +281,14 @@ update msg prevModel =
             else
                 case fetchResult of
                     Ok balance ->
-                        ( { prevModel
-                            | wallet =
+                        let
+                            newWallet =
                                 prevModel.wallet |> Wallet.withFetchedBalance balance
-                          }
-                        , Cmd.none
-                        )
+                        in
+                        { prevModel
+                            | wallet = newWallet
+                        }
+                            |> sendMsgDown (UpdateWallet newWallet)
 
                     Err httpErr ->
                         ( prevModel
@@ -388,126 +311,21 @@ update msg prevModel =
                         let
                             isUnlocked =
                                 TokenValue.isMaxTokenValue allowance
-                        in
-                        ( { prevModel
-                            | wallet =
-                                prevModel.wallet |> Wallet.withIsUnlocked isUnlocked
-                            , composeUXModel =
-                                if isUnlocked then
-                                    prevModel.composeUXModel
-                                        |> updateMiningUnlockTx Nothing
 
-                                else
-                                    prevModel.composeUXModel
-                          }
-                        , Cmd.none
-                        )
+                            newWallet =
+                                prevModel.wallet |> Wallet.withIsUnlocked isUnlocked
+                        in
+                        { prevModel
+                            | wallet =
+                                newWallet
+                        }
+                            |> sendMsgDown (UpdateWallet newWallet)
 
                     Err httpErr ->
                         ( prevModel
                             |> addUserNotice (UN.web3FetchError "DAI unlock status" httpErr)
                         , Cmd.none
                         )
-
-        ShowComposeUX flag ->
-            ( { prevModel
-                | showComposeUX = flag
-              }
-            , Cmd.none
-            )
-
-        ReplyTo maybePostId ->
-            let
-                newShowComposeUX =
-                    case maybePostId of
-                        Just _ ->
-                            True
-
-                        _ ->
-                            prevModel.showComposeUX
-            in
-            ( { prevModel
-                | composeUXModel =
-                    prevModel.composeUXModel
-                        |> updateReply maybePostId
-                , showComposeUX = newShowComposeUX
-              }
-            , Cmd.none
-            )
-
-        MessageInputChanged input ->
-            ( { prevModel
-                | composeUXModel =
-                    prevModel.composeUXModel |> updateMessage input
-              }
-            , Cmd.none
-            )
-
-        DonationCheckboxSet flag ->
-            ( { prevModel
-                | composeUXModel =
-                    prevModel.composeUXModel |> updateDonateChecked flag
-              }
-            , Cmd.none
-            )
-
-        DaiInputChanged input ->
-            ( { prevModel
-                | composeUXModel =
-                    prevModel.composeUXModel |> updateDaiInput input
-              }
-            , Cmd.none
-            )
-
-        Submit messageDraft ->
-            let
-                ( newTxSentry, cmd ) =
-                    let
-                        txParams =
-                            messageDraft
-                                |> Message.encodeDraft
-                                |> SSContract.burnEncodedMessage
-                                |> Eth.toSend
-
-                        listeners =
-                            { onMined = Nothing
-                            , onSign = Just <| SubmitSigned messageDraft
-                            , onBroadcast = Nothing
-                            }
-                    in
-                    TxSentry.customSend prevModel.txSentry listeners txParams
-            in
-            ( { prevModel
-                | txSentry = newTxSentry
-              }
-            , cmd
-            )
-
-        SubmitSigned messageDraft txHashResult ->
-            case txHashResult of
-                Ok txHash ->
-                    ( { prevModel
-                        | composeUXModel =
-                            prevModel.composeUXModel
-                                |> updateMessage ""
-                                |> updateReply Nothing
-                        , miningMessages =
-                            prevModel.miningMessages
-                                |> Dict.insert (Eth.Utils.txHashToString txHash)
-                                    (MiningMessage
-                                        messageDraft
-                                        Mining
-                                    )
-                      }
-                    , Cmd.none
-                    )
-
-                Err errStr ->
-                    ( prevModel
-                        |> addUserNotice
-                            (UN.web3SigError "post" errStr)
-                    , Cmd.none
-                    )
 
         BlockTimeFetched blocknum timeResult ->
             case timeResult of
@@ -526,6 +344,20 @@ update msg prevModel =
                     , Cmd.none
                     )
 
+        UpdateReplyTo replyTo ->
+            ( { prevModel
+                | replyTo = replyTo
+                , showHalfComposeUX =
+                    case prevModel.mode of
+                        Compose _ ->
+                            False
+
+                        _ ->
+                            True
+              }
+            , Cmd.none
+            )
+
         DismissNotice id ->
             ( { prevModel
                 | userNotices =
@@ -534,14 +366,282 @@ update msg prevModel =
             , Cmd.none
             )
 
+        ComposeUXMsg composeUXMsg ->
+            let
+                updateResult =
+                    prevModel.composeUXModel
+                        |> ComposeUX.update composeUXMsg
+            in
+            ( { prevModel
+                | composeUXModel =
+                    updateResult.newModel
+              }
+            , Cmd.map ComposeUXMsg updateResult.cmd
+            )
+                |> withMsgUps updateResult.msgUps
+
+        HomeMsg homeMsg ->
+            case prevModel.mode of
+                Home homeModel ->
+                    let
+                        updateResult =
+                            homeModel
+                                |> Home.update homeMsg
+                    in
+                    ( { prevModel
+                        | mode =
+                            Home updateResult.newModel
+                      }
+                    , Cmd.map HomeMsg updateResult.cmd
+                    )
+                        |> withMsgUps updateResult.msgUps
+
+                _ ->
+                    ( prevModel, Cmd.none )
+
+        TxSigned txInfo txHashResult ->
+            case txHashResult of
+                Ok txHash ->
+                    let
+                        maybeMsgDown =
+                            case txInfo of
+                                PostTx draft ->
+                                    Just <| PostSigned draft
+
+                                _ ->
+                                    Nothing
+                    in
+                    ( prevModel
+                        |> addTrackedTx txHash txInfo
+                    , Cmd.none
+                    )
+                        |> (maybeMsgDown
+                                |> Maybe.map withMsgDown
+                                |> Maybe.withDefault identity
+                           )
+
+                Err errStr ->
+                    ( prevModel
+                        |> addUserNotice
+                            (UN.web3SigError
+                                (txInfoToNameStr txInfo)
+                                errStr
+                            )
+                    , Cmd.none
+                    )
+
+        TxMined txInfo txReceiptResult ->
+            case txReceiptResult of
+                Ok txReceipt ->
+                    ( prevModel
+                        |> updateTrackedTxStatus txReceipt.hash Mined
+                    , Cmd.none
+                    )
+
+                Err errStr ->
+                    ( prevModel
+                        |> updateTrackedTxStatusByTxInfo txInfo (Failed errStr)
+                    , Cmd.none
+                    )
+
+        MsgUp msgUp ->
+            prevModel |> handleMsgUp msgUp
+
+        ChangeDemoPhaceSrc ->
+            ( prevModel
+              --, Random.generate MutateDemoSrcWith mutateInfoGenerator
+            , Random.generate NewDemoSrc DemoPhaceSrcMutator.addressSrcGenerator
+            )
+
+        -- MutateDemoSrcWith mutateInfo ->
+        --     ( { prevModel
+        --         | demoPhaceSrc =
+        --             prevModel.demoPhaceSrc
+        --                 |> DemoPhaceSrcMutator.mutateSrc mutateInfo
+        --       }
+        --     , Cmd.none
+        --     )
+        NewDemoSrc src ->
+            ( { prevModel | demoPhaceSrc = src }
+            , Cmd.none
+            )
+
         NoOp ->
             ( prevModel, Cmd.none )
 
         ClickHappened ->
             ( { prevModel
-                | showAddress = Nothing
+                | showAddressId = Nothing
               }
             , Cmd.none
+            )
+
+
+handleMsgUp : MsgUp -> Model -> ( Model, Cmd Msg )
+handleMsgUp msgUp prevModel =
+    case msgUp of
+        GotoRoute route ->
+            prevModel
+                |> gotoRoute route
+                |> Tuple.mapSecond
+                    (\cmd ->
+                        Cmd.batch
+                            [ cmd
+                            , Browser.Navigation.pushUrl
+                                prevModel.navKey
+                                (Routing.routeToString route)
+                            ]
+                    )
+
+        ConnectToWeb3 ->
+            case prevModel.wallet of
+                Wallet.NoneDetected ->
+                    ( prevModel |> addUserNotice UN.cantConnectNoWeb3
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( prevModel
+                    , connectToWeb3 ()
+                    )
+
+        ShowOrHideAddress phaceId ->
+            ( { prevModel
+                | showAddressId =
+                    if prevModel.showAddressId == Just phaceId then
+                        Nothing
+
+                    else
+                        Just phaceId
+              }
+            , Cmd.none
+            )
+
+        ShowHalfComposeUX flag ->
+            ( { prevModel
+                | showHalfComposeUX = flag
+              }
+            , Cmd.none
+            )
+
+        AddUserNotice userNotice ->
+            ( prevModel |> addUserNotice userNotice
+            , Cmd.none
+            )
+
+        UnlockDai ->
+            let
+                txParams =
+                    Dai.unlockDaiCall
+                        |> Eth.toSend
+
+                listeners =
+                    { onMined = Just ( TxMined UnlockTx, Nothing )
+                    , onSign = Just <| TxSigned UnlockTx
+                    , onBroadcast = Nothing
+                    }
+
+                ( txSentry, cmd ) =
+                    TxSentry.customSend prevModel.txSentry listeners txParams
+            in
+            ( { prevModel
+                | txSentry = txSentry
+              }
+            , cmd
+            )
+
+        SubmitPost postDraft ->
+            let
+                txParams =
+                    postDraft
+                        |> Post.encodeDraft
+                        |> SSContract.burnEncodedPost
+                        |> Eth.toSend
+
+                listeners =
+                    { onMined = Just ( TxMined <| PostTx postDraft, Nothing )
+                    , onSign = Just <| TxSigned <| PostTx postDraft
+                    , onBroadcast = Nothing
+                    }
+
+                ( txSentry, cmd ) =
+                    TxSentry.customSend prevModel.txSentry listeners txParams
+            in
+            ( { prevModel
+                | txSentry = txSentry
+              }
+            , cmd
+            )
+
+
+addTrackedTx : TxHash -> TxInfo -> Model -> Model
+addTrackedTx txHash txInfo prevModel =
+    { prevModel
+        | trackedTxs =
+            prevModel.trackedTxs
+                |> Dict.insert
+                    (Eth.Utils.txHashToString txHash)
+                    (TrackedTx
+                        txInfo
+                        Mining
+                    )
+    }
+
+
+withMsgUp : MsgUp -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+withMsgUp msgUp ( prevModel, prevCmd ) =
+    handleMsgUp msgUp prevModel
+        |> Tuple.mapSecond
+            (\newCmd ->
+                Cmd.batch [ prevCmd, newCmd ]
+            )
+
+
+handleMsgUps : List MsgUp -> Model -> ( Model, Cmd Msg )
+handleMsgUps msgUps prevModel =
+    List.foldl
+        withMsgUp
+        ( prevModel, Cmd.none )
+        msgUps
+
+
+withMsgUps : List MsgUp -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+withMsgUps msgUps ( prevModel, prevCmd ) =
+    handleMsgUps msgUps prevModel
+        |> Tuple.mapSecond
+            (\newCmd ->
+                Cmd.batch [ prevCmd, newCmd ]
+            )
+
+
+sendMsgDown : MsgDown -> Model -> ( Model, Cmd Msg )
+sendMsgDown msgDown prevModel =
+    let
+        updateResult =
+            prevModel.composeUXModel
+                |> ComposeUX.handleMsgDown msgDown
+
+        ( newMainModel, cmd1 ) =
+            { prevModel
+                | composeUXModel = updateResult.newModel
+            }
+                |> handleMsgUps updateResult.msgUps
+    in
+    ( newMainModel
+    , Cmd.batch
+        [ cmd1
+        , Cmd.map ComposeUXMsg updateResult.cmd
+        ]
+    )
+
+
+withMsgDown : MsgDown -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+withMsgDown msgDown ( prevModel, prevCmd ) =
+    prevModel
+        |> sendMsgDown msgDown
+        |> Tuple.mapSecond
+            (\newCmd ->
+                Cmd.batch [ newCmd, prevCmd ]
             )
 
 
@@ -558,27 +658,16 @@ updateFromPageRoute route model =
 
 gotoRoute : Route -> Model -> ( Model, Cmd Msg )
 gotoRoute route prevModel =
-    case route of
-        Routing.InitialBlank ->
-            ( prevModel, Cmd.none )
-
-        Routing.Default ->
+    case routeToModeAndCmd route of
+        Ok ( mode, cmd ) ->
             ( { prevModel
-                | viewFilter = None
-                , route = route
+                | route = route
+                , mode = mode
               }
-            , Cmd.none
+            , cmd
             )
 
-        Routing.ViewPost postIdInfoResult ->
-            ( { prevModel
-                | viewFilter = Post postIdInfoResult
-                , route = route
-              }
-            , Cmd.none
-            )
-
-        Routing.NotFound ->
+        Err errStr ->
             ( { prevModel
                 | route = route
               }
@@ -587,43 +676,69 @@ gotoRoute route prevModel =
             )
 
 
-addMessage : Int -> Message -> Model -> Model
-addMessage blockNumber message prevModel =
+routeToModeAndCmd : Route -> Result String ( Mode, Cmd Msg )
+routeToModeAndCmd route =
+    case route of
+        Routing.Home ->
+            let
+                ( homeModel, cmd ) =
+                    Home.init
+            in
+            Ok
+                ( Home homeModel
+                , Cmd.map HomeMsg cmd
+                )
+
+        Routing.Compose topic ->
+            Ok ( Compose topic, Cmd.none )
+
+        Routing.ViewPost postId ->
+            Ok ( ViewPost postId, Cmd.none )
+
+        Routing.ViewTopic topic ->
+            Ok ( ViewTopic topic, Cmd.none )
+
+        Routing.NotFound err ->
+            Err err
+
+
+addPost : Int -> Post -> Model -> Model
+addPost blockNumber post prevModel =
     let
-        alreadyHaveMessage =
-            prevModel.messages
+        alreadyHavePost =
+            prevModel.posts
                 |> Dict.get blockNumber
                 |> Maybe.map
                     (List.any
-                        (\listedMessage ->
-                            listedMessage.postId == message.postId
+                        (\listedPost ->
+                            listedPost.postId == post.postId
                         )
                     )
                 |> Maybe.withDefault False
     in
-    if alreadyHaveMessage then
+    if alreadyHavePost then
         prevModel
 
     else
         { prevModel
-            | messages =
-                prevModel.messages
+            | posts =
+                prevModel.posts
                     |> Dict.update blockNumber
-                        (\maybeMessagesForBlock ->
+                        (\maybePostsForBlock ->
                             Just <|
-                                case maybeMessagesForBlock of
+                                case maybePostsForBlock of
                                     Nothing ->
-                                        [ message ]
+                                        [ post ]
 
-                                    Just messages ->
-                                        List.append messages [ message ]
+                                    Just posts ->
+                                        List.append posts [ post ]
                         )
             , replies =
                 List.append
                     prevModel.replies
-                    (case message.metadata |> Result.toMaybe |> Maybe.andThen .replyTo of
+                    (case post.metadata |> Result.toMaybe |> Maybe.andThen .replyTo of
                         Just replyTo ->
-                            [ { from = message.postId
+                            [ { from = post.postId
                               , to = replyTo
                               }
                             ]
@@ -632,15 +747,6 @@ addMessage blockNumber message prevModel =
                             []
                     )
         }
-
-
-removeMiningMessage : String -> Model -> Model
-removeMiningMessage txHashString prevModel =
-    { prevModel
-        | miningMessages =
-            prevModel.miningMessages
-                |> Dict.remove txHashString
-    }
 
 
 getBlockTimeIfNeededCmd : Dict Int Time.Posix -> Int -> Cmd Msg
@@ -652,10 +758,10 @@ getBlockTimeIfNeededCmd blockTimes blockNumber =
         Cmd.none
 
 
-fetchMessagesFromBlockrangeCmd : Eth.Types.BlockId -> Eth.Types.BlockId -> EventSentry Msg -> ( EventSentry Msg, Cmd Msg, EventSentry.Ref )
-fetchMessagesFromBlockrangeCmd from to sentry =
+fetchPostsFromBlockrangeCmd : Eth.Types.BlockId -> Eth.Types.BlockId -> EventSentry Msg -> ( EventSentry Msg, Cmd Msg, EventSentry.Ref )
+fetchPostsFromBlockrangeCmd from to sentry =
     EventSentry.watch
-        MessageLogReceived
+        PostLogReceived
         sentry
     <|
         SSContract.messageBurnEventFilter
@@ -682,19 +788,20 @@ getBlockTimeCmd blocknum =
         |> Task.attempt (BlockTimeFetched blocknum)
 
 
-addUserNotice : UserNotice Msg -> Model -> Model
+addUserNotice : UserNotice -> Model -> Model
 addUserNotice notice model =
     model
         |> addUserNotices [ notice ]
 
 
-addUserNotices : List (UserNotice Msg) -> Model -> Model
+addUserNotices : List UserNotice -> Model -> Model
 addUserNotices notices model =
     { model
         | userNotices =
             List.append
                 model.userNotices
                 notices
+                |> List.Extra.uniqueBy .uniqueLabel
     }
 
 
@@ -702,14 +809,16 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Time.every 200 Tick
+        , Time.every 2000 (always ChangeDemoPhaceSrc)
         , Time.every 2500 (always EveryFewSeconds)
-        , Time.every 5000 (always CheckMiningMessagesStatus)
+        , Time.every 5000 (always CheckTrackedTxsStatus)
         , walletSentryPort
             (WalletSentry.decodeToMsg
                 (WalletStatus << Err)
                 (WalletStatus << Ok)
             )
         , TxSentry.listen model.txSentry
+        , Browser.Events.onResize Resize
         ]
 
 
