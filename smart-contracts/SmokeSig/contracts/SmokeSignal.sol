@@ -1,19 +1,22 @@
 pragma solidity 0.6.4;
 
-struct StoredMessageData 
-{
-    address firstAuthor;
-    uint totalBurned;
-    uint totalTipped;
-}
-
+// this doubles as a wrapper for the Maker medianizer contract
 abstract contract EthPriceOracle
 {
-    function read() 
+    function read()
         public 
         virtual
         view 
         returns(bytes32);
+}
+
+struct StoredMessageData 
+{
+    address firstAuthor;
+    uint nativeBurned;
+    uint dollarsBurned;
+    uint nativeTipped;
+    uint dollarsTipped;
 }
 
 contract SmokeSignal 
@@ -34,7 +37,7 @@ contract SmokeSignal
         view
         returns (uint _price)
     {
-        return uint(oracle.read());
+        return address(oracle) == address(0) ? 1 : uint(oracle.read());
     }
 
     event MessageBurn(
@@ -130,14 +133,16 @@ contract SmokeSignal
         internal
     {
         internalSend(address(0), _burnAmount);
-        storedMessageData[_hash].totalBurned += _burnValue;
+        storedMessageData[_hash].nativeBurned += _burnAmount;
+        storedMessageData[_hash].dollarsBurned += _burnValue;
     }
 
     function internalTipForMessageHash(bytes32 _hash, address author, uint _tipAmount, uint _tipValue)
         internal
     {
         internalSend(author, _tipAmount);
-        storedMessageData[_hash].totalTipped += _tipValue;
+        storedMessageData[_hash].nativeTipped += _tipAmount;
+        storedMessageData[_hash].dollarsTipped += _tipValue;
     }
 
     function internalDonateIfNonzero(uint _donateAmount)
@@ -154,4 +159,18 @@ contract SmokeSignal
     {
         _to.call{ value: _wei }("");
     }
+}
+
+contract SmokeSignal_Ethereum is SmokeSignal
+{
+    constructor(address _donationAddress) SmokeSignal(_donationAddress, EthPriceOracle(0x729D19f657BD0614b4985Cf1D82531c67569197B))
+        public 
+    { }
+}
+
+contract SmokeSignal_xDai is SmokeSignal
+{
+    constructor(address _donationAddress) SmokeSignal(_donationAddress, EthPriceOracle(address(0)))
+        public 
+    { }
 }
