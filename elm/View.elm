@@ -668,18 +668,18 @@ metadataStuff context metadataResult =
 
         Ok metadata ->
             Element.row
-                [ Element.width Element.fill
-                , Element.spacing 20
+                [ Element.spacing 20
+                , Element.width Element.fill
                 ]
-                ([ if context.showReplyTo then
-                    maybeViewReplyInfo metadata.replyTo Nothing
+                ([ if context.showTopic then
+                    Just <|
+                        Element.el [ Element.alignLeft ] <|
+                            viewTopic metadata.topic
 
                    else
                     Nothing
-                 , if context.showTopic then
-                    Just <|
-                        Element.el [ Element.alignRight ] <|
-                            viewTopic metadata.topic
+                 , if context.showReplyTo then
+                    maybeViewReplyInfo metadata.replyTo Nothing
 
                    else
                     Nothing
@@ -701,7 +701,7 @@ viewTopic topic =
         , Element.scrollbarX
         , Element.width (Element.shrink |> Element.maximum 400)
         ]
-        [ Element.text "Message topic:"
+        [ Element.text "Topic:"
         , Element.el
             [ Element.Font.color defaultTheme.linkTextColor
             , Element.pointer

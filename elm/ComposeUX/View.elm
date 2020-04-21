@@ -87,7 +87,6 @@ viewPreviewWithComposeContext input context =
         , Element.Border.rounded 10
         , Element.scrollbars
         , Element.spacing 15
-        
         ]
         [ Maybe.map
             (Element.row
@@ -99,7 +98,7 @@ viewPreviewWithComposeContext input context =
                 viewReplyInfo
                 (composeContextReplyTo context)
              , Maybe.map
-                viewTopic
+                (Element.el [ Element.alignLeft] << viewTopic)
                 (composeContextTopic context)
              ]
                 |> Maybe.Extra.values
@@ -161,29 +160,29 @@ viewReplyInfo postId =
 
 viewTopic : String -> Element Msg
 viewTopic topic =
-    Element.el
-        [ Element.width (Element.fill |> Element.maximum 400) ]
-    <|
-        Element.column
-            [ Element.padding 10
-            , Element.Border.rounded 5
-            , Element.Font.size 20
-            , Element.Font.italic
-            , Element.Background.color <| Element.rgba 1 1 1 0.5
-            , Element.spacing 5
-            , Element.scrollbarX
+    Element.column
+        [ Element.padding 10
+        , Element.Border.rounded 5
+        , Element.Font.size 20
+        , Element.Font.italic
+        , Element.Background.color <| Element.rgba 1 1 1 0.5
+        , Element.spacing 5
+        
+        , Element.scrollbarX
+        , Element.clipX
+        , Element.width (Element.shrink |> Element.maximum 400)
+        ]
+        [ Element.text "Topic:"
+        , Element.el
+            [ Element.Font.color defaultTheme.linkTextColor
+            , Element.pointer
+            , Element.Events.onClick <|
+                MsgUp <|
+                    GotoRoute <|
+                        Routing.ViewTopic topic
             ]
-            [ Element.text "Topic:"
-            , Element.el
-                [ Element.Font.color defaultTheme.linkTextColor
-                , Element.pointer
-                , Element.Events.onClick <|
-                    MsgUp <|
-                        GotoRoute <|
-                            Routing.ViewTopic topic
-                ]
-                (Element.text <| topic)
-            ]
+            (Element.text <| topic)
+        ]
 
 
 actionFormAndMaybeErrorEl : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> ComposeContext -> Element Msg
