@@ -68,56 +68,57 @@ composeUXShadow =
 
 viewInput : String -> Element Msg
 viewInput input =
-    Element.Input.multiline
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Element.padding 10
-        , Element.Background.color <| Element.rgba 1 1 1 0.5
-        ]
-        { onChange = MessageInputChanged
-        , text = input
-        , placeholder = Just messageInputPlaceholder
-        , label = Element.Input.labelHidden "messageInput"
-        , spellcheck = True
-        }
+    EH.scrollbarYEl [] <|
+        Element.Input.multiline
+            [ Element.width Element.fill
+            , Element.height Element.fill
+            , Element.padding 10
+            , Element.Background.color <| Element.rgba 1 1 1 0.5
+            ]
+            { onChange = MessageInputChanged
+            , text = input
+            , placeholder = Just messageInputPlaceholder
+            , label = Element.Input.labelHidden "messageInput"
+            , spellcheck = True
+            }
 
 
 viewPreviewWithComposeContext : String -> ComposeContext -> Element Msg
 viewPreviewWithComposeContext input context =
-    Element.column
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Element.padding 15
-        , Element.Background.color <| Element.rgba 1 1 1 0.5
-        , Element.Border.width 1
-        , Element.Border.color <| Element.rgba 0 0 0 0.5
-        , Element.Border.rounded 10
-        , Element.scrollbars
-        , Element.spacing 15
-        ]
-        [ Maybe.map
-            (Element.row
-                [ Element.spacing 10
-                , Element.width Element.fill
-                ]
-            )
-            ([ Maybe.map
-                viewReplyInfo
-                (composeContextReplyTo context)
-             , Maybe.map
-                (Element.el [ Element.alignLeft ] << viewTopic)
-                (composeContextTopic context)
-             ]
-                |> Maybe.Extra.values
-                |> ListHelpers.nonEmpty
-            )
-            |> Maybe.withDefault Element.none
-        , if input == "" then
-            appStatusMessage defaultTheme.appStatusTextColor "[Preview Box]"
+    EH.scrollbarYEl [] <|
+        Element.column
+            [ Element.width Element.fill
+            , Element.height Element.fill
+            , Element.padding 15
+            , Element.Background.color <| Element.rgba 1 1 1 0.5
+            , Element.Border.width 1
+            , Element.Border.color <| Element.rgba 0 0 0 0.5
+            , Element.Border.rounded 10
+            , Element.spacing 15
+            ]
+            [ Maybe.map
+                (Element.row
+                    [ Element.spacing 10
+                    , Element.width Element.fill
+                    ]
+                )
+                ([ Maybe.map
+                    viewReplyInfo
+                    (composeContextReplyTo context)
+                 , Maybe.map
+                    (Element.el [ Element.alignLeft ] << viewTopic)
+                    (composeContextTopic context)
+                 ]
+                    |> Maybe.Extra.values
+                    |> ListHelpers.nonEmpty
+                )
+                |> Maybe.withDefault Element.none
+            , if input == "" then
+                appStatusMessage defaultTheme.appStatusTextColor "[Preview Box]"
 
-          else
-            Post.renderContentOrError defaultTheme input
-        ]
+              else
+                Post.renderContentOrError defaultTheme input
+            ]
 
 
 messageInputPlaceholder : Element.Input.Placeholder Msg
