@@ -282,7 +282,7 @@ maybeModeEl dProfile mode walletUXPhaceInfo =
             defaultTheme.emphasizedActionButton
                 dProfile
                 buttonAttributes
-                [ "Connect Wallet to Post" ]
+                [ "Activate Wallet to Post" ]
                 (MsgUp <| ConnectToWeb3)
     in
     case mode of
@@ -393,7 +393,7 @@ maybeTxTracker showExpanded trackedTxs =
                     Mining ->
                         Tuple3.mapFirst ((+) 1) totals
 
-                    Mined ->
+                    Mined _ ->
                         Tuple3.mapSecond ((+) 1) totals
 
                     Failed _ ->
@@ -427,7 +427,7 @@ maybeTxTracker showExpanded trackedTxs =
                         (Maybe.map
                             (\n ->
                                 Element.el
-                                    [ Element.Font.color <| trackedTxStatusToColor Mined ]
+                                    [ Element.Font.color <| trackedTxStatusToColor <| Mined Nothing ]
                                 <|
                                     Element.text <|
                                         String.fromInt n
@@ -437,7 +437,7 @@ maybeTxTracker showExpanded trackedTxs =
                         (Maybe.map
                             (\n ->
                                 Element.el
-                                    [ Element.Font.color <| trackedTxStatusToColor (Failed "") ]
+                                    [ Element.Font.color <| trackedTxStatusToColor (Failed MinedButExecutionFailed) ]
                                 <|
                                     Element.text <|
                                         String.fromInt n
@@ -507,8 +507,67 @@ trackedTxsColumn trackedTxs =
 
 viewTrackedTxRow : TrackedTx -> Element Msg
 viewTrackedTxRow trackedTx =
-    Element.column
-        [ Element.width <| Element.px 300
+    let
+        etherscanLink label =
+            Element.newTabLink
+                [ Element.Font.italic
+                , Element.Font.color defaultTheme.linkTextColor
+                ]
+                { url = EthHelpers.etherscanTxUrl trackedTx.txHash
+                , label = Element.text label
+                }
+
+        titleEl =
+            case ( trackedTx.txInfo, trackedTx.status ) of
+                ( UnlockTx, _ ) ->
+                    Element.text "Unlock DAI"
+
+                ( PostTx _, Mined _ ) ->
+                    Element.text "Post"
+
+                ( PostTx draft, _ ) ->
+                    Element.row
+                        [ Element.spacing 8
+                        ]
+                        [ Element.text "Post"
+                        , Element.el
+                            [ Element.Font.color defaultTheme.linkTextColor
+                            , Element.pointer
+                            , Element.Events.onClick <| ViewDraft <| Just draft
+                            ]
+                            (Element.text "(View Draft)")
+                        ]
+
+        statusEl =
+            case trackedTx.status of
+                Mining ->
+                    etherscanLink "Mining"
+
+                Failed failReason ->
+                    case failReason of
+                        MinedButExecutionFailed ->
+                            etherscanLink "Failed"
+
+                Mined maybePostId ->
+                    case trackedTx.txInfo of
+                        UnlockTx ->
+                            etherscanLink "Mined"
+
+                        PostTx draft ->
+                            case maybePostId of
+                                Just postId ->
+                                    Element.el
+                                        [ Element.Font.color defaultTheme.linkTextColor
+                                        , Element.pointer
+                                        , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.ViewPost postId
+                                        ]
+                                        (Element.text "Published")
+
+                                Nothing ->
+                                    etherscanLink "Mined"
+    in
+    Element.row
+        [ Element.width <| Element.px 250
         , Element.Background.color
             (trackedTxStatusToColor trackedTx.status
                 |> EH.withAlpha 0.3
@@ -518,69 +577,11 @@ viewTrackedTxRow trackedTx =
         , Element.Border.color <| Element.rgba 0 0 0 0.3
         , Element.padding 4
         , Element.spacing 4
-        , Element.Font.size 16
+        , Element.Font.size 20
         ]
-        [ Element.row
-            [ Element.width Element.fill
-            , Element.spacing 4
-            ]
-            [ viewTrackedTxInfo trackedTx.txInfo
-            , Element.el [ Element.alignRight ] <| viewTrackedTxStatus trackedTx.status
-            ]
-        , etherscanLink trackedTx.txHash
+        [ titleEl
+        , Element.el [ Element.alignRight ] <| statusEl
         ]
-
-
-viewTrackedTxInfo : TxInfo -> Element Msg
-viewTrackedTxInfo txInfo =
-    case txInfo of
-        UnlockTx ->
-            Element.text "Unlock DAI"
-
-        PostTx draft ->
-            Element.row
-                [ Element.spacing 6 ]
-                [ Element.text "Post"
-                , Element.el
-                    [ Element.Font.color defaultTheme.linkTextColor
-                    , Element.pointer
-                    , Element.Events.onClick <| ViewDraft <| Just draft
-                    ]
-                    (Element.text "(View Draft)")
-                ]
-
-
-etherscanLink : TxHash -> Element Msg
-etherscanLink txHash =
-    Element.newTabLink
-        [ Element.Font.size 12
-        , Element.Font.color defaultTheme.linkTextColor
-        ]
-        { url = EthHelpers.etherscanTxUrl txHash
-        , label =
-            Element.text <|
-                "View on etherscan"
-        }
-
-
-viewTrackedTxStatus : TxStatus -> Element Msg
-viewTrackedTxStatus status =
-    Element.paragraph
-        [ Element.width Element.fill
-        , Element.Font.italic
-        ]
-        << List.singleton
-        << Element.text
-    <|
-        case status of
-            Mining ->
-                "Mining"
-
-            Mined ->
-                "Mined"
-
-            Failed errStr ->
-                "Failed: " ++ errStr
 
 
 trackedTxStatusToColor : TxStatus -> Element.Color
@@ -589,7 +590,7 @@ trackedTxStatusToColor txStatus =
         Mining ->
             Theme.darkYellow
 
-        Mined ->
+        Mined _ ->
             Theme.green
 
         Failed _ ->

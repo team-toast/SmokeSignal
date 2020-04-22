@@ -76,7 +76,6 @@ type Msg
     | CheckTrackedTxsStatus
     | TrackedTxStatusResult (Result Http.Error TxReceipt)
     | TxSigned TxInfo (Result String TxHash)
-    | TxMined TxInfo (Result String TxReceipt)
     | ViewDraft (Maybe Post.Draft)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
     | UpdateReplyTo (Maybe Post.Id)
@@ -111,37 +110,24 @@ filterBlockPosts filterFunc =
             )
 
 
-updateTrackedTxStatusByTxInfo : TxInfo -> TxStatus -> Model -> Model
-updateTrackedTxStatusByTxInfo txInfo newStatus model =
+updateTrackedTxByTxInfo : TxInfo -> (TrackedTx -> TrackedTx) -> Model -> Model
+updateTrackedTxByTxInfo txInfo =
+    updateTrackedTxIf
+        (.txInfo >> (==) txInfo)
+
+
+updateTrackedTxByTxHash : TxHash -> (TrackedTx -> TrackedTx) -> Model -> Model
+updateTrackedTxByTxHash txHash =
+    updateTrackedTxIf
+        (.txHash >> (==) txHash)
+
+
+updateTrackedTxIf : (TrackedTx -> Bool) -> (TrackedTx -> TrackedTx) -> Model -> Model
+updateTrackedTxIf test update model =
     { model
         | trackedTxs =
             model.trackedTxs
-                |> List.map
-                    (\trackedTx ->
-                        if trackedTx.txInfo == txInfo then
-                            { trackedTx
-                                | status = newStatus
-                            }
-
-                        else
-                            trackedTx
-                    )
-    }
-
-
-updateTrackedTxStatus : TxHash -> TxStatus -> Model -> Model
-updateTrackedTxStatus txHash newStatus model =
-    { model
-        | trackedTxs =
-            model.trackedTxs
-                |> List.map
-                    (\trackedTx ->
-                        if trackedTx.txHash == txHash then
-                            { trackedTx
-                                | status = newStatus
-                            }
-
-                        else
-                            trackedTx
-                    )
+                |> List.Extra.updateIf
+                    test
+                    update
     }

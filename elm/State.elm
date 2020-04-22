@@ -170,30 +170,20 @@ update msg prevModel =
         TrackedTxStatusResult txReceiptResult ->
             case txReceiptResult of
                 Err errStr ->
-                    let
-                        _ =
-                            Debug.log "txReceipt poll err. Important to catch? Currently ignoring." errStr
-                    in
                     -- Hasn't yet been mined; make no change
                     ( prevModel, Cmd.none )
 
                 Ok txReceipt ->
-                    ( { prevModel
-                        | trackedTxs =
-                            prevModel.trackedTxs
-                                |> List.Extra.updateIf
-                                    (.txHash >> (==) txReceipt.hash)
-                                    (\trackedTx ->
-                                        case trackedTx.status of
-                                            Mining ->
-                                                { trackedTx
-                                                    | status = Mined
-                                                }
-
-                                            _ ->
-                                                trackedTx
-                                    )
-                      }
+                    let
+                        ( newStatus, maybeUserNotice ) =
+                            statusAndMaybeUserNoticeFromTxReceipt txReceipt
+                    in
+                    ( prevModel
+                        |> updateTrackedTxStatusIfMining
+                            txReceipt.hash
+                            newStatus
+                        |> addUserNotices
+                            ([ maybeUserNotice ] |> Maybe.Extra.values)
                     , Cmd.none
                     )
 
@@ -274,9 +264,18 @@ update msg prevModel =
                                 log.blockNumber
                                 ssPost
                             )
-                        |> updateTrackedTxStatus
+                        |> updateTrackedTxByTxHash
                             log.transactionHash
-                            Mined
+                            (\trackedTx ->
+                                { trackedTx
+                                    | status =
+                                        Mined <|
+                                            Just <|
+                                                Post.Id
+                                                    log.blockNumber
+                                                    (ssPost.hash)
+                                }
+                            )
                     , getBlockTimeIfNeededCmd prevModel.blockTimes log.blockNumber
                     )
 
@@ -441,20 +440,6 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-        TxMined txInfo txReceiptResult ->
-            case txReceiptResult of
-                Ok txReceipt ->
-                    ( prevModel
-                        |> updateTrackedTxStatus txReceipt.hash Mined
-                    , Cmd.none
-                    )
-
-                Err errStr ->
-                    ( prevModel
-                        |> updateTrackedTxStatusByTxInfo txInfo (Failed errStr)
-                    , Cmd.none
-                    )
-
         MsgUp msgUp ->
             prevModel |> handleMsgUp msgUp
 
@@ -548,7 +533,7 @@ handleMsgUp msgUp prevModel =
                         |> Eth.toSend
 
                 listeners =
-                    { onMined = Just ( TxMined UnlockTx, Nothing )
+                    { onMined = Nothing
                     , onSign = Just <| TxSigned UnlockTx
                     , onBroadcast = Nothing
                     }
@@ -571,7 +556,7 @@ handleMsgUp msgUp prevModel =
                         |> Eth.toSend
 
                 listeners =
-                    { onMined = Just ( TxMined <| PostTx postDraft, Nothing )
+                    { onMined = Nothing
                     , onSign = Just <| TxSigned <| PostTx postDraft
                     , onBroadcast = Nothing
                     }
@@ -583,6 +568,42 @@ handleMsgUp msgUp prevModel =
                 | txSentry = txSentry
               }
             , cmd
+            )
+
+
+statusAndMaybeUserNoticeFromTxReceipt : Eth.Types.TxReceipt -> ( TxStatus, Maybe UserNotice )
+statusAndMaybeUserNoticeFromTxReceipt txReceipt =
+    case txReceipt.status of
+        Just True ->
+            let
+                maybePostEvent =
+                    txReceipt.logs
+                        |> List.map (Eth.Decode.event SSContract.messageBurnDecoder)
+                        |> List.map .returnData
+                        |> List.map (Result.toMaybe)
+                        |> Maybe.Extra.values
+                        |> List.head
+            in
+            ( Mined <|
+                Maybe.map
+                (\ssEvent ->
+                    Post.Id
+                        (txReceipt.blockNumber)
+                        ssEvent.hash
+                )
+                maybePostEvent
+            , Nothing
+            )
+
+        Just False ->
+            ( Failed MinedButExecutionFailed
+            , Nothing
+            )
+
+        Nothing ->
+            ( Mining
+            , Just <|
+                UN.unexpectedError "Weird. I Got a transaction receipt with a success value of 'Nothing'. Depending on why this happened I might be a little confused about any mining transactions." txReceipt
             )
 
 
@@ -598,6 +619,20 @@ addTrackedTx txHash txInfo prevModel =
                         Mining
                     ]
     }
+
+
+updateTrackedTxStatusIfMining : TxHash -> TxStatus -> Model -> Model
+updateTrackedTxStatusIfMining txHash newStatus =
+    updateTrackedTxIf
+        (\trackedTx ->
+            (trackedTx.txHash == txHash)
+                && (trackedTx.status == Mining)
+        )
+        (\trackedTx ->
+            { trackedTx
+                | status = newStatus
+            }
+        )
 
 
 withMsgUp : MsgUp -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )

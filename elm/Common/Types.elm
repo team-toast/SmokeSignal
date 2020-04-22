@@ -94,9 +94,11 @@ type TxInfo
 
 type TxStatus
     = Mining
-    | Failed String
-    | Mined
+    | Failed FailReason
+    | Mined (Maybe Post.Id)
 
+type FailReason
+    = MinedButExecutionFailed
 
 txInfoToNameStr txInfo =
     case txInfo of
