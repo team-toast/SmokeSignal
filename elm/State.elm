@@ -175,8 +175,8 @@ update msg prevModel =
 
                 Ok txReceipt ->
                     let
-                        ( newStatus, maybeUserNotice ) =
-                            statusAndMaybeUserNoticeFromTxReceipt txReceipt
+                        ( newStatus, maybePublishedPost, maybeUserNotice ) =
+                            handleTxReceipt txReceipt
                     in
                     ( prevModel
                         |> updateTrackedTxStatusIfMining
@@ -184,6 +184,13 @@ update msg prevModel =
                             newStatus
                         |> addUserNotices
                             ([ maybeUserNotice ] |> Maybe.Extra.values)
+                        |> (case maybePublishedPost of
+                                Just post ->
+                                    addPost txReceipt.blockNumber post
+
+                                Nothing ->
+                                    identity
+                           )
                     , Cmd.none
                     )
 
@@ -273,7 +280,7 @@ update msg prevModel =
                                             Just <|
                                                 Post.Id
                                                     log.blockNumber
-                                                    (ssPost.hash)
+                                                    ssPost.hash
                                 }
                             )
                     , getBlockTimeIfNeededCmd prevModel.blockTimes log.blockNumber
@@ -571,8 +578,8 @@ handleMsgUp msgUp prevModel =
             )
 
 
-statusAndMaybeUserNoticeFromTxReceipt : Eth.Types.TxReceipt -> ( TxStatus, Maybe UserNotice )
-statusAndMaybeUserNoticeFromTxReceipt txReceipt =
+handleTxReceipt : Eth.Types.TxReceipt -> ( TxStatus, Maybe PublishedPost, Maybe UserNotice )
+handleTxReceipt txReceipt =
     case txReceipt.status of
         Just True ->
             let
@@ -580,16 +587,22 @@ statusAndMaybeUserNoticeFromTxReceipt txReceipt =
                     txReceipt.logs
                         |> List.map (Eth.Decode.event SSContract.messageBurnDecoder)
                         |> List.map .returnData
-                        |> List.map (Result.toMaybe)
+                        |> List.map Result.toMaybe
                         |> Maybe.Extra.values
                         |> List.head
             in
             ( Mined <|
                 Maybe.map
-                (\ssEvent ->
-                    Post.Id
-                        (txReceipt.blockNumber)
-                        ssEvent.hash
+                    (\ssEvent ->
+                        Post.Id
+                            txReceipt.blockNumber
+                            ssEvent.hash
+                    )
+                    maybePostEvent
+            , Maybe.map
+                (SSContract.fromMessageBurn
+                    txReceipt.hash
+                    txReceipt.blockNumber
                 )
                 maybePostEvent
             , Nothing
@@ -598,10 +611,12 @@ statusAndMaybeUserNoticeFromTxReceipt txReceipt =
         Just False ->
             ( Failed MinedButExecutionFailed
             , Nothing
+            , Nothing
             )
 
         Nothing ->
             ( Mining
+            , Nothing
             , Just <|
                 UN.unexpectedError "Weird. I Got a transaction receipt with a success value of 'Nothing'. Depending on why this happened I might be a little confused about any mining transactions." txReceipt
             )
