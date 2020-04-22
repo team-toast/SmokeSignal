@@ -258,7 +258,7 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
                         ]
                     <|
                         Element.map MsgUp <|
-                            walletUX dProfile walletUXPhaceInfo
+                            walletUX dProfile False walletUXPhaceInfo
             ]
         ]
 
