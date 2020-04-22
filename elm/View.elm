@@ -99,24 +99,30 @@ body model =
          , Element.inFront <|
             case model.draftModal of
                 Just draft ->
-                    Element.el
+                    Element.column
                         [ Element.centerX
                         , Element.centerY
                         , Element.Background.color defaultTheme.draftModalBackground
                         , Element.padding 20
+                        , Element.spacing 10
                         , Element.Border.rounded 10
                         , Element.Border.glow
                             (Element.rgba 0 0 0 0.3)
                             10
                         , EH.onClickNoPropagation NoOp
                         ]
-                    <|
-                        viewEntirePost
+                        [ viewEntirePost
                             (ViewContext True True)
                             (model.showAddressId == Just PhaceForDraft)
                             Nothing
                             PhaceForDraft
                             draft.post
+                        , defaultTheme.secondaryActionButton
+                            model.dProfile
+                            []
+                            [ "Restore Draft" ]
+                            (RestoreDraft draft)
+                        ]
 
                 Nothing ->
                     Element.none

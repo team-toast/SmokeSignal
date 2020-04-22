@@ -376,6 +376,23 @@ update msg prevModel =
             , Cmd.none
             )
 
+        RestoreDraft draft ->
+            { prevModel
+                | draftModal = Nothing
+                , composeUXModel =
+                    prevModel.composeUXModel
+                        |> (\composeUXModel ->
+                                { composeUXModel
+                                    | message = draft.post.message
+                                    , daiInput =
+                                        draft.post.burnAmount
+                                            |> TokenValue.toFloatString Nothing
+                                    , donateChecked = not <| TokenValue.isZero draft.donateAmount
+                                }
+                           )
+            }
+                |> (gotoRoute <| Routing.Compose draft.post.metadata.topic)
+
         DismissNotice id ->
             ( { prevModel
                 | userNotices =
