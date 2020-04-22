@@ -41,25 +41,22 @@ web3ConnectButton dProfile attrs =
 
 
 phaceElement : Bool -> PhaceIconId -> Address -> Bool -> Element MsgUp
-phaceElement showBorder phaceId fromAddress showAddress =
+phaceElement addressHangToRight phaceId fromAddress showAddress =
     let
         addressOutputEl =
             Element.el
-                ([ Element.alignBottom
-                 , Element.alignLeft
-                 , Element.Background.color EH.white
-                 , Element.Font.size 12
-                 , EH.moveToFront
-                 ]
-                    ++ (if showBorder then
-                            [ Element.Border.width 2
-                            , Element.Border.color EH.black
-                            ]
+                [ Element.alignBottom
+                , if addressHangToRight then
+                    Element.alignLeft
 
-                        else
-                            []
-                       )
-                )
+                  else
+                    Element.alignRight
+                , Element.Background.color EH.white
+                , Element.Font.size 12
+                , EH.moveToFront
+                , Element.Border.width 2
+                , Element.Border.color EH.black
+                ]
                 (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
     in
     Element.el
@@ -73,20 +70,13 @@ phaceElement showBorder phaceId fromAddress showAddress =
         )
     <|
         Element.el
-            ([ Element.Border.rounded 10
-             , Element.clip
-             , Element.pointer
-             , EH.onClickNoPropagation (ShowOrHideAddress phaceId)
-             ]
-                ++ (if showBorder then
-                        [ Element.Border.width 2
-                        , Element.Border.color EH.black
-                        ]
-
-                    else
-                        []
-                   )
-            )
+            [ Element.Border.rounded 10
+            , Element.clip
+            , Element.pointer
+            , EH.onClickNoPropagation (ShowOrHideAddress phaceId)
+            , Element.Border.width 2
+            , Element.Border.color EH.black
+            ]
         <|
             Element.html
                 (Phace.fromEthAddress fromAddress)
@@ -104,8 +94,8 @@ loadingElement attrs maybeString =
         (Element.text <| Maybe.withDefault "loading..." maybeString)
 
 
-walletUX : EH.DisplayProfile -> WalletUXPhaceInfo -> Element MsgUp
-walletUX dProfile walletUXPhaceInfo =
+walletUX : EH.DisplayProfile -> Bool -> WalletUXPhaceInfo ->  Element MsgUp
+walletUX dProfile addressHangToRight walletUXPhaceInfo =
     let
         commonAttributes =
             [-- Element.alignRight
@@ -159,17 +149,18 @@ walletUX dProfile walletUXPhaceInfo =
                     ]
                   <|
                     phaceElement
-                        True
+                        addressHangToRight
                         MorphingPhace
                         (Eth.Utils.unsafeToAddress demoAddress)
                         False
+
                 ]
 
         -- Element.el commonAttributes <|
         UserPhaceInfo ( accountInfo, showAddress ) ->
             Element.el commonAttributes <|
                 phaceElement
-                    True
+                    addressHangToRight
                     UserPhace
                     accountInfo.address
                     showAddress
@@ -190,6 +181,7 @@ daiSymbol isWhite attributes =
         { src =
             if isWhite then
                 "img/dai-unit-char-white.svg"
+
             else
                 "img/dai-unit-char-black.svg"
         , description = ""

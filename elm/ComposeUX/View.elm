@@ -15,10 +15,22 @@ import Helpers.Element as EH
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Maybe.Extra
-import Post
+import Post exposing (Post)
 import Routing exposing (Route)
 import Theme exposing (defaultTheme)
 import TokenValue exposing (TokenValue)
+
+
+viewFull : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> ComposeContext -> Element Msg
+viewFull dProfile walletUXPhaceInfo model context =
+    Element.el
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        , Element.padding 20
+        , Element.Background.color defaultTheme.appBackground
+        ]
+    <|
+        view dProfile walletUXPhaceInfo model context
 
 
 view : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> ComposeContext -> Element Msg
@@ -30,23 +42,17 @@ view dProfile walletUXPhaceInfo model context =
         , Element.padding 20
         , Element.spacing 20
         , composeUXShadow
-        , Element.Border.roundEach
-            { topLeft = 0
-            , topRight = 10
-            , bottomRight = 10
-            , bottomLeft = 10
-            }
+        , Element.Border.rounded 10
         ]
-        [ viewInput model.message
-        , Element.column
+        [ Element.column
             [ Element.width Element.fill
             , Element.height Element.fill
-            , Element.spacing 15
+            , Element.spacing 10
             ]
-            [ viewComposeContext context
-            , viewPreview model.message
-            , Element.el [ Element.centerX ] <| actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context
+            [ viewInput model.message
+            , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context
             ]
+        , viewPreviewWithComposeContext model.message context
         ]
 
 
@@ -56,30 +62,8 @@ composeUXShadow =
         { offset = ( 0, 0 )
         , size = 0
         , blur = 10
-        , color = Theme.darkGray
+        , color = Element.rgba 0 0 0 1
         }
-
-
-viewComposeContext : ComposeContext -> Element Msg
-viewComposeContext context =
-    Maybe.map
-        (Element.row
-            [ Element.spacing 20
-            , Element.paddingXY 30 10
-            , Element.width Element.fill
-            ]
-        )
-        ([ Maybe.map
-            viewReplyInfo
-            (composeContextReplyTo context)
-         , Maybe.map
-            viewTopic
-            (composeContextTopic context)
-         ]
-            |> Maybe.Extra.values
-            |> ListHelpers.nonEmpty
-        )
-        |> Maybe.withDefault Element.none
 
 
 viewInput : String -> Element Msg
@@ -98,24 +82,42 @@ viewInput input =
         }
 
 
-viewPreview : String -> Element Msg
-viewPreview input =
-    Element.el
+viewPreviewWithComposeContext : String -> ComposeContext -> Element Msg
+viewPreviewWithComposeContext input context =
+    Element.column
         [ Element.width Element.fill
         , Element.height Element.fill
-        , Element.padding 10
+        , Element.padding 15
         , Element.Background.color <| Element.rgba 1 1 1 0.5
         , Element.Border.width 1
         , Element.Border.color <| Element.rgba 0 0 0 0.5
         , Element.Border.rounded 10
         , Element.scrollbars
+        , Element.spacing 15
         ]
-        (if input == "" then
-            appStatusMessage defaultTheme.appStatusTextColor "Start typing on the left"
+        [ Maybe.map
+            (Element.row
+                [ Element.spacing 10
+                , Element.width Element.fill
+                ]
+            )
+            ([ Maybe.map
+                viewReplyInfo
+                (composeContextReplyTo context)
+             , Maybe.map
+                (Element.el [ Element.alignLeft ] << viewTopic)
+                (composeContextTopic context)
+             ]
+                |> Maybe.Extra.values
+                |> ListHelpers.nonEmpty
+            )
+            |> Maybe.withDefault Element.none
+        , if input == "" then
+            appStatusMessage defaultTheme.appStatusTextColor "[Preview Box]"
 
-         else
+          else
             Post.renderContentOrError defaultTheme input
-        )
+        ]
 
 
 messageInputPlaceholder : Element.Input.Placeholder Msg
@@ -165,29 +167,28 @@ viewReplyInfo postId =
 
 viewTopic : String -> Element Msg
 viewTopic topic =
-    Element.el
-        [ Element.width (Element.fill |> Element.maximum 400) ]
-    <|
-        Element.column
-            [ Element.padding 10
-            , Element.Border.rounded 5
-            , Element.Font.size 20
-            , Element.Font.italic
-            , Element.Background.color <| Element.rgba 1 1 1 0.5
-            , Element.spacing 5
-            , Element.scrollbarX
+    Element.column
+        [ Element.padding 10
+        , Element.Border.rounded 5
+        , Element.Font.size 20
+        , Element.Font.italic
+        , Element.Background.color <| Element.rgba 1 1 1 0.5
+        , Element.spacing 5
+        , Element.scrollbarX
+        , Element.clipX
+        , Element.width (Element.shrink |> Element.maximum 400)
+        ]
+        [ Element.text "Topic:"
+        , Element.el
+            [ Element.Font.color defaultTheme.linkTextColor
+            , Element.pointer
+            , Element.Events.onClick <|
+                MsgUp <|
+                    GotoRoute <|
+                        Routing.ViewTopic topic
             ]
-            [ Element.text "topic:"
-            , Element.el
-                [ Element.Font.color defaultTheme.linkTextColor
-                , Element.pointer
-                , Element.Events.onClick <|
-                    MsgUp <|
-                        GotoRoute <|
-                            Routing.ViewTopic topic
-                ]
-                (Element.text <| topic)
-            ]
+            (Element.text <| topic)
+        ]
 
 
 actionFormAndMaybeErrorEl : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> ComposeContext -> Element Msg
@@ -199,10 +200,11 @@ actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context =
                     previewButtonAndMaybeError dProfile userInfo model context
             in
             Element.row
-                [ Element.alignLeft
+                [ Element.alignRight
                 , Element.spacing 10
                 ]
-                [ Element.row
+                [ inputErrorEl maybeErrorEls
+                , Element.row
                     [ Element.spacing 15
                     , Element.padding 10
                     , Element.Background.color <| Element.rgb 0.8 0.8 1
@@ -212,7 +214,6 @@ actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context =
                     , inputsElement dProfile userInfo model
                     , goButtonEl
                     ]
-                , inputErrorEl maybeErrorEls
                 ]
 
         _ ->
@@ -315,6 +316,9 @@ inputErrorEl =
             [ Element.width (Element.fill |> Element.maximum 700)
             , Element.Font.color defaultTheme.errorTextColor
             , Element.Font.italic
+            , Element.alignTop
+            , Element.paddingXY 0 10
+            , Element.Font.alignRight
             ]
         )
         >> Maybe.withDefault Element.none
@@ -397,11 +401,13 @@ previewButtonAndMaybeError dProfile userInfo model context =
                                             ( maybeGoButton dProfile <|
                                                 Just <|
                                                     Post.Draft
-                                                        userInfo.address
-                                                        message
-                                                        burnAmount
                                                         donateAmount
-                                                        (composeContextToMetadata context)
+                                                        (Post
+                                                            userInfo.address
+                                                            burnAmount
+                                                            message
+                                                            (composeContextToMetadata context)
+                                                        )
                                             , Nothing
                                             )
 

@@ -27,7 +27,7 @@ import Json.Encode
 import List.Extra
 import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
-import Post exposing (Post)
+import Post exposing (Post, PublishedPost)
 import Random
 import Routing exposing (Route)
 import Task
@@ -78,7 +78,7 @@ init flags url key =
     , dProfile = EH.screenWidthToDisplayProfile flags.width
     , txSentry = txSentry
     , eventSentry = eventSentry
-    , posts = Dict.empty
+    , publishedPosts = Dict.empty
     , replies = []
     , mode = BlankMode
     , showHalfComposeUX = False
@@ -87,7 +87,9 @@ init flags url key =
     , blockTimes = Dict.empty
     , showAddressId = Nothing
     , userNotices = walletNotices
-    , trackedTxs = Dict.empty
+    , trackedTxs = []
+    , showExpandedTrackedTxs = False
+    , draftModal = Nothing
     , demoPhaceSrc = initDemoPhaceSrc
     }
         |> gotoRoute route
@@ -145,15 +147,21 @@ update msg prevModel =
                 |> Maybe.withDefault Cmd.none
             )
 
+        ShowExpandedTrackedTxs flag ->
+            ( { prevModel
+                | showExpandedTrackedTxs = flag
+              }
+            , Cmd.none
+            )
+
         CheckTrackedTxsStatus ->
             ( prevModel
             , prevModel.trackedTxs
-                |> Dict.filter
-                    (\_ trackedTx ->
-                        trackedTx.status /= Mined
+                |> List.filter
+                    (\trackedTx ->
+                        trackedTx.status == Mining
                     )
-                |> Dict.keys
-                |> List.map Eth.Utils.unsafeToTxHash
+                |> List.map .txHash
                 |> List.map (Eth.getTxReceipt Config.httpProviderUrl)
                 |> List.map (Task.attempt TrackedTxStatusResult)
                 |> Cmd.batch
@@ -162,30 +170,29 @@ update msg prevModel =
         TrackedTxStatusResult txReceiptResult ->
             case txReceiptResult of
                 Err errStr ->
-                    let
-                        _ =
-                            Debug.log "txReceipt poll err. Important to catch? Currently ignoring." errStr
-                    in
                     -- Hasn't yet been mined; make no change
                     ( prevModel, Cmd.none )
 
                 Ok txReceipt ->
-                    case Dict.get (Eth.Utils.txHashToString txReceipt.hash) prevModel.trackedTxs of
-                        Nothing ->
-                            -- no matching trackedTx; ignore
-                            ( prevModel, Cmd.none )
+                    let
+                        ( newStatus, maybePublishedPost, maybeUserNotice ) =
+                            handleTxReceipt txReceipt
+                    in
+                    ( prevModel
+                        |> updateTrackedTxStatusIfMining
+                            txReceipt.hash
+                            newStatus
+                        |> addUserNotices
+                            ([ maybeUserNotice ] |> Maybe.Extra.values)
+                        |> (case maybePublishedPost of
+                                Just post ->
+                                    addPost txReceipt.blockNumber post
 
-                        Just trackedTx ->
-                            case trackedTx.status of
-                                Mined ->
-                                    -- Already updated; ignore
-                                    ( prevModel, Cmd.none )
-
-                                _ ->
-                                    ( prevModel
-                                        |> updateTrackedTxStatus txReceipt.hash Mined
-                                    , Cmd.none
-                                    )
+                                Nothing ->
+                                    identity
+                           )
+                    , Cmd.none
+                    )
 
         WalletStatus walletSentryResult ->
             case walletSentryResult of
@@ -260,12 +267,22 @@ update msg prevModel =
                     ( prevModel
                         |> addPost log.blockNumber
                             (SSContract.fromMessageBurn
+                                log.transactionHash
                                 log.blockNumber
                                 ssPost
                             )
-                        |> updateTrackedTxStatus
+                        |> updateTrackedTxByTxHash
                             log.transactionHash
-                            Mined
+                            (\trackedTx ->
+                                { trackedTx
+                                    | status =
+                                        Mined <|
+                                            Just <|
+                                                Post.Id
+                                                    log.blockNumber
+                                                    ssPost.hash
+                                }
+                            )
                     , getBlockTimeIfNeededCmd prevModel.blockTimes log.blockNumber
                     )
 
@@ -430,22 +447,15 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-        TxMined txInfo txReceiptResult ->
-            case txReceiptResult of
-                Ok txReceipt ->
-                    ( prevModel
-                        |> updateTrackedTxStatus txReceipt.hash Mined
-                    , Cmd.none
-                    )
-
-                Err errStr ->
-                    ( prevModel
-                        |> updateTrackedTxStatusByTxInfo txInfo (Failed errStr)
-                    , Cmd.none
-                    )
-
         MsgUp msgUp ->
             prevModel |> handleMsgUp msgUp
+
+        ViewDraft maybeDraft ->
+            ( { prevModel
+                | draftModal = maybeDraft
+              }
+            , Cmd.none
+            )
 
         ChangeDemoPhaceSrc ->
             ( prevModel
@@ -453,14 +463,6 @@ update msg prevModel =
             , Random.generate NewDemoSrc DemoPhaceSrcMutator.addressSrcGenerator
             )
 
-        -- MutateDemoSrcWith mutateInfo ->
-        --     ( { prevModel
-        --         | demoPhaceSrc =
-        --             prevModel.demoPhaceSrc
-        --                 |> DemoPhaceSrcMutator.mutateSrc mutateInfo
-        --       }
-        --     , Cmd.none
-        --     )
         NewDemoSrc src ->
             ( { prevModel | demoPhaceSrc = src }
             , Cmd.none
@@ -472,6 +474,8 @@ update msg prevModel =
         ClickHappened ->
             ( { prevModel
                 | showAddressId = Nothing
+                , showExpandedTrackedTxs = False
+                , draftModal = Nothing
               }
             , Cmd.none
             )
@@ -536,7 +540,7 @@ handleMsgUp msgUp prevModel =
                         |> Eth.toSend
 
                 listeners =
-                    { onMined = Just ( TxMined UnlockTx, Nothing )
+                    { onMined = Nothing
                     , onSign = Just <| TxSigned UnlockTx
                     , onBroadcast = Nothing
                     }
@@ -559,7 +563,7 @@ handleMsgUp msgUp prevModel =
                         |> Eth.toSend
 
                 listeners =
-                    { onMined = Just ( TxMined <| PostTx postDraft, Nothing )
+                    { onMined = Nothing
                     , onSign = Just <| TxSigned <| PostTx postDraft
                     , onBroadcast = Nothing
                     }
@@ -574,18 +578,76 @@ handleMsgUp msgUp prevModel =
             )
 
 
+handleTxReceipt : Eth.Types.TxReceipt -> ( TxStatus, Maybe PublishedPost, Maybe UserNotice )
+handleTxReceipt txReceipt =
+    case txReceipt.status of
+        Just True ->
+            let
+                maybePostEvent =
+                    txReceipt.logs
+                        |> List.map (Eth.Decode.event SSContract.messageBurnDecoder)
+                        |> List.map .returnData
+                        |> List.map Result.toMaybe
+                        |> Maybe.Extra.values
+                        |> List.head
+            in
+            ( Mined <|
+                Maybe.map
+                    (\ssEvent ->
+                        Post.Id
+                            txReceipt.blockNumber
+                            ssEvent.hash
+                    )
+                    maybePostEvent
+            , Maybe.map
+                (SSContract.fromMessageBurn
+                    txReceipt.hash
+                    txReceipt.blockNumber
+                )
+                maybePostEvent
+            , Nothing
+            )
+
+        Just False ->
+            ( Failed MinedButExecutionFailed
+            , Nothing
+            , Nothing
+            )
+
+        Nothing ->
+            ( Mining
+            , Nothing
+            , Just <|
+                UN.unexpectedError "Weird. I Got a transaction receipt with a success value of 'Nothing'. Depending on why this happened I might be a little confused about any mining transactions." txReceipt
+            )
+
+
 addTrackedTx : TxHash -> TxInfo -> Model -> Model
 addTrackedTx txHash txInfo prevModel =
     { prevModel
         | trackedTxs =
             prevModel.trackedTxs
-                |> Dict.insert
-                    (Eth.Utils.txHashToString txHash)
-                    (TrackedTx
+                |> List.append
+                    [ TrackedTx
+                        txHash
                         txInfo
                         Mining
-                    )
+                    ]
     }
+
+
+updateTrackedTxStatusIfMining : TxHash -> TxStatus -> Model -> Model
+updateTrackedTxStatusIfMining txHash newStatus =
+    updateTrackedTxIf
+        (\trackedTx ->
+            (trackedTx.txHash == txHash)
+                && (trackedTx.status == Mining)
+        )
+        (\trackedTx ->
+            { trackedTx
+                | status = newStatus
+            }
+        )
 
 
 withMsgUp : MsgUp -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
@@ -663,6 +725,13 @@ gotoRoute route prevModel =
             ( { prevModel
                 | route = route
                 , mode = mode
+                , showHalfComposeUX =
+                    case mode of
+                        Compose _ ->
+                            False
+
+                        _ ->
+                            prevModel.showHalfComposeUX
               }
             , cmd
             )
@@ -702,16 +771,16 @@ routeToModeAndCmd route =
             Err err
 
 
-addPost : Int -> Post -> Model -> Model
-addPost blockNumber post prevModel =
+addPost : Int -> PublishedPost -> Model -> Model
+addPost blockNumber publishedPost prevModel =
     let
         alreadyHavePost =
-            prevModel.posts
+            prevModel.publishedPosts
                 |> Dict.get blockNumber
                 |> Maybe.map
                     (List.any
                         (\listedPost ->
-                            listedPost.postId == post.postId
+                            listedPost.id == publishedPost.id
                         )
                     )
                 |> Maybe.withDefault False
@@ -721,24 +790,24 @@ addPost blockNumber post prevModel =
 
     else
         { prevModel
-            | posts =
-                prevModel.posts
+            | publishedPosts =
+                prevModel.publishedPosts
                     |> Dict.update blockNumber
                         (\maybePostsForBlock ->
                             Just <|
                                 case maybePostsForBlock of
                                     Nothing ->
-                                        [ post ]
+                                        [ publishedPost ]
 
                                     Just posts ->
-                                        List.append posts [ post ]
+                                        List.append posts [ publishedPost ]
                         )
             , replies =
                 List.append
                     prevModel.replies
-                    (case post.metadata |> Result.toMaybe |> Maybe.andThen .replyTo of
+                    (case publishedPost.post.metadata.replyTo of
                         Just replyTo ->
-                            [ { from = post.postId
+                            [ { from = publishedPost.id
                               , to = replyTo
                               }
                             ]

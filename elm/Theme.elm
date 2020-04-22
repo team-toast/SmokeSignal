@@ -9,9 +9,12 @@ import Helpers.Element as EH
 
 type alias Theme msg =
     { headerBackground : Color
+    , headerTextColor : Color
     , appBackground : Color
     , blockBackground : Color
+    , txTrackerBackground : Color
     , postBodyBackground : Color
+    , draftModalBackground : Color
     , mainTextColor : Color
     , linkTextColor : Color
     , emphasizedTextColor : Color
@@ -36,12 +39,15 @@ defaultTheme =
 basicTheme : Theme msg
 basicTheme =
     { headerBackground = darkBlue
-    , appBackground = almostWhite
+    , headerTextColor = EH.white
+    , appBackground = darkerBlue
     , blockBackground = lightBlue
     , postBodyBackground = lightBlue
-    , mainTextColor = EH.black
+    , draftModalBackground = lightGray
+    , txTrackerBackground = lightBlue
+    , mainTextColor = EH.white
     , linkTextColor = blue
-    , emphasizedTextColor = EH.black
+    , emphasizedTextColor = EH.white
     , postBodyTextColor = EH.black
     , messageInputPlaceholderTextColor = darkGray
     , loadingTextColor = darkGray
@@ -88,6 +94,9 @@ blue =
 darkBlue =
     Element.rgb255 7 27 92
 
+darkerBlue =
+    Element.rgb255 7 20 60
+
 
 lightGray =
     Element.rgb255 233 237 242
@@ -109,6 +118,18 @@ veryDarkGray =
     Element.rgb 0.1 0.1 0.1
 
 
+green =
+    Element.rgb255 51 183 2
+
+
+yellow =
+    Element.rgb 1 1 0
+
+
+darkYellow =
+    Element.rgb 0.6 0.6 0
+
+
 commonShadow : Attribute msg
 commonShadow =
     Element.Border.shadow
@@ -120,16 +141,10 @@ commonShadow =
 
 
 
--- green =
---     Element.rgb255 51 183 2
--- yellow =
---     Element.rgb 1 1 0
 -- daiYellow =
 --     yellow
 -- dollarGreen =
 --     green
--- darkYellow =
---     Element.rgb 0.6 0.6 0
 -- placeholderTextColor =
 --     Element.rgb255 213 217 222
 -- mediumGray =
@@ -166,8 +181,8 @@ lightBlueButton dProfile attributes text msg =
     EH.button dProfile
         attributes
         ( color
-        , color |> EH.addAlpha 0.8
-        , color |> EH.addAlpha 0.6
+        , color |> EH.withAlpha 0.8
+        , color |> EH.withAlpha 0.6
         )
         EH.white
         text
