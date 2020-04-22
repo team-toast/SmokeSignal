@@ -232,20 +232,18 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
     Element.row
         [ Element.width Element.fill
         , Element.Background.color defaultTheme.headerBackground
-        , Element.height <| Element.px 130
+        , Element.height <| Element.px 150
+        , Element.spacing 30
+        , Element.padding 20
+        , Element.inFront <|
+            Element.el [ Element.centerX, Element.centerY ] <|
+                maybeModeEl dProfile mode walletUXPhaceInfo
         ]
-        [ Element.el
-            [ Element.width <| Element.fillPortion 1
-            , Element.padding 10
-            ]
+        [ logoBlock
+        , Element.el [ Element.centerY ] <|
             EH.forgedByFoundry
-        , Element.el
-            [ Element.width <| Element.fillPortion 3
-            ]
-          <|
-            Element.el [ Element.centerX ] logoBlock
         , Element.row
-            [ Element.width <| Element.fillPortion 1
+            [ Element.alignRight
             , Element.spacing 10
             ]
             [ maybeTxTracker showExpandedTrackedTxs trackedTxs
@@ -265,6 +263,96 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
         ]
 
 
+maybeModeEl : EH.DisplayProfile -> Mode -> WalletUXPhaceInfo -> Element Msg
+maybeModeEl dProfile mode walletUXPhaceInfo =
+    let
+        columnContainer =
+            Element.column
+                [ Element.spacing 10
+                , Element.Font.size 36
+                , Element.Font.color defaultTheme.headerTextColor
+                ]
+
+        buttonAttributes =
+            [ Element.paddingXY 30 10
+            , Element.centerX
+            ]
+
+        connectButton =
+            defaultTheme.emphasizedActionButton
+                dProfile
+                buttonAttributes
+                [ "Connect Wallet to Post" ]
+                (MsgUp <| ConnectToWeb3)
+    in
+    case mode of
+        BlankMode ->
+            Element.none
+
+        Home _ ->
+            Element.none
+
+        Compose topic ->
+            columnContainer
+                [ Element.row []
+                    [ Element.text "Composing Post in "
+                    , Element.el
+                        [ Element.Font.italic
+                        , Element.Font.bold
+                        , Element.Font.color defaultTheme.linkTextColor
+                        , Element.pointer
+                        , Element.Events.onClick <|
+                            MsgUp <|
+                                GotoRoute <|
+                                    Routing.ViewTopic topic
+                        ]
+                      <|
+                        Element.text topic
+                    ]
+                ]
+
+        ViewPost postId ->
+            columnContainer
+                [ Element.text <|
+                    "Viewing Post "
+                        ++ shortenedHash postId.messageHash
+                , case walletUXPhaceInfo of
+                    UserPhaceInfo ( userInfo, _ ) ->
+                        defaultTheme.secondaryActionButton
+                            dProfile
+                            buttonAttributes
+                            [ "Reply to This Post" ]
+                            (UpdateReplyTo <| Just postId)
+
+                    _ ->
+                        connectButton
+                ]
+
+        ViewTopic topic ->
+            columnContainer
+                [ Element.row []
+                    [ Element.text "Viewing Topic "
+                    , Element.el
+                        [ Element.Font.italic
+                        , Element.Font.bold
+                        , Element.Font.color EH.white
+                        ]
+                      <|
+                        Element.text topic
+                    ]
+                , case walletUXPhaceInfo of
+                    UserPhaceInfo ( userInfo, _ ) ->
+                        defaultTheme.secondaryActionButton
+                            dProfile
+                            buttonAttributes
+                            [ "Post in Topic" ]
+                            (MsgUp <| GotoRoute <| Routing.Compose topic)
+
+                    _ ->
+                        connectButton
+                ]
+
+
 logoBlock : Element Msg
 logoBlock =
     Element.column
@@ -276,6 +364,8 @@ logoBlock =
             [ Element.row
                 [ Element.Font.size 50
                 , Element.Font.bold
+                , Element.pointer
+                , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.Home
                 ]
                 [ Element.el [ Element.Font.color Theme.darkGray ] <| Element.text "Smoke"
                 , Element.el [ Element.Font.color <| Element.rgb 1 0.5 0 ] <| Element.text "Signal"

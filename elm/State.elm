@@ -675,6 +675,13 @@ gotoRoute route prevModel =
             ( { prevModel
                 | route = route
                 , mode = mode
+                , showHalfComposeUX =
+                    case mode of
+                        Compose _ ->
+                            False
+
+                        _ ->
+                            prevModel.showHalfComposeUX
               }
             , cmd
             )

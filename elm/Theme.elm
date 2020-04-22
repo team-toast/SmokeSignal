@@ -9,6 +9,7 @@ import Helpers.Element as EH
 
 type alias Theme msg =
     { headerBackground : Color
+    , headerTextColor : Color
     , appBackground : Color
     , blockBackground : Color
     , txTrackerBackground : Color
@@ -38,6 +39,7 @@ defaultTheme =
 basicTheme : Theme msg
 basicTheme =
     { headerBackground = darkBlue
+    , headerTextColor = almostWhite
     , appBackground = almostWhite
     , blockBackground = lightBlue
     , postBodyBackground = lightBlue
