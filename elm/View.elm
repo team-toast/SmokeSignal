@@ -67,10 +67,35 @@ body model =
                 (Wallet.userInfo model.wallet)
                 model.showAddressId
                 model.demoPhaceSrc
+
+        showDraftInProgressButton =
+            case model.mode of
+                Compose _ ->
+                    False
+
+                _ ->
+                    (model.showHalfComposeUX == False)
+                        && (model.composeUXModel.message /= "")
     in
     Element.column
         ([ Element.width Element.fill
          , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
+         , Element.inFront <|
+            if showDraftInProgressButton then
+                defaultTheme.secondaryActionButton
+                    model.dProfile
+                    [ Element.alignBottom
+                    , Element.alignLeft
+                    , Element.paddingXY 20 10
+                    , Element.Border.glow
+                        (Element.rgba 0 0 0 0.5)
+                        5
+                    ]
+                    [ "Draft in Progress" ]
+                    (MsgUp <| ShowHalfComposeUX True)
+
+            else
+                Element.none
          , Element.inFront <|
             case model.draftModal of
                 Just draft ->
