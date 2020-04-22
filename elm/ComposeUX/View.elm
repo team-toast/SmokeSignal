@@ -43,7 +43,7 @@ view dProfile walletUXPhaceInfo model context =
             , Element.spacing 10
             ]
             [ viewInput model.message
-            , Element.el [ Element.centerX ] <| actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context
+            , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context
             ]
         , viewPreviewWithComposeContext model.message context
         ]
@@ -193,10 +193,11 @@ actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context =
                     previewButtonAndMaybeError dProfile userInfo model context
             in
             Element.row
-                [ Element.alignLeft
+                [ Element.alignRight
                 , Element.spacing 10
                 ]
-                [ Element.row
+                [ inputErrorEl maybeErrorEls
+                , Element.row
                     [ Element.spacing 15
                     , Element.padding 10
                     , Element.Background.color <| Element.rgb 0.8 0.8 1
@@ -206,7 +207,6 @@ actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context =
                     , inputsElement dProfile userInfo model
                     , goButtonEl
                     ]
-                , inputErrorEl maybeErrorEls
                 ]
 
         _ ->
@@ -309,6 +309,9 @@ inputErrorEl =
             [ Element.width (Element.fill |> Element.maximum 700)
             , Element.Font.color defaultTheme.errorTextColor
             , Element.Font.italic
+            , Element.alignTop
+            , Element.paddingXY 0 10
+            , Element.Font.alignRight
             ]
         )
         >> Maybe.withDefault Element.none
