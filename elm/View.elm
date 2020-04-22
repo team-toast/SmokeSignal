@@ -40,6 +40,10 @@ import UserNotice as UN exposing (UserNotice)
 import Wallet
 
 
+maxContentColWidth =
+    1000
+
+
 root : Model -> Browser.Document Msg
 root model =
     { title = "SmokeSignal"
@@ -108,6 +112,7 @@ body model =
         , Element.el
             [ Element.width Element.fill
             , Element.height Element.fill
+            , Element.Background.color defaultTheme.appBackground
             , Element.scrollbarY
             ]
           <|
@@ -127,7 +132,7 @@ body model =
 
                 Compose topic ->
                     Element.map ComposeUXMsg <|
-                        ComposeUX.view
+                        ComposeUX.viewFull
                             model.dProfile
                             walletUXPhaceInfo
                             model.composeUXModel
@@ -235,6 +240,10 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
         , Element.height <| Element.px 150
         , Element.spacing 30
         , Element.padding 20
+        , EH.moveToFront
+        , Element.Border.glow
+            (EH.black |> EH.withAlpha 0.5)
+            5
         , Element.inFront <|
             Element.el [ Element.centerX, Element.centerY ] <|
                 maybeModeEl dProfile mode walletUXPhaceInfo
@@ -727,49 +736,74 @@ viewPostAndReplies allPosts blockTimes replies showAddressId publishedPost =
                 |> Maybe.Extra.values
                 |> Dict.Extra.groupBy (.id >> .block)
     in
-    Element.column
-        [ Element.width Element.fill
-        , Element.spacing 40
-        ]
-        [ viewEntirePost
-            { showReplyTo = True
-            , showTopic = True
+    Element.el
+        [ Element.centerX
+        , Element.width (Element.fill |> Element.maximum maxContentColWidth)
+        , Element.paddingEach
+            { top = 20
+            , bottom = 0
+            , right = 0
+            , left = 0
             }
-            (case showAddressId of
-                Just (PhaceForPublishedPost postId) ->
-                    postId == publishedPost.id
-
-                _ ->
-                    False
-            )
-            Nothing
-            (PhaceForPublishedPost publishedPost.id)
-            publishedPost.post
-        , Element.column
-            [ Element.width Element.fill
-            , Element.spacing 20
-            , Element.paddingEach
-                { left = 40
-                , right = 0
-                , top = 0
-                , bottom = 0
-                }
-            ]
-            [ Element.el
-                [ Element.Font.size 40
-                , Element.Font.bold
-                ]
-                (Element.text "Replies")
-            , viewPostsGroupedByBlock
-                { showReplyTo = False
-                , showTopic = False
-                }
-                blockTimes
-                replies
-                showAddressId
-                replyingPosts
-            ]
         ]
+    <|
+        Element.column
+            [ Element.width Element.fill
+            , Element.Border.rounded 10
+
+            -- , Element.Background.color EH.white
+            , Element.centerX
+            , Element.spacing 40
+            , Element.padding 20
+            ]
+            [ viewEntirePost
+                { showReplyTo = True
+                , showTopic = True
+                }
+                (case showAddressId of
+                    Just (PhaceForPublishedPost postId) ->
+                        postId == publishedPost.id
+
+                    _ ->
+                        False
+                )
+                Nothing
+                (PhaceForPublishedPost publishedPost.id)
+                publishedPost.post
+            , if Dict.isEmpty replyingPosts then
+                Element.none
+
+              else
+                Element.column
+                    [ Element.width Element.fill
+                    , Element.spacing 20
+                    ]
+                    [ Element.el
+                        [ Element.Font.size 50
+                        , Element.Font.bold
+                        , Element.Font.color defaultTheme.mainTextColor
+                        ]
+                        (Element.text "Replies")
+                    , Element.el
+                        [ Element.width Element.fill
+                        , Element.paddingEach
+                            { left = 40
+                            , right = 0
+                            , top = 0
+                            , bottom = 0
+                            }
+                        ]
+                      <|
+                        viewPostsGroupedByBlock
+                            { showReplyTo = False
+                            , showTopic = False
+                            }
+                            blockTimes
+                            replies
+                            showAddressId
+                            replyingPosts
+                    ]
+            ]
 
 
 viewPostsForTopic : PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> String -> Element Msg
@@ -783,7 +817,8 @@ viewPostsForTopic allPosts blockTimes replies showAddressId topic =
                     )
     in
     Element.el
-        [ Element.width Element.fill
+        [ Element.width (Element.fill |> Element.maximum maxContentColWidth)
+        , Element.centerX
         , Element.height Element.fill
         , Element.padding 20
         ]
@@ -827,8 +862,7 @@ viewBlocknumAndPosts viewContext blockTimes replies showAddressId ( blocknum, pu
             , Element.spacing 5
             , Element.Font.italic
             , Element.Font.size 14
-
-            -- , Element.Font.color EH.white
+            , Element.Font.color defaultTheme.mainTextColor
             ]
             [ Element.row
                 [ Element.width Element.fill
@@ -838,8 +872,7 @@ viewBlocknumAndPosts viewContext blockTimes replies showAddressId ( blocknum, pu
                 , Element.el
                     [ Element.width Element.fill
                     , Element.height <| Element.px 1
-
-                    -- , Element.Border.color EH.white
+                    , Element.Border.color defaultTheme.mainTextColor
                     , Element.Border.widthEach
                         { top = 1
                         , bottom = 0

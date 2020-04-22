@@ -39,15 +39,15 @@ defaultTheme =
 basicTheme : Theme msg
 basicTheme =
     { headerBackground = darkBlue
-    , headerTextColor = almostWhite
-    , appBackground = almostWhite
+    , headerTextColor = EH.white
+    , appBackground = darkerBlue
     , blockBackground = lightBlue
     , postBodyBackground = lightBlue
     , draftModalBackground = lightGray
     , txTrackerBackground = lightBlue
-    , mainTextColor = EH.black
+    , mainTextColor = EH.white
     , linkTextColor = blue
-    , emphasizedTextColor = EH.black
+    , emphasizedTextColor = EH.white
     , postBodyTextColor = EH.black
     , messageInputPlaceholderTextColor = darkGray
     , loadingTextColor = darkGray
@@ -93,6 +93,9 @@ blue =
 
 darkBlue =
     Element.rgb255 7 27 92
+
+darkerBlue =
+    Element.rgb255 7 20 60
 
 
 lightGray =

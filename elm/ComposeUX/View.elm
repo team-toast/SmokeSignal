@@ -21,6 +21,18 @@ import Theme exposing (defaultTheme)
 import TokenValue exposing (TokenValue)
 
 
+viewFull : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> ComposeContext -> Element Msg
+viewFull dProfile walletUXPhaceInfo model context =
+    Element.el
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        , Element.padding 20
+        , Element.Background.color defaultTheme.appBackground
+        ]
+    <|
+        view dProfile walletUXPhaceInfo model context
+
+
 view : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> ComposeContext -> Element Msg
 view dProfile walletUXPhaceInfo model context =
     Element.row
@@ -30,12 +42,7 @@ view dProfile walletUXPhaceInfo model context =
         , Element.padding 20
         , Element.spacing 20
         , composeUXShadow
-        , Element.Border.roundEach
-            { topLeft = 0
-            , topRight = 10
-            , bottomRight = 10
-            , bottomLeft = 10
-            }
+        , Element.Border.rounded 10
         ]
         [ Element.column
             [ Element.width Element.fill
@@ -55,7 +62,7 @@ composeUXShadow =
         { offset = ( 0, 0 )
         , size = 0
         , blur = 10
-        , color = Theme.darkGray
+        , color = Element.rgba 0 0 0 1
         }
 
 
