@@ -72,6 +72,7 @@ init flags url key =
                 initEventSentry
     in
     { navKey = key
+    , basePath = flags.basePath
     , route = route
     , wallet = wallet
     , now = Time.millisToPosix flags.nowInMillis
@@ -493,7 +494,7 @@ handleMsgUp msgUp prevModel =
                             [ cmd
                             , Browser.Navigation.pushUrl
                                 prevModel.navKey
-                                (Routing.routeToString route)
+                                (Routing.routeToString prevModel.basePath route)
                             ]
                     )
 

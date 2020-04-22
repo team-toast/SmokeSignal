@@ -27,7 +27,8 @@ import Wallet exposing (Wallet)
 
 
 type alias Flags =
-    { networkId : Int
+    { basePath : String
+    , networkId : Int
     , width : Int
     , height : Int
     , nowInMillis : Int
@@ -36,6 +37,7 @@ type alias Flags =
 
 type alias Model =
     { navKey : Browser.Navigation.Key
+    , basePath : String
     , route : Route
     , wallet : Wallet
     , now : Time.Posix

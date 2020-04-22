@@ -36,38 +36,40 @@ viewPostOrParseFail =
         ViewPost
 
 
-routeToString : Route -> String
-routeToString route =
-    case route of
-        Home ->
-            Builder.absolute
-                [ "#" ]
-                []
+routeToString : String -> Route -> String
+routeToString basePath route =
+    basePath
+        ++ (case route of
+                Home ->
+                    Builder.relative
+                        [ "#" ]
+                        []
 
-        Compose topic ->
-            Builder.absolute
-                [ "#", "compose", topic ]
-                []
+                Compose topic ->
+                    Builder.relative
+                        [ "#", "compose", topic ]
+                        []
 
-        ViewPost postId ->
-            Builder.absolute
-                [ "#", "viewpost" ]
-                (encodePostIdInfoQueryParameters postId)
+                ViewPost postId ->
+                    Builder.relative
+                        [ "#", "viewpost" ]
+                        (encodePostIdInfoQueryParameters postId)
 
-        ViewTopic topic ->
-            Builder.absolute
-                [ "#", "topic", topic ]
-                []
+                ViewTopic topic ->
+                    Builder.relative
+                        [ "#", "topic", topic ]
+                        []
 
-        NotFound _ ->
-            Builder.absolute
-                [ "#" ]
-                []
+                NotFound _ ->
+                    Builder.relative
+                        [ "#" ]
+                        []
+           )
 
 
 routeToFullDotEthUrlString : Route -> String
 routeToFullDotEthUrlString route =
-    "https://smokesignal.eth" ++ routeToString route
+    routeToString "https://smokesignal.eth/" route
 
 
 postIdInfoParser : Query.Parser (Result String Post.Id)

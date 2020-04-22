@@ -3,6 +3,8 @@ var networkChangeNotifier = require('./networkChangeNotifier');
 
 import { Elm } from '../../elm/App'
 
+const basePath = new URL(document.baseURI).pathname;
+
 //window.testStuff = secureComms.testStuff;
 window.web3Connected = false;
 
@@ -24,6 +26,7 @@ function startDapp() {
             window.app = Elm.App.init({
                 node: document.getElementById('elm'),
                 flags: {
+                    basePath : basePath,
                     networkId: id,
                     width: window.innerWidth,
                     height: window.innerHeight,
@@ -37,6 +40,7 @@ function startDapp() {
         window.app = Elm.App.init({
             node: document.getElementById('elm'),
             flags: {
+                basePath : basePath,
                 networkId: 0, // 0 indicates no network set by provider
                 width: window.innerWidth,
                 height: window.innerHeight,
