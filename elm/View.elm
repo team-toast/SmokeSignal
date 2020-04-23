@@ -185,8 +185,9 @@ body model =
                                 "Loading post..."
 
                 ViewTopic topic ->
-                    Element.Lazy.lazy5
-                        viewPostsForTopic
+                    viewPostsForTopic
+                        model.dProfile
+                        (Wallet.userInfo model.wallet)
                         model.publishedPosts
                         model.blockTimes
                         model.replies
@@ -267,7 +268,7 @@ header : EH.DisplayProfile -> Mode -> WalletUXPhaceInfo -> List TrackedTx -> Boo
 header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
     Element.row
         [ Element.width Element.fill
-        , Element.Background.color defaultTheme.headerBackground
+        , Element.Background.color (defaultTheme.headerBackground |> changeForMobile EH.white dProfile)
         , Element.height <| Element.px 150
         , Element.spacing 30
         , Element.padding 20
@@ -300,6 +301,7 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
         ]
 
 
+
 -- maybeModeEl : EH.DisplayProfile -> Mode -> WalletUXPhaceInfo -> Element Msg
 -- maybeModeEl dProfile mode walletUXPhaceInfo =
 --     let
@@ -311,12 +313,10 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
 --                 , Element.Font.color defaultTheme.headerTextColor
 --                 , Element.centerX
 --                 ]
-
 --         buttonAttributes =
 --             [ Element.paddingXY 30 10
 --             , Element.centerX
 --             ]
-
 --         connectButton =
 --             defaultTheme.emphasizedActionButton
 --                 dProfile
@@ -327,10 +327,8 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
 --     case mode of
 --         BlankMode ->
 --             Element.none
-
 --         Home _ ->
 --             Element.none
-
 --         Compose topic ->
 --             rowContainer
 --                 [ Element.row []
@@ -349,7 +347,6 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
 --                         Element.text topic
 --                     ]
 --                 ]
-
 --         ViewPost postId ->
 --             rowContainer
 --                 [ Element.text <|
@@ -362,11 +359,9 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
 --                             buttonAttributes
 --                             [ "Reply to This Post" ]
 --                             (UpdateReplyTo <| Just postId)
-
 --                     _ ->
 --                         connectButton
 --                 ]
-
 --         ViewTopic topic ->
 --             rowContainer
 --                 [ Element.row []
@@ -386,7 +381,6 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
 --                             buttonAttributes
 --                             [ "Post in Topic" ]
 --                             (MsgUp <| GotoRoute <| Routing.Compose topic)
-
 --                     _ ->
 --                         connectButton
 --                 ]
@@ -770,58 +764,58 @@ viewPostAndReplies allPosts blockTimes replies showAddressId publishedPost =
         [ Element.centerX
         , Element.width (Element.fill |> Element.maximum maxContentColWidth)
         , Element.height Element.fill
-            , Element.spacing 40
-            , Element.padding 20
-            ]
+        , Element.spacing 40
+        , Element.padding 20
+        ]
         [ viewPostHeader publishedPost
         , viewEntirePost
-                { showReplyTo = True
-                , showTopic = True
-                }
-                (case showAddressId of
-                    Just (PhaceForPublishedPost postId) ->
-                        postId == publishedPost.id
+            { showReplyTo = True
+            , showTopic = True
+            }
+            (case showAddressId of
+                Just (PhaceForPublishedPost postId) ->
+                    postId == publishedPost.id
 
-                    _ ->
-                        False
-                )
-                Nothing
-                (PhaceForPublishedPost publishedPost.id)
-                publishedPost.post
-            , if Dict.isEmpty replyingPosts then
-                Element.none
+                _ ->
+                    False
+            )
+            Nothing
+            (PhaceForPublishedPost publishedPost.id)
+            publishedPost.post
+        , if Dict.isEmpty replyingPosts then
+            Element.none
 
-              else
-                Element.column
+          else
+            Element.column
+                [ Element.width Element.fill
+                , Element.spacing 20
+                ]
+                [ Element.el
+                    [ Element.Font.size 50
+                    , Element.Font.bold
+                    , Element.Font.color defaultTheme.mainTextColor
+                    ]
+                    (Element.text "Replies")
+                , Element.el
                     [ Element.width Element.fill
-                    , Element.spacing 20
+                    , Element.paddingEach
+                        { left = 40
+                        , right = 0
+                        , top = 0
+                        , bottom = 0
+                        }
                     ]
-                    [ Element.el
-                        [ Element.Font.size 50
-                        , Element.Font.bold
-                        , Element.Font.color defaultTheme.mainTextColor
-                        ]
-                        (Element.text "Replies")
-                    , Element.el
-                        [ Element.width Element.fill
-                        , Element.paddingEach
-                            { left = 40
-                            , right = 0
-                            , top = 0
-                            , bottom = 0
-                            }
-                        ]
-                      <|
-                        viewPostsGroupedByBlock
-                            { showReplyTo = False
-                            , showTopic = False
-                            }
-                            blockTimes
-                            replies
-                            showAddressId
-                            replyingPosts
-                    ]
-            ]
+                  <|
+                    viewPostsGroupedByBlock
+                        { showReplyTo = False
+                        , showTopic = False
+                        }
+                        blockTimes
+                        replies
+                        showAddressId
+                        replyingPosts
+                ]
+        ]
 
 
 viewPostHeader : PublishedPost -> Element Msg
@@ -847,8 +841,8 @@ viewPostHeader publishedPost =
         ]
 
 
-viewPostsForTopic : PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> String -> Element Msg
-viewPostsForTopic allPosts blockTimes replies showAddressId topic =
+viewPostsForTopic : EH.DisplayProfile -> Maybe UserInfo -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> String -> Element Msg
+viewPostsForTopic dProfile maybeUserInfo allPosts blockTimes replies showAddressId topic =
     let
         filteredPosts =
             allPosts
@@ -857,17 +851,18 @@ viewPostsForTopic allPosts blockTimes replies showAddressId topic =
                         publishedPost.post.metadata.topic == topic
                     )
     in
-    Element.el
+    Element.column
         [ Element.width (Element.fill |> Element.maximum maxContentColWidth)
         , Element.centerX
         , Element.height Element.fill
         , Element.padding 20
+        , Element.spacing 40
         ]
-    <|
-        if Dict.isEmpty filteredPosts then
-            appStatusMessage defaultTheme.appStatusTextColor <| "No posts found with topic '" ++ topic ++ "'"
+        [ viewTopicHeader dProfile maybeUserInfo topic
+        , if Dict.isEmpty filteredPosts then
+            appStatusMessage defaultTheme.appStatusTextColor <| "Haven't yet found any posts for this topic..."
 
-        else
+          else
             Element.Lazy.lazy5
                 viewPostsGroupedByBlock
                 { showTopic = False
@@ -877,6 +872,40 @@ viewPostsForTopic allPosts blockTimes replies showAddressId topic =
                 replies
                 showAddressId
                 filteredPosts
+        ]
+
+
+viewTopicHeader : EH.DisplayProfile -> Maybe UserInfo -> String -> Element Msg
+viewTopicHeader dProfile maybeUserInfo topic =
+    Element.column
+        (subheaderAttributes
+            ++ [ Element.spacing 10 ]
+        )
+        [ Element.row
+            []
+            [ Element.el [ Element.Font.bold ] <| Element.text "Viewing Topic "
+            , Element.el
+                [ Element.Font.bold
+                , Element.Font.italic
+                ]
+              <|
+                Element.text topic
+            ]
+        , case maybeUserInfo of
+            Just userInfo ->
+                defaultTheme.secondaryActionButton
+                    dProfile
+                    []
+                    [ "Post in Topic" ]
+                    (MsgUp <| GotoRoute <| Routing.Compose topic)
+
+            Nothing ->
+                defaultTheme.emphasizedActionButton
+                    dProfile
+                    [ Element.paddingXY 30 10 ]
+                    [ "Activate Wallet to Post" ]
+                    (MsgUp <| ConnectToWeb3)
+        ]
 
 
 viewPostsGroupedByBlock : ViewContext -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> PublishedPostsDict -> Element Msg

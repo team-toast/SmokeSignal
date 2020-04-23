@@ -227,10 +227,3 @@ subheaderAttributes =
     , Element.Font.size 50
     , Element.Font.color defaultTheme.headerTextColor
     ]
-
-
-subheaderButtonAttributes : List (Attribute msg)
-subheaderButtonAttributes =
-    [ Element.paddingXY 30 10
-    , Element.centerX
-    ]
