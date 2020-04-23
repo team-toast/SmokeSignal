@@ -94,7 +94,7 @@ loadingElement attrs maybeString =
         (Element.text <| Maybe.withDefault "loading..." maybeString)
 
 
-walletUX : EH.DisplayProfile -> Bool -> WalletUXPhaceInfo ->  Element MsgUp
+walletUX : EH.DisplayProfile -> Bool -> WalletUXPhaceInfo -> Element MsgUp
 walletUX dProfile addressHangToRight walletUXPhaceInfo =
     let
         commonAttributes =
@@ -153,7 +153,6 @@ walletUX dProfile addressHangToRight walletUXPhaceInfo =
                         MorphingPhace
                         (Eth.Utils.unsafeToAddress demoAddress)
                         False
-
                 ]
 
         -- Element.el commonAttributes <|
@@ -220,3 +219,18 @@ posixToString t =
         ++ ":"
         ++ String.padLeft 2 '0' (String.fromInt (Time.toMinute z t))
         ++ " (UTC)"
+
+
+subheaderAttributes : List (Attribute msg)
+subheaderAttributes =
+    [ Element.paddingXY 0 20
+    , Element.Font.size 50
+    , Element.Font.color defaultTheme.headerTextColor
+    ]
+
+
+subheaderButtonAttributes : List (Attribute msg)
+subheaderButtonAttributes =
+    [ Element.paddingXY 30 10
+    , Element.centerX
+    ]

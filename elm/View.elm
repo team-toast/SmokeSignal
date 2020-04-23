@@ -18,7 +18,7 @@ import Element.Lazy
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
-import Helpers.Element as EH
+import Helpers.Element as EH exposing (changeForMobile)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Helpers.Time as TimeHelpers
@@ -275,9 +275,6 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
         , Element.Border.glow
             (EH.black |> EH.withAlpha 0.5)
             5
-        , Element.inFront <|
-            Element.el [ Element.centerX, Element.centerY ] <|
-                maybeModeEl dProfile mode walletUXPhaceInfo
         ]
         [ logoBlock
         , Element.el [ Element.centerY ] <|
@@ -303,94 +300,96 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
         ]
 
 
-maybeModeEl : EH.DisplayProfile -> Mode -> WalletUXPhaceInfo -> Element Msg
-maybeModeEl dProfile mode walletUXPhaceInfo =
-    let
-        columnContainer =
-            Element.column
-                [ Element.spacing 10
-                , Element.Font.size 36
-                , Element.Font.color defaultTheme.headerTextColor
-                ]
+-- maybeModeEl : EH.DisplayProfile -> Mode -> WalletUXPhaceInfo -> Element Msg
+-- maybeModeEl dProfile mode walletUXPhaceInfo =
+--     let
+--         rowContainer =
+--             Element.row
+--                 [ Element.spacing 40
+--                 , Element.padding 20
+--                 , Element.Font.size 50
+--                 , Element.Font.color defaultTheme.headerTextColor
+--                 , Element.centerX
+--                 ]
 
-        buttonAttributes =
-            [ Element.paddingXY 30 10
-            , Element.centerX
-            ]
+--         buttonAttributes =
+--             [ Element.paddingXY 30 10
+--             , Element.centerX
+--             ]
 
-        connectButton =
-            defaultTheme.emphasizedActionButton
-                dProfile
-                buttonAttributes
-                [ "Activate Wallet to Post" ]
-                (MsgUp <| ConnectToWeb3)
-    in
-    case mode of
-        BlankMode ->
-            Element.none
+--         connectButton =
+--             defaultTheme.emphasizedActionButton
+--                 dProfile
+--                 buttonAttributes
+--                 [ "Activate Wallet to Post" ]
+--                 (MsgUp <| ConnectToWeb3)
+--     in
+--     case mode of
+--         BlankMode ->
+--             Element.none
 
-        Home _ ->
-            Element.none
+--         Home _ ->
+--             Element.none
 
-        Compose topic ->
-            columnContainer
-                [ Element.row []
-                    [ Element.text "Composing Post in "
-                    , Element.el
-                        [ Element.Font.italic
-                        , Element.Font.bold
-                        , Element.Font.color defaultTheme.linkTextColor
-                        , Element.pointer
-                        , Element.Events.onClick <|
-                            MsgUp <|
-                                GotoRoute <|
-                                    Routing.ViewTopic topic
-                        ]
-                      <|
-                        Element.text topic
-                    ]
-                ]
+--         Compose topic ->
+--             rowContainer
+--                 [ Element.row []
+--                     [ Element.text "Composing Post in "
+--                     , Element.el
+--                         [ Element.Font.italic
+--                         , Element.Font.bold
+--                         , Element.Font.color defaultTheme.linkTextColor
+--                         , Element.pointer
+--                         , Element.Events.onClick <|
+--                             MsgUp <|
+--                                 GotoRoute <|
+--                                     Routing.ViewTopic topic
+--                         ]
+--                       <|
+--                         Element.text topic
+--                     ]
+--                 ]
 
-        ViewPost postId ->
-            columnContainer
-                [ Element.text <|
-                    "Viewing Post "
-                        ++ shortenedHash postId.messageHash
-                , case walletUXPhaceInfo of
-                    UserPhaceInfo ( userInfo, _ ) ->
-                        defaultTheme.secondaryActionButton
-                            dProfile
-                            buttonAttributes
-                            [ "Reply to This Post" ]
-                            (UpdateReplyTo <| Just postId)
+--         ViewPost postId ->
+--             rowContainer
+--                 [ Element.text <|
+--                     "Viewing Post "
+--                         ++ shortenedHash postId.messageHash
+--                 , case walletUXPhaceInfo of
+--                     UserPhaceInfo ( userInfo, _ ) ->
+--                         defaultTheme.secondaryActionButton
+--                             dProfile
+--                             buttonAttributes
+--                             [ "Reply to This Post" ]
+--                             (UpdateReplyTo <| Just postId)
 
-                    _ ->
-                        connectButton
-                ]
+--                     _ ->
+--                         connectButton
+--                 ]
 
-        ViewTopic topic ->
-            columnContainer
-                [ Element.row []
-                    [ Element.text "Viewing Topic "
-                    , Element.el
-                        [ Element.Font.italic
-                        , Element.Font.bold
-                        , Element.Font.color EH.white
-                        ]
-                      <|
-                        Element.text topic
-                    ]
-                , case walletUXPhaceInfo of
-                    UserPhaceInfo ( userInfo, _ ) ->
-                        defaultTheme.secondaryActionButton
-                            dProfile
-                            buttonAttributes
-                            [ "Post in Topic" ]
-                            (MsgUp <| GotoRoute <| Routing.Compose topic)
+--         ViewTopic topic ->
+--             rowContainer
+--                 [ Element.row []
+--                     [ Element.text "Viewing Topic "
+--                     , Element.el
+--                         [ Element.Font.italic
+--                         , Element.Font.bold
+--                         , Element.Font.color EH.white
+--                         ]
+--                       <|
+--                         Element.text topic
+--                     ]
+--                 , case walletUXPhaceInfo of
+--                     UserPhaceInfo ( userInfo, _ ) ->
+--                         defaultTheme.secondaryActionButton
+--                             dProfile
+--                             buttonAttributes
+--                             [ "Post in Topic" ]
+--                             (MsgUp <| GotoRoute <| Routing.Compose topic)
 
-                    _ ->
-                        connectButton
-                ]
+--                     _ ->
+--                         connectButton
+--                 ]
 
 
 logoBlock : Element Msg
@@ -767,27 +766,15 @@ viewPostAndReplies allPosts blockTimes replies showAddressId publishedPost =
                 |> Maybe.Extra.values
                 |> Dict.Extra.groupBy (.id >> .block)
     in
-    Element.el
+    Element.column
         [ Element.centerX
         , Element.width (Element.fill |> Element.maximum maxContentColWidth)
-        , Element.paddingEach
-            { top = 20
-            , bottom = 0
-            , right = 0
-            , left = 0
-            }
-        ]
-    <|
-        Element.column
-            [ Element.width Element.fill
-            , Element.Border.rounded 10
-
-            -- , Element.Background.color EH.white
-            , Element.centerX
+        , Element.height Element.fill
             , Element.spacing 40
             , Element.padding 20
             ]
-            [ viewEntirePost
+        [ viewPostHeader publishedPost
+        , viewEntirePost
                 { showReplyTo = True
                 , showTopic = True
                 }
@@ -835,6 +822,29 @@ viewPostAndReplies allPosts blockTimes replies showAddressId publishedPost =
                             replyingPosts
                     ]
             ]
+
+
+viewPostHeader : PublishedPost -> Element Msg
+viewPostHeader publishedPost =
+    Element.row
+        (subheaderAttributes
+            ++ [ Element.spacing 40
+               , Element.Font.center
+               ]
+        )
+        [ Element.el [ Element.Font.bold ] <| Element.text "Viewing Post"
+        , Element.column
+            [ Element.Font.size 16 ]
+            [ Element.text <|
+                "id: "
+                    ++ (publishedPost.id.messageHash |> Eth.Utils.hexToString)
+            , Element.newTabLink
+                [ Element.Font.color defaultTheme.linkTextColor ]
+                { url = EthHelpers.etherscanTxUrl publishedPost.txHash
+                , label = Element.text "View on etherscan"
+                }
+            ]
+        ]
 
 
 viewPostsForTopic : PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> String -> Element Msg
