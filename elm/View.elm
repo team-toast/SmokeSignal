@@ -172,12 +172,26 @@ body model =
                 ViewPost postId ->
                     case getPublishedPostFromId model.publishedPosts postId of
                         Just post ->
-                            viewPostAndReplies
-                                model.publishedPosts
-                                model.blockTimes
-                                model.replies
-                                model.showAddressId
-                                post
+                            Element.column
+                                [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
+                                , Element.centerX
+                                , Element.spacing 20
+                                , Element.paddingEach
+                                    { top = 20
+                                    , bottom = 0
+                                    , right = 0
+                                    , left = 0
+                                    }
+                                ]
+                                [ viewPostHeader post
+                                , Element.Lazy.lazy5
+                                    viewPostAndReplies
+                                    model.publishedPosts
+                                    model.blockTimes
+                                    model.replies
+                                    model.showAddressId
+                                    post
+                                ]
 
                         Nothing ->
                             appStatusMessage
@@ -185,14 +199,26 @@ body model =
                                 "Loading post..."
 
                 ViewTopic topic ->
-                    viewPostsForTopic
-                        model.dProfile
-                        (Wallet.userInfo model.wallet)
-                        model.publishedPosts
-                        model.blockTimes
-                        model.replies
-                        model.showAddressId
-                        topic
+                    Element.column
+                        [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
+                        , Element.centerX
+                        , Element.spacing 20
+                        , Element.paddingEach
+                            { top = 20
+                            , bottom = 0
+                            , right = 0
+                            , left = 0
+                            }
+                        ]
+                        [ viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
+                        , Element.Lazy.lazy5
+                            viewPostsForTopic
+                            model.publishedPosts
+                            model.blockTimes
+                            model.replies
+                            model.showAddressId
+                            topic
+                        ]
         , if model.showHalfComposeUX then
             let
                 maybeComposeContext =
@@ -767,8 +793,7 @@ viewPostAndReplies allPosts blockTimes replies showAddressId publishedPost =
         , Element.spacing 40
         , Element.padding 20
         ]
-        [ viewPostHeader publishedPost
-        , viewEntirePost
+        [ viewEntirePost
             { showReplyTo = True
             , showTopic = True
             }
@@ -841,8 +866,8 @@ viewPostHeader publishedPost =
         ]
 
 
-viewPostsForTopic : EH.DisplayProfile -> Maybe UserInfo -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> String -> Element Msg
-viewPostsForTopic dProfile maybeUserInfo allPosts blockTimes replies showAddressId topic =
+viewPostsForTopic : PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> String -> Element Msg
+viewPostsForTopic allPosts blockTimes replies showAddressId topic =
     let
         filteredPosts =
             allPosts
@@ -858,8 +883,7 @@ viewPostsForTopic dProfile maybeUserInfo allPosts blockTimes replies showAddress
         , Element.padding 20
         , Element.spacing 40
         ]
-        [ viewTopicHeader dProfile maybeUserInfo topic
-        , if Dict.isEmpty filteredPosts then
+        [ if Dict.isEmpty filteredPosts then
             appStatusMessage defaultTheme.appStatusTextColor <| "Haven't yet found any posts for this topic..."
 
           else
