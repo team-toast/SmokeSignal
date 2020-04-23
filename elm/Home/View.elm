@@ -65,7 +65,6 @@ view dProfile model walletUXPhaceInfo posts =
                 , Element.spacing 40
                 ]
                 [ composeActionBlock dProfile walletUXPhaceInfo
-                , infoBlock
                 ]
             , Element.el
                 [ Element.width (Element.fillPortion 1)
@@ -74,6 +73,7 @@ view dProfile model walletUXPhaceInfo posts =
               <|
                 topicsBlock dProfile model posts
             ]
+            , infoBlock
         ]
 
 
@@ -197,7 +197,6 @@ homeWalletUX dProfile walletUXPhaceInfo =
                         False
                     ]
 
-            -- Element.el commonAttributes <|
             UserPhaceInfo ( accountInfo, showAddress ) ->
                 Element.el [] <|
                     phaceElement
@@ -212,7 +211,7 @@ topicsBlock dProfile model posts =
     Element.column
         [ Element.spacing 25
         , Element.alignTop
-        , Element.width Element.fill
+        , Element.width <| Element.px 400
         ]
         [ Element.column
             [ Element.width Element.fill
@@ -302,7 +301,13 @@ topicsColumn dProfile topicSearchStr posts =
                                 [ daiSymbol darkTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
                                 , Element.text <| TokenValue.toConciseString totalBurned
                                 ]
-                            , Element.el [ Element.centerX ] <| Element.text topic
+                            , Element.el
+                                [ Element.width Element.fill
+                                , Element.clip
+                                , Element.Font.center
+                                ]
+                              <|
+                                Element.text topic
                             , Element.el [ Element.alignRight ] <| Element.text <| String.fromInt count
                             ]
                     )
