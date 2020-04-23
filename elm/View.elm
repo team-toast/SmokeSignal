@@ -112,6 +112,7 @@ body model =
                         , EH.onClickNoPropagation NoOp
                         ]
                         [ viewEntirePost
+                            model.dProfile
                             (ViewContext True True)
                             (model.showAddressId == Just PhaceForDraft)
                             Nothing
@@ -183,9 +184,9 @@ body model =
                                     , left = 0
                                     }
                                 ]
-                                [ viewPostHeader post
+                                [ viewPostHeader model.dProfile post
                                 , Element.Lazy.lazy5
-                                    viewPostAndReplies
+                                    (viewPostAndReplies model.dProfile)
                                     model.publishedPosts
                                     model.blockTimes
                                     model.replies
@@ -212,7 +213,7 @@ body model =
                         ]
                         [ viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
                         , Element.Lazy.lazy5
-                            viewPostsForTopic
+                            (viewPostsForTopic model.dProfile)
                             model.publishedPosts
                             model.blockTimes
                             model.replies
@@ -292,9 +293,10 @@ body model =
 
 header : EH.DisplayProfile -> Mode -> WalletUXPhaceInfo -> List TrackedTx -> Bool -> Element Msg
 header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
-    (Element.row)
+    Element.row
         [ Element.width Element.fill
         , Element.Background.color defaultTheme.headerBackground
+
         -- , Element.height <| Element.px 150
         , Element.padding (20 |> changeForMobile 10 dProfile)
         , EH.moveToFront
@@ -311,8 +313,10 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
         , Element.el
             [ Element.centerY
             , Element.alignRight
-             ] <|
+            ]
+          <|
             EH.forgedByFoundry dProfile
+
         -- , Element.row
         --     [ Element.alignRight
         --     , Element.spacing 10
@@ -321,7 +325,6 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
         --     , case mode of
         --         Home _ ->
         --             Element.none
-
         --         _ ->
         --             Element.el
         --                 [ Element.alignRight
@@ -694,8 +697,8 @@ mapNever =
     Element.map (always NoOp)
 
 
-viewPostAndReplies : PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> PublishedPost -> Element Msg
-viewPostAndReplies allPosts blockTimes replies showAddressId publishedPost =
+viewPostAndReplies : DisplayProfile -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> PublishedPost -> Element Msg
+viewPostAndReplies dProfile allPosts blockTimes replies showAddressId publishedPost =
     let
         replyingPosts =
             let
@@ -723,6 +726,7 @@ viewPostAndReplies allPosts blockTimes replies showAddressId publishedPost =
         , Element.padding 20
         ]
         [ viewEntirePost
+            dProfile
             { showReplyTo = True
             , showTopic = True
             }
@@ -761,6 +765,7 @@ viewPostAndReplies allPosts blockTimes replies showAddressId publishedPost =
                     ]
                   <|
                     viewPostsGroupedByBlock
+                        dProfile
                         { showReplyTo = False
                         , showTopic = False
                         }
@@ -772,10 +777,10 @@ viewPostAndReplies allPosts blockTimes replies showAddressId publishedPost =
         ]
 
 
-viewPostHeader : PublishedPost -> Element Msg
-viewPostHeader publishedPost =
+viewPostHeader : DisplayProfile -> PublishedPost -> Element Msg
+viewPostHeader dProfile publishedPost =
     Element.row
-        (subheaderAttributes
+        (subheaderAttributes dProfile
             ++ [ Element.spacing 40
                , Element.Font.center
                ]
@@ -795,8 +800,8 @@ viewPostHeader publishedPost =
         ]
 
 
-viewPostsForTopic : PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> String -> Element Msg
-viewPostsForTopic allPosts blockTimes replies showAddressId topic =
+viewPostsForTopic : DisplayProfile -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> String -> Element Msg
+viewPostsForTopic dProfile allPosts blockTimes replies showAddressId topic =
     let
         filteredPosts =
             allPosts
@@ -817,7 +822,7 @@ viewPostsForTopic allPosts blockTimes replies showAddressId topic =
 
           else
             Element.Lazy.lazy5
-                viewPostsGroupedByBlock
+                (viewPostsGroupedByBlock dProfile)
                 { showTopic = False
                 , showReplyTo = True
                 }
@@ -828,10 +833,10 @@ viewPostsForTopic allPosts blockTimes replies showAddressId topic =
         ]
 
 
-viewTopicHeader : EH.DisplayProfile -> Maybe UserInfo -> String -> Element Msg
+viewTopicHeader : DisplayProfile -> Maybe UserInfo -> String -> Element Msg
 viewTopicHeader dProfile maybeUserInfo topic =
     Element.column
-        (subheaderAttributes
+        (subheaderAttributes dProfile
             ++ [ Element.spacing 10 ]
         )
         [ Element.row
@@ -861,8 +866,8 @@ viewTopicHeader dProfile maybeUserInfo topic =
         ]
 
 
-viewPostsGroupedByBlock : ViewContext -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> PublishedPostsDict -> Element Msg
-viewPostsGroupedByBlock viewContext blockTimes replies showAddressId publishedPosts =
+viewPostsGroupedByBlock : DisplayProfile -> ViewContext -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> PublishedPostsDict -> Element Msg
+viewPostsGroupedByBlock dProfile viewContext blockTimes replies showAddressId publishedPosts =
     Element.column
         [ Element.width Element.fill
         , Element.spacing 20
@@ -870,12 +875,12 @@ viewPostsGroupedByBlock viewContext blockTimes replies showAddressId publishedPo
         (publishedPosts
             |> Dict.toList
             |> List.reverse
-            |> List.map (viewBlocknumAndPosts viewContext blockTimes replies showAddressId)
+            |> List.map (viewBlocknumAndPosts dProfile viewContext blockTimes replies showAddressId)
         )
 
 
-viewBlocknumAndPosts : ViewContext -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List PublishedPost ) -> Element Msg
-viewBlocknumAndPosts viewContext blockTimes replies showAddressId ( blocknum, publishedPosts ) =
+viewBlocknumAndPosts : DisplayProfile -> ViewContext -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List PublishedPost ) -> Element Msg
+viewBlocknumAndPosts dProfile viewContext blockTimes replies showAddressId ( blocknum, publishedPosts ) =
     Element.column
         [ Element.width Element.fill
         , Element.spacing 10
@@ -912,12 +917,12 @@ viewBlocknumAndPosts viewContext blockTimes replies showAddressId ( blocknum, pu
                 |> Maybe.withDefault "[fetching block timestamp]"
                 |> Element.text
             ]
-        , viewPosts viewContext replies showAddressId publishedPosts
+        , viewPosts dProfile viewContext replies showAddressId publishedPosts
         ]
 
 
-viewPosts : ViewContext -> List Reply -> Maybe PhaceIconId -> List PublishedPost -> Element Msg
-viewPosts viewContext replies showAddressId pusblishedPosts =
+viewPosts : DisplayProfile -> ViewContext -> List Reply -> Maybe PhaceIconId -> List PublishedPost -> Element Msg
+viewPosts dProfile viewContext replies showAddressId pusblishedPosts =
     Element.column
         [ Element.paddingXY 20 0
         , Element.spacing 20
@@ -926,6 +931,7 @@ viewPosts viewContext replies showAddressId pusblishedPosts =
         List.map
             (\publishedPost ->
                 viewEntirePost
+                    dProfile
                     viewContext
                     (case showAddressId of
                         Just (PhaceForPublishedPost postId) ->
@@ -946,8 +952,8 @@ viewPosts viewContext replies showAddressId pusblishedPosts =
             pusblishedPosts
 
 
-viewEntirePost : ViewContext -> Bool -> Maybe Int -> PhaceIconId -> Post -> Element Msg
-viewEntirePost viewContext showAddress maybeNumReplies phaceIconId post =
+viewEntirePost : DisplayProfile -> ViewContext -> Bool -> Maybe Int -> PhaceIconId -> Post -> Element Msg
+viewEntirePost dProfile viewContext showAddress maybeNumReplies phaceIconId post =
     let
         maybePostId =
             case phaceIconId of
@@ -961,17 +967,22 @@ viewEntirePost viewContext showAddress maybeNumReplies phaceIconId post =
         [ Element.width Element.fill
         , Element.spacing 20
         ]
-        [ Element.el
-            [ Element.alignTop
-            , Element.height <| Element.px 100
-            ]
-          <|
-            Element.map MsgUp <|
-                phaceElement
-                    True
-                    phaceIconId
-                    post.from
-                    showAddress
+        [ case dProfile of
+            Desktop ->
+                Element.el
+                    [ Element.alignTop
+                    , Element.height <| Element.px 100
+                    ]
+                <|
+                    Element.map MsgUp <|
+                        phaceElement
+                            True
+                            phaceIconId
+                            post.from
+                            showAddress
+
+            Mobile ->
+                Element.none
         , Element.column
             [ Element.width Element.fill
             , Element.alignTop
@@ -982,7 +993,7 @@ viewEntirePost viewContext showAddress maybeNumReplies phaceIconId post =
                 , Maybe.map viewPermalink maybePostId
                     |> Maybe.withDefault Element.none
                 ]
-            , viewMainPostBlock viewContext maybePostId post
+            , viewMainPostBlock dProfile viewContext maybePostId showAddress post
             , case ( maybePostId, maybeNumReplies ) of
                 ( Nothing, _ ) ->
                     Element.none
@@ -1052,8 +1063,8 @@ viewPermalink postId =
             }
 
 
-viewMainPostBlock : ViewContext -> Maybe Post.Id -> Post -> Element Msg
-viewMainPostBlock viewContext maybePostId post =
+viewMainPostBlock : DisplayProfile -> ViewContext -> Maybe Post.Id -> Bool -> Post -> Element Msg
+viewMainPostBlock dProfile viewContext maybePostId showAddress post =
     Element.column
         [ Element.width Element.fill
         , Element.padding 20
@@ -1067,7 +1078,23 @@ viewMainPostBlock viewContext maybePostId post =
             }
         , Element.alignTop
         ]
-        [ metadataStuff viewContext post.metadata
+        [ case ( dProfile, maybePostId ) of
+            ( Mobile, Just postId ) ->
+                Element.row
+                    [ Element.width Element.fill
+                    , Element.spacing 10
+                    ]
+                    [ Element.map MsgUp <|
+                        phaceElement
+                            False
+                            (PhaceForPublishedPost postId)
+                            post.from
+                            showAddress
+                    , metadataStuff viewContext post.metadata
+                    ]
+
+            _ ->
+                metadataStuff viewContext post.metadata
         , Post.renderContentOrError defaultTheme post.message
         , Maybe.map messageActions maybePostId
             |> Maybe.withDefault Element.none

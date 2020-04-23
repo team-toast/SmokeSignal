@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "parcel static/index.html",
+    "devhttps": "parcel static/index.html --https",
     "devbuild": "parcel static/index.html --public-url ./",
     "build": "parcel build static/index.html --public-url ./"
   },

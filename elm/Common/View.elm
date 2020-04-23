@@ -9,7 +9,7 @@ import Element.Events
 import Element.Font
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
-import Helpers.Element as EH
+import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
 import Helpers.Time as TimeHelpers
 import Phace
 import Theme exposing (defaultTheme)
@@ -221,9 +221,9 @@ posixToString t =
         ++ " (UTC)"
 
 
-subheaderAttributes : List (Attribute msg)
-subheaderAttributes =
-    [ Element.paddingXY 0 20
-    , Element.Font.size 50
+subheaderAttributes : DisplayProfile -> List (Attribute msg)
+subheaderAttributes dProfile =
+    [ Element.paddingXY 0 (20 |> changeForMobile 10 dProfile)
+    , Element.Font.size (50 |> changeForMobile 30 dProfile)
     , Element.Font.color defaultTheme.headerTextColor
     ]
