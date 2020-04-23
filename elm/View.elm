@@ -18,7 +18,7 @@ import Element.Lazy
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
-import Helpers.Element as EH exposing (changeForMobile)
+import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Helpers.Time as TimeHelpers
@@ -292,136 +292,65 @@ body model =
 
 header : EH.DisplayProfile -> Mode -> WalletUXPhaceInfo -> List TrackedTx -> Bool -> Element Msg
 header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
-    Element.row
+    (Element.row)
         [ Element.width Element.fill
-        , Element.Background.color (defaultTheme.headerBackground |> changeForMobile EH.white dProfile)
-        , Element.height <| Element.px 150
-        , Element.spacing 30
-        , Element.padding 20
+        , Element.Background.color defaultTheme.headerBackground
+        -- , Element.height <| Element.px 150
+        , Element.padding (20 |> changeForMobile 10 dProfile)
         , EH.moveToFront
         , Element.Border.glow
             (EH.black |> EH.withAlpha 0.5)
             5
         ]
-        [ logoBlock
-        , Element.el [ Element.centerY ] <|
-            EH.forgedByFoundry
-        , Element.row
-            [ Element.alignRight
-            , Element.spacing 10
-            ]
-            [ maybeTxTracker showExpandedTrackedTxs trackedTxs
-            , case mode of
-                Home _ ->
-                    Element.none
+        [ case dProfile of
+            Mobile ->
+                Element.el [ Element.alignTop, Element.alignLeft ] <| logoBlock dProfile
 
-                _ ->
-                    Element.el
-                        [ Element.alignRight
-                        , Element.alignTop
-                        ]
-                    <|
-                        Element.map MsgUp <|
-                            walletUX dProfile False walletUXPhaceInfo
-            ]
+            Desktop ->
+                logoBlock dProfile
+        , Element.el
+            [ Element.centerY
+            , Element.alignRight
+             ] <|
+            EH.forgedByFoundry dProfile
+        -- , Element.row
+        --     [ Element.alignRight
+        --     , Element.spacing 10
+        --     ]
+        --     [ maybeTxTracker showExpandedTrackedTxs trackedTxs
+        --     , case mode of
+        --         Home _ ->
+        --             Element.none
+
+        --         _ ->
+        --             Element.el
+        --                 [ Element.alignRight
+        --                 , Element.alignTop
+        --                 ]
+        --             <|
+        --                 Element.map MsgUp <|
+        --                     walletUX dProfile False walletUXPhaceInfo
+        --     ]
         ]
 
 
-
--- maybeModeEl : EH.DisplayProfile -> Mode -> WalletUXPhaceInfo -> Element Msg
--- maybeModeEl dProfile mode walletUXPhaceInfo =
---     let
---         rowContainer =
---             Element.row
---                 [ Element.spacing 40
---                 , Element.padding 20
---                 , Element.Font.size 50
---                 , Element.Font.color defaultTheme.headerTextColor
---                 , Element.centerX
---                 ]
---         buttonAttributes =
---             [ Element.paddingXY 30 10
---             , Element.centerX
---             ]
---         connectButton =
---             defaultTheme.emphasizedActionButton
---                 dProfile
---                 buttonAttributes
---                 [ "Activate Wallet to Post" ]
---                 (MsgUp <| ConnectToWeb3)
---     in
---     case mode of
---         BlankMode ->
---             Element.none
---         Home _ ->
---             Element.none
---         Compose topic ->
---             rowContainer
---                 [ Element.row []
---                     [ Element.text "Composing Post in "
---                     , Element.el
---                         [ Element.Font.italic
---                         , Element.Font.bold
---                         , Element.Font.color defaultTheme.linkTextColor
---                         , Element.pointer
---                         , Element.Events.onClick <|
---                             MsgUp <|
---                                 GotoRoute <|
---                                     Routing.ViewTopic topic
---                         ]
---                       <|
---                         Element.text topic
---                     ]
---                 ]
---         ViewPost postId ->
---             rowContainer
---                 [ Element.text <|
---                     "Viewing Post "
---                         ++ shortenedHash postId.messageHash
---                 , case walletUXPhaceInfo of
---                     UserPhaceInfo ( userInfo, _ ) ->
---                         defaultTheme.secondaryActionButton
---                             dProfile
---                             buttonAttributes
---                             [ "Reply to This Post" ]
---                             (UpdateReplyTo <| Just postId)
---                     _ ->
---                         connectButton
---                 ]
---         ViewTopic topic ->
---             rowContainer
---                 [ Element.row []
---                     [ Element.text "Viewing Topic "
---                     , Element.el
---                         [ Element.Font.italic
---                         , Element.Font.bold
---                         , Element.Font.color EH.white
---                         ]
---                       <|
---                         Element.text topic
---                     ]
---                 , case walletUXPhaceInfo of
---                     UserPhaceInfo ( userInfo, _ ) ->
---                         defaultTheme.secondaryActionButton
---                             dProfile
---                             buttonAttributes
---                             [ "Post in Topic" ]
---                             (MsgUp <| GotoRoute <| Routing.Compose topic)
---                     _ ->
---                         connectButton
---                 ]
-
-
-logoBlock : Element Msg
-logoBlock =
+logoBlock : EH.DisplayProfile -> Element Msg
+logoBlock dProfile =
     Element.column
-        [ Element.spacing 15 ]
+        [ Element.spacing (15 |> changeForMobile 8 dProfile) ]
         [ Element.row
-            [ Element.spacing 15
-            , Element.centerX
-            ]
+            (case dProfile of
+                Desktop ->
+                    [ Element.spacing 15
+                    , Element.centerX
+                    ]
+
+                Mobile ->
+                    [ Element.spacing 8
+                    ]
+            )
             [ Element.row
-                [ Element.Font.size 50
+                [ Element.Font.size (50 |> changeForMobile 30 dProfile)
                 , Element.Font.bold
                 , Element.pointer
                 , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.Home
@@ -431,7 +360,7 @@ logoBlock =
                 ]
             ]
         , Element.el
-            [ Element.Font.size 20
+            [ Element.Font.size (20 |> changeForMobile 14 dProfile)
             , Element.centerX
             , Element.Font.color Theme.softRed
             ]
