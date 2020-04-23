@@ -17,6 +17,7 @@ type alias Theme msg =
     , draftModalBackground : Color
     , mainTextColor : Color
     , linkTextColor : Color
+    , linkTextColorAgainstBackground : Color
     , emphasizedTextColor : Color
     , postBodyTextColor : Color
     , messageInputPlaceholderTextColor : Color
@@ -47,6 +48,7 @@ basicTheme =
     , txTrackerBackground = lightBlue
     , mainTextColor = EH.white
     , linkTextColor = blue
+    , linkTextColorAgainstBackground = Element.rgb 0.4 0.6 1
     , emphasizedTextColor = EH.white
     , postBodyTextColor = EH.black
     , messageInputPlaceholderTextColor = darkGray

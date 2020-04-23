@@ -749,30 +749,21 @@ viewPostAndReplies dProfile allPosts blockTimes replies showAddressId publishedP
                 , Element.spacing 20
                 ]
                 [ Element.el
-                    [ Element.Font.size 50
+                    [ Element.Font.size (50 |> changeForMobile 30 dProfile)
                     , Element.Font.bold
                     , Element.Font.color defaultTheme.mainTextColor
                     ]
-                    (Element.text "Replies")
-                , Element.el
-                    [ Element.width Element.fill
-                    , Element.paddingEach
-                        { left = 40
-                        , right = 0
-                        , top = 0
-                        , bottom = 0
-                        }
-                    ]
                   <|
-                    viewPostsGroupedByBlock
-                        dProfile
-                        { showReplyTo = False
-                        , showTopic = False
-                        }
-                        blockTimes
-                        replies
-                        showAddressId
-                        replyingPosts
+                    Element.text "Replies"
+                , viewPostsGroupedByBlock
+                    dProfile
+                    { showReplyTo = False
+                    , showTopic = False
+                    }
+                    blockTimes
+                    replies
+                    showAddressId
+                    replyingPosts
                 ]
         ]
 
@@ -783,16 +774,22 @@ viewPostHeader dProfile publishedPost =
         (subheaderAttributes dProfile
             ++ [ Element.spacing 40
                , Element.Font.center
+               , Element.centerX
                ]
         )
         [ Element.el [ Element.Font.bold ] <| Element.text "Viewing Post"
         , Element.column
             [ Element.Font.size 16 ]
-            [ Element.text <|
-                "id: "
-                    ++ (publishedPost.id.messageHash |> Eth.Utils.hexToString)
+            [ case dProfile of
+                Desktop ->
+                    Element.text <|
+                        "id: "
+                            ++ (publishedPost.id.messageHash |> Eth.Utils.hexToString)
+
+                Mobile ->
+                    Element.none
             , Element.newTabLink
-                [ Element.Font.color defaultTheme.linkTextColor ]
+                [ Element.Font.color defaultTheme.linkTextColorAgainstBackground ]
                 { url = EthHelpers.etherscanTxUrl publishedPost.txHash
                 , label = Element.text "View on etherscan"
                 }
@@ -1255,7 +1252,7 @@ viewNumRepliesIfNonzero postId numReplies =
 
     else
         Element.el
-            [ Element.Font.color defaultTheme.linkTextColor
+            [ Element.Font.color defaultTheme.linkTextColorAgainstBackground
             , Element.pointer
             , Element.Events.onClick <|
                 MsgUp <|
