@@ -233,7 +233,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
                 [ Element.spacing 5
                 , Element.Font.size (50 |> changeForMobile 30 dProfile)
                 , Element.Font.bold
-                , (Element.alignTop |> changeForMobile Element.alignBottom dProfile)
+                , Element.alignTop |> changeForMobile Element.alignBottom dProfile
                 ]
                 (case walletUXPhaceInfo of
                     UserPhaceInfo _ ->
@@ -342,10 +342,22 @@ topicsColumn dProfile topicSearchStr posts =
     let
         talliedTopics : List ( String, ( TokenValue, Int ) )
         talliedTopics =
+            let
+                findTopic : PublishedPost -> Maybe String
+                findTopic publishedPost =
+                    case publishedPost.post.metadata.context of
+                        Post.ForTopic topic ->
+                            Just topic
+
+                        Post.ForPost postId ->
+                            getPublishedPostFromId posts postId
+                                |> Maybe.andThen findTopic
+            in
             posts
                 |> Dict.values
                 |> List.concat
-                |> Dict.Extra.groupBy (.post >> .metadata >> .topic)
+                |> Dict.Extra.filterGroupBy findTopic
+                -- This ignores any replies that lead eventually to a postId not in 'posts'
                 |> Dict.map
                     (\topic messages ->
                         ( List.foldl (.post >> .burnAmount >> TokenValue.add) TokenValue.zero messages
@@ -381,7 +393,8 @@ topicsColumn dProfile topicSearchStr posts =
                                 ++ [ Element.Background.color <| Element.rgba 0 0 1 0.2
                                    , Element.Events.onClick <|
                                         GotoRoute <|
-                                            Routing.ViewTopic topic
+                                            Routing.ViewContext <|
+                                                Post.ForTopic topic
                                    ]
                             )
                             [ Element.row
@@ -421,7 +434,10 @@ topicsColumn dProfile topicSearchStr posts =
                     Element.el
                         (commonElStyles
                             ++ [ Element.Background.color <| Element.rgba 0.5 0.5 1 0.4
-                               , Element.Events.onClick <| GotoRoute <| Routing.Compose topicSearchStr
+                               , Element.Events.onClick <|
+                                    GotoRoute <|
+                                        Routing.Compose <|
+                                            Post.ForTopic topicSearchStr
                                ]
                         )
                     <|

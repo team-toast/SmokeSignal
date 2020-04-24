@@ -21,8 +21,8 @@ import Theme exposing (defaultTheme)
 import TokenValue exposing (TokenValue)
 
 
-viewFull : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> ComposeContext -> Element Msg
-viewFull dProfile walletUXPhaceInfo model context =
+viewFull : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> Element Msg
+viewFull dProfile walletUXPhaceInfo model =
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
@@ -30,11 +30,11 @@ viewFull dProfile walletUXPhaceInfo model context =
         , Element.Background.color defaultTheme.appBackground
         ]
     <|
-        view dProfile walletUXPhaceInfo model context
+        view dProfile walletUXPhaceInfo model 
 
 
-view : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> ComposeContext -> Element Msg
-view dProfile walletUXPhaceInfo model context =
+view : EH.DisplayProfile -> WalletUXPhaceInfo -> Model  -> Element Msg
+view dProfile walletUXPhaceInfo model =
     Element.row
         [ Element.width Element.fill
         , Element.height Element.fill
@@ -50,9 +50,9 @@ view dProfile walletUXPhaceInfo model context =
             , Element.spacing 10
             ]
             [ viewInput model.message
-            , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context
+            , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model
             ]
-        , viewPreviewWithComposeContext model.message context
+        , viewPreviewWithPostContext model.message model.context
         ]
 
 
@@ -83,8 +83,8 @@ viewInput input =
             }
 
 
-viewPreviewWithComposeContext : String -> ComposeContext -> Element Msg
-viewPreviewWithComposeContext input context =
+viewPreviewWithPostContext : String -> Post.Context -> Element Msg
+viewPreviewWithPostContext input context =
     EH.scrollbarYEl [] <|
         Element.column
             [ Element.width Element.fill
@@ -104,10 +104,10 @@ viewPreviewWithComposeContext input context =
                 )
                 ([ Maybe.map
                     viewReplyInfo
-                    (composeContextReplyTo context)
+                    (Post.contextReplyTo context)
                  , Maybe.map
                     (Element.el [ Element.alignLeft ] << viewTopic)
-                    (composeContextTopic context)
+                    (Post.contextTopic context)
                  ]
                     |> Maybe.Extra.values
                     |> ListHelpers.nonEmpty
@@ -158,7 +158,8 @@ viewReplyInfo postId =
             , Element.Events.onClick <|
                 MsgUp <|
                     GotoRoute <|
-                        Routing.ViewPost postId
+                        Routing.ViewContext <|
+                            Post.ForPost postId
             ]
             (Element.text <|
                 shortenedHash postId.messageHash
@@ -186,19 +187,20 @@ viewTopic topic =
             , Element.Events.onClick <|
                 MsgUp <|
                     GotoRoute <|
-                        Routing.ViewTopic topic
+                        Routing.ViewContext <|
+                            Post.ForTopic topic
             ]
             (Element.text <| topic)
         ]
 
 
-actionFormAndMaybeErrorEl : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> ComposeContext -> Element Msg
-actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context =
+actionFormAndMaybeErrorEl : EH.DisplayProfile -> WalletUXPhaceInfo -> Model  -> Element Msg
+actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model =
     case walletUXPhaceInfo of
         UserPhaceInfo ( userInfo, showAddress ) ->
             let
                 ( goButtonEl, maybeErrorEls ) =
-                    previewButtonAndMaybeError dProfile userInfo model context
+                    previewButtonAndMaybeError dProfile userInfo model
             in
             Element.row
                 [ Element.alignRight
@@ -349,8 +351,8 @@ burnAmountInput daiInput =
         ]
 
 
-previewButtonAndMaybeError : EH.DisplayProfile -> UserInfo -> Model -> ComposeContext -> ( Element Msg, Maybe (List (Element Msg)) )
-previewButtonAndMaybeError dProfile userInfo model context =
+previewButtonAndMaybeError : EH.DisplayProfile -> UserInfo -> Model -> ( Element Msg, Maybe (List (Element Msg)) )
+previewButtonAndMaybeError dProfile userInfo model =
     case userInfo.balance of
         Just balance ->
             if TokenValue.isZero balance then
@@ -407,7 +409,7 @@ previewButtonAndMaybeError dProfile userInfo model context =
                                                             userInfo.address
                                                             burnAmount
                                                             message
-                                                            (composeContextToMetadata context)
+                                                            (Post.buildMetadataFromContext model.context)
                                                         )
                                             , Nothing
                                             )

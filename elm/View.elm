@@ -70,7 +70,7 @@ body model =
 
         showDraftInProgressButton =
             case model.mode of
-                Compose _ ->
+                Compose ->
                     False
 
                 _ ->
@@ -92,7 +92,7 @@ body model =
                         5
                     ]
                     [ "Draft in Progress" ]
-                    (MsgUp <| ShowHalfComposeUX True)
+                    (MsgUp <| StartInlineCompose model.composeUXModel.context)
 
             else
                 Element.none
@@ -113,7 +113,7 @@ body model =
                         ]
                         [ viewEntirePost
                             model.dProfile
-                            (ViewContext True True)
+                            True
                             (model.showAddressId == Just PhaceForDraft)
                             Nothing
                             PhaceForDraft
@@ -162,17 +162,45 @@ body model =
                             )
                             model.publishedPosts
 
-                Compose topic ->
+                Compose ->
                     Element.map ComposeUXMsg <|
                         ComposeUX.viewFull
                             model.dProfile
                             walletUXPhaceInfo
                             model.composeUXModel
-                            (ComposeUX.ComposingForTopic topic)
 
-                ViewPost postId ->
-                    case getPublishedPostFromId model.publishedPosts postId of
-                        Just post ->
+                ViewContext context ->
+                    case context of
+                        Post.ForPost postId ->
+                            case getPublishedPostFromId model.publishedPosts postId of
+                                Just post ->
+                                    Element.column
+                                        [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
+                                        , Element.centerX
+                                        , Element.spacing 20
+                                        , Element.paddingEach
+                                            { top = 20
+                                            , bottom = 0
+                                            , right = 0
+                                            , left = 0
+                                            }
+                                        ]
+                                        [ viewPostHeader model.dProfile post
+                                        , Element.Lazy.lazy5
+                                            (viewPostAndReplies model.dProfile)
+                                            model.publishedPosts
+                                            model.blockTimes
+                                            model.replies
+                                            model.showAddressId
+                                            post
+                                        ]
+
+                                Nothing ->
+                                    appStatusMessage
+                                        defaultTheme.appStatusTextColor
+                                        "Loading post..."
+
+                        Post.ForTopic topic ->
                             Element.column
                                 [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
                                 , Element.centerX
@@ -184,107 +212,37 @@ body model =
                                     , left = 0
                                     }
                                 ]
-                                [ viewPostHeader model.dProfile post
+                                [ viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
                                 , Element.Lazy.lazy5
-                                    (viewPostAndReplies model.dProfile)
+                                    (viewPostsForTopic model.dProfile)
                                     model.publishedPosts
                                     model.blockTimes
                                     model.replies
                                     model.showAddressId
-                                    post
+                                    topic
                                 ]
-
-                        Nothing ->
-                            appStatusMessage
-                                defaultTheme.appStatusTextColor
-                                "Loading post..."
-
-                ViewTopic topic ->
-                    Element.column
-                        [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
-                        , Element.centerX
-                        , Element.spacing 20
-                        , Element.paddingEach
-                            { top = 20
-                            , bottom = 0
-                            , right = 0
-                            , left = 0
-                            }
-                        ]
-                        [ viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
-                        , Element.Lazy.lazy5
-                            (viewPostsForTopic model.dProfile)
-                            model.publishedPosts
-                            model.blockTimes
-                            model.replies
-                            model.showAddressId
-                            topic
-                        ]
         , if model.showHalfComposeUX then
-            let
-                maybeComposeContext =
-                    case model.replyTo of
-                        Just replyTo ->
-                            getPublishedPostFromId model.publishedPosts replyTo
-                                |> Maybe.map
-                                    (\minedPost ->
-                                        ComposeUX.ComposingReply
-                                            replyTo
-                                            minedPost.post.metadata.topic
-                                    )
-
-                        Nothing ->
-                            case model.mode of
-                                BlankMode ->
-                                    Nothing
-
-                                Home _ ->
-                                    Nothing
-
-                                Compose topic ->
-                                    Just <|
-                                        ComposeUX.ComposingForTopic topic
-
-                                ViewPost replyTo ->
-                                    getPublishedPostFromId model.publishedPosts replyTo
-                                        |> Maybe.map
-                                            (\publishedPost ->
-                                                ComposeUX.ComposingReply
-                                                    replyTo
-                                                    publishedPost.post.metadata.topic
-                                            )
-
-                                ViewTopic topic ->
-                                    Just <|
-                                        ComposeUX.ComposingForTopic topic
-            in
-            case maybeComposeContext of
-                Just composeContext ->
-                    Element.el
-                        [ Element.width Element.fill
-                        , Element.height Element.fill
-                        , Element.mapAttribute MsgUp <|
-                            Element.above <|
-                                Element.el
-                                    [ Element.alignLeft
-                                    ]
-                                <|
-                                    defaultTheme.secondaryActionButton
-                                        EH.Mobile
-                                        []
-                                        [ "Hide" ]
-                                        (ShowHalfComposeUX False)
-                        ]
-                        (Element.map ComposeUXMsg <|
-                            ComposeUX.view
-                                model.dProfile
-                                walletUXPhaceInfo
-                                model.composeUXModel
-                                composeContext
-                        )
-
-                Nothing ->
-                    Element.none
+            Element.el
+                [ Element.width Element.fill
+                , Element.height Element.fill
+                , Element.mapAttribute MsgUp <|
+                    Element.above <|
+                        Element.el
+                            [ Element.alignLeft
+                            ]
+                        <|
+                            defaultTheme.secondaryActionButton
+                                EH.Mobile
+                                []
+                                [ "Hide" ]
+                                HideHalfCompose
+                ]
+                (Element.map ComposeUXMsg <|
+                    ComposeUX.view
+                        model.dProfile
+                        walletUXPhaceInfo
+                        model.composeUXModel
+                )
 
           else
             Element.none
@@ -296,8 +254,6 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
     Element.row
         [ Element.width Element.fill
         , Element.Background.color defaultTheme.headerBackground
-
-        -- , Element.height <| Element.px 150
         , Element.padding (20 |> changeForMobile 10 dProfile)
         , EH.moveToFront
         , Element.Border.glow
@@ -550,7 +506,7 @@ viewTrackedTxRow trackedTx =
                                     Element.el
                                         [ Element.Font.color defaultTheme.linkTextColor
                                         , Element.pointer
-                                        , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.ViewPost postId
+                                        , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.ViewContext <| Post.ForPost postId
                                         ]
                                         (Element.text "Published")
 
@@ -727,9 +683,7 @@ viewPostAndReplies dProfile allPosts blockTimes replies showAddressId publishedP
         ]
         [ viewEntirePost
             dProfile
-            { showReplyTo = True
-            , showTopic = True
-            }
+            True
             (case showAddressId of
                 Just (PhaceForPublishedPost postId) ->
                     postId == publishedPost.id
@@ -757,9 +711,7 @@ viewPostAndReplies dProfile allPosts blockTimes replies showAddressId publishedP
                     Element.text "Replies"
                 , viewPostsGroupedByBlock
                     dProfile
-                    { showReplyTo = False
-                    , showTopic = False
-                    }
+                    False
                     blockTimes
                     replies
                     showAddressId
@@ -804,7 +756,7 @@ viewPostsForTopic dProfile allPosts blockTimes replies showAddressId topic =
             allPosts
                 |> filterBlockPosts
                     (\publishedPost ->
-                        publishedPost.post.metadata.topic == topic
+                        publishedPost.post.metadata.context == Post.ForTopic topic
                     )
     in
     Element.column
@@ -820,9 +772,7 @@ viewPostsForTopic dProfile allPosts blockTimes replies showAddressId topic =
           else
             Element.Lazy.lazy5
                 (viewPostsGroupedByBlock dProfile)
-                { showTopic = False
-                , showReplyTo = True
-                }
+                False
                 blockTimes
                 replies
                 showAddressId
@@ -852,7 +802,11 @@ viewTopicHeader dProfile maybeUserInfo topic =
                     dProfile
                     []
                     [ "Post in Topic" ]
-                    (MsgUp <| GotoRoute <| Routing.Compose topic)
+                    (MsgUp <|
+                        GotoRoute <|
+                            Routing.Compose <|
+                                Post.ForTopic topic
+                    )
 
             Nothing ->
                 defaultTheme.emphasizedActionButton
@@ -863,8 +817,8 @@ viewTopicHeader dProfile maybeUserInfo topic =
         ]
 
 
-viewPostsGroupedByBlock : DisplayProfile -> ViewContext -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> PublishedPostsDict -> Element Msg
-viewPostsGroupedByBlock dProfile viewContext blockTimes replies showAddressId publishedPosts =
+viewPostsGroupedByBlock : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> PublishedPostsDict -> Element Msg
+viewPostsGroupedByBlock dProfile showContext blockTimes replies showAddressId publishedPosts =
     Element.column
         [ Element.width Element.fill
         , Element.spacing 20
@@ -872,12 +826,12 @@ viewPostsGroupedByBlock dProfile viewContext blockTimes replies showAddressId pu
         (publishedPosts
             |> Dict.toList
             |> List.reverse
-            |> List.map (viewBlocknumAndPosts dProfile viewContext blockTimes replies showAddressId)
+            |> List.map (viewBlocknumAndPosts dProfile showContext blockTimes replies showAddressId)
         )
 
 
-viewBlocknumAndPosts : DisplayProfile -> ViewContext -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List PublishedPost ) -> Element Msg
-viewBlocknumAndPosts dProfile viewContext blockTimes replies showAddressId ( blocknum, publishedPosts ) =
+viewBlocknumAndPosts : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List PublishedPost ) -> Element Msg
+viewBlocknumAndPosts dProfile showContext blockTimes replies showAddressId ( blocknum, publishedPosts ) =
     Element.column
         [ Element.width Element.fill
         , Element.spacing 10
@@ -914,12 +868,12 @@ viewBlocknumAndPosts dProfile viewContext blockTimes replies showAddressId ( blo
                 |> Maybe.withDefault "[fetching block timestamp]"
                 |> Element.text
             ]
-        , viewPosts dProfile viewContext replies showAddressId publishedPosts
+        , viewPosts dProfile showContext replies showAddressId publishedPosts
         ]
 
 
-viewPosts : DisplayProfile -> ViewContext -> List Reply -> Maybe PhaceIconId -> List PublishedPost -> Element Msg
-viewPosts dProfile viewContext replies showAddressId pusblishedPosts =
+viewPosts : DisplayProfile -> Bool -> List Reply -> Maybe PhaceIconId -> List PublishedPost -> Element Msg
+viewPosts dProfile showContext replies showAddressId pusblishedPosts =
     Element.column
         [ Element.paddingXY 20 0
         , Element.spacing 20
@@ -929,7 +883,7 @@ viewPosts dProfile viewContext replies showAddressId pusblishedPosts =
             (\publishedPost ->
                 viewEntirePost
                     dProfile
-                    viewContext
+                    showContext
                     (case showAddressId of
                         Just (PhaceForPublishedPost postId) ->
                             publishedPost.id == postId
@@ -949,8 +903,8 @@ viewPosts dProfile viewContext replies showAddressId pusblishedPosts =
             pusblishedPosts
 
 
-viewEntirePost : DisplayProfile -> ViewContext -> Bool -> Maybe Int -> PhaceIconId -> Post -> Element Msg
-viewEntirePost dProfile viewContext showAddress maybeNumReplies phaceIconId post =
+viewEntirePost : DisplayProfile -> Bool -> Bool -> Maybe Int -> PhaceIconId -> Post -> Element Msg
+viewEntirePost dProfile showContext showAddress maybeNumReplies phaceIconId post =
     let
         maybePostId =
             case phaceIconId of
@@ -990,7 +944,7 @@ viewEntirePost dProfile viewContext showAddress maybeNumReplies phaceIconId post
                 , Maybe.map viewPermalink maybePostId
                     |> Maybe.withDefault Element.none
                 ]
-            , viewMainPostBlock dProfile viewContext maybePostId showAddress post
+            , viewMainPostBlock dProfile showContext phaceIconId maybePostId showAddress post
             , case ( maybePostId, maybeNumReplies ) of
                 ( Nothing, _ ) ->
                     Element.none
@@ -1054,14 +1008,14 @@ viewPermalink postId =
             ]
             { url =
                 Routing.routeToFullDotEthUrlString <|
-                    Routing.ViewPost <|
-                        postId
+                    Routing.ViewContext <|
+                        Post.ForPost postId
             , label = Element.text ".eth permalink"
             }
 
 
-viewMainPostBlock : DisplayProfile -> ViewContext -> Maybe Post.Id -> Bool -> Post -> Element Msg
-viewMainPostBlock dProfile viewContext maybePostId showAddress post =
+viewMainPostBlock : DisplayProfile -> Bool -> PhaceIconId -> Maybe Post.Id -> Bool -> Post -> Element Msg
+viewMainPostBlock dProfile showContext phaceIconId maybePostId showAddress post =
     Element.column
         [ Element.width Element.fill
         , Element.padding 20
@@ -1075,55 +1029,58 @@ viewMainPostBlock dProfile viewContext maybePostId showAddress post =
             }
         , Element.alignTop
         ]
-        [ case ( dProfile, maybePostId ) of
-            ( Mobile, Just postId ) ->
-                Element.row
-                    [ Element.width Element.fill
-                    , Element.spacing 10
-                    ]
-                    [ Element.map MsgUp <|
+        [ Element.row
+            [ Element.width Element.fill
+            , Element.spacing 10
+            ]
+            [ case dProfile of
+                Desktop ->
+                    Element.none
+
+                Mobile ->
+                    Element.map MsgUp <|
                         phaceElement
                             False
-                            (PhaceForPublishedPost postId)
+                            phaceIconId
                             post.from
                             showAddress
-                    , metadataStuff viewContext post.metadata
-                    ]
-
-            _ ->
-                metadataStuff viewContext post.metadata
+            , viewMetadata showContext post.metadata
+            ]
         , Post.renderContentOrError defaultTheme post.message
         , Maybe.map messageActions maybePostId
             |> Maybe.withDefault Element.none
         ]
 
 
-metadataStuff : ViewContext -> Post.Metadata -> Element Msg
-metadataStuff context metadata =
-    case metadata.maybeDecodeError of
-        Just jsonDecodeErr ->
-            viewMetadataDecodeError jsonDecodeErr
+viewMetadata : Bool -> Post.Metadata -> Element Msg
+viewMetadata showContext metadata =
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing 10
+        ]
+        [ case metadata.maybeDecodeError of
+            Just jsonDecodeErr ->
+                viewMetadataDecodeError jsonDecodeErr
 
-        Nothing ->
-            Element.row
-                [ Element.spacing 20
-                , Element.width Element.fill
-                ]
-                ([ if context.showTopic then
-                    Just <|
-                        Element.el [ Element.alignLeft ] <|
-                            viewTopic metadata.topic
+            Nothing ->
+                Element.none
+        , if showContext then
+            Element.el [ Element.alignLeft ] <|
+                viewContext metadata.context
 
-                   else
-                    Nothing
-                 , if context.showReplyTo then
-                    maybeViewReplyInfo metadata.replyTo Nothing
+          else
+            Element.none
+        ]
 
-                   else
-                    Nothing
-                 ]
-                    |> Maybe.Extra.values
-                )
+
+viewContext : Post.Context -> Element Msg
+viewContext context =
+    case context of
+        Post.ForPost postId ->
+            viewReplyInfo postId
+
+        Post.ForTopic topic ->
+            viewTopic topic
 
 
 viewTopic : String -> Element Msg
@@ -1146,13 +1103,14 @@ viewTopic topic =
             , Element.Events.onClick <|
                 MsgUp <|
                     GotoRoute <|
-                        Routing.ViewTopic topic
+                        Routing.ViewContext <|
+                            Post.ForTopic topic
             ]
             (Element.text topic)
         ]
 
 
-viewMetadataDecodeError : Json.Decode.Error -> Element Msg
+viewMetadataDecodeError : String -> Element Msg
 viewMetadataDecodeError error =
     Element.el
         [ Element.Font.color defaultTheme.errorTextColor
@@ -1160,8 +1118,8 @@ viewMetadataDecodeError error =
         , Element.Font.size 18
         ]
         (Element.text <|
-            "Message contains malformed metadata: "
-                ++ Json.Decode.errorToString error
+            "Metadata decode error: "
+                ++ error
         )
 
 
@@ -1185,7 +1143,7 @@ replyButton postId =
             , blur = 5
             , color = Element.rgba 0 0 0 0.1
             }
-        , Element.Events.onClick <| UpdateReplyTo <| Just postId
+        , Element.Events.onClick <| MsgUp <| StartInlineCompose <| Post.ForPost postId
         , Element.width <| Element.px 30
         ]
     <|
@@ -1196,53 +1154,34 @@ replyButton postId =
             }
 
 
-maybeViewReplyInfo : Maybe Post.Id -> Maybe Msg -> Maybe (Element Msg)
-maybeViewReplyInfo maybePostId maybeCloseMsg =
-    case maybePostId of
-        Nothing ->
-            Nothing
-
-        Just postId ->
-            Just <|
-                Element.row
-                    [ Element.padding 10
-                    , Element.Border.rounded 5
-                    , Element.Font.size 20
-                    , Element.Font.italic
-                    , Element.Background.color <| Element.rgba 1 1 1 0.5
-                    , Element.spacing 5
-                    ]
-                    [ Element.column
-                        [ Element.spacing 3
-                        ]
-                        [ Element.text "Replying to:"
-                        , Element.el
-                            [ Element.Font.color defaultTheme.linkTextColor
-                            , Element.pointer
-                            , Element.Events.onClick <|
-                                MsgUp <|
-                                    GotoRoute <|
-                                        Routing.ViewPost postId
-                            ]
-                            (Element.text <|
-                                shortenedHash postId.messageHash
-                            )
-                        ]
-                    , case maybeCloseMsg of
-                        Just closeMsg ->
-                            Element.image
-                                [ Element.padding 4
-                                , Element.alignTop
-                                , Element.pointer
-                                , Element.Events.onClick closeMsg
-                                ]
-                                { src = "img/remove-circle-black.svg"
-                                , description = "remove"
-                                }
-
-                        Nothing ->
-                            Element.none
-                    ]
+viewReplyInfo : Post.Id -> Element Msg
+viewReplyInfo postId =
+    Element.row
+        [ Element.padding 10
+        , Element.Border.rounded 5
+        , Element.Font.size 20
+        , Element.Font.italic
+        , Element.Background.color <| Element.rgba 1 1 1 0.5
+        , Element.spacing 5
+        ]
+        [ Element.column
+            [ Element.spacing 3
+            ]
+            [ Element.text "Replying to:"
+            , Element.el
+                [ Element.Font.color defaultTheme.linkTextColor
+                , Element.pointer
+                , Element.Events.onClick <|
+                    MsgUp <|
+                        GotoRoute <|
+                            Routing.ViewContext <|
+                                Post.ForPost postId
+                ]
+                (Element.text <|
+                    shortenedHash postId.messageHash
+                )
+            ]
+        ]
 
 
 viewNumRepliesIfNonzero : Post.Id -> Int -> Element Msg
@@ -1257,8 +1196,8 @@ viewNumRepliesIfNonzero postId numReplies =
             , Element.Events.onClick <|
                 MsgUp <|
                     GotoRoute <|
-                        Routing.ViewPost <|
-                            postId
+                        Routing.ViewContext <|
+                            Post.ForPost postId
             , Element.Font.italic
             , Element.paddingXY 20 10
             ]

@@ -61,12 +61,6 @@ getPublishedPostFromTxHash publishedPosts txHash =
         |> List.head
 
 
-type alias ViewContext =
-    { showReplyTo : Bool
-    , showTopic : Bool
-    }
-
-
 type alias Reply =
     { from : Post.Id
     , to : Post.Id
@@ -97,8 +91,10 @@ type TxStatus
     | Failed FailReason
     | Mined (Maybe Post.Id)
 
+
 type FailReason
     = MinedButExecutionFailed
+
 
 txInfoToNameStr txInfo =
     case txInfo of

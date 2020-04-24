@@ -14,9 +14,10 @@ import UserNotice as UN
 import Wallet exposing (Wallet)
 
 
-init : Wallet -> Model
-init wallet =
-    { message = ""
+init : Wallet -> Post.Context -> Model
+init wallet context =
+    { context = context
+    , message = ""
     , daiInput = ""
     , donateChecked = True
     , miningUnlockTx = Nothing
@@ -59,7 +60,7 @@ handleMsgDown msgDown prevModel =
                     |> updateMessage ""
                 )
                 Cmd.none
-                [ ShowHalfComposeUX False ]
+                [ HideHalfCompose ]
 
 
 justModelUpdate : Model -> UpdateResult

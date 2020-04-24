@@ -45,10 +45,39 @@ type alias EncodedDraft =
 
 type alias Metadata =
     { metadataVersion : Int
-    , replyTo : Maybe Id
-    , topic : String
-    , maybeDecodeError : Maybe D.Error
+    , context : Context
+    , maybeDecodeError : Maybe String
     }
+
+
+type Context
+    = ForPost Id
+    | ForTopic String
+
+
+buildMetadataFromContext : Context -> Metadata
+buildMetadataFromContext context =
+    versionedMetadata <| Just context
+
+
+contextReplyTo : Context -> Maybe Id
+contextReplyTo context =
+    case context of
+        ForPost id ->
+            Just id
+
+        _ ->
+            Nothing
+
+
+contextTopic : Context -> Maybe String
+contextTopic context =
+    case context of
+        ForTopic topic ->
+            Just topic
+
+        _ ->
+            Nothing
 
 
 type alias Id =
@@ -65,8 +94,7 @@ nullMetadata : Metadata
 nullMetadata =
     Metadata
         0
-        Nothing
-        defaultTopic
+        (ForTopic defaultTopic)
         Nothing
 
 
@@ -74,18 +102,17 @@ currentMetadataVersion =
     2
 
 
-versionedMetadata : Maybe Id -> Maybe String -> Metadata
-versionedMetadata maybeReply maybeTopic =
+versionedMetadata : Maybe Context -> Metadata
+versionedMetadata maybeContext =
     Metadata
         currentMetadataVersion
-        maybeReply
-        (maybeTopic |> Maybe.withDefault defaultTopic)
+        (maybeContext |> Maybe.withDefault (ForTopic defaultTopic))
         Nothing
 
 
 blankVersionedMetadata : Metadata
 blankVersionedMetadata =
-    versionedMetadata Nothing Nothing
+    versionedMetadata Nothing
 
 
 encodeDraft : Draft -> EncodedDraft
@@ -101,17 +128,10 @@ encodeMessageAndMetadataToString : ( String, Metadata ) -> String
 encodeMessageAndMetadataToString ( message, metadata ) =
     E.encode 0
         (E.object <|
-            Maybe.Extra.values <|
-                [ Just ( "m", E.string message )
-                , Just ( "v", E.int metadata.metadataVersion )
-                , Maybe.map (Tuple.pair "re") <|
-                    Maybe.map encodePostId metadata.replyTo
-                , if metadata.topic == defaultTopic then
-                    Nothing
-
-                  else
-                    Just <| Tuple.pair "topic" <| E.string metadata.topic
-                ]
+            [ ( "m", E.string message )
+            , ( "v", E.int metadata.metadataVersion )
+            , ( "c", encodeContext metadata.context )
+            ]
         )
 
 
@@ -123,7 +143,9 @@ decodeMessageAndMetadata src =
             (\decodeErr ->
                 ( src
                 , { nullMetadata
-                    | maybeDecodeError = Just decodeErr
+                    | maybeDecodeError =
+                        Just <|
+                            D.errorToString decodeErr
                   }
                 )
             )
@@ -139,18 +161,86 @@ messageDecoder =
 
 metadataDecoder : D.Decoder Metadata
 metadataDecoder =
-    D.map4
-        Metadata
-        (D.maybe
-            (D.field "v" D.int)
-            |> D.map (Maybe.withDefault 1)
-        )
-        (D.maybe (D.field "re" postIdDecoder))
-        (D.maybe (D.field "topic" D.string)
-            |> D.map (Maybe.map String.toLower)
-            |> D.map (Maybe.withDefault defaultTopic)
-        )
-        (D.succeed Nothing)
+    versionDecoder
+        |> D.andThen
+            (\v -> versionedMetadataDecoder v)
+
+
+versionDecoder : D.Decoder Int
+versionDecoder =
+    D.maybe
+        (D.field "v" D.int)
+        |> D.map (Maybe.withDefault 1)
+
+
+versionedMetadataDecoder : Int -> D.Decoder Metadata
+versionedMetadataDecoder version =
+    case version of
+        0 ->
+            D.succeed nullMetadata
+
+        1 ->
+            D.maybe (D.field "re" postIdDecoder)
+                |> D.map
+                    (\maybeReplyTo ->
+                        case maybeReplyTo of
+                            Just replyTo ->
+                                Metadata
+                                    version
+                                    (ForPost replyTo)
+                                    Nothing
+
+                            Nothing ->
+                                Metadata
+                                    version
+                                    (ForTopic defaultTopic)
+                                    Nothing
+                    )
+
+        2 ->
+            currentMetadataDecoder version
+
+        _ ->
+            currentMetadataDecoder version
+                |> D.map
+                    (\metadata ->
+                        { metadata
+                            | maybeDecodeError =
+                                Just <| "Unknown metadata version '" ++ String.fromInt version ++ "'. Decoding for version '" ++ String.fromInt currentMetadataVersion ++ "'."
+                        }
+                    )
+
+
+currentMetadataDecoder : Int -> D.Decoder Metadata
+currentMetadataDecoder decodedVersion =
+    D.field "c" contextDecoder
+        |> D.map
+            (\context ->
+                Metadata
+                    decodedVersion
+                    context
+                    Nothing
+            )
+
+
+encodeContext : Context -> E.Value
+encodeContext context =
+    case context of
+        ForPost postId ->
+            E.object
+                [ ( "re", encodePostId postId ) ]
+
+        ForTopic topic ->
+            E.object
+                [ ( "topic", E.string topic ) ]
+
+
+contextDecoder : D.Decoder Context
+contextDecoder =
+    D.oneOf
+        [ D.map ForPost <| D.field "re" postIdDecoder
+        , D.map ForTopic <| D.field "topic" D.string
+        ]
 
 
 encodePostId : Id -> E.Value

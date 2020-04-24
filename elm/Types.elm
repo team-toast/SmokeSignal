@@ -48,7 +48,6 @@ type alias Model =
     , replies : List Reply
     , mode : Mode
     , showHalfComposeUX : Bool
-    , replyTo : Maybe Post.Id
     , composeUXModel : ComposeUX.Model
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
@@ -80,7 +79,6 @@ type Msg
     | TxSigned TxInfo (Result String TxHash)
     | ViewDraft (Maybe Post.Draft)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
-    | UpdateReplyTo (Maybe Post.Id)
     | RestoreDraft Post.Draft
     | DismissNotice Int
     | ClickHappened
@@ -94,9 +92,8 @@ type Msg
 type Mode
     = BlankMode
     | Home Home.Model
-    | Compose String
-    | ViewPost Post.Id
-    | ViewTopic String
+    | Compose
+    | ViewContext Post.Context
 
 
 filterBlockPosts : (PublishedPost -> Bool) -> PublishedPostsDict -> PublishedPostsDict

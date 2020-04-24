@@ -13,9 +13,8 @@ import Url.Parser.Query as Query
 
 type Route
     = Home
-    | Compose String
-    | ViewPost Post.Id
-    | ViewTopic String
+    | Compose Post.Context
+    | ViewContext Post.Context
     | NotFound String
 
 
@@ -23,17 +22,11 @@ routeParser : Parser (Route -> a) a
 routeParser =
     Parser.oneOf
         [ Parser.map Home Parser.top
-        , Parser.map viewPostOrParseFail (Parser.s "viewpost" <?> postIdInfoParser)
-        , Parser.map ViewTopic (Parser.s "topic" </> Parser.string)
-        , Parser.map Compose (Parser.s "compose" </> Parser.string)
+        , (Parser.s "context" </> contextParser)
+            |> Parser.map (Result.Extra.unpack NotFound ViewContext)
+        , (Parser.s "compose" </> contextParser)
+            |> Parser.map (Result.Extra.unpack NotFound Compose)
         ]
-
-
-viewPostOrParseFail : Result String Post.Id -> Route
-viewPostOrParseFail =
-    Result.Extra.unpack
-        NotFound
-        ViewPost
 
 
 routeToString : String -> Route -> String
@@ -45,20 +38,15 @@ routeToString basePath route =
                         [ "#" ]
                         []
 
-                Compose topic ->
+                Compose context ->
                     Builder.relative
-                        [ "#", "compose", topic ]
-                        []
+                        ([ "#", "compose" ] ++ encodeContextPaths context)
+                        (encodeContextQueryParams context)
 
-                ViewPost postId ->
+                ViewContext context ->
                     Builder.relative
-                        [ "#", "viewpost" ]
-                        (encodePostIdInfoQueryParameters postId)
-
-                ViewTopic topic ->
-                    Builder.relative
-                        [ "#", "topic", topic ]
-                        []
+                        ([ "#", "context" ] ++ encodeContextPaths context)
+                        (encodeContextQueryParams context)
 
                 NotFound _ ->
                     Builder.relative
@@ -72,8 +60,39 @@ routeToFullDotEthUrlString route =
     routeToString "https://smokesignal.eth/" route
 
 
-postIdInfoParser : Query.Parser (Result String Post.Id)
-postIdInfoParser =
+contextParser : Parser (Result String Post.Context -> a) a
+contextParser =
+    Parser.oneOf
+        [ (Parser.s "re" <?> postIdQueryParser)
+            |> Parser.map (Result.map Post.ForPost)
+        , (Parser.s "topic" </> Parser.string)
+            |> Parser.map Post.ForTopic
+            |> Parser.map Ok
+        ]
+
+
+encodeContextPaths : Post.Context -> List String
+encodeContextPaths context =
+    case context of
+        Post.ForPost _ ->
+            [ "re" ]
+
+        Post.ForTopic topic ->
+            [ "topic", topic ]
+
+
+encodeContextQueryParams : Post.Context -> List Builder.QueryParameter
+encodeContextQueryParams context =
+    case context of
+        Post.ForPost postId ->
+            encodePostIdQueryParameters postId
+
+        Post.ForTopic _ ->
+            []
+
+
+postIdQueryParser : Query.Parser (Result String Post.Id)
+postIdQueryParser =
     Query.map2
         (Result.map2 Post.Id)
         (Query.int "block"
@@ -82,8 +101,8 @@ postIdInfoParser =
         (hexQueryParser "hash")
 
 
-encodePostIdInfoQueryParameters : Post.Id -> List Builder.QueryParameter
-encodePostIdInfoQueryParameters postIdInfo =
+encodePostIdQueryParameters : Post.Id -> List Builder.QueryParameter
+encodePostIdQueryParameters postIdInfo =
     [ Builder.string "block" (String.fromInt postIdInfo.block)
     , Builder.string "hash" (Eth.Utils.hexToString postIdInfo.messageHash)
     ]
@@ -92,7 +111,7 @@ encodePostIdInfoQueryParameters postIdInfo =
 hexQueryParser : String -> Query.Parser (Result String Hex)
 hexQueryParser label =
     Query.string label
-        |> Query.map (Result.fromMaybe "Can't find 'hash'")
+        |> Query.map (Result.fromMaybe <| "Can't find '" ++ label ++ "'")
         |> Query.map (Result.andThen Eth.Utils.toHex)
 
 
