@@ -434,18 +434,21 @@ update msg prevModel =
                                 _ ->
                                     Nothing
 
-                        modelWithTrackedTx =
-                            prevModel |> addTrackedTx txHash txInfo
+                        interimModel =
+                            { prevModel
+                                | showExpandedTrackedTxs = True
+                            }
+                                |> addTrackedTx txHash txInfo
                     in
                     case maybeNewRouteAndComposeModel of
                         Just ( route, composeUXModel ) ->
-                            { modelWithTrackedTx
+                            { interimModel
                                 | composeUXModel = composeUXModel
                             }
                                 |> gotoRoute route
 
                         Nothing ->
-                            ( modelWithTrackedTx
+                            ( interimModel
                             , Cmd.none
                             )
 
