@@ -65,9 +65,9 @@ contextParser =
     Parser.oneOf
         [ (Parser.s "re" <?> postIdQueryParser)
             |> Parser.map (Result.map Post.ForPost)
-        , (Parser.s "topic" </> Parser.string)
-            |> Parser.map Post.ForTopic
-            |> Parser.map Ok
+        , (Parser.s "topic" </> topicParser)
+            |> Parser.map (Result.fromMaybe "Couldn't parse topic")
+            |> Parser.map (Result.map Post.ForTopic)
         ]
 
 
@@ -78,7 +78,18 @@ encodeContextPaths context =
             [ "re" ]
 
         Post.ForTopic topic ->
-            [ "topic", topic ]
+            [ "topic", encodeTopic topic ]
+
+
+encodeTopic : String -> String
+encodeTopic =
+    Url.percentEncode
+
+
+topicParser : Parser (Maybe String -> a) a
+topicParser =
+    Parser.string
+        |> Parser.map Url.percentDecode
 
 
 encodeContextQueryParams : Post.Context -> List Builder.QueryParameter
