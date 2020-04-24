@@ -257,6 +257,7 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
         [ Element.width Element.fill
         , Element.Background.color defaultTheme.headerBackground
         , Element.padding (20 |> changeForMobile 10 dProfile)
+        , Element.spacing (10 |> changeForMobile 5 dProfile)
         , EH.moveToFront
         , Element.Border.glow
             (EH.black |> EH.withAlpha 0.5)
@@ -268,30 +269,13 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
 
             Desktop ->
                 logoBlock dProfile
+        , maybeTxTracker dProfile showExpandedTrackedTxs trackedTxs
         , Element.el
             [ Element.centerY
             , Element.alignRight
             ]
           <|
             EH.forgedByFoundry dProfile
-
-        -- , Element.row
-        --     [ Element.alignRight
-        --     , Element.spacing 10
-        --     ]
-        --     [ maybeTxTracker showExpandedTrackedTxs trackedTxs
-        --     , case mode of
-        --         Home _ ->
-        --             Element.none
-        --         _ ->
-        --             Element.el
-        --                 [ Element.alignRight
-        --                 , Element.alignTop
-        --                 ]
-        --             <|
-        --                 Element.map MsgUp <|
-        --                     walletUX dProfile False walletUXPhaceInfo
-        --     ]
         ]
 
 
@@ -329,8 +313,8 @@ logoBlock dProfile =
         ]
 
 
-maybeTxTracker : Bool -> List TrackedTx -> Element Msg
-maybeTxTracker showExpanded trackedTxs =
+maybeTxTracker : DisplayProfile -> Bool -> List TrackedTx -> Element Msg
+maybeTxTracker dProfile showExpanded trackedTxs =
     if List.isEmpty trackedTxs then
         Element.none
 
@@ -420,8 +404,9 @@ maybeTxTracker showExpanded trackedTxs =
                     , Element.height Element.fill
                     , Element.Border.rounded 5
                     , Element.Background.color <| Element.rgba 1 1 1 0.3
-                    , Element.padding 10
-                    , Element.spacing 10
+                    , Element.padding (10 |> changeForMobile 5 dProfile)
+                    , Element.spacing (10 |> changeForMobile 5 dProfile)
+                    , Element.Font.size (20 |> changeForMobile 12 dProfile)
                     , Element.pointer
                     , EH.onClickNoPropagation <|
                         if showExpanded then

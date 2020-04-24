@@ -40,7 +40,7 @@ update msg prevModel =
         DaiInputChanged input ->
             justModelUpdate
                 (prevModel |> updateDaiInput input)
-        
+
         MobilePreviewToggle ->
             justModelUpdate
                 { prevModel
@@ -62,13 +62,14 @@ handleMsgDown msgDown prevModel =
             justModelUpdate
                 { prevModel | wallet = newWallet }
 
-        PostSigned messageDraft ->
-            UpdateResult
-                (prevModel
-                    |> updateMessage ""
-                )
-                Cmd.none
-                [ HideHalfCompose ]
+
+resetModel : Model -> Model
+resetModel model =
+    { model
+        | message = ""
+        , showPreviewOnMobile = False
+        , daiInput = ""
+    }
 
 
 justModelUpdate : Model -> UpdateResult

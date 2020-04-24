@@ -21,4 +21,3 @@ type MsgUp
 
 type MsgDown
     = UpdateWallet Wallet
-    | PostSigned Post.Draft

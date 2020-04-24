@@ -423,22 +423,31 @@ update msg prevModel =
             case txHashResult of
                 Ok txHash ->
                     let
-                        maybeMsgDown =
+                        maybeNewRouteAndComposeModel =
                             case txInfo of
                                 PostTx draft ->
-                                    Just <| PostSigned draft
+                                    Just <|
+                                        ( Routing.ViewContext prevModel.composeUXModel.context
+                                        , prevModel.composeUXModel |> ComposeUX.resetModel
+                                        )
 
                                 _ ->
                                     Nothing
+
+                        modelWithTrackedTx =
+                            prevModel |> addTrackedTx txHash txInfo
                     in
-                    ( prevModel
-                        |> addTrackedTx txHash txInfo
-                    , Cmd.none
-                    )
-                        |> (maybeMsgDown
-                                |> Maybe.map withMsgDown
-                                |> Maybe.withDefault identity
-                           )
+                    case maybeNewRouteAndComposeModel of
+                        Just ( route, composeUXModel ) ->
+                            { modelWithTrackedTx
+                                | composeUXModel = composeUXModel
+                            }
+                                |> gotoRoute route
+
+                        Nothing ->
+                            ( modelWithTrackedTx
+                            , Cmd.none
+                            )
 
                 Err errStr ->
                     ( prevModel
