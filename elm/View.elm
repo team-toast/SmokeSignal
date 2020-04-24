@@ -167,6 +167,7 @@ body model =
                         ComposeUX.viewFull
                             model.dProfile
                             walletUXPhaceInfo
+                            model.showAddressId
                             model.composeUXModel
 
                 ViewContext context ->
@@ -241,6 +242,7 @@ body model =
                     ComposeUX.view
                         model.dProfile
                         walletUXPhaceInfo
+                        model.showAddressId
                         model.composeUXModel
                 )
 
@@ -1044,83 +1046,12 @@ viewMainPostBlock dProfile showContext phaceIconId maybePostId showAddress post 
                             phaceIconId
                             post.from
                             showAddress
-            , viewMetadata showContext post.metadata
+            , Element.map MsgUp <| viewMetadata showContext post.metadata
             ]
         , Post.renderContentOrError defaultTheme post.message
         , Maybe.map messageActions maybePostId
             |> Maybe.withDefault Element.none
         ]
-
-
-viewMetadata : Bool -> Post.Metadata -> Element Msg
-viewMetadata showContext metadata =
-    Element.column
-        [ Element.width Element.fill
-        , Element.spacing 10
-        ]
-        [ case metadata.maybeDecodeError of
-            Just jsonDecodeErr ->
-                viewMetadataDecodeError jsonDecodeErr
-
-            Nothing ->
-                Element.none
-        , if showContext then
-            Element.el [ Element.alignLeft ] <|
-                viewContext metadata.context
-
-          else
-            Element.none
-        ]
-
-
-viewContext : Post.Context -> Element Msg
-viewContext context =
-    case context of
-        Post.ForPost postId ->
-            viewReplyInfo postId
-
-        Post.ForTopic topic ->
-            viewTopic topic
-
-
-viewTopic : String -> Element Msg
-viewTopic topic =
-    Element.column
-        [ Element.padding 10
-        , Element.Border.rounded 5
-        , Element.Font.size 20
-        , Element.Font.italic
-        , Element.Background.color <| Element.rgba 1 1 1 0.5
-        , Element.spacing 5
-        , Element.clipX
-        , Element.scrollbarX
-        , Element.width (Element.shrink |> Element.maximum 400)
-        ]
-        [ Element.text "Topic:"
-        , Element.el
-            [ Element.Font.color defaultTheme.linkTextColor
-            , Element.pointer
-            , Element.Events.onClick <|
-                MsgUp <|
-                    GotoRoute <|
-                        Routing.ViewContext <|
-                            Post.ForTopic topic
-            ]
-            (Element.text topic)
-        ]
-
-
-viewMetadataDecodeError : String -> Element Msg
-viewMetadataDecodeError error =
-    Element.el
-        [ Element.Font.color defaultTheme.errorTextColor
-        , Element.Font.italic
-        , Element.Font.size 18
-        ]
-        (Element.text <|
-            "Metadata decode error: "
-                ++ error
-        )
 
 
 messageActions : Post.Id -> Element Msg
@@ -1152,36 +1083,6 @@ replyButton postId =
             { src = "img/reply-arrow.svg"
             , description = "reply"
             }
-
-
-viewReplyInfo : Post.Id -> Element Msg
-viewReplyInfo postId =
-    Element.row
-        [ Element.padding 10
-        , Element.Border.rounded 5
-        , Element.Font.size 20
-        , Element.Font.italic
-        , Element.Background.color <| Element.rgba 1 1 1 0.5
-        , Element.spacing 5
-        ]
-        [ Element.column
-            [ Element.spacing 3
-            ]
-            [ Element.text "Replying to:"
-            , Element.el
-                [ Element.Font.color defaultTheme.linkTextColor
-                , Element.pointer
-                , Element.Events.onClick <|
-                    MsgUp <|
-                        GotoRoute <|
-                            Routing.ViewContext <|
-                                Post.ForPost postId
-                ]
-                (Element.text <|
-                    shortenedHash postId.messageHash
-                )
-            ]
-        ]
 
 
 viewNumRepliesIfNonzero : Post.Id -> Int -> Element Msg

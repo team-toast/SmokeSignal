@@ -12,6 +12,8 @@ import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
 import Helpers.Time as TimeHelpers
 import Phace
+import Post
+import Routing exposing (Route)
 import Theme exposing (defaultTheme)
 import Time
 
@@ -227,3 +229,112 @@ subheaderAttributes dProfile =
     , Element.Font.size (50 |> changeForMobile 30 dProfile)
     , Element.Font.color defaultTheme.headerTextColor
     ]
+
+
+commonFontSize : DisplayProfile -> Int
+commonFontSize dProfile =
+    case dProfile of
+        Desktop ->
+            24
+
+        Mobile ->
+            18
+
+
+viewMetadata : Bool -> Post.Metadata -> Element MsgUp
+viewMetadata showContext metadata =
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing 10
+        ]
+        [ case metadata.maybeDecodeError of
+            Just jsonDecodeErr ->
+                viewMetadataDecodeError jsonDecodeErr
+
+            Nothing ->
+                Element.none
+        , if showContext then
+            Element.el [ Element.alignLeft ] <|
+                viewContext metadata.context
+
+          else
+            Element.none
+        ]
+
+
+viewMetadataDecodeError : String -> Element msg
+viewMetadataDecodeError error =
+    Element.el
+        [ Element.Font.color defaultTheme.errorTextColor
+        , Element.Font.italic
+        , Element.Font.size 18
+        ]
+        (Element.text <|
+            "Metadata decode error: "
+                ++ error
+        )
+
+
+viewContext : Post.Context -> Element MsgUp
+viewContext context =
+    case context of
+        Post.ForPost postId ->
+            viewReplyInfo postId
+
+        Post.ForTopic topic ->
+            viewTopic topic
+
+
+viewTopic : String -> Element MsgUp
+viewTopic topic =
+    Element.column
+        [ Element.padding 10
+        , Element.Border.rounded 5
+        , Element.Font.size 20
+        , Element.Font.italic
+        , Element.Background.color <| Element.rgba 1 1 1 0.5
+        , Element.spacing 5
+        , Element.clipX
+        , Element.scrollbarX
+        , Element.width (Element.shrink |> Element.maximum 400)
+        ]
+        [ Element.text "Topic:"
+        , Element.el
+            [ Element.Font.color defaultTheme.linkTextColor
+            , Element.pointer
+            , Element.Events.onClick <|
+                GotoRoute <|
+                    Routing.ViewContext <|
+                        Post.ForTopic topic
+            ]
+            (Element.text topic)
+        ]
+
+
+viewReplyInfo : Post.Id -> Element MsgUp
+viewReplyInfo postId =
+    Element.row
+        [ Element.padding 10
+        , Element.Border.rounded 5
+        , Element.Font.size 20
+        , Element.Font.italic
+        , Element.Background.color <| Element.rgba 1 1 1 0.5
+        , Element.spacing 5
+        ]
+        [ Element.column
+            [ Element.spacing 3
+            ]
+            [ Element.text "Replying to:"
+            , Element.el
+                [ Element.Font.color defaultTheme.linkTextColor
+                , Element.pointer
+                , Element.Events.onClick <|
+                    GotoRoute <|
+                        Routing.ViewContext <|
+                            Post.ForPost postId
+                ]
+                (Element.text <|
+                    shortenedHash postId.messageHash
+                )
+            ]
+        ]

@@ -22,6 +22,7 @@ init wallet context =
     , donateChecked = True
     , miningUnlockTx = Nothing
     , wallet = wallet
+    , showPreviewOnMobile = False
     }
 
 
@@ -39,6 +40,13 @@ update msg prevModel =
         DaiInputChanged input ->
             justModelUpdate
                 (prevModel |> updateDaiInput input)
+        
+        MobilePreviewToggle ->
+            justModelUpdate
+                { prevModel
+                    | showPreviewOnMobile =
+                        not prevModel.showPreviewOnMobile
+                }
 
         MsgUp msgUp ->
             UpdateResult

@@ -16,6 +16,7 @@ type alias Model =
     , donateChecked : Bool
     , miningUnlockTx : Maybe TxHash
     , wallet : Wallet
+    , showPreviewOnMobile : Bool
     }
 
 
@@ -24,6 +25,7 @@ type Msg
     | MessageInputChanged String
     | DaiInputChanged String
     | DonationCheckboxSet Bool
+    | MobilePreviewToggle
 
 
 type alias UpdateResult =

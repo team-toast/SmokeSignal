@@ -70,6 +70,7 @@ type alias Reply =
 type PhaceIconId
     = PhaceForPublishedPost Post.Id
     | PhaceForDraft
+    | PhaceForPreview
     | UserPhace
     | MorphingPhace
 
