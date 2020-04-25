@@ -145,7 +145,7 @@ body model =
             [ Element.width Element.fill
             , Element.height Element.fill
             , Element.Background.color defaultTheme.appBackground
-            , Element.scrollbarY
+            
             ]
           <|
             case model.mode of
