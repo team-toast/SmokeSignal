@@ -20,7 +20,7 @@ import Eth.Sentry.Tx as TxSentry
 import Eth.Sentry.Wallet as WalletSentry
 import Eth.Types exposing (Address, TxHash)
 import Eth.Utils
-import Helpers.Element as EH
+import Helpers.Element as EH exposing (DisplayProfile(..))
 import Home.State as Home
 import Json.Decode
 import Json.Encode
@@ -72,6 +72,7 @@ init flags url key =
                 initEventSentry
     in
     { navKey = key
+    , basePath = flags.basePath
     , route = route
     , wallet = wallet
     , now = Time.millisToPosix flags.nowInMillis
@@ -82,8 +83,7 @@ init flags url key =
     , replies = []
     , mode = BlankMode
     , showHalfComposeUX = False
-    , replyTo = Nothing
-    , composeUXModel = ComposeUX.init wallet
+    , composeUXModel = ComposeUX.init wallet (Post.ForTopic Post.defaultTopic)
     , blockTimes = Dict.empty
     , showAddressId = Nothing
     , userNotices = walletNotices
@@ -361,19 +361,22 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-        UpdateReplyTo replyTo ->
-            ( { prevModel
-                | replyTo = replyTo
-                , showHalfComposeUX =
-                    case prevModel.mode of
-                        Compose _ ->
-                            False
-
-                        _ ->
-                            True
-              }
-            , Cmd.none
-            )
+        RestoreDraft draft ->
+            { prevModel
+                | draftModal = Nothing
+                , composeUXModel =
+                    prevModel.composeUXModel
+                        |> (\composeUXModel ->
+                                { composeUXModel
+                                    | message = draft.post.message
+                                    , daiInput =
+                                        draft.post.burnAmount
+                                            |> TokenValue.toFloatString Nothing
+                                    , donateChecked = not <| TokenValue.isZero draft.donateAmount
+                                }
+                           )
+            }
+                |> (gotoRoute <| Routing.Compose draft.post.metadata.context)
 
         DismissNotice id ->
             ( { prevModel
@@ -420,22 +423,34 @@ update msg prevModel =
             case txHashResult of
                 Ok txHash ->
                     let
-                        maybeMsgDown =
+                        maybeNewRouteAndComposeModel =
                             case txInfo of
                                 PostTx draft ->
-                                    Just <| PostSigned draft
+                                    Just <|
+                                        ( Routing.ViewContext prevModel.composeUXModel.context
+                                        , prevModel.composeUXModel |> ComposeUX.resetModel
+                                        )
 
                                 _ ->
                                     Nothing
+
+                        interimModel =
+                            { prevModel
+                                | showExpandedTrackedTxs = True
+                            }
+                                |> addTrackedTx txHash txInfo
                     in
-                    ( prevModel
-                        |> addTrackedTx txHash txInfo
-                    , Cmd.none
-                    )
-                        |> (maybeMsgDown
-                                |> Maybe.map withMsgDown
-                                |> Maybe.withDefault identity
-                           )
+                    case maybeNewRouteAndComposeModel of
+                        Just ( route, composeUXModel ) ->
+                            { interimModel
+                                | composeUXModel = composeUXModel
+                            }
+                                |> gotoRoute route
+
+                        Nothing ->
+                            ( interimModel
+                            , Cmd.none
+                            )
 
                 Err errStr ->
                     ( prevModel
@@ -493,7 +508,7 @@ handleMsgUp msgUp prevModel =
                             [ cmd
                             , Browser.Navigation.pushUrl
                                 prevModel.navKey
-                                (Routing.routeToString route)
+                                (Routing.routeToString prevModel.basePath route)
                             ]
                     )
 
@@ -521,9 +536,27 @@ handleMsgUp msgUp prevModel =
             , Cmd.none
             )
 
-        ShowHalfComposeUX flag ->
+        StartInlineCompose composeContext ->
+            case prevModel.dProfile of
+                Desktop ->
+                    ( { prevModel
+                        | showHalfComposeUX = True
+                        , composeUXModel =
+                            prevModel.composeUXModel
+                                |> ComposeUX.updateContext composeContext
+                      }
+                    , Cmd.none
+                    )
+
+                Mobile ->
+                    prevModel
+                        |> (gotoRoute <|
+                                Routing.Compose composeContext
+                           )
+
+        HideHalfCompose ->
             ( { prevModel
-                | showHalfComposeUX = flag
+                | showHalfComposeUX = False
               }
             , Cmd.none
             )
@@ -720,55 +753,46 @@ updateFromPageRoute route model =
 
 gotoRoute : Route -> Model -> ( Model, Cmd Msg )
 gotoRoute route prevModel =
-    case routeToModeAndCmd route of
-        Ok ( mode, cmd ) ->
+    case route of
+        Routing.Home ->
+            let
+                ( homeModel, homeCmd ) =
+                    Home.init
+            in
             ( { prevModel
                 | route = route
-                , mode = mode
-                , showHalfComposeUX =
-                    case mode of
-                        Compose _ ->
-                            False
-
-                        _ ->
-                            prevModel.showHalfComposeUX
+                , mode = Home homeModel
+                , showHalfComposeUX = False
               }
-            , cmd
+            , Cmd.map HomeMsg homeCmd
             )
 
-        Err errStr ->
+        Routing.Compose context ->
+            ( { prevModel
+                | route = route
+                , mode = Compose
+                , showHalfComposeUX = False
+                , composeUXModel =
+                    prevModel.composeUXModel |> ComposeUX.updateContext context
+              }
+            , Cmd.none
+            )
+
+        Routing.ViewContext context ->
+            ( { prevModel
+                | route = route
+                , mode = ViewContext context
+              }
+            , Cmd.none
+            )
+
+        Routing.NotFound err ->
             ( { prevModel
                 | route = route
               }
                 |> addUserNotice UN.routeNotFound
             , Cmd.none
             )
-
-
-routeToModeAndCmd : Route -> Result String ( Mode, Cmd Msg )
-routeToModeAndCmd route =
-    case route of
-        Routing.Home ->
-            let
-                ( homeModel, cmd ) =
-                    Home.init
-            in
-            Ok
-                ( Home homeModel
-                , Cmd.map HomeMsg cmd
-                )
-
-        Routing.Compose topic ->
-            Ok ( Compose topic, Cmd.none )
-
-        Routing.ViewPost postId ->
-            Ok ( ViewPost postId, Cmd.none )
-
-        Routing.ViewTopic topic ->
-            Ok ( ViewTopic topic, Cmd.none )
-
-        Routing.NotFound err ->
-            Err err
 
 
 addPost : Int -> PublishedPost -> Model -> Model
@@ -805,7 +829,7 @@ addPost blockNumber publishedPost prevModel =
             , replies =
                 List.append
                     prevModel.replies
-                    (case publishedPost.post.metadata.replyTo of
+                    (case Post.contextReplyTo publishedPost.post.metadata.context of
                         Just replyTo ->
                             [ { from = publishedPost.id
                               , to = replyTo

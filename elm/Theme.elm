@@ -17,6 +17,7 @@ type alias Theme msg =
     , draftModalBackground : Color
     , mainTextColor : Color
     , linkTextColor : Color
+    , linkTextColorAgainstBackground : Color
     , emphasizedTextColor : Color
     , postBodyTextColor : Color
     , messageInputPlaceholderTextColor : Color
@@ -47,6 +48,7 @@ basicTheme =
     , txTrackerBackground = lightBlue
     , mainTextColor = EH.white
     , linkTextColor = blue
+    , linkTextColorAgainstBackground = Element.rgb 0.4 0.6 1
     , emphasizedTextColor = EH.white
     , postBodyTextColor = EH.black
     , messageInputPlaceholderTextColor = darkGray
@@ -219,7 +221,7 @@ disabledButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Element 
 disabledButton dProfile attributes text =
     Element.el
         ([ Element.Border.rounded 4
-         , Element.paddingXY 25 17 |> EH.changeForMobile (Element.paddingXY 10 5) dProfile
+         , Element.paddingXY 25 17 |> EH.changeForMobile (Element.padding 10) dProfile
          , Element.Font.size (18 |> EH.changeForMobile 16 dProfile)
          , Element.Font.semiBold
          , Element.Background.color lightGray

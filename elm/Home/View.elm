@@ -12,7 +12,7 @@ import Element.Events
 import Element.Font
 import Element.Input
 import Eth.Utils
-import Helpers.Element as EH exposing (changeForMobile)
+import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
 import Home.Types exposing (..)
 import Post exposing (Post, PublishedPost)
 import Routing exposing (Route)
@@ -29,62 +29,110 @@ view dProfile model walletUXPhaceInfo posts =
         , Element.Background.color darkTheme.appBackground
         , Element.paddingXY 20 40
             |> changeForMobile (Element.paddingXY 10 20) dProfile
-        , Element.spacing (60 |> changeForMobile 15 dProfile)
+        , Element.spacing (60 |> changeForMobile 30 dProfile)
         , Element.Font.color darkTheme.emphasizedTextColor
         ]
-        [ Element.column
-            [ Element.centerX
-            , Element.spacing 20
-            ]
-          <|
-            [ Element.paragraph
-                [ Element.Font.size 50
-                , Element.Font.center
+        (case dProfile of
+            Desktop ->
+                [ freeSpeechAttackedEl dProfile
+                , Element.row
+                    [ Element.width Element.fill
+                    , Element.spacing 20
+                    ]
+                    [ Element.el
+                        [ Element.width (Element.fillPortion 1)
+                        , Element.alignTop
+                        ]
+                      <|
+                        Element.none
+                    , Element.column
+                        [ Element.width (Element.fillPortion 2)
+                        , Element.alignTop
+                        , Element.spacing 40
+                        ]
+                        [ composeActionBlock dProfile walletUXPhaceInfo
+                        ]
+                    , Element.el
+                        [ Element.width (Element.fillPortion 1)
+                        , Element.alignTop
+                        ]
+                      <|
+                        topicsBlock dProfile model posts
+                    ]
+                , infoBlock dProfile
                 ]
-                [ Element.text "Freedom of Speech is being attacked." ]
-            , Element.paragraph
-                [ Element.Font.size 60
-                , Element.Font.center
-                , Element.Font.semiBold
+
+            Mobile ->
+                [ freeSpeechAttackedEl dProfile
+                , infoBlock dProfile
+                , conversationAlreadyStartedEl dProfile
+                , topicsExplainerEl dProfile
+                , topicsBlock dProfile model posts
+                , composeActionBlock dProfile walletUXPhaceInfo
                 ]
-                [ Element.text "SmokeSignal makes this futile." ]
-            ]
-        , Element.row
-            [ Element.width Element.fill
-            , Element.spacing 20
-            ]
-            [ Element.el
-                [ Element.width (Element.fillPortion 1)
-                , Element.alignTop
-                ]
-              <|
-                Element.none
-            , Element.column
-                [ Element.width (Element.fillPortion 2)
-                , Element.alignTop
-                , Element.spacing 40
-                ]
-                [ composeActionBlock dProfile walletUXPhaceInfo
-                , infoBlock
-                ]
-            , Element.el
-                [ Element.width (Element.fillPortion 1)
-                , Element.alignTop
-                ]
-              <|
-                topicsBlock dProfile model posts
-            ]
+        )
+
+
+freeSpeechAttackedEl : DisplayProfile -> Element Msg
+freeSpeechAttackedEl dProfile =
+    Element.column
+        [ Element.centerX
+        , Element.spacing 30
+        ]
+    <|
+        [ case dProfile of
+            Desktop ->
+                Element.paragraph
+                    [ Element.Font.size 50
+                    , Element.Font.center
+                    ]
+                    [ Element.text "Freedom of Speech is being attacked." ]
+
+            Mobile ->
+                Element.column
+                    [ Element.centerX
+                    , Element.Font.size 36
+                    ]
+                    [ Element.el [ Element.centerX ] <| Element.text "Freedom of Speech"
+                    , Element.el [ Element.centerX ] <| Element.text "is being attacked."
+                    ]
+        , case dProfile of
+            Desktop ->
+                Element.paragraph
+                    [ Element.Font.size 60
+                    , Element.Font.center
+                    , Element.Font.semiBold
+                    ]
+                    [ Element.text "SmokeSignal makes this futile." ]
+
+            Mobile ->
+                Element.column
+                    [ Element.centerX ]
+                    [ Element.el
+                        [ Element.centerX
+                        , Element.Font.size 60
+                        , Element.Font.bold
+                        ]
+                      <|
+                        Element.text "SmokeSignal"
+                    , Element.el
+                        [ Element.centerX
+                        , Element.Font.size 44
+                        ]
+                      <|
+                        Element.text "makes this futile."
+                    ]
         ]
 
 
-infoBlock : Element Msg
-infoBlock =
+infoBlock : DisplayProfile -> Element Msg
+infoBlock dProfile =
     Element.column
         [ Element.Border.rounded 15
-        , Element.Background.color darkTheme.blockBackground
-        , Element.padding 25
+        , Element.Background.color Theme.darkBlue
+        , Element.padding (25 |> changeForMobile 15 dProfile)
         , Element.Font.color <| EH.white
-        , Element.Font.size 26
+        , Element.Font.size (26 |> changeForMobile 18 dProfile)
         , Element.Font.color darkTheme.mainTextColor
         , Element.centerX
         , Element.spacing 20
@@ -97,9 +145,60 @@ infoBlock =
                 ]
             )
             [ [ Element.text "SmokeSignal uses the Ethereum blockchain to facilitate uncensorable, global chat." ]
-            , [ emphasizedText "No usernames. No moderators. No deplatforming."
+            , [ case dProfile of
+                    Desktop ->
+                        emphasizedText "No usernames. No moderators. No censorship. No deplatforming."
+
+                    Mobile ->
+                        Element.column
+                            [ Element.spacing 3 ]
+                            [ Element.el [ Element.centerX ] <| emphasizedText "No usernames."
+                            , Element.el [ Element.centerX ] <| emphasizedText "No moderators."
+                            , Element.el [ Element.centerX ] <| emphasizedText "No censorship."
+                            , Element.el [ Element.centerX ] <| emphasizedText "No deplatforming."
+                            ]
               ]
             , [ Element.text "All you need is ETH for gas and DAI to burn." ]
+            ]
+
+
+conversationAlreadyStartedEl : DisplayProfile -> Element Msg
+conversationAlreadyStartedEl dProfile =
+    Element.paragraph
+        [ Element.Font.size (50 |> changeForMobile 36 dProfile)
+        , Element.Font.center
+        ]
+        [ Element.text "The conversation has already started." ]
+
+
+topicsExplainerEl : DisplayProfile -> Element Msg
+topicsExplainerEl dProfile =
+    Element.column
+        [ Element.Border.rounded 15
+        , Element.Background.color <| Element.rgb 0.3 0 0
+        , Element.padding (25 |> changeForMobile 15 dProfile)
+        , Element.Font.color <| EH.white
+        , Element.Font.size (26 |> changeForMobile 18 dProfile)
+        , Element.Font.color darkTheme.mainTextColor
+        , Element.centerX
+        , Element.spacing 20
+        ]
+    <|
+        List.map
+            (Element.paragraph
+                [ Element.width Element.fill
+                , Element.Font.center
+                ]
+            )
+            [ [ Element.text "Users burn DAI to post messages under any given "
+              , emphasizedText "topic"
+              , Element.text ". Theses topics are listed below, along with the "
+              , emphasizedText "total DAI burned"
+              , Element.text " in that topic."
+              ]
+            , [ Element.text "If you have a web3 wallet, ETH, and DAI, starting a new topic is easy: type it into the box below and click "
+              , emphasizedText "Start new topic."
+              ]
             ]
 
 
@@ -111,7 +210,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
                 [ Element.spacing 15 ]
                 (List.map
                     (Element.paragraph
-                        [ Element.Font.size 24
+                        [ Element.Font.size (24 |> changeForMobile 18 dProfile)
                         , Element.width Element.fill
                         , Element.Font.color darkTheme.mainTextColor
                         ]
@@ -122,19 +221,19 @@ composeActionBlock dProfile walletUXPhaceInfo =
     Element.column
         [ Element.spacing 25
         , Element.centerX
-        , Element.width <| Element.px 600
+        , Element.width <|
+            (Element.px 600 |> changeForMobile Element.fill dProfile)
         ]
         [ Element.row
             [ Element.width Element.fill
             , Element.spacing 40
             ]
-            [ homeWalletUX dProfile <|
-                walletUXPhaceInfo
+            [ homeWalletUX dProfile walletUXPhaceInfo
             , Element.column
                 [ Element.spacing 5
-                , Element.Font.size 50
+                , Element.Font.size (50 |> changeForMobile 30 dProfile)
                 , Element.Font.bold
-                , Element.alignTop
+                , Element.alignTop |> changeForMobile Element.alignBottom dProfile
                 ]
                 (case walletUXPhaceInfo of
                     UserPhaceInfo _ ->
@@ -197,7 +296,6 @@ homeWalletUX dProfile walletUXPhaceInfo =
                         False
                     ]
 
-            -- Element.el commonAttributes <|
             UserPhaceInfo ( accountInfo, showAddress ) ->
                 Element.el [] <|
                     phaceElement
@@ -212,7 +310,7 @@ topicsBlock dProfile model posts =
     Element.column
         [ Element.spacing 25
         , Element.alignTop
-        , Element.width Element.fill
+        , Element.width <| Element.px 400
         ]
         [ Element.column
             [ Element.width Element.fill
@@ -244,10 +342,22 @@ topicsColumn dProfile topicSearchStr posts =
     let
         talliedTopics : List ( String, ( TokenValue, Int ) )
         talliedTopics =
+            let
+                findTopic : PublishedPost -> Maybe String
+                findTopic publishedPost =
+                    case publishedPost.post.metadata.context of
+                        Post.ForTopic topic ->
+                            Just topic
+
+                        Post.ForPost postId ->
+                            getPublishedPostFromId posts postId
+                                |> Maybe.andThen findTopic
+            in
             posts
                 |> Dict.values
                 |> List.concat
-                |> Dict.Extra.groupBy (.post >> .metadata >> .topic)
+                |> Dict.Extra.filterGroupBy findTopic
+                -- This ignores any replies that lead eventually to a postId not in 'posts'
                 |> Dict.map
                     (\topic messages ->
                         ( List.foldl (.post >> .burnAmount >> TokenValue.add) TokenValue.zero messages
@@ -283,7 +393,8 @@ topicsColumn dProfile topicSearchStr posts =
                                 ++ [ Element.Background.color <| Element.rgba 0 0 1 0.2
                                    , Element.Events.onClick <|
                                         GotoRoute <|
-                                            Routing.ViewTopic topic
+                                            Routing.ViewContext <|
+                                                Post.ForTopic topic
                                    ]
                             )
                             [ Element.row
@@ -302,7 +413,13 @@ topicsColumn dProfile topicSearchStr posts =
                                 [ daiSymbol darkTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
                                 , Element.text <| TokenValue.toConciseString totalBurned
                                 ]
-                            , Element.el [ Element.centerX ] <| Element.text topic
+                            , Element.el
+                                [ Element.width Element.fill
+                                , Element.clip
+                                , Element.Font.center
+                                ]
+                              <|
+                                Element.text topic
                             , Element.el [ Element.alignRight ] <| Element.text <| String.fromInt count
                             ]
                     )
@@ -317,7 +434,10 @@ topicsColumn dProfile topicSearchStr posts =
                     Element.el
                         (commonElStyles
                             ++ [ Element.Background.color <| Element.rgba 0.5 0.5 1 0.4
-                               , Element.Events.onClick <| GotoRoute <| Routing.Compose topicSearchStr
+                               , Element.Events.onClick <|
+                                    GotoRoute <|
+                                        Routing.Compose <|
+                                            Post.ForTopic topicSearchStr
                                ]
                         )
                     <|

@@ -29,12 +29,12 @@ import Time
 import TokenValue exposing (TokenValue)
 
 
-forgedByFoundry : Element msg
-forgedByFoundry =
+forgedByFoundry : DisplayProfile -> Element msg
+forgedByFoundry dProfile =
     Element.newTabLink
-        [ Element.padding 8
+        [ Element.padding (8 |> changeForMobile 4 dProfile)
         , Element.Background.color <| Element.rgb 0.3 0.3 0.3
-        , Element.Border.rounded 5
+        , Element.Border.rounded (5 |> changeForMobile 3 dProfile)
         , Element.inFront <|
             Element.el
                 [ Element.width Element.fill
@@ -69,12 +69,12 @@ forgedByFoundry =
                 ]
                 [ Element.el
                     [ Element.Font.color white
-                    , Element.Font.size 20
+                    , Element.Font.size (20 |> changeForMobile 14 dProfile)
                     ]
                   <|
                     Element.text "Forged by"
                 , Element.el
-                    [ Element.Font.size 22
+                    [ Element.Font.size (22 |> changeForMobile 16 dProfile)
                     , Element.Font.bold
                     , Element.Font.color <| Element.rgb255 255 0 110
                     ]

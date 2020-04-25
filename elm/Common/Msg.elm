@@ -10,7 +10,8 @@ import UserNotice as UN
 import Eth.Sentry.Tx as TxSentry
 
 type MsgUp
-    = ShowHalfComposeUX Bool
+    = StartInlineCompose Post.Context
+    | HideHalfCompose
     | GotoRoute Route
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId
@@ -20,4 +21,3 @@ type MsgUp
 
 type MsgDown
     = UpdateWallet Wallet
-    | PostSigned Post.Draft

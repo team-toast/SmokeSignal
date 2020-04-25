@@ -14,13 +14,15 @@ import UserNotice as UN
 import Wallet exposing (Wallet)
 
 
-init : Wallet -> Model
-init wallet =
-    { message = ""
+init : Wallet -> Post.Context -> Model
+init wallet context =
+    { context = context
+    , message = ""
     , daiInput = ""
     , donateChecked = True
     , miningUnlockTx = Nothing
     , wallet = wallet
+    , showPreviewOnMobile = False
     }
 
 
@@ -39,6 +41,13 @@ update msg prevModel =
             justModelUpdate
                 (prevModel |> updateDaiInput input)
 
+        MobilePreviewToggle ->
+            justModelUpdate
+                { prevModel
+                    | showPreviewOnMobile =
+                        not prevModel.showPreviewOnMobile
+                }
+
         MsgUp msgUp ->
             UpdateResult
                 prevModel
@@ -53,13 +62,14 @@ handleMsgDown msgDown prevModel =
             justModelUpdate
                 { prevModel | wallet = newWallet }
 
-        PostSigned messageDraft ->
-            UpdateResult
-                (prevModel
-                    |> updateMessage ""
-                )
-                Cmd.none
-                [ ShowHalfComposeUX False ]
+
+resetModel : Model -> Model
+resetModel model =
+    { model
+        | message = ""
+        , showPreviewOnMobile = False
+        , daiInput = ""
+    }
 
 
 justModelUpdate : Model -> UpdateResult

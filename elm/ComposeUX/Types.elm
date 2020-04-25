@@ -10,11 +10,13 @@ import Wallet exposing (Wallet)
 
 
 type alias Model =
-    { message : String
+    { context : Post.Context
+    , message : String
     , daiInput : String
     , donateChecked : Bool
     , miningUnlockTx : Maybe TxHash
     , wallet : Wallet
+    , showPreviewOnMobile : Bool
     }
 
 
@@ -23,6 +25,7 @@ type Msg
     | MessageInputChanged String
     | DaiInputChanged String
     | DonationCheckboxSet Bool
+    | MobilePreviewToggle
 
 
 type alias UpdateResult =
@@ -32,42 +35,10 @@ type alias UpdateResult =
     }
 
 
-type ComposeContext
-    = ComposingReply Post.Id String
-    | ComposingForTopic String
+updateContext : Post.Context -> Model -> Model
+updateContext context m =
+    { m | context = context }
 
-
-composeContextToMetadata : ComposeContext -> Post.Metadata
-composeContextToMetadata context =
-    case context of
-        ComposingReply replyTo topic ->
-            Post.versionedMetadata
-                (Just replyTo)
-                (Just topic)
-
-        ComposingForTopic topic ->
-            Post.versionedMetadata
-                Nothing
-                (Just topic)
-
-
-composeContextReplyTo : ComposeContext -> Maybe Post.Id
-composeContextReplyTo context =
-    case context of
-        ComposingReply replyTo _ ->
-            Just replyTo
-
-        _ ->
-            Nothing
-
-
-composeContextTopic context =
-    case context of
-        ComposingForTopic topic ->
-            Just topic
-
-        _ ->
-            Nothing
 
 updateMessage : String -> Model -> Model
 updateMessage message m =

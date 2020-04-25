@@ -10,8 +10,9 @@ import Element.Border
 import Element.Events
 import Element.Font
 import Element.Input
+import Eth.Types exposing (Address)
 import Eth.Utils
-import Helpers.Element as EH
+import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Maybe.Extra
@@ -19,41 +20,84 @@ import Post exposing (Post)
 import Routing exposing (Route)
 import Theme exposing (defaultTheme)
 import TokenValue exposing (TokenValue)
+import Wallet exposing (Wallet)
 
 
-viewFull : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> ComposeContext -> Element Msg
-viewFull dProfile walletUXPhaceInfo model context =
+viewFull : DisplayProfile -> WalletUXPhaceInfo -> Maybe PhaceIconId -> Model -> Element Msg
+viewFull dProfile walletUXPhaceInfo showAddressId model =
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
-        , Element.padding 20
+        , Element.padding (20 |> changeForMobile 10 dProfile)
         , Element.Background.color defaultTheme.appBackground
         ]
     <|
-        view dProfile walletUXPhaceInfo model context
+        view dProfile walletUXPhaceInfo showAddressId model
 
 
-view : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> ComposeContext -> Element Msg
-view dProfile walletUXPhaceInfo model context =
-    Element.row
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Element.Background.color defaultTheme.postBodyBackground
-        , Element.padding 20
-        , Element.spacing 20
-        , composeUXShadow
-        , Element.Border.rounded 10
-        ]
-        [ Element.column
+view : EH.DisplayProfile -> WalletUXPhaceInfo -> Maybe PhaceIconId -> Model -> Element Msg
+view dProfile walletUXPhaceInfo showAddressId model =
+    let
+        commonAttributes =
             [ Element.width Element.fill
             , Element.height Element.fill
-            , Element.spacing 10
+            , Element.Background.color defaultTheme.postBodyBackground
+            , composeUXShadow
+            , Element.Border.rounded 10
             ]
-            [ viewInput model.message
-            , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context
-            ]
-        , viewPreviewWithComposeContext model.message context
-        ]
+    in
+    case dProfile of
+        Desktop ->
+            Element.row
+                (commonAttributes
+                    ++ [ Element.padding 20
+                       , Element.spacing 20
+                       ]
+                )
+                [ Element.column
+                    [ Element.width Element.fill
+                    , Element.height Element.fill
+                    , Element.spacing 10
+                    ]
+                    [ viewInput dProfile model.message
+                    , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model
+                    ]
+                , viewPreviewWithPostContext dProfile Nothing model.message model.context
+                ]
+
+        Mobile ->
+            Element.column
+                (commonAttributes
+                    ++ [ Element.padding 10
+                       , Element.spacing 10
+                       , Element.Font.size 20
+                       ]
+                )
+                (if model.showPreviewOnMobile then
+                    [ viewPreviewWithPostContext
+                        dProfile
+                        (case Wallet.userInfo model.wallet of
+                            Just userInfo ->
+                                Just <|
+                                    ( userInfo.address
+                                    , showAddressId == Just PhaceForPreview
+                                    )
+
+                            Nothing ->
+                                Nothing
+                        )
+                        model.message
+                        model.context
+                    , actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model
+                    ]
+
+                 else
+                    [ viewInput dProfile model.message
+                    , viewPreviewButton
+                        dProfile
+                        (model.message /= "")
+                    ]
+                )
 
 
 composeUXShadow : Attribute Msg
@@ -66,58 +110,73 @@ composeUXShadow =
         }
 
 
-viewInput : String -> Element Msg
-viewInput input =
-    Element.Input.multiline
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Element.padding 10
-        , Element.Background.color <| Element.rgba 1 1 1 0.5
-        ]
-        { onChange = MessageInputChanged
-        , text = input
-        , placeholder = Just messageInputPlaceholder
-        , label = Element.Input.labelHidden "messageInput"
-        , spellcheck = True
-        }
+viewPreviewButton : DisplayProfile -> Bool -> Element Msg
+viewPreviewButton dProfile enabled =
+    if enabled then
+        defaultTheme.secondaryActionButton
+            dProfile
+            []
+            [ "Preview" ]
+            MobilePreviewToggle
+
+    else
+        defaultTheme.disabledActionButton
+            dProfile
+            []
+            "Preview"
 
 
-viewPreviewWithComposeContext : String -> ComposeContext -> Element Msg
-viewPreviewWithComposeContext input context =
-    Element.column
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Element.padding 15
-        , Element.Background.color <| Element.rgba 1 1 1 0.5
-        , Element.Border.width 1
-        , Element.Border.color <| Element.rgba 0 0 0 0.5
-        , Element.Border.rounded 10
-        , Element.scrollbars
-        , Element.spacing 15
-        ]
-        [ Maybe.map
-            (Element.row
-                [ Element.spacing 10
-                , Element.width Element.fill
-                ]
-            )
-            ([ Maybe.map
-                viewReplyInfo
-                (composeContextReplyTo context)
-             , Maybe.map
-                (Element.el [ Element.alignLeft ] << viewTopic)
-                (composeContextTopic context)
-             ]
-                |> Maybe.Extra.values
-                |> ListHelpers.nonEmpty
-            )
-            |> Maybe.withDefault Element.none
-        , if input == "" then
-            appStatusMessage defaultTheme.appStatusTextColor "[Preview Box]"
+viewInput : DisplayProfile -> String -> Element Msg
+viewInput dProfile input =
+    EH.scrollbarYEl [] <|
+        Element.Input.multiline
+            [ Element.width Element.fill
+            , Element.height Element.fill
+            , Element.padding (10 |> changeForMobile 5 dProfile)
+            , Element.Background.color <| Element.rgba 1 1 1 0.5
+            , Element.Font.size <| commonFontSize dProfile
+            ]
+            { onChange = MessageInputChanged
+            , text = input
+            , placeholder = Just messageInputPlaceholder
+            , label = Element.Input.labelHidden "messageInput"
+            , spellcheck = True
+            }
 
-          else
-            Post.renderContentOrError defaultTheme input
-        ]
+
+viewPreviewWithPostContext : DisplayProfile -> Maybe ( Address, Bool ) -> String -> Post.Context -> Element Msg
+viewPreviewWithPostContext dProfile maybeShowPhaceInfo input context =
+    EH.scrollbarYEl [] <|
+        Element.column
+            [ Element.width Element.fill
+            , Element.height Element.fill
+            , Element.padding 15
+            , Element.Background.color <| Element.rgba 1 1 1 0.5
+            , Element.Border.width 1
+            , Element.Border.color <| Element.rgba 0 0 0 0.5
+            , Element.Border.rounded 10
+            , Element.spacing 15
+            , Element.Font.size <| commonFontSize dProfile
+            ]
+            [ Element.map MsgUp <|
+                Element.row
+                    [ Element.spacing 10
+                    , Element.width Element.fill
+                    ]
+                    [ case maybeShowPhaceInfo of
+                        Just ( fromAddress, showAddress ) ->
+                            phaceElement True PhaceForPreview fromAddress showAddress
+
+                        Nothing ->
+                            Element.none
+                    , Element.el [ Element.alignLeft ] <| viewContext context
+                    ]
+            , if input == "" then
+                appStatusMessage defaultTheme.appStatusTextColor "[Preview Box]"
+
+              else
+                Post.renderContentOrError defaultTheme input
+            ]
 
 
 messageInputPlaceholder : Element.Input.Placeholder Msg
@@ -157,7 +216,8 @@ viewReplyInfo postId =
             , Element.Events.onClick <|
                 MsgUp <|
                     GotoRoute <|
-                        Routing.ViewPost postId
+                        Routing.ViewContext <|
+                            Post.ForPost postId
             ]
             (Element.text <|
                 shortenedHash postId.messageHash
@@ -185,36 +245,56 @@ viewTopic topic =
             , Element.Events.onClick <|
                 MsgUp <|
                     GotoRoute <|
-                        Routing.ViewTopic topic
+                        Routing.ViewContext <|
+                            Post.ForTopic topic
             ]
             (Element.text <| topic)
         ]
 
 
-actionFormAndMaybeErrorEl : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> ComposeContext -> Element Msg
-actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context =
+actionFormAndMaybeErrorEl : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> Element Msg
+actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model =
     case walletUXPhaceInfo of
         UserPhaceInfo ( userInfo, showAddress ) ->
             let
                 ( goButtonEl, maybeErrorEls ) =
-                    previewButtonAndMaybeError dProfile userInfo model context
+                    goButtonAndMaybeError dProfile userInfo model
+
+                actionRow =
+                    Element.row
+                        [ Element.spacing 15
+                        , Element.padding 10
+                        , Element.Background.color <| Element.rgb 0.8 0.8 1
+                        , Element.Border.rounded 10
+                        ]
+                        [ case dProfile of
+                            Desktop ->
+                                Element.map MsgUp <| phaceElement True UserPhace userInfo.address showAddress
+
+                            Mobile ->
+                                goBackButton dProfile
+                        , inputsElement dProfile userInfo model
+                        , goButtonEl
+                        ]
             in
-            Element.row
-                [ Element.alignRight
-                , Element.spacing 10
-                ]
-                [ inputErrorEl maybeErrorEls
-                , Element.row
-                    [ Element.spacing 15
-                    , Element.padding 10
-                    , Element.Background.color <| Element.rgb 0.8 0.8 1
-                    , Element.Border.rounded 10
-                    ]
-                    [ Element.map MsgUp <| phaceElement True UserPhace userInfo.address showAddress
-                    , inputsElement dProfile userInfo model
-                    , goButtonEl
-                    ]
-                ]
+            case dProfile of
+                Desktop ->
+                    Element.row
+                        [ Element.alignRight
+                        , Element.spacing 10
+                        ]
+                        [ inputErrorEl dProfile maybeErrorEls
+                        , actionRow
+                        ]
+
+                Mobile ->
+                    Element.column
+                        [ Element.centerX
+                        , Element.spacing 5
+                        ]
+                        [ inputErrorEl dProfile maybeErrorEls
+                        , actionRow
+                        ]
 
         _ ->
             Element.map MsgUp <|
@@ -224,11 +304,21 @@ actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model context =
 inputsElement : EH.DisplayProfile -> UserInfo -> Model -> Element Msg
 inputsElement dProfile userInfo model =
     Element.el
-        [ Element.centerY
-        , Element.width <| Element.px 260
-        ]
+        ([ Element.centerY ]
+            ++ (case dProfile of
+                    Desktop ->
+                        [ Element.width <| Element.px 260 ]
+
+                    Mobile ->
+                        []
+               )
+        )
     <|
-        Element.el [ Element.centerX ] <|
+        Element.el
+            [ Element.centerX
+            , Element.Font.size (20 |> changeForMobile 14 dProfile)
+            ]
+        <|
             case model.miningUnlockTx of
                 Just txHash ->
                     Element.column
@@ -276,15 +366,15 @@ inputsElement dProfile userInfo model =
                             Element.column
                                 [ Element.spacing 10 ]
                                 [ Element.row
-                                    [ Element.spacing 10
+                                    [ Element.spacing (10 |> changeForMobile 5 dProfile)
                                     , Element.centerX
                                     ]
                                     [ Element.text "Burn"
-                                    , burnAmountInput model.daiInput
+                                    , burnAmountInput dProfile model.daiInput
                                     , Element.text "DAI"
                                     ]
                                 , Element.row
-                                    [ Element.Font.size 14
+                                    [ Element.Font.size (14 |> changeForMobile 10 dProfile)
                                     , Element.spacing 5
                                     ]
                                     [ Element.Input.checkbox [ Element.alignTop ]
@@ -309,19 +399,33 @@ inputsElement dProfile userInfo model =
                                 ]
 
 
-inputErrorEl : Maybe (List (Element Msg)) -> Element Msg
-inputErrorEl =
-    Maybe.map
-        (Element.paragraph
-            [ Element.width (Element.fill |> Element.maximum 700)
-            , Element.Font.color defaultTheme.errorTextColor
+inputErrorEl : DisplayProfile -> Maybe (List (Element Msg)) -> Element Msg
+inputErrorEl dProfile els =
+    let
+        commonAttributes =
+            [ Element.Font.color defaultTheme.errorTextColor
             , Element.Font.italic
-            , Element.alignTop
-            , Element.paddingXY 0 10
-            , Element.Font.alignRight
             ]
-        )
-        >> Maybe.withDefault Element.none
+    in
+    case dProfile of
+        Desktop ->
+            Element.paragraph
+                (commonAttributes
+                    ++ [ Element.width (Element.fill |> Element.maximum 200)
+                       , Element.alignTop
+                       , Element.Font.alignRight
+                       ]
+                )
+                (els |> Maybe.withDefault [ Element.text " " ])
+
+        Mobile ->
+            Element.paragraph
+                (commonAttributes
+                    ++ [ Element.width Element.fill
+                       , Element.Font.size 14
+                       ]
+                )
+                (els |> Maybe.withDefault [ Element.text " " ])
 
 
 unlockButton : EH.DisplayProfile -> List (Attribute Msg) -> Element Msg
@@ -333,11 +437,13 @@ unlockButton dProfile attrs =
         (MsgUp UnlockDai)
 
 
-burnAmountInput : String -> Element Msg
-burnAmountInput daiInput =
+burnAmountInput : DisplayProfile -> String -> Element Msg
+burnAmountInput dProfile daiInput =
     Element.row []
         [ Element.Input.text
-            [ Element.width <| Element.px 100
+            [ Element.width <| Element.px (100 |> changeForMobile 60 dProfile)
+            , Element.height <| Element.px (40 |> changeForMobile 35 dProfile)
+            , Element.Font.size (20 |> changeForMobile 14 dProfile)
             , Element.Background.color <| Element.rgba 1 1 1 0.4
             ]
             { onChange = DaiInputChanged
@@ -348,8 +454,8 @@ burnAmountInput daiInput =
         ]
 
 
-previewButtonAndMaybeError : EH.DisplayProfile -> UserInfo -> Model -> ComposeContext -> ( Element Msg, Maybe (List (Element Msg)) )
-previewButtonAndMaybeError dProfile userInfo model context =
+goButtonAndMaybeError : EH.DisplayProfile -> UserInfo -> Model -> ( Element Msg, Maybe (List (Element Msg)) )
+goButtonAndMaybeError dProfile userInfo model =
     case userInfo.balance of
         Just balance ->
             if TokenValue.isZero balance then
@@ -406,7 +512,7 @@ previewButtonAndMaybeError dProfile userInfo model context =
                                                             userInfo.address
                                                             burnAmount
                                                             message
-                                                            (composeContextToMetadata context)
+                                                            (Post.buildMetadataFromContext model.context)
                                                         )
                                             , Nothing
                                             )
@@ -437,26 +543,36 @@ previewButtonAndMaybeError dProfile userInfo model context =
             )
 
 
+commonActionButtonStyles : DisplayProfile -> List (Attribute Msg)
+commonActionButtonStyles dProfile =
+    [ Element.height <| Element.px (100 |> changeForMobile 70 dProfile)
+    , Element.width <| Element.px (100 |> changeForMobile 70 dProfile)
+    , Element.Font.size (26 |> changeForMobile 20 dProfile)
+    , Element.Border.rounded (10 |> changeForMobile 7 dProfile)
+    ]
+
+
 maybeGoButton : EH.DisplayProfile -> Maybe Post.Draft -> Element Msg
 maybeGoButton dProfile maybeDraft =
-    let
-        commonStyles =
-            [ Element.height <| Element.px 100
-            , Element.width <| Element.px 100
-            , Element.Font.size 26
-            , Element.Border.rounded 10
-            ]
-    in
     case maybeDraft of
         Just draft ->
             defaultTheme.emphasizedActionButton
                 dProfile
-                commonStyles
+                (commonActionButtonStyles dProfile)
                 [ "GO" ]
                 (MsgUp <| SubmitPost draft)
 
         Nothing ->
             defaultTheme.disabledActionButton
                 dProfile
-                commonStyles
+                (commonActionButtonStyles dProfile)
                 "GO"
+
+
+goBackButton : EH.DisplayProfile -> Element Msg
+goBackButton dProfile =
+    defaultTheme.secondaryActionButton
+        dProfile
+        (commonActionButtonStyles dProfile)
+        [ "Edit" ]
+        MobilePreviewToggle
