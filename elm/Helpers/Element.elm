@@ -477,3 +477,12 @@ noSelectText : Attribute msg
 noSelectText =
     Element.htmlAttribute <|
         Html.Attributes.style "user-select" "none"
+
+visibility : Bool -> Attribute msg
+visibility flag =
+    Element.htmlAttribute <|
+        Html.Attributes.style "visibility" <|
+            if flag then
+                "visible"
+            else
+                "hidden"

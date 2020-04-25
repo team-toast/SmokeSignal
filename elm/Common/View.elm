@@ -265,12 +265,22 @@ viewMetadata showContext metadata =
 viewMetadataDecodeError : String -> Element msg
 viewMetadataDecodeError error =
     Element.el
+        [ Element.Border.rounded 5
+        , Element.Border.width 1
+        , Element.Border.color <| Element.rgba 0 0 0 0.3
+        , Element.clip
+        ] <|
+    Element.el
         [ Element.Font.color defaultTheme.errorTextColor
         , Element.Font.italic
         , Element.Font.size 18
+        , Element.height (Element.shrink |> Element.maximum 80)
+        , Element.width (Element.shrink |> Element.maximum 400)
+        , Element.scrollbars
+        , Element.Background.color <| Element.rgba 1 0 0 0.1
         ]
         (Element.text <|
-            "Metadata decode error: "
+            "Metadata decode error:\n\n"
                 ++ error
         )
 

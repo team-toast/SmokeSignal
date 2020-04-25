@@ -49,39 +49,90 @@ root model =
     { title = "SmokeSignal"
     , body =
         [ Element.layout
-            [ Element.width Element.fill
-            , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
-            , Element.Events.onClick ClickHappened
-            ]
+            ([ Element.width Element.fill
+             , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
+             , Element.Events.onClick ClickHappened
+             ]
+                ++ List.map Element.inFront (modals model)
+            )
           <|
             body model
         ]
     }
 
 
-body : Model -> Element Msg
-body model =
-    let
-        walletUXPhaceInfo =
-            makeWalletUXPhaceInfo
-                (Wallet.userInfo model.wallet)
-                model.showAddressId
-                model.demoPhaceSrc
+modals : Model -> List (Element Msg)
+modals model =
+    Maybe.Extra.values
+        ([ if model.mode /= Compose && model.showHalfComposeUX then
+            Just <|
+                Element.column
+                    [ Element.height Element.fill
+                    , Element.width Element.fill
+                    , EH.visibility False
+                    ]
+                    [ Element.el
+                        [ Element.height Element.fill
+                        ]
+                        Element.none
+                    , Element.el
+                        [ EH.visibility True
+                        , Element.width Element.fill
+                        , Element.height Element.fill
+                        , Element.mapAttribute MsgUp <|
+                            Element.above <|
+                                Element.el
+                                    [ Element.alignLeft
+                                    ]
+                                <|
+                                    defaultTheme.secondaryActionButton
+                                        EH.Mobile
+                                        []
+                                        [ "Hide" ]
+                                        HideHalfCompose
+                        ]
+                        (Element.map ComposeUXMsg <|
+                            ComposeUX.view
+                                model.dProfile
+                                (makeWalletUXPhaceInfo
+                                    (Wallet.userInfo model.wallet)
+                                    model.showAddressId
+                                    model.demoPhaceSrc
+                                )
+                                model.showAddressId
+                                model.composeUXModel
+                        )
+                    ]
 
-        showDraftInProgressButton =
-            case model.mode of
-                Compose ->
-                    False
+           else
+            Nothing
+         , Maybe.map
+            (Element.el
+                [ Element.alignTop
+                , Element.alignRight
+                , Element.padding (20 |> changeForMobile 10 model.dProfile)
+                , EH.visibility False
+                ]
+                << Element.el
+                    [ EH.visibility True ]
+            )
+            (maybeTxTracker
+                model.dProfile
+                model.showExpandedTrackedTxs
+                model.trackedTxs
+            )
+         , let
+            showDraftInProgressButton =
+                case model.mode of
+                    Compose ->
+                        False
 
-                _ ->
-                    (model.showHalfComposeUX == False)
-                        && (model.composeUXModel.message /= "")
-    in
-    Element.column
-        ([ Element.width Element.fill
-         , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
-         , Element.inFront <|
-            if showDraftInProgressButton then
+                    _ ->
+                        (model.showHalfComposeUX == False)
+                            && (model.composeUXModel.message /= "")
+           in
+           if showDraftInProgressButton then
+            Just <|
                 defaultTheme.secondaryActionButton
                     model.dProfile
                     [ Element.alignBottom
@@ -94,11 +145,11 @@ body model =
                     [ "Draft in Progress" ]
                     (MsgUp <| StartInlineCompose model.composeUXModel.context)
 
-            else
-                Element.none
-         , Element.inFront <|
-            case model.draftModal of
-                Just draft ->
+           else
+            Nothing
+         , model.draftModal
+            |> Maybe.map
+                (\draft ->
                     Element.column
                         [ Element.centerX
                         , Element.centerY
@@ -124,130 +175,110 @@ body model =
                             [ "Restore Draft" ]
                             (RestoreDraft draft)
                         ]
-
-                Nothing ->
-                    Element.none
+                )
          ]
-            ++ List.map
-                Element.inFront
+            ++ List.map Just
                 (userNoticeEls
                     model.dProfile
                     model.userNotices
                 )
         )
+
+
+body : Model -> Element Msg
+body model =
+    let
+        walletUXPhaceInfo =
+            makeWalletUXPhaceInfo
+                (Wallet.userInfo model.wallet)
+                model.showAddressId
+                model.demoPhaceSrc
+    in
+    Element.column
+        [ Element.width Element.fill
+        , Element.Background.color defaultTheme.appBackground
+        , Element.height Element.fill
+        ]
         [ header
             model.dProfile
             model.mode
             walletUXPhaceInfo
             model.trackedTxs
             model.showExpandedTrackedTxs
-        , Element.el
-            [ Element.width Element.fill
-            , Element.height Element.fill
-            , Element.Background.color defaultTheme.appBackground
-            
-            ]
-          <|
-            case model.mode of
-                BlankMode ->
-                    Element.none
+        , case model.mode of
+            BlankMode ->
+                Element.none
 
-                Home homeModel ->
-                    Element.map HomeMsg <|
-                        Element.Lazy.lazy
-                            (Home.View.view
-                                model.dProfile
-                                homeModel
-                                walletUXPhaceInfo
-                            )
-                            model.publishedPosts
-
-                Compose ->
-                    Element.map ComposeUXMsg <|
-                        ComposeUX.viewFull
+            Home homeModel ->
+                Element.map HomeMsg <|
+                    Element.Lazy.lazy
+                        (Home.View.view
                             model.dProfile
+                            homeModel
                             walletUXPhaceInfo
-                            model.showAddressId
-                            model.composeUXModel
+                        )
+                        model.publishedPosts
 
-                ViewContext context ->
-                    case context of
-                        Post.ForPost postId ->
-                            case getPublishedPostFromId model.publishedPosts postId of
-                                Just post ->
-                                    Element.column
-                                        [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
-                                        , Element.centerX
-                                        , Element.spacing 20
-                                        , Element.paddingEach
-                                            { top = 20
-                                            , bottom = 0
-                                            , right = 0
-                                            , left = 0
-                                            }
-                                        ]
-                                        [ viewPostHeader model.dProfile post
-                                        , Element.Lazy.lazy5
-                                            (viewPostAndReplies model.dProfile)
-                                            model.publishedPosts
-                                            model.blockTimes
-                                            model.replies
-                                            model.showAddressId
-                                            post
-                                        ]
-
-                                Nothing ->
-                                    appStatusMessage
-                                        defaultTheme.appStatusTextColor
-                                        "Loading post..."
-
-                        Post.ForTopic topic ->
-                            Element.column
-                                [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
-                                , Element.centerX
-                                , Element.spacing 20
-                                , Element.paddingEach
-                                    { top = 20
-                                    , bottom = 0
-                                    , right = 0
-                                    , left = 0
-                                    }
-                                ]
-                                [ viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
-                                , Element.Lazy.lazy5
-                                    (viewPostsForTopic model.dProfile)
-                                    model.publishedPosts
-                                    model.blockTimes
-                                    model.replies
-                                    model.showAddressId
-                                    topic
-                                ]
-        , if model.showHalfComposeUX then
-            Element.el
-                [ Element.width Element.fill
-                , Element.height Element.fill
-                , Element.mapAttribute MsgUp <|
-                    Element.above <|
-                        Element.el
-                            [ Element.alignLeft
-                            ]
-                        <|
-                            defaultTheme.secondaryActionButton
-                                EH.Mobile
-                                []
-                                [ "Hide" ]
-                                HideHalfCompose
-                ]
-                (Element.map ComposeUXMsg <|
-                    ComposeUX.view
+            Compose ->
+                Element.map ComposeUXMsg <|
+                    ComposeUX.viewFull
                         model.dProfile
                         walletUXPhaceInfo
                         model.showAddressId
                         model.composeUXModel
-                )
 
-          else
-            Element.none
+            ViewContext context ->
+                case context of
+                    Post.ForPost postId ->
+                        case getPublishedPostFromId model.publishedPosts postId of
+                            Just post ->
+                                Element.column
+                                    [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
+                                    , Element.centerX
+                                    , Element.spacing 20
+                                    , Element.paddingEach
+                                        { top = 20
+                                        , bottom = 0
+                                        , right = 0
+                                        , left = 0
+                                        }
+                                    ]
+                                    [ viewPostHeader model.dProfile post
+                                    , Element.Lazy.lazy5
+                                        (viewPostAndReplies model.dProfile)
+                                        model.publishedPosts
+                                        model.blockTimes
+                                        model.replies
+                                        model.showAddressId
+                                        post
+                                    ]
+
+                            Nothing ->
+                                appStatusMessage
+                                    defaultTheme.appStatusTextColor
+                                    "Loading post..."
+
+                    Post.ForTopic topic ->
+                        Element.column
+                            [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
+                            , Element.centerX
+                            , Element.spacing 20
+                            , Element.paddingEach
+                                { top = 20
+                                , bottom = 0
+                                , right = 0
+                                , left = 0
+                                }
+                            ]
+                            [ viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
+                            , Element.Lazy.lazy5
+                                (viewPostsForTopic model.dProfile)
+                                model.publishedPosts
+                                model.blockTimes
+                                model.replies
+                                model.showAddressId
+                                topic
+                            ]
         ]
 
 
@@ -258,7 +289,6 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
         , Element.Background.color defaultTheme.headerBackground
         , Element.padding (20 |> changeForMobile 10 dProfile)
         , Element.spacing (10 |> changeForMobile 5 dProfile)
-        , EH.moveToFront
         , Element.Border.glow
             (EH.black |> EH.withAlpha 0.5)
             5
@@ -269,7 +299,6 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
 
             Desktop ->
                 logoBlock dProfile
-        , maybeTxTracker dProfile showExpandedTrackedTxs trackedTxs
         , Element.el
             [ Element.centerY
             , Element.alignRight
@@ -313,10 +342,10 @@ logoBlock dProfile =
         ]
 
 
-maybeTxTracker : DisplayProfile -> Bool -> List TrackedTx -> Element Msg
+maybeTxTracker : DisplayProfile -> Bool -> List TrackedTx -> Maybe (Element Msg)
 maybeTxTracker dProfile showExpanded trackedTxs =
     if List.isEmpty trackedTxs then
-        Element.none
+        Nothing
 
     else
         let
@@ -380,45 +409,41 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                     |> TupleHelpers.tuple3ToList
         in
         if List.all Maybe.Extra.isNothing renderedTallyEls then
-            Element.none
+            Nothing
 
         else
-            Element.el
-                [ Element.alignRight
-                , Element.height Element.fill
-                , Element.below <|
-                    if showExpanded then
-                        Element.el
-                            [ Element.alignRight
-                            , Element.alignTop
-                            ]
-                        <|
-                            trackedTxsColumn trackedTxs
-
-                    else
-                        Element.none
-                ]
-            <|
-                Element.column
-                    [ Element.alignRight
-                    , Element.height Element.fill
-                    , Element.Border.rounded 5
-                    , Element.Background.color <| Element.rgba 1 1 1 0.3
-                    , Element.padding (10 |> changeForMobile 5 dProfile)
-                    , Element.spacing (10 |> changeForMobile 5 dProfile)
-                    , Element.Font.size (20 |> changeForMobile 12 dProfile)
-                    , Element.pointer
-                    , EH.onClickNoPropagation <|
+            Just <|
+                Element.el
+                    [ Element.below <|
                         if showExpanded then
-                            ShowExpandedTrackedTxs False
+                            Element.el
+                                [ Element.alignRight
+                                , Element.alignTop
+                                ]
+                            <|
+                                trackedTxsColumn trackedTxs
 
                         else
-                            ShowExpandedTrackedTxs True
+                            Element.none
                     ]
-                    (renderedTallyEls
-                        |> List.map (Maybe.withDefault Element.none)
-                        |> List.map (Element.el [ Element.height Element.fill ])
-                    )
+                <|
+                    Element.column
+                        [ Element.Border.rounded 5
+                        , Element.Background.color <| Element.rgb 0.2 0.2 0.2
+                        , Element.padding (10 |> changeForMobile 5 dProfile)
+                        , Element.spacing (10 |> changeForMobile 5 dProfile)
+                        , Element.Font.size (20 |> changeForMobile 12 dProfile)
+                        , Element.pointer
+                        , EH.onClickNoPropagation <|
+                            if showExpanded then
+                                ShowExpandedTrackedTxs False
+
+                            else
+                                ShowExpandedTrackedTxs True
+                        ]
+                        (renderedTallyEls
+                            |> List.map (Maybe.withDefault Element.none)
+                        )
 
 
 trackedTxsColumn : List TrackedTx -> Element Msg
