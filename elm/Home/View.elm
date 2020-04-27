@@ -293,7 +293,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
                         (MsgUp <|
                             GotoRoute <|
                                 Routing.Compose <|
-                                    Post.ForTopic "misc"
+                                    Post.ForTopic "noob-ramblings-plz-ignore"
                         )
                     ]
         ]
