@@ -64,6 +64,6 @@ messageBurnEventSig =
 
 moreInfoPostId : Post.Id
 moreInfoPostId =
-    { block = 0
-    , messageHash = Eth.Utils.unsafeToHex "aa"
+    { block = 9956175
+    , messageHash = Eth.Utils.unsafeToHex "0x005217c20d13cb47dee70a55b7f705044ac67789036133ff6944340b1f937d2a"
     }
