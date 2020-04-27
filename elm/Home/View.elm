@@ -334,7 +334,10 @@ topicsBlock dProfile model posts =
                             (Element.text "Find or Create Topic")
                 , label = Element.Input.labelHidden "topic"
                 }
-            , topicsColumn dProfile model.topicInput posts
+            , topicsColumn
+                dProfile
+                (Post.sanitizeTopic model.topicInput)
+                posts
             ]
         ]
 

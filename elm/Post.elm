@@ -10,6 +10,7 @@ import Json.Decode as D
 import Json.Encode as E
 import Maybe.Extra
 import Result.Extra
+import String.Extra
 import Theme exposing (Theme)
 import TokenValue exposing (TokenValue)
 
@@ -262,12 +263,15 @@ postIdDecoder =
 
 encodeTopicList : List String -> E.Value
 encodeTopicList topics =
-    E.list E.string topics
+    E.list
+        (String.Extra.clean >> E.string)
+        topics
 
 
 topicListDecoder : D.Decoder (List String)
 topicListDecoder =
-    D.list D.string
+    D.list
+        (D.map sanitizeTopic D.string)
 
 
 encodeHex : Hex -> E.Value
@@ -288,3 +292,8 @@ hexDecoder =
                     Ok hex ->
                         D.succeed hex
             )
+
+
+sanitizeTopic : String -> String
+sanitizeTopic =
+    String.toLower >> String.Extra.clean >> String.replace " " "-"
