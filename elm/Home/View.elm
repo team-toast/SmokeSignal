@@ -281,7 +281,21 @@ composeActionBlock dProfile walletUXPhaceInfo =
                     ]
 
             _ ->
-                moreInfoButton dProfile
+                Element.column
+                    [ Element.width Element.fill
+                    , Element.spacing 10
+                    ]
+                    [ moreInfoButton dProfile
+                    , defaultTheme.emphasizedActionButton
+                        dProfile
+                        [ Element.width Element.fill]
+                        [ "Compose Post"]
+                        (MsgUp <|
+                            GotoRoute <|
+                                Routing.Compose <|
+                                    Post.ForTopic "misc"
+                        )
+                    ]
         ]
 
 
