@@ -133,8 +133,35 @@ infoBlock dProfile =
                     , Element.el [ Element.centerX ] <| emphasizedText "No deplatforming."
                     ]
               ]
-            , [ Element.text "All SmokeSignal posts are permanent and impossible to delete, and can be linked to via IPFS and ENS." ]
             , [ Element.text "All you need is ETH for gas and DAI to burn." ]
+            , [ Element.text "All SmokeSignal posts are permanent and impossible to delete, and can be accessed with any browser via an IPFS Gateway ("
+              , Element.newTabLink
+                    [ Element.Font.color defaultTheme.linkTextColor ]
+                    { url = "https://gateway.ipfs.io/ipfs/QmeXhVyRJYhtpRcQr4uYsJZi6wBYqyEwdjPRjp3EFCtLHQ/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
+                    , label = Element.text "example"
+                    }
+              , Element.text ") or a SmokeSignal mirror ("
+              , Element.newTabLink
+                    [ Element.Font.color defaultTheme.linkTextColor ]
+                    { url = "https://foundrydao.com/smokesignal/app/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
+                    , label = Element.text "example"
+                    }
+              , Element.text ")."
+              ]
+            , [ Element.text "Some browsers also support smokesignal.eth links ("
+              , Element.newTabLink
+                    [ Element.Font.color defaultTheme.linkTextColor ]
+                    { url = "https://smokesignal.eth/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
+                    , label = Element.text "example"
+                    }
+              , Element.text ") or direct IPFS links ("
+              , Element.newTabLink
+                    [ Element.Font.color defaultTheme.linkTextColor ]
+                    { url = "ipfs://QmeXhVyRJYhtpRcQr4uYsJZi6wBYqyEwdjPRjp3EFCtLHQ/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
+                    , label = Element.text "example"
+                    }
+              , Element.text ")."
+              ]
             ]
 
 
