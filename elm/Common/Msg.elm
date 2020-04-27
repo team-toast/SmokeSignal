@@ -11,7 +11,7 @@ import Eth.Sentry.Tx as TxSentry
 
 type MsgUp
     = StartInlineCompose Post.Context
-    | HideHalfCompose
+    | ExitCompose
     | GotoRoute Route
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId

@@ -14,7 +14,6 @@ import Element.Border
 import Element.Events
 import Element.Font
 import Element.Input
-import MaybeDebugLog exposing (maybeDebugLog)
 import Element.Lazy
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
@@ -29,6 +28,7 @@ import Html.Attributes
 import Json.Decode
 import List.Extra
 import Maybe.Extra
+import MaybeDebugLog exposing (maybeDebugLog)
 import Phace
 import Post exposing (Post, PublishedPost)
 import Routing exposing (Route)
@@ -80,17 +80,6 @@ modals model =
                         [ EH.visibility True
                         , Element.width Element.fill
                         , Element.height Element.fill
-                        , Element.mapAttribute MsgUp <|
-                            Element.above <|
-                                Element.el
-                                    [ Element.alignLeft
-                                    ]
-                                <|
-                                    defaultTheme.secondaryActionButton
-                                        EH.Mobile
-                                        []
-                                        [ "Hide" ]
-                                        HideHalfCompose
                         ]
                         (Element.map ComposeUXMsg <|
                             ComposeUX.view
@@ -617,13 +606,13 @@ userNotice dProfile ( id, notice ) =
                     Element.rgb 0 0 0
 
         closeElement =
-            Element.el
+            EH.closeButton
                 [ Element.alignRight
                 , Element.alignTop
-                , Element.moveUp 5
-                , Element.moveRight 5
+                , Element.moveUp 2
                 ]
-                (EH.closeButton True (DismissNotice id))
+                EH.black
+                (DismissNotice id)
     in
     Element.el
         [ Element.Background.color color

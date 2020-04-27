@@ -554,12 +554,18 @@ handleMsgUp msgUp prevModel =
                                 Routing.Compose composeContext
                            )
 
-        HideHalfCompose ->
-            ( { prevModel
-                | showHalfComposeUX = False
-              }
-            , Cmd.none
-            )
+        ExitCompose ->
+            case prevModel.mode of
+                Compose ->
+                    prevModel
+                        |> gotoRoute (Routing.ViewContext prevModel.composeUXModel.context)
+
+                _ ->
+                    ( { prevModel
+                        | showHalfComposeUX = False
+                      }
+                    , Cmd.none
+                    )
 
         AddUserNotice userNotice ->
             ( prevModel |> addUserNotice userNotice

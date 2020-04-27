@@ -398,23 +398,32 @@ subtleShadow =
         }
 
 
-closeButton : Bool -> msg -> Element msg
-closeButton isBlack msg =
+closeButton : List (Attribute msg) -> Element.Color -> msg -> Element msg
+closeButton attributes color msg =
     Element.el
-        [ Element.padding 10
-        , Element.Events.onClick msg
-        , Element.pointer
-        ]
-        (Element.image [ Element.width <| Element.px 22 ]
-            { src =
-                if isBlack then
-                    "img/remove-circle-black.svg"
-
-                else
-                    "img/remove-circle-white.svg"
-            , description = "close"
-            }
+        (attributes
+            ++ [ Element.Events.onClick msg
+               , Element.pointer
+               , Element.width <| Element.px 22
+               ]
         )
+        (Element.el
+            [ Element.Font.bold
+            , Element.Font.size 30
+            , Element.Font.color color
+            ]
+            (Element.text "x")
+        )
+        -- (Element.image [ Element.width <| Element.px 22 ]
+        --     { src =
+        --         if isBlack then
+        --             "img/remove-circle-black.svg"
+
+        --         else
+        --             "img/remove-circle-white.svg"
+        --     , description = "close"
+        --     }
+        -- )
 
 
 elOnCircle : List (Attribute msg) -> Int -> Element.Color -> Element msg -> Element msg

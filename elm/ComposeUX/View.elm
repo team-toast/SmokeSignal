@@ -44,6 +44,13 @@ view dProfile walletUXPhaceInfo showAddressId model =
             , Element.Background.color defaultTheme.postBodyBackground
             , composeUXShadow
             , Element.Border.rounded 10
+            , Element.inFront <|
+                EH.closeButton
+                    [ Element.alignTop
+                    , Element.alignRight
+                    ]
+                    (Element.rgb 0.3 0.3 0.3)
+                    (MsgUp ExitCompose)
             ]
     in
     case dProfile of
