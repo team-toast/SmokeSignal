@@ -28,7 +28,7 @@ view dProfile model walletUXPhaceInfo posts =
         [ Element.width Element.fill
         , Element.height Element.fill
         , Element.Background.color darkTheme.appBackground
-        , Element.paddingXY 20 40
+        , Element.paddingXY 40 40
             |> changeForMobile (Element.paddingXY 10 20) dProfile
         , Element.spacing (60 |> changeForMobile 30 dProfile)
         , Element.Font.color darkTheme.emphasizedTextColor
@@ -36,31 +36,25 @@ view dProfile model walletUXPhaceInfo posts =
         (case dProfile of
             Desktop ->
                 [ boldProclamationEl dProfile
-                , Element.row
+                , Element.column
                     [ Element.width Element.fill
-                    , Element.spacing 20
+                    , Element.spacing 150
                     ]
-                    [ Element.el
-                        [ Element.width (Element.fillPortion 1)
-                        , Element.alignTop
-                        ]
-                      <|
-                        Element.none
-                    , Element.column
-                        [ Element.width (Element.fillPortion 2)
-                        , Element.alignTop
+                    [ Element.row
+                        [ Element.width Element.fill
                         , Element.spacing 40
                         ]
-                        [ composeActionBlock dProfile walletUXPhaceInfo
+                        [ Element.el [ Element.width Element.fill ] <| topicsBlock dProfile model posts
+                        , Element.el [ Element.width Element.fill ] <| topicsExplainerEl dProfile
                         ]
-                    , Element.el
-                        [ Element.width (Element.fillPortion 1)
-                        , Element.alignTop
+                    , Element.row
+                        [ Element.width Element.fill
+                        , Element.spacing 40
                         ]
-                      <|
-                        topicsBlock dProfile model posts
+                        [ infoBlock dProfile
+                        , composeActionBlock dProfile walletUXPhaceInfo
+                        ]
                     ]
-                , infoBlock dProfile
                 ]
 
             Mobile ->
@@ -109,10 +103,12 @@ infoBlock dProfile =
         , Element.Background.color Theme.darkBlue
         , Element.padding (25 |> changeForMobile 15 dProfile)
         , Element.Font.color <| EH.white
-        , Element.Font.size (26 |> changeForMobile 18 dProfile)
+        , Element.Font.size (22 |> changeForMobile 18 dProfile)
         , Element.Font.color darkTheme.mainTextColor
         , Element.centerX
         , Element.spacing 20
+        , Element.width Element.fill
+        , Element.alignTop
         ]
     <|
         List.map
@@ -122,18 +118,13 @@ infoBlock dProfile =
                 ]
             )
             [ [ Element.text "SmokeSignal uses the Ethereum blockchain to facilitate uncensorable, global chat." ]
-            , [ case dProfile of
-                    Desktop ->
-                        emphasizedText "No usernames. No moderators. No censorship. No deplatforming."
-
-                    Mobile ->
-                        Element.column
-                            [ Element.spacing 3 ]
-                            [ Element.el [ Element.centerX ] <| emphasizedText "No usernames."
-                            , Element.el [ Element.centerX ] <| emphasizedText "No moderators."
-                            , Element.el [ Element.centerX ] <| emphasizedText "No censorship."
-                            , Element.el [ Element.centerX ] <| emphasizedText "No deplatforming."
-                            ]
+            , [ Element.column
+                    [ Element.spacing 3 ]
+                    [ Element.el [ Element.centerX ] <| emphasizedText "No usernames."
+                    , Element.el [ Element.centerX ] <| emphasizedText "No moderators."
+                    , Element.el [ Element.centerX ] <| emphasizedText "No censorship."
+                    , Element.el [ Element.centerX ] <| emphasizedText "No deplatforming."
+                    ]
               ]
             , [ Element.text "All SmokeSignal posts are permanent and impossible to delete, and can be linked to via IPFS and ENS." ]
             , [ Element.text "All you need is ETH for gas and DAI to burn." ]
@@ -156,9 +147,10 @@ topicsExplainerEl dProfile =
         , Element.Background.color <| Element.rgb 0.3 0 0
         , Element.padding (25 |> changeForMobile 15 dProfile)
         , Element.Font.color <| EH.white
-        , Element.Font.size (26 |> changeForMobile 18 dProfile)
+        , Element.Font.size (22 |> changeForMobile 18 dProfile)
         , Element.Font.color darkTheme.mainTextColor
         , Element.centerX
+        , Element.width Element.fill
         , Element.spacing 20
         ]
     <|
@@ -170,12 +162,17 @@ topicsExplainerEl dProfile =
             )
             [ [ Element.text "Users burn DAI to post messages under any given "
               , emphasizedText "topic"
-              , Element.text ". Theses topics are listed above, along with the "
+              , Element.text <|
+                    ". Theses topics are listed "
+                        ++ responsiveVal dProfile "here" "above"
+                        ++ ", along with the "
               , emphasizedText "total DAI burned"
               , Element.text " in that topic."
               ]
-            , [ Element.text "If you have a web3 wallet, ETH, and DAI, starting a new topic is easy: type it into the search box above, and click "
+            , [ Element.text "If you have a web3 wallet, ETH, and DAI, starting a new topic is easy: type it into the search input, and click "
               , emphasizedText "Start new topic."
+              ]
+            , [ Element.text " You can then compose the first post for your brand new topic!"
               ]
             ]
 
@@ -188,7 +185,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
                 [ Element.spacing 15 ]
                 (List.map
                     (Element.paragraph
-                        [ Element.Font.size (24 |> changeForMobile 18 dProfile)
+                        [ Element.Font.size (22 |> changeForMobile 18 dProfile)
                         , Element.width Element.fill
                         , Element.Font.color darkTheme.mainTextColor
                         ]
@@ -199,8 +196,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
     Element.column
         [ Element.spacing 25
         , Element.centerX
-        , Element.width <|
-            (Element.px 600 |> changeForMobile Element.fill dProfile)
+        , Element.width <| Element.px 500
         ]
         [ Element.row
             [ Element.spacing 40
@@ -209,9 +205,9 @@ composeActionBlock dProfile walletUXPhaceInfo =
             [ homeWalletUX dProfile walletUXPhaceInfo
             , Element.column
                 [ Element.spacing 5
-                , Element.Font.size (50 |> changeForMobile 30 dProfile)
+                , Element.Font.size (40 |> changeForMobile 30 dProfile)
                 , Element.Font.bold
-                , Element.alignTop |> changeForMobile Element.alignBottom dProfile
+                , Element.alignBottom
                 ]
                 (case walletUXPhaceInfo of
                     UserPhaceInfo _ ->
@@ -260,7 +256,7 @@ moreInfoButton dProfile =
     defaultTheme.secondaryActionButton
         dProfile
         [ Element.width Element.fill ]
-        [ "How Can I Use SmokeSignal?" ]
+        [ "What Can SmokeSignal be Used For?" ]
         (MsgUp <|
             GotoRoute <|
                 Routing.ViewContext <|
@@ -309,7 +305,7 @@ topicsBlock dProfile model posts =
     Element.column
         [ Element.spacing 25
         , Element.centerX
-        , Element.width <| Element.px 400
+        , Element.width (Element.fill |> Element.minimum 400)
         ]
         [ Element.column
             [ Element.width Element.fill
