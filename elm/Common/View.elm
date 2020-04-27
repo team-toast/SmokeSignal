@@ -46,7 +46,7 @@ web3ConnectButton dProfile attrs =
 phaceElement : Bool -> PhaceIconId -> Address -> Bool -> Element MsgUp
 phaceElement addressHangToRight phaceId fromAddress showAddress =
     let
-        addressOutputEl =
+        addressOutputEl () = -- delay processing because addressToChecksumString is expensive!
             Element.el
                 [ Element.alignBottom
                 , if addressHangToRight then
@@ -64,7 +64,7 @@ phaceElement addressHangToRight phaceId fromAddress showAddress =
     in
     Element.el
         (if showAddress then
-            [ Element.inFront addressOutputEl
+            [ Element.inFront <| addressOutputEl ()
             , Element.alignTop
             ]
 
