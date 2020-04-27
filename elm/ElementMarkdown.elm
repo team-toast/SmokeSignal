@@ -6,6 +6,7 @@ import Element.Border
 import Element.Font
 import Element.Input
 import Element.Region
+import Helpers.Element as EH
 import Html
 import Html.Attributes
 import Markdown.Block
@@ -36,7 +37,13 @@ renderer =
     , paragraph =
         Element.paragraph
             [ Element.spacing 3 ]
-    , thematicBreak = Element.none
+    , thematicBreak =
+        Element.el
+            [ Element.width Element.fill
+            , Element.paddingXY 10 5
+            ]
+        <|
+            EH.thinHRuler (Element.rgba 0 0 0 0.5)
     , text = Element.text
     , strong = \content -> Element.row [ Element.Font.bold ] content
     , emphasis = \content -> Element.row [ Element.Font.italic ] content
@@ -78,20 +85,22 @@ renderer =
                         (\(Markdown.Block.ListItem task children) ->
                             Element.row [ Element.spacing 5 ]
                                 [ Element.row
-                                    [ Element.alignTop ]
-                                    ((case task of
-                                        Markdown.Block.IncompleteTask ->
-                                            Element.Input.defaultCheckbox False
+                                    [ Element.alignTop
+                                    , Element.width Element.fill
+                                    , Element.spacing 15
+                                    ]
+                                    [ Element.el [ Element.alignTop ] <|
+                                        case task of
+                                            Markdown.Block.IncompleteTask ->
+                                                Element.Input.defaultCheckbox False
 
-                                        Markdown.Block.CompletedTask ->
-                                            Element.Input.defaultCheckbox True
+                                            Markdown.Block.CompletedTask ->
+                                                Element.Input.defaultCheckbox True
 
-                                        Markdown.Block.NoTask ->
-                                            Element.text "•"
-                                     )
-                                        :: Element.text " "
-                                        :: children
-                                    )
+                                            Markdown.Block.NoTask ->
+                                                Element.text "•"
+                                    , Element.paragraph [ Element.width Element.fill ] children
+                                    ]
                                 ]
                         )
                 )
@@ -102,8 +111,17 @@ renderer =
                     |> List.indexedMap
                         (\index itemBlocks ->
                             Element.row [ Element.spacing 5 ]
-                                [ Element.row [ Element.alignTop ]
-                                    (Element.text (String.fromInt (index + startingIndex) ++ " ") :: itemBlocks)
+                                [ Element.row
+                                    [ Element.alignTop
+                                    , Element.width Element.fill
+                                    , Element.spacing 15
+                                    ]
+                                    [ Element.el [ Element.alignTop ] <|
+                                        Element.text (String.fromInt (index + startingIndex))
+                                    , Element.paragraph
+                                        [ Element.alignTop ]
+                                        itemBlocks
+                                    ]
                                 ]
                         )
                 )
@@ -126,9 +144,15 @@ heading { level, rawText, children } =
         [ Element.Font.size
             (case level of
                 Markdown.Block.H1 ->
-                    36
+                    42
 
                 Markdown.Block.H2 ->
+                    36
+
+                Markdown.Block.H3 ->
+                    30
+
+                Markdown.Block.H4 ->
                     24
 
                 _ ->
@@ -136,7 +160,7 @@ heading { level, rawText, children } =
             )
         , Element.Font.bold
         ]
-        [Element.text rawText]
+        [ Element.text rawText ]
 
 
 code : String -> Element msg
@@ -144,6 +168,7 @@ code snippet =
     Element.el
         [ Element.Background.color
             (Element.rgba 0 0 0 0.04)
+        , Element.scrollbarX
         , Element.Border.rounded 2
         , Element.paddingXY 5 3
         , Element.Font.family

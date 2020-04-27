@@ -7,6 +7,7 @@ import Element.Background
 import Element.Border
 import Element.Events
 import Element.Font
+import ElementMarkdown
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
@@ -357,3 +358,33 @@ coloredAppTitle attributes =
         [ Element.el [ Element.Font.color Theme.darkGray ] <| Element.text "Smoke"
         , Element.el [ Element.Font.color <| Element.rgb 1 0.5 0 ] <| Element.text "Signal"
         ]
+
+
+maxContentColWidth =
+    1000
+
+
+renderContentOrError : String -> Element msg
+renderContentOrError content =
+    let
+        renderResult =
+            ElementMarkdown.renderString
+                [ Element.spacing 15
+                , Element.Font.color defaultTheme.postBodyTextColor
+                , Element.width Element.fill
+                ]
+                content
+    in
+    case renderResult of
+        Ok rendered ->
+            rendered
+
+        Err errStr ->
+            Element.el
+                [ Element.Font.color defaultTheme.errorTextColor
+                , Element.Font.italic
+                ]
+            <|
+                Element.text <|
+                    "Error parsing/rendering markdown: "
+                        ++ errStr

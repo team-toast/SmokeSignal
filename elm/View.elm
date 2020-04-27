@@ -41,10 +41,6 @@ import UserNotice as UN exposing (UserNotice)
 import Wallet
 
 
-maxContentColWidth =
-    1000
-
-
 root : Model -> Browser.Document Msg
 root model =
     { title = "SmokeSignal"
@@ -876,6 +872,7 @@ viewPosts dProfile showContext replies showAddressId pusblishedPosts =
     Element.column
         [ Element.paddingXY 20 0
         , Element.spacing 20
+        , Element.width Element.fill
         ]
     <|
         List.map
@@ -936,6 +933,7 @@ viewEntirePost dProfile showContext showAddress maybeNumReplies phaceIconId post
         , Element.column
             [ Element.width Element.fill
             , Element.alignTop
+            , Element.clipX
             ]
             [ Element.row
                 [ Element.width Element.fill ]
@@ -1017,6 +1015,8 @@ viewMainPostBlock : DisplayProfile -> Bool -> PhaceIconId -> Maybe Post.Id -> Bo
 viewMainPostBlock dProfile showContext phaceIconId maybePostId showAddress post =
     Element.column
         [ Element.width Element.fill
+        , Element.scrollbarX
+        , Element.clipY
         , Element.padding 20
         , Element.spacing 20
         , Element.Background.color (Element.rgb 0.8 0.8 1)
@@ -1045,7 +1045,7 @@ viewMainPostBlock dProfile showContext phaceIconId maybePostId showAddress post 
                             showAddress
             , Element.map MsgUp <| viewMetadata showContext post.metadata
             ]
-        , Post.renderContentOrError defaultTheme post.message
+        , renderContentOrError post.message
         , Maybe.map messageActions maybePostId
             |> Maybe.withDefault Element.none
         ]

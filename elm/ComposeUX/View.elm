@@ -163,7 +163,6 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo input context =
             , Element.Border.color <| Element.rgba 0 0 0 0.5
             , Element.Border.rounded 10
             , Element.spacing 15
-            , Element.Font.size <| commonFontSize dProfile
             ]
             [ Element.map MsgUp <|
                 Element.row
@@ -182,7 +181,7 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo input context =
                 appStatusMessage defaultTheme.appStatusTextColor "[Preview Box]"
 
               else
-                Post.renderContentOrError defaultTheme input
+                renderContentOrError input
             ]
 
 
