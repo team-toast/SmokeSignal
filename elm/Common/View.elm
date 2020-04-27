@@ -46,7 +46,8 @@ web3ConnectButton dProfile attrs =
 phaceElement : Bool -> PhaceIconId -> Address -> Bool -> Element MsgUp
 phaceElement addressHangToRight phaceId fromAddress showAddress =
     let
-        addressOutputEl () = -- delay processing because addressToChecksumString is expensive!
+        addressOutputEl () =
+            -- delay processing because addressToChecksumString is expensive!
             Element.el
                 [ Element.alignBottom
                 , if addressHangToRight then
@@ -99,34 +100,10 @@ loadingElement attrs maybeString =
 
 walletUX : EH.DisplayProfile -> Bool -> WalletUXPhaceInfo -> Element MsgUp
 walletUX dProfile addressHangToRight walletUXPhaceInfo =
-    let
-        commonAttributes =
-            [-- Element.alignRight
-             -- , Element.alignTop
-             -- , Element.padding 10
-             -- , Element.Border.roundEach
-             --     { bottomLeft = 10
-             --     , topLeft = 0
-             --     , topRight = 0
-             --     , bottomRight = 0
-             --     }
-             -- , commonShadow
-             -- , Element.Background.color blue
-             -- , Element.Border.color (Element.rgba 0 0 1 0.5)
-             -- , Element.Border.widthEach
-             --     { top = 1
-             --     , right = 1
-             --     , bottom = 0
-             --     , left = 0
-             --     }
-            ]
-    in
     case walletUXPhaceInfo of
         DemoPhaceInfo demoAddress ->
             Element.column
-                (commonAttributes
-                    ++ [ Element.spacing 5 ]
-                )
+                [ Element.spacing 5 ]
                 [ Element.el
                     [ Element.inFront <|
                         Element.el
@@ -160,7 +137,7 @@ walletUX dProfile addressHangToRight walletUXPhaceInfo =
 
         -- Element.el commonAttributes <|
         UserPhaceInfo ( accountInfo, showAddress ) ->
-            Element.el commonAttributes <|
+            Element.el [] <|
                 phaceElement
                     addressHangToRight
                     UserPhace
