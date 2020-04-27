@@ -69,7 +69,7 @@ update msg prevModel =
                         prevModel.lastInputChangedTime
                         |> Time.posixToMillis
             in
-            if prevModel.renderNeeded && (msecSinceEdit > 800) then
+            if prevModel.renderNeeded && (msecSinceEdit > 300) then
                 justModelUpdate
                     { prevModel
                         | now = time

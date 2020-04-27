@@ -975,8 +975,6 @@ viewDaiBurned amount =
     <|
         Element.row
             [ Element.spacing 3
-
-            -- , Element.Font.color EH.white
             ]
             [ daiSymbol defaultTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
             , Element.text <| TokenValue.toConciseString amount
