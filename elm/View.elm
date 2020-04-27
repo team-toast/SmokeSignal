@@ -825,7 +825,7 @@ viewPostsGroupedByBlock dProfile showContext blockTimes replies showAddressId pu
         )
 
 
-viewBlocknumAndPosts : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List PublishedPost ) -> Element Msg
+viewBlocknumAndPosts : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List (PublishedPost) ) -> Element Msg
 viewBlocknumAndPosts dProfile showContext blockTimes replies showAddressId ( blocknum, publishedPosts ) =
     Element.column
         [ Element.width Element.fill
@@ -867,7 +867,7 @@ viewBlocknumAndPosts dProfile showContext blockTimes replies showAddressId ( blo
         ]
 
 
-viewPosts : DisplayProfile -> Bool -> List Reply -> Maybe PhaceIconId -> List PublishedPost -> Element Msg
+viewPosts : DisplayProfile -> Bool -> List Reply -> Maybe PhaceIconId -> List (PublishedPost) -> Element Msg
 viewPosts dProfile showContext replies showAddressId pusblishedPosts =
     Element.column
         [ Element.paddingXY 20 0
@@ -1045,7 +1045,7 @@ viewMainPostBlock dProfile showContext phaceIconId maybePostId showAddress post 
                             showAddress
             , Element.map MsgUp <| viewMetadata showContext post.metadata
             ]
-        , renderContentOrError post.message
+        , mapNever post.renderedPost
         , Maybe.map messageActions maybePostId
             |> Maybe.withDefault Element.none
         ]

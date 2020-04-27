@@ -19,6 +19,7 @@ type alias Post =
     , burnAmount : TokenValue
     , message : String
     , metadata : Metadata
+    , renderedPost : Element Never
     }
 
 

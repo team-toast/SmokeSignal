@@ -5,6 +5,7 @@ import Browser.Events
 import Browser.Navigation
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
+import Common.View
 import ComposeUX.State as ComposeUX
 import ComposeUX.Types as ComposeUX
 import Config
@@ -70,12 +71,14 @@ init flags url key =
                 (Eth.Types.BlockNum Config.startScanBlock)
                 Eth.Types.LatestBlock
                 initEventSentry
+        now =
+            Time.millisToPosix flags.nowInMillis
     in
     { navKey = key
     , basePath = flags.basePath
     , route = route
     , wallet = wallet
-    , now = Time.millisToPosix flags.nowInMillis
+    , now = now
     , dProfile = EH.screenWidthToDisplayProfile flags.width
     , txSentry = txSentry
     , eventSentry = eventSentry
@@ -83,7 +86,7 @@ init flags url key =
     , replies = []
     , mode = BlankMode
     , showHalfComposeUX = False
-    , composeUXModel = ComposeUX.init wallet (Post.ForTopic Post.defaultTopic)
+    , composeUXModel = ComposeUX.init now wallet (Post.ForTopic Post.defaultTopic)
     , blockTimes = Dict.empty
     , showAddressId = Nothing
     , userNotices = walletNotices
@@ -269,6 +272,7 @@ update msg prevModel =
                             (SSContract.fromMessageBurn
                                 log.transactionHash
                                 log.blockNumber
+                                Common.View.renderContentOrError
                                 ssPost
                             )
                         |> updateTrackedTxByTxHash
@@ -642,6 +646,7 @@ handleTxReceipt txReceipt =
                 (SSContract.fromMessageBurn
                     txReceipt.hash
                     txReceipt.blockNumber
+                    Common.View.renderContentOrError
                 )
                 maybePostEvent
             , Nothing
@@ -918,6 +923,7 @@ subscriptions model =
             )
         , TxSentry.listen model.txSentry
         , Browser.Events.onResize Resize
+        , Sub.map ComposeUXMsg ComposeUX.subscriptions
         ]
 
 

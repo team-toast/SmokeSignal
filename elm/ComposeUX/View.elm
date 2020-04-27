@@ -69,7 +69,7 @@ view dProfile walletUXPhaceInfo showAddressId model =
                     [ viewInput dProfile model.message
                     , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model
                     ]
-                , viewPreviewWithPostContext dProfile Nothing model.message model.context
+                , viewPreviewWithPostContext dProfile Nothing model.renderedPreview model.context
                 ]
 
         Mobile ->
@@ -93,7 +93,7 @@ view dProfile walletUXPhaceInfo showAddressId model =
                             Nothing ->
                                 Nothing
                         )
-                        model.message
+                        model.renderedPreview
                         model.context
                     , actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model
                     ]
@@ -151,8 +151,8 @@ viewInput dProfile input =
             }
 
 
-viewPreviewWithPostContext : DisplayProfile -> Maybe ( Address, Bool ) -> String -> Post.Context -> Element Msg
-viewPreviewWithPostContext dProfile maybeShowPhaceInfo input context =
+viewPreviewWithPostContext : DisplayProfile -> Maybe ( Address, Bool ) -> Maybe (Element Never) -> Post.Context -> Element Msg
+viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedMessage context =
     EH.scrollbarYEl [] <|
         Element.column
             [ Element.width Element.fill
@@ -177,11 +177,12 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo input context =
                             Element.none
                     , Element.el [ Element.alignLeft ] <| viewContext context
                     ]
-            , if input == "" then
-                appStatusMessage defaultTheme.appStatusTextColor "[Preview Box]"
+            , case renderedMessage of
+                Nothing ->
+                    appStatusMessage defaultTheme.appStatusTextColor "[Preview Box]"
 
-              else
-                renderContentOrError input
+                Just rendered ->
+                    mapNever rendered
             ]
 
 
@@ -508,8 +509,16 @@ goButtonAndMaybeError dProfile userInfo model =
                                     )
 
                                 else
-                                    case validateResults.message of
-                                        Just message ->
+                                    let
+                                        maybeUpToDateRender =
+                                            if model.renderNeeded then
+                                                Nothing
+
+                                            else
+                                                model.renderedPreview
+                                    in
+                                    case (validateResults.message, maybeUpToDateRender) of
+                                        (Just message, Just rendered) ->
                                             ( maybeGoButton dProfile <|
                                                 Just <|
                                                     Post.Draft
@@ -519,11 +528,12 @@ goButtonAndMaybeError dProfile userInfo model =
                                                             burnAmount
                                                             message
                                                             (Post.buildMetadataFromContext model.context)
+                                                            rendered
                                                         )
                                             , Nothing
                                             )
 
-                                        Nothing ->
+                                        _ ->
                                             ( maybeGoButton dProfile Nothing
                                             , Nothing
                                             )
@@ -582,3 +592,8 @@ goBackButton dProfile =
         (commonActionButtonStyles dProfile)
         [ "Edit" ]
         MobilePreviewToggle
+
+
+mapNever : Element Never -> Element Msg
+mapNever =
+    Element.map (always NoOp)
