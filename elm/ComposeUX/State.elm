@@ -108,6 +108,7 @@ resetModel model =
         | message = ""
         , showPreviewOnMobile = False
         , daiInput = ""
+        , renderedPreview = Nothing
     }
 
 
