@@ -24,48 +24,53 @@ import Wallet exposing (Wallet)
 
 view : EH.DisplayProfile -> Model -> WalletUXPhaceInfo -> PublishedPostsDict -> Element Msg
 view dProfile model walletUXPhaceInfo posts =
-    Element.column
+    Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
         , Element.Background.color darkTheme.appBackground
         , Element.paddingXY 40 40
             |> changeForMobile (Element.paddingXY 10 20) dProfile
-        , Element.spacing (60 |> changeForMobile 30 dProfile)
         , Element.Font.color darkTheme.emphasizedTextColor
         ]
-        (case dProfile of
-            Desktop ->
-                [ boldProclamationEl dProfile
-                , Element.column
-                    [ Element.width Element.fill
-                    , Element.spacing 150
-                    ]
-                    [ Element.row
+    <|
+        Element.column
+            [ Element.width (Element.fill |> Element.maximum 1100)
+            , Element.centerX
+            , Element.spacing (110 |> changeForMobile 30 dProfile)
+            ]
+        <|
+            case dProfile of
+                Desktop ->
+                    [ boldProclamationEl dProfile
+                    , Element.column
                         [ Element.width Element.fill
-                        , Element.spacing 40
+                        , Element.spacing 150
                         ]
-                        [ Element.el [ Element.width Element.fill ] <| topicsBlock dProfile model posts
-                        , Element.el [ Element.width Element.fill ] <| topicsExplainerEl dProfile
-                        ]
-                    , Element.row
-                        [ Element.width Element.fill
-                        , Element.spacing 40
-                        ]
-                        [ infoBlock dProfile
-                        , composeActionBlock dProfile walletUXPhaceInfo
+                        [ Element.row
+                            [ Element.width Element.fill
+                            , Element.spacing 40
+                            ]
+                            [ Element.el [ Element.width Element.fill ] <| topicsBlock dProfile model posts
+                            , Element.el [ Element.width Element.fill ] <| topicsExplainerEl dProfile
+                            ]
+                        , Element.row
+                            [ Element.width Element.fill
+                            , Element.spacing 40
+                            ]
+                            [ infoBlock dProfile
+                            , composeActionBlock dProfile walletUXPhaceInfo
+                            ]
                         ]
                     ]
-                ]
 
-            Mobile ->
-                [ boldProclamationEl dProfile
-                , infoBlock dProfile
-                , conversationAlreadyStartedEl dProfile
-                , topicsBlock dProfile model posts
-                , topicsExplainerEl dProfile
-                , composeActionBlock dProfile walletUXPhaceInfo
-                ]
-        )
+                Mobile ->
+                    [ boldProclamationEl dProfile
+                    , infoBlock dProfile
+                    , conversationAlreadyStartedEl dProfile
+                    , topicsBlock dProfile model posts
+                    , topicsExplainerEl dProfile
+                    , composeActionBlock dProfile walletUXPhaceInfo
+                    ]
 
 
 boldProclamationEl : DisplayProfile -> Element Msg
@@ -73,21 +78,23 @@ boldProclamationEl dProfile =
     Element.column
         [ Element.centerX
         , Element.Font.bold
-        , Element.spacing 10
+        , Element.spacing (responsiveVal dProfile 20 10)
         ]
         [ coloredAppTitle
-            [ Element.Font.size 60
+            [ Element.Font.size (responsiveVal dProfile 80 60)
             , Element.centerX
             ]
         , Element.el
             [ Element.width Element.fill
-            , Element.paddingXY 15 0
+            , Element.paddingXY
+                (responsiveVal dProfile 40 15)
+                0
             ]
           <|
             EH.thinHRuler <|
                 Element.rgb 1 0 0
         , Element.el
-            [ Element.Font.size (responsiveVal dProfile 40 30)
+            [ Element.Font.size (responsiveVal dProfile 50 30)
             , Element.centerX
             , Element.Font.color Theme.almostWhite
             ]
