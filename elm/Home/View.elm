@@ -288,8 +288,8 @@ composeActionBlock dProfile walletUXPhaceInfo =
                     [ moreInfoButton dProfile
                     , defaultTheme.emphasizedActionButton
                         dProfile
-                        [ Element.width Element.fill]
-                        [ "Compose Post"]
+                        [ Element.width Element.fill ]
+                        [ "Compose Post" ]
                         (MsgUp <|
                             GotoRoute <|
                                 Routing.Compose <|
@@ -443,37 +443,41 @@ topicsColumn dProfile topicSearchStr posts =
                                                 Post.ForTopic topic
                                    ]
                             )
-                            [ Element.row
-                                [ Element.padding 5
-                                , Element.spacing 3
-                                , Element.Border.rounded 5
-                                , Element.Background.color darkTheme.daiBurnedBackground
-                                , Element.Font.color
-                                    (if darkTheme.daiBurnedTextIsWhite then
-                                        EH.white
+                            [ Element.el
+                                [ Element.width <| Element.px 100 ]
+                              <|
+                                Element.row
+                                    [ Element.padding 5
+                                    , Element.spacing 3
+                                    , Element.Border.rounded 5
+                                    , Element.Background.color darkTheme.daiBurnedBackground
+                                    , Element.Font.color
+                                        (if darkTheme.daiBurnedTextIsWhite then
+                                            EH.white
 
-                                     else
-                                        EH.black
-                                    )
-                                ]
-                                [ daiSymbol darkTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
-                                , Element.text <|
-                                    (TokenValue.toConciseString totalBurned
-                                        |> (if TokenValue.compare totalBurned (TokenValue.fromIntTokenValue 1) == LT then
-                                                String.left 5
+                                         else
+                                            EH.black
+                                        )
+                                    ]
+                                    [ daiSymbol darkTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
+                                    , Element.text <|
+                                        (TokenValue.toConciseString totalBurned
+                                            |> (if TokenValue.compare totalBurned (TokenValue.fromIntTokenValue 1) == LT then
+                                                    String.left 5
 
-                                            else
-                                                identity
-                                           )
-                                    )
-                                ]
+                                                else
+                                                    identity
+                                               )
+                                        )
+                                    ]
                             , Element.el
                                 [ Element.width Element.fill
+                                , Element.height Element.fill
                                 , Element.clip
-                                , Element.Font.center
                                 ]
                               <|
-                                Element.text topic
+                                Element.el [ Element.centerY ] <|
+                                    Element.text topic
                             , Element.el [ Element.alignRight ] <| Element.text <| String.fromInt count
                             ]
                     )
