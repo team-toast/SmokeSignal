@@ -416,7 +416,15 @@ topicsColumn dProfile topicSearchStr posts =
                                     )
                                 ]
                                 [ daiSymbol darkTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
-                                , Element.text <| TokenValue.toConciseString totalBurned
+                                , Element.text <|
+                                    (TokenValue.toConciseString totalBurned
+                                        |> (if TokenValue.compare totalBurned (TokenValue.fromIntTokenValue 1) == LT then
+                                                String.left 5
+
+                                            else
+                                                identity
+                                           )
+                                    )
                                 ]
                             , Element.el
                                 [ Element.width Element.fill
