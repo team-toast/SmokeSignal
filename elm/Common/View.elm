@@ -269,20 +269,21 @@ viewMetadataDecodeError error =
         , Element.Border.width 1
         , Element.Border.color <| Element.rgba 0 0 0 0.3
         , Element.clip
-        ] <|
-    Element.el
-        [ Element.Font.color defaultTheme.errorTextColor
-        , Element.Font.italic
-        , Element.Font.size 18
-        , Element.height (Element.shrink |> Element.maximum 80)
-        , Element.width (Element.shrink |> Element.maximum 400)
-        , Element.scrollbars
-        , Element.Background.color <| Element.rgba 1 0 0 0.1
         ]
-        (Element.text <|
-            "Metadata decode error:\n\n"
-                ++ error
-        )
+    <|
+        Element.el
+            [ Element.Font.color defaultTheme.errorTextColor
+            , Element.Font.italic
+            , Element.Font.size 18
+            , Element.height (Element.shrink |> Element.maximum 80)
+            , Element.width (Element.shrink |> Element.maximum 400)
+            , Element.scrollbars
+            , Element.Background.color <| Element.rgba 1 0 0 0.1
+            ]
+            (Element.text <|
+                "Metadata decode error:\n\n"
+                    ++ error
+            )
 
 
 viewContext : Post.Context -> Element MsgUp
@@ -347,4 +348,12 @@ viewReplyInfo postId =
                     shortenedHash postId.messageHash
                 )
             ]
+        ]
+
+
+coloredAppTitle : List (Attribute msg) -> Element msg
+coloredAppTitle attributes =
+    Element.row attributes
+        [ Element.el [ Element.Font.color Theme.darkGray ] <| Element.text "Smoke"
+        , Element.el [ Element.Font.color <| Element.rgb 1 0.5 0 ] <| Element.text "Signal"
         ]

@@ -4,7 +4,6 @@ import Browser.Dom
 import Collage exposing (Collage)
 import Collage.Render
 import Color exposing (Color)
-import Config
 import Css
 import Dict
 import Element exposing (Attribute, Element)
@@ -106,6 +105,16 @@ changeForMobile changed dProfile original =
 
         Mobile ->
             changed
+
+
+responsiveVal : DisplayProfile -> a -> a -> a
+responsiveVal dProfile desktopVal mobileVal =
+    case dProfile of
+        Desktop ->
+            desktopVal
+
+        Mobile ->
+            mobileVal
 
 
 
@@ -458,12 +467,12 @@ scrollbarYEl attrs body =
             body
 
 
-thinGrayHRuler : Element msg
-thinGrayHRuler =
+thinHRuler : Element.Color -> Element msg
+thinHRuler color =
     Element.el
         [ Element.height <| Element.px 1
         , Element.width Element.fill
-        , Element.Background.color <| Element.rgba 0 0 0 0.2
+        , Element.Background.color color
         ]
         Element.none
 
@@ -478,11 +487,13 @@ noSelectText =
     Element.htmlAttribute <|
         Html.Attributes.style "user-select" "none"
 
+
 visibility : Bool -> Attribute msg
 visibility flag =
     Element.htmlAttribute <|
         Html.Attributes.style "visibility" <|
             if flag then
                 "visible"
+
             else
                 "hidden"

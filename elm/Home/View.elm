@@ -3,6 +3,7 @@ module Home.View exposing (view)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Common.View exposing (..)
+import Config
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Element)
@@ -12,7 +13,7 @@ import Element.Events
 import Element.Font
 import Element.Input
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
+import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Home.Types exposing (..)
 import Post exposing (Post, PublishedPost)
 import Routing exposing (Route)
@@ -34,7 +35,7 @@ view dProfile model walletUXPhaceInfo posts =
         ]
         (case dProfile of
             Desktop ->
-                [ freeSpeechAttackedEl dProfile
+                [ boldProclamationEl dProfile
                 , Element.row
                     [ Element.width Element.fill
                     , Element.spacing 20
@@ -63,65 +64,41 @@ view dProfile model walletUXPhaceInfo posts =
                 ]
 
             Mobile ->
-                [ freeSpeechAttackedEl dProfile
+                [ boldProclamationEl dProfile
                 , infoBlock dProfile
                 , conversationAlreadyStartedEl dProfile
-                , topicsExplainerEl dProfile
                 , topicsBlock dProfile model posts
+                , topicsExplainerEl dProfile
                 , composeActionBlock dProfile walletUXPhaceInfo
                 ]
         )
 
 
-freeSpeechAttackedEl : DisplayProfile -> Element Msg
-freeSpeechAttackedEl dProfile =
+boldProclamationEl : DisplayProfile -> Element Msg
+boldProclamationEl dProfile =
     Element.column
         [ Element.centerX
-        , Element.spacing 30
+        , Element.Font.bold
+        , Element.spacing 10
         ]
-    <|
-        [ case dProfile of
-            Desktop ->
-                Element.paragraph
-                    [ Element.Font.size 50
-                    , Element.Font.center
-                    ]
-                    [ Element.text "Freedom of Speech is being attacked." ]
-
-            Mobile ->
-                Element.column
-                    [ Element.centerX
-                    , Element.Font.size 36
-                    ]
-                    [ Element.el [ Element.centerX ] <| Element.text "Freedom of Speech"
-                    , Element.el [ Element.centerX ] <| Element.text "is being attacked."
-                    ]
-        , case dProfile of
-            Desktop ->
-                Element.paragraph
-                    [ Element.Font.size 60
-                    , Element.Font.center
-                    , Element.Font.semiBold
-                    ]
-                    [ Element.text "SmokeSignal makes this futile." ]
-
-            Mobile ->
-                Element.column
-                    [ Element.centerX ]
-                    [ Element.el
-                        [ Element.centerX
-                        , Element.Font.size 60
-                        , Element.Font.bold
-                        ]
-                      <|
-                        Element.text "SmokeSignal"
-                    , Element.el
-                        [ Element.centerX
-                        , Element.Font.size 44
-                        ]
-                      <|
-                        Element.text "makes this futile."
-                    ]
+        [ coloredAppTitle
+            [ Element.Font.size 60
+            , Element.centerX
+            ]
+        , Element.el
+            [ Element.width Element.fill
+            , Element.paddingXY 15 0
+            ]
+          <|
+            EH.thinHRuler <|
+                Element.rgb 1 0 0
+        , Element.el
+            [ Element.Font.size (responsiveVal dProfile 40 30)
+            , Element.centerX
+            , Element.Font.color Theme.almostWhite
+            ]
+          <|
+            Element.text "A Fatal Wound to Censorship"
         ]
 
 
@@ -158,6 +135,7 @@ infoBlock dProfile =
                             , Element.el [ Element.centerX ] <| emphasizedText "No deplatforming."
                             ]
               ]
+            , [ Element.text "All SmokeSignal posts are permanent and impossible to delete, and can be linked to via IPFS and ENS." ]
             , [ Element.text "All you need is ETH for gas and DAI to burn." ]
             ]
 
@@ -192,11 +170,11 @@ topicsExplainerEl dProfile =
             )
             [ [ Element.text "Users burn DAI to post messages under any given "
               , emphasizedText "topic"
-              , Element.text ". Theses topics are listed below, along with the "
+              , Element.text ". Theses topics are listed above, along with the "
               , emphasizedText "total DAI burned"
               , Element.text " in that topic."
               ]
-            , [ Element.text "If you have a web3 wallet, ETH, and DAI, starting a new topic is easy: type it into the box below and click "
+            , [ Element.text "If you have a web3 wallet, ETH, and DAI, starting a new topic is easy: type it into the search box above, and click "
               , emphasizedText "Start new topic."
               ]
             ]
@@ -225,8 +203,8 @@ composeActionBlock dProfile walletUXPhaceInfo =
             (Element.px 600 |> changeForMobile Element.fill dProfile)
         ]
         [ Element.row
-            [ Element.width Element.fill
-            , Element.spacing 40
+            [ Element.spacing 40
+            , Element.centerX
             ]
             [ homeWalletUX dProfile walletUXPhaceInfo
             , Element.column
@@ -252,7 +230,8 @@ composeActionBlock dProfile walletUXPhaceInfo =
                 UserPhaceInfo _ ->
                     [ [ Element.text "If you don't like that Phace, try switching accounts in your wallet." ]
                     , [ Element.text "Otherwise, you're now free to cavort all over SmokeSignal and wreak all sorts of "
-                      , emphasizedText "immutable havock."
+                      , emphasizedText "immutable havoc."
+                      , Element.text " Browse the topics above or create your own, or click below to read more about what SmokeSignal can be used for."
                       ]
                     ]
 
@@ -268,11 +247,26 @@ composeActionBlock dProfile walletUXPhaceInfo =
                     ]
                     [ Element.map MsgUp <|
                         web3ConnectButton dProfile [ Element.width Element.fill ]
+                    , moreInfoButton dProfile
                     ]
 
             _ ->
-                Element.none
+                moreInfoButton dProfile
         ]
+
+
+moreInfoButton : DisplayProfile -> Element Msg
+moreInfoButton dProfile =
+    defaultTheme.secondaryActionButton
+        dProfile
+        [ Element.width Element.fill ]
+        [ "How Can I Use SmokeSignal?" ]
+        (MsgUp <|
+            GotoRoute <|
+                Routing.ViewContext <|
+                    Post.ForPost <|
+                        Config.moreInfoPostId
+        )
 
 
 homeWalletUX : EH.DisplayProfile -> WalletUXPhaceInfo -> Element Msg
@@ -280,24 +274,29 @@ homeWalletUX dProfile walletUXPhaceInfo =
     Element.map MsgUp <|
         case walletUXPhaceInfo of
             DemoPhaceInfo demoAddress ->
-                Element.column
-                    [ Element.spacing 5
-                    , Element.pointer
+                Element.el
+                    [ Element.pointer
                     , Element.Events.onClick <| ConnectToWeb3
                     , Element.Border.rounded 10
                     , Element.Border.glow
                         (Element.rgba 1 0 1 0.3)
                         9
                     ]
-                    [ phaceElement
+                <|
+                    phaceElement
                         True
                         MorphingPhace
                         (Eth.Utils.unsafeToAddress demoAddress)
                         False
-                    ]
 
             UserPhaceInfo ( accountInfo, showAddress ) ->
-                Element.el [] <|
+                Element.el
+                    [ Element.Border.rounded 10
+                    , Element.Border.glow
+                        (Element.rgba 0 0.5 1 0.4)
+                        9
+                    ]
+                <|
                     phaceElement
                         True
                         UserPhace
@@ -309,7 +308,7 @@ topicsBlock : EH.DisplayProfile -> Model -> PublishedPostsDict -> Element Msg
 topicsBlock dProfile model posts =
     Element.column
         [ Element.spacing 25
-        , Element.alignTop
+        , Element.centerX
         , Element.width <| Element.px 400
         ]
         [ Element.column

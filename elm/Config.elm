@@ -3,6 +3,7 @@ module Config exposing (..)
 import BigInt exposing (BigInt)
 import Eth.Types exposing (Address)
 import Eth.Utils
+import Post
 import Time
 import TokenValue exposing (TokenValue)
 
@@ -59,3 +60,10 @@ startScanBlock =
 
 messageBurnEventSig =
     Eth.Utils.unsafeToHex "555288072588ecd9d95a72f03f4bf18f419c7edad2c7a56d3f0c56ec313857fe"
+
+
+moreInfoPostId : Post.Id
+moreInfoPostId =
+    { block = 0
+    , messageHash = Eth.Utils.unsafeToHex "aa"
+    }

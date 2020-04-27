@@ -14,6 +14,7 @@ import Element.Border
 import Element.Events
 import Element.Font
 import Element.Input
+import MaybeDebugLog exposing (maybeDebugLog)
 import Element.Lazy
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
@@ -323,14 +324,11 @@ logoBlock dProfile =
                     [ Element.spacing 8
                     ]
             )
-            [ Element.row
+            [ coloredAppTitle
                 [ Element.Font.size (50 |> changeForMobile 30 dProfile)
                 , Element.Font.bold
                 , Element.pointer
                 , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.Home
-                ]
-                [ Element.el [ Element.Font.color Theme.darkGray ] <| Element.text "Smoke"
-                , Element.el [ Element.Font.color <| Element.rgb 1 0.5 0 ] <| Element.text "Signal"
                 ]
             ]
         , Element.el
