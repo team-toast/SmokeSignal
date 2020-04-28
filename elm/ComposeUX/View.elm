@@ -12,7 +12,7 @@ import Element.Font
 import Element.Input
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
+import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Maybe.Extra
@@ -137,12 +137,15 @@ viewInput : DisplayProfile -> String -> Element Msg
 viewInput dProfile input =
     EH.scrollbarYEl [] <|
         Element.Input.multiline
-            [ Element.width Element.fill
+            ([ Element.width Element.fill
             , Element.height Element.fill
             , Element.padding (10 |> changeForMobile 5 dProfile)
             , Element.Background.color <| Element.rgba 1 1 1 0.5
-            , Element.Font.size <| commonFontSize dProfile
-            ]
+            
+            ] ++ (responsiveVal dProfile
+                []
+                [Element.Font.size 18])
+            )
             { onChange = MessageInputChanged
             , text = input
             , placeholder = Just messageInputPlaceholder
