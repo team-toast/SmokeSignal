@@ -71,6 +71,7 @@ init flags url key =
                 (Eth.Types.BlockNum Config.startScanBlock)
                 Eth.Types.LatestBlock
                 initEventSentry
+
         now =
             Time.millisToPosix flags.nowInMillis
     in

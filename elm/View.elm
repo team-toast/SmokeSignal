@@ -18,7 +18,7 @@ import Element.Lazy
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
+import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Helpers.Time as TimeHelpers
@@ -136,31 +136,73 @@ modals model =
          , model.draftModal
             |> Maybe.map
                 (\draft ->
-                    Element.column
+                    Element.el
                         [ Element.centerX
                         , Element.centerY
-                        , Element.Background.color defaultTheme.draftModalBackground
-                        , Element.padding 20
-                        , Element.spacing 10
                         , Element.Border.rounded 10
+                        , EH.onClickNoPropagation NoOp
+                        , Element.padding (responsiveVal model.dProfile 20 10)
+                        , Element.Background.color defaultTheme.draftModalBackground
                         , Element.Border.glow
                             (Element.rgba 0 0 0 0.3)
                             10
-                        , EH.onClickNoPropagation NoOp
+                        , Element.inFront <|
+                            Element.row
+                                [ Element.alignRight
+                                , Element.alignTop
+                                , Element.spacing 20
+                                ]
+                                [ Element.el
+                                    [ Element.alignTop
+                                    , responsiveVal model.dProfile
+                                        (Element.paddingXY 40 20)
+                                        (Element.padding 20)
+                                    ]
+                                  <|
+                                    defaultTheme.secondaryActionButton
+                                        model.dProfile
+                                        [ Element.Border.glow
+                                            (Element.rgba 0 0 0 0.4)
+                                            5
+                                        ]
+                                        [ "Restore Draft" ]
+                                        (RestoreDraft draft)
+                                , Element.el
+                                    [ Element.alignTop
+                                    , Element.paddingXY 10 0
+                                    ]
+                                  <|
+                                    EH.closeButton
+                                        [ Element.Border.rounded 4
+                                        , Element.Background.color Theme.darkBlue
+                                        , Element.padding 3
+                                        ]
+                                        EH.white
+                                        (ViewDraft Nothing)
+                                ]
                         ]
-                        [ viewEntirePost
-                            model.dProfile
-                            True
-                            (model.showAddressId == Just PhaceForDraft)
-                            Nothing
-                            PhaceForDraft
-                            draft.post
-                        , defaultTheme.secondaryActionButton
-                            model.dProfile
-                            []
-                            [ "Restore Draft" ]
-                            (RestoreDraft draft)
-                        ]
+                    <|
+                        Element.column
+                            [ Element.htmlAttribute <| Html.Attributes.style "height" "80vh"
+                            , Element.htmlAttribute <| Html.Attributes.style "width" "80vw"
+                            , Element.Events.onClick (ViewDraft Nothing)
+                            , Element.scrollbarY
+                            , Element.paddingEach
+                                { right = responsiveVal model.dProfile 20 10
+                                , left = 0
+                                , bottom = 0
+                                , top = 0
+                                }
+                            ]
+                        <|
+                            [ viewEntirePost
+                                model.dProfile
+                                True
+                                (model.showAddressId == Just PhaceForDraft)
+                                Nothing
+                                PhaceForDraft
+                                draft.post
+                            ]
                 )
          ]
             ++ List.map Just
