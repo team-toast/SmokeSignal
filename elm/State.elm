@@ -474,8 +474,7 @@ update msg prevModel =
             ( { prevModel
                 | draftModal = maybeDraft
               }
-                |> (addUserNotice <| UN.debugMsg "taggin")
-            , gTagCmd "test-event" "test-category" "test-label" 0
+            , Cmd.none
             )
 
         ChangeDemoPhaceSrc ->
@@ -929,29 +928,10 @@ subscriptions model =
         ]
 
 
-gTagCmd : String -> String -> String -> Int -> Cmd Msg
-gTagCmd event category label value =
-    encodeGTag event category label value
-        |> gTagOut
-
-
-encodeGTag : String -> String -> String -> Int -> Json.Decode.Value
-encodeGTag event category label value =
-    Json.Encode.object
-        [ ( "event", Json.Encode.string event )
-        , ( "category", Json.Encode.string category )
-        , ( "label", Json.Encode.string label )
-        , ( "value", Json.Encode.int value )
-        ]
-
-
 port walletSentryPort : (Json.Decode.Value -> msg) -> Sub msg
 
 
 port connectToWeb3 : () -> Cmd msg
-
-
-port gTagOut : Json.Decode.Value -> Cmd msg
 
 
 port txOut : Json.Decode.Value -> Cmd msg

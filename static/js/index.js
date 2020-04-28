@@ -34,7 +34,6 @@ function startDapp() {
                 }
             });
 
-            gtagPortStuff(app);
             web3PortStuff(app, web3);
         });
     } else {
@@ -49,20 +48,8 @@ function startDapp() {
             }
         });
 
-        gtagPortStuff(app);
         console.log("Web3 wallet not detected.");
     }
-}
-
-function gtagPortStuff(app) {
-    app.ports.gTagOut.subscribe(function (data) {
-        console.log("gtaggin from JS");
-        gtag('event', data.event, {
-            'event_category': data.category,
-            'event_label': data.label,
-            'value': data.value
-        });
-    });
 }
 
 function web3PortStuff(app, web3) {
