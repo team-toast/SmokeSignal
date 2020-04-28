@@ -492,6 +492,7 @@ topicsColumn dProfile topicSearchStr posts =
                     Element.el
                         (commonElStyles
                             ++ [ Element.Background.color <| Element.rgba 0.5 0.5 1 0.4
+                               , Element.clipX
                                , Element.Events.onClick <|
                                     GotoRoute <|
                                         Routing.Compose <|
@@ -500,8 +501,7 @@ topicsColumn dProfile topicSearchStr posts =
                         )
                     <|
                         Element.row
-                            [ Element.centerX
-                            , Element.centerY
+                            [ Element.centerY
                             ]
                             [ Element.text "Start new topic "
                             , Element.el
@@ -524,7 +524,7 @@ topicsColumn dProfile topicSearchStr posts =
                 , bottomRight = 5
                 , bottomLeft = 5
                 }
-            , Element.width Element.fill
+            , Element.width (Element.fill |> Element.maximum 530)
             , Element.height <| Element.px 300
             , Element.scrollbarY
             , Element.Background.color <| Element.rgba 1 1 1 0.2
