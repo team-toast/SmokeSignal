@@ -825,7 +825,7 @@ viewPostsGroupedByBlock dProfile showContext blockTimes replies showAddressId pu
         )
 
 
-viewBlocknumAndPosts : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List (PublishedPost) ) -> Element Msg
+viewBlocknumAndPosts : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List PublishedPost ) -> Element Msg
 viewBlocknumAndPosts dProfile showContext blockTimes replies showAddressId ( blocknum, publishedPosts ) =
     Element.column
         [ Element.width Element.fill
@@ -867,7 +867,7 @@ viewBlocknumAndPosts dProfile showContext blockTimes replies showAddressId ( blo
         ]
 
 
-viewPosts : DisplayProfile -> Bool -> List Reply -> Maybe PhaceIconId -> List (PublishedPost) -> Element Msg
+viewPosts : DisplayProfile -> Bool -> List Reply -> Maybe PhaceIconId -> List PublishedPost -> Element Msg
 viewPosts dProfile showContext replies showAddressId pusblishedPosts =
     Element.column
         [ Element.paddingXY 20 0
@@ -938,7 +938,7 @@ viewEntirePost dProfile showContext showAddress maybeNumReplies phaceIconId post
             [ Element.row
                 [ Element.width Element.fill ]
                 [ viewDaiBurned post.burnAmount
-                , Maybe.map viewPermalink maybePostId
+                , Maybe.map viewPostLinks maybePostId
                     |> Maybe.withDefault Element.none
                 ]
             , viewMainPostBlock dProfile showContext phaceIconId maybePostId showAddress post
@@ -981,12 +981,17 @@ viewDaiBurned amount =
             ]
 
 
-viewPermalink : Post.Id -> Element Msg
-viewPermalink postId =
-    Element.el
+viewPostLinks : Post.Id -> Element Msg
+viewPostLinks postId =
+    let
+        route =
+            Routing.ViewContext <|
+                Post.ForPost postId
+    in
+    Element.row
         [ Element.alignBottom
-        , Element.Font.size 22
         , Element.paddingXY 10 5
+        , Element.Font.size 20
         , Element.Background.color defaultTheme.postBodyBackground
         , Element.Border.roundEach
             { bottomLeft = 0
@@ -995,9 +1000,19 @@ viewPermalink postId =
             , topRight = 5
             }
         , Element.alignRight
+        , Element.spacing 20
         ]
-    <|
-        Element.link
+        [ Element.el
+            [ Element.Font.color defaultTheme.linkTextColor
+            , Element.pointer
+            , Element.Font.bold
+            , Element.Events.onClick <|
+                MsgUp <|
+                    GotoRoute <|
+                        route
+            ]
+            (Element.text (shortenedHash postId.messageHash))
+        , Element.newTabLink
             [ Element.Font.color defaultTheme.linkTextColor
             , Element.Font.size 16
             ]
@@ -1005,8 +1020,9 @@ viewPermalink postId =
                 Routing.routeToFullDotEthUrlString <|
                     Routing.ViewContext <|
                         Post.ForPost postId
-            , label = Element.text ".eth permalink"
+            , label = Element.text "(.eth permalink)"
             }
+        ]
 
 
 viewMainPostBlock : DisplayProfile -> Bool -> PhaceIconId -> Maybe Post.Id -> Bool -> Post -> Element Msg
