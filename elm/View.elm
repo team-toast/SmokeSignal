@@ -18,7 +18,7 @@ import Element.Lazy
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
+import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Helpers.Time as TimeHelpers
@@ -136,31 +136,73 @@ modals model =
          , model.draftModal
             |> Maybe.map
                 (\draft ->
-                    Element.column
+                    Element.el
                         [ Element.centerX
                         , Element.centerY
-                        , Element.Background.color defaultTheme.draftModalBackground
-                        , Element.padding 20
-                        , Element.spacing 10
                         , Element.Border.rounded 10
+                        , EH.onClickNoPropagation NoOp
+                        , Element.padding (responsiveVal model.dProfile 20 10)
+                        , Element.Background.color defaultTheme.draftModalBackground
                         , Element.Border.glow
                             (Element.rgba 0 0 0 0.3)
                             10
-                        , EH.onClickNoPropagation NoOp
+                        , Element.inFront <|
+                            Element.row
+                                [ Element.alignRight
+                                , Element.alignTop
+                                , Element.spacing 20
+                                ]
+                                [ Element.el
+                                    [ Element.alignTop
+                                    , responsiveVal model.dProfile
+                                        (Element.paddingXY 40 20)
+                                        (Element.padding 20)
+                                    ]
+                                  <|
+                                    defaultTheme.secondaryActionButton
+                                        model.dProfile
+                                        [ Element.Border.glow
+                                            (Element.rgba 0 0 0 0.4)
+                                            5
+                                        ]
+                                        [ "Restore Draft" ]
+                                        (RestoreDraft draft)
+                                , Element.el
+                                    [ Element.alignTop
+                                    , Element.paddingXY 10 0
+                                    ]
+                                  <|
+                                    EH.closeButton
+                                        [ Element.Border.rounded 4
+                                        , Element.Background.color Theme.darkBlue
+                                        , Element.padding 3
+                                        ]
+                                        EH.white
+                                        (ViewDraft Nothing)
+                                ]
                         ]
-                        [ viewEntirePost
-                            model.dProfile
-                            True
-                            (model.showAddressId == Just PhaceForDraft)
-                            Nothing
-                            PhaceForDraft
-                            draft.post
-                        , defaultTheme.secondaryActionButton
-                            model.dProfile
-                            []
-                            [ "Restore Draft" ]
-                            (RestoreDraft draft)
-                        ]
+                    <|
+                        Element.column
+                            [ Element.htmlAttribute <| Html.Attributes.style "height" "80vh"
+                            , Element.htmlAttribute <| Html.Attributes.style "width" "80vw"
+                            , Element.Events.onClick (ViewDraft Nothing)
+                            , Element.scrollbarY
+                            , Element.paddingEach
+                                { right = responsiveVal model.dProfile 20 10
+                                , left = 0
+                                , bottom = 0
+                                , top = 0
+                                }
+                            ]
+                        <|
+                            [ viewEntirePost
+                                model.dProfile
+                                True
+                                (model.showAddressId == Just PhaceForDraft)
+                                Nothing
+                                PhaceForDraft
+                                draft.post
+                            ]
                 )
          ]
             ++ List.map Just
@@ -825,7 +867,7 @@ viewPostsGroupedByBlock dProfile showContext blockTimes replies showAddressId pu
         )
 
 
-viewBlocknumAndPosts : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List (PublishedPost) ) -> Element Msg
+viewBlocknumAndPosts : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List PublishedPost ) -> Element Msg
 viewBlocknumAndPosts dProfile showContext blockTimes replies showAddressId ( blocknum, publishedPosts ) =
     Element.column
         [ Element.width Element.fill
@@ -867,7 +909,7 @@ viewBlocknumAndPosts dProfile showContext blockTimes replies showAddressId ( blo
         ]
 
 
-viewPosts : DisplayProfile -> Bool -> List Reply -> Maybe PhaceIconId -> List (PublishedPost) -> Element Msg
+viewPosts : DisplayProfile -> Bool -> List Reply -> Maybe PhaceIconId -> List PublishedPost -> Element Msg
 viewPosts dProfile showContext replies showAddressId pusblishedPosts =
     Element.column
         [ Element.paddingXY 20 0
@@ -938,7 +980,7 @@ viewEntirePost dProfile showContext showAddress maybeNumReplies phaceIconId post
             [ Element.row
                 [ Element.width Element.fill ]
                 [ viewDaiBurned post.burnAmount
-                , Maybe.map viewPermalink maybePostId
+                , Maybe.map viewPostLinks maybePostId
                     |> Maybe.withDefault Element.none
                 ]
             , viewMainPostBlock dProfile showContext phaceIconId maybePostId showAddress post
@@ -981,12 +1023,17 @@ viewDaiBurned amount =
             ]
 
 
-viewPermalink : Post.Id -> Element Msg
-viewPermalink postId =
-    Element.el
+viewPostLinks : Post.Id -> Element Msg
+viewPostLinks postId =
+    let
+        route =
+            Routing.ViewContext <|
+                Post.ForPost postId
+    in
+    Element.row
         [ Element.alignBottom
-        , Element.Font.size 22
         , Element.paddingXY 10 5
+        , Element.Font.size 20
         , Element.Background.color defaultTheme.postBodyBackground
         , Element.Border.roundEach
             { bottomLeft = 0
@@ -995,9 +1042,19 @@ viewPermalink postId =
             , topRight = 5
             }
         , Element.alignRight
+        , Element.spacing 20
         ]
-    <|
-        Element.link
+        [ Element.el
+            [ Element.Font.color defaultTheme.linkTextColor
+            , Element.pointer
+            , Element.Font.bold
+            , Element.Events.onClick <|
+                MsgUp <|
+                    GotoRoute <|
+                        route
+            ]
+            (Element.text (shortenedHash postId.messageHash))
+        , Element.newTabLink
             [ Element.Font.color defaultTheme.linkTextColor
             , Element.Font.size 16
             ]
@@ -1005,8 +1062,9 @@ viewPermalink postId =
                 Routing.routeToFullDotEthUrlString <|
                     Routing.ViewContext <|
                         Post.ForPost postId
-            , label = Element.text ".eth permalink"
+            , label = Element.text "(.eth permalink)"
             }
+        ]
 
 
 viewMainPostBlock : DisplayProfile -> Bool -> PhaceIconId -> Maybe Post.Id -> Bool -> Post -> Element Msg
