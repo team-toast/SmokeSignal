@@ -71,6 +71,7 @@ init flags url key =
                 (Eth.Types.BlockNum Config.startScanBlock)
                 Eth.Types.LatestBlock
                 initEventSentry
+
         now =
             Time.millisToPosix flags.nowInMillis
     in
@@ -473,12 +474,8 @@ update msg prevModel =
             ( { prevModel
                 | draftModal = maybeDraft
               }
-            , let
-                _ =
-                    Debug.log "taggin" ""
-              in
-              gTagCmd "test-event" "test-category" "test-label" 0
-                
+                |> (addUserNotice <| UN.debugMsg "taggin")
+            , gTagCmd "test-event" "test-category" "test-label" 0
             )
 
         ChangeDemoPhaceSrc ->
