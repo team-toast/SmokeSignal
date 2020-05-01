@@ -99,7 +99,7 @@ boldProclamationEl dProfile =
             , Element.Font.color Theme.almostWhite
             ]
           <|
-            Element.text "A Fatal Wound to Censorship"
+            Element.text "A Bunker for Free Speech"
         ]
 
 
