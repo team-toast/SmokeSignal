@@ -33,7 +33,6 @@ type Msg
     | DonationCheckboxSet Bool
     | MobilePreviewToggle
     | Tick Time.Posix
-    | NoOp
 
 
 type alias UpdateResult =

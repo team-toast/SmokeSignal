@@ -60,6 +60,7 @@ phaceElement addressHangToRight phaceId fromAddress showAddress =
                 , EH.moveToFront
                 , Element.Border.width 2
                 , Element.Border.color EH.black
+                , EH.onClickNoPropagation NoOp
                 ]
                 (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
     in

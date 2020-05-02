@@ -18,6 +18,7 @@ type MsgUp
     | AddUserNotice UN.UserNotice
     | UnlockDai
     | SubmitPost Post.Draft
+    | NoOp
 
 
 type MsgDown

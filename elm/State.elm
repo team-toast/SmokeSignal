@@ -488,9 +488,6 @@ update msg prevModel =
             , Cmd.none
             )
 
-        NoOp ->
-            ( prevModel, Cmd.none )
-
         ClickHappened ->
             ( { prevModel
                 | showAddressId = Nothing
@@ -620,6 +617,9 @@ handleMsgUp msgUp prevModel =
               }
             , cmd
             )
+
+        NoOp ->
+            ( prevModel, Cmd.none )
 
 
 handleTxReceipt : Eth.Types.TxReceipt -> ( TxStatus, Maybe PublishedPost, Maybe UserNotice )

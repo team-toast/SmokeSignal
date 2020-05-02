@@ -60,8 +60,7 @@ type alias Model =
 
 
 type Msg
-    = NoOp
-    | LinkClicked Browser.UrlRequest
+    = LinkClicked Browser.UrlRequest
     | UrlChanged Url
     | Tick Time.Posix
     | EveryFewSeconds

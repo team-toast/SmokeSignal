@@ -140,7 +140,7 @@ modals model =
                         [ Element.centerX
                         , Element.centerY
                         , Element.Border.rounded 10
-                        , EH.onClickNoPropagation NoOp
+                        , EH.onClickNoPropagation <| MsgUp NoOp
                         , Element.padding (responsiveVal model.dProfile 20 10)
                         , Element.Background.color defaultTheme.draftModalBackground
                         , Element.Border.glow
@@ -481,7 +481,7 @@ trackedTxsColumn trackedTxs =
             4
         , Element.padding 10
         , Element.spacing 5
-        , EH.onClickNoPropagation NoOp
+        , EH.onClickNoPropagation <| MsgUp NoOp
         , Element.height (Element.shrink |> Element.maximum 400)
         , Element.scrollbarY
         , Element.alignRight
@@ -660,7 +660,7 @@ userNotice dProfile ( id, notice ) =
         , Element.Border.width 1
         , Element.Border.color <| Element.rgba 0 0 0 0.15
         , EH.subtleShadow
-        , EH.onClickNoPropagation NoOp
+        , EH.onClickNoPropagation <| MsgUp NoOp
         ]
         (notice.mainParagraphs
             |> List.map (List.map mapNever)
@@ -687,7 +687,7 @@ userNotice dProfile ( id, notice ) =
 
 mapNever : Element Never -> Element Msg
 mapNever =
-    Element.map (always NoOp)
+    Element.map (always <| MsgUp NoOp)
 
 
 viewPostAndReplies : DisplayProfile -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> PublishedPost -> Element Msg

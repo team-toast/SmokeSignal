@@ -599,4 +599,4 @@ goBackButton dProfile =
 
 mapNever : Element Never -> Element Msg
 mapNever =
-    Element.map (always NoOp)
+    Element.map (always <| MsgUp NoOp)

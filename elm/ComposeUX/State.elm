@@ -90,9 +90,6 @@ update msg prevModel =
                 Cmd.none
                 [ msgUp ]
 
-        NoOp ->
-            justModelUpdate prevModel
-
 
 handleMsgDown : MsgDown -> Model -> UpdateResult
 handleMsgDown msgDown prevModel =
