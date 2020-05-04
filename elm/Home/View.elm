@@ -14,6 +14,7 @@ import Element.Font
 import Element.Input
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
+import Helpers.Tuple as TupleHelpers
 import Home.Types exposing (..)
 import Post exposing (Post, PublishedPost)
 import Routing exposing (Route)
@@ -384,9 +385,9 @@ topicsBlock dProfile model posts =
 
 
 topicsColumn : EH.DisplayProfile -> String -> PublishedPostsDict -> Element Msg
-topicsColumn dProfile topicSearchStr posts =
+topicsColumn dProfile topicSearchStr allPosts =
     let
-        talliedTopics : List ( String, ( TokenValue, Int ) )
+        talliedTopics : List ( String, ( (TokenValue, TokenValue), Int ) )
         talliedTopics =
             let
                 findTopic : PublishedPost -> Maybe String
@@ -396,22 +397,36 @@ topicsColumn dProfile topicSearchStr posts =
                             Just topic
 
                         Post.ForPost postId ->
-                            getPublishedPostFromId posts postId
+                            getPublishedPostFromId allPosts postId
                                 |> Maybe.andThen findTopic
             in
-            posts
+            allPosts
                 |> Dict.values
                 |> List.concat
                 |> Dict.Extra.filterGroupBy findTopic
                 -- This ignores any replies that lead eventually to a postId not in 'posts'
                 |> Dict.map
-                    (\topic messages ->
-                        ( List.foldl (.post >> .burnAmount >> TokenValue.add) TokenValue.zero messages
-                        , List.length messages
+                    (\topic posts ->
+                        ( List.foldl
+                            (\thisPost ( accBurn, accTip ) ->
+                                ( thisPost.post.authorBurn
+                                    |> TokenValue.add
+                                        (Maybe.withDefault TokenValue.zero thisPost.crowdBurn)
+                                    |> TokenValue.add accBurn
+                                , Maybe.withDefault TokenValue.zero thisPost.crowdTip
+                                    |> TokenValue.add accTip
+                                )
+                             -- .post
+                             --     >> .burnAmount
+                             --     >> TokenValue.add
+                            )
+                            ( TokenValue.zero, TokenValue.zero )
+                            posts
+                        , List.length posts
                         )
                     )
                 |> Dict.toList
-                |> List.sortBy (Tuple.second >> Tuple.first >> TokenValue.toFloatWithWarning >> negate)
+                |> List.sortBy (Tuple.second >> Tuple.first >> Tuple.first >> TokenValue.toFloatWithWarning >> negate)
 
         filteredTalliedTopics =
             talliedTopics
@@ -433,7 +448,7 @@ topicsColumn dProfile topicSearchStr posts =
         topicEls =
             filteredTalliedTopics
                 |> List.map
-                    (\( topic, ( totalBurned, count ) ) ->
+                    (\( topic, ( (totalBurned, totalTipped), count ) ) ->
                         Element.row
                             (commonElStyles
                                 ++ [ Element.Background.color <| Element.rgba 0 0 1 0.2

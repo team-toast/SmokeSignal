@@ -910,7 +910,7 @@ viewBlocknumAndPosts dProfile showContext blockTimes replies showAddressId ( blo
 
 
 viewPosts : DisplayProfile -> Bool -> List Reply -> Maybe PhaceIconId -> List PublishedPost -> Element Msg
-viewPosts dProfile showContext replies showAddressId pusblishedPosts =
+viewPosts dProfile showContext replies showAddressId publishedPosts =
     Element.column
         [ Element.paddingXY 20 0
         , Element.spacing 20
@@ -938,7 +938,7 @@ viewPosts dProfile showContext replies showAddressId pusblishedPosts =
                     (PhaceForPublishedPost publishedPost.id)
                     publishedPost.post
             )
-            pusblishedPosts
+            publishedPosts
 
 
 viewEntirePost : DisplayProfile -> Bool -> Bool -> Maybe Int -> PhaceIconId -> Post -> Element Msg
@@ -979,7 +979,7 @@ viewEntirePost dProfile showContext showAddress maybeNumReplies phaceIconId post
             ]
             [ Element.row
                 [ Element.width Element.fill ]
-                [ viewDaiBurned post.burnAmount
+                [ viewDaiBurned post.authorBurn post.
                 , Maybe.map viewPostLinks maybePostId
                     |> Maybe.withDefault Element.none
                 ]
@@ -999,8 +999,8 @@ viewEntirePost dProfile showContext showAddress maybeNumReplies phaceIconId post
         ]
 
 
-viewDaiBurned : TokenValue -> Element Msg
-viewDaiBurned amount =
+viewDaiBurned : TokenValue -> Maybe TokenValue -> Element Msg
+viewDaiBurned authorBurn maybeCrowdBurn =
     Element.el
         [ Element.alignBottom
         , Element.Font.size 22
@@ -1017,9 +1017,14 @@ viewDaiBurned amount =
     <|
         Element.row
             [ Element.spacing 3
+            , EH.withTitle
+                (maybeCrowdBurn
+                    |> Maybe.withDefault TokenValue.zero
+                    |> TokenValue.toConciseString
+                )
             ]
             [ daiSymbol defaultTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
-            , Element.text <| TokenValue.toConciseString amount
+            , Element.text <| TokenValue.toConciseString authorBurn
             ]
 
 

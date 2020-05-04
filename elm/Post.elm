@@ -17,7 +17,7 @@ import TokenValue exposing (TokenValue)
 
 type alias Post =
     { from : Address
-    , burnAmount : TokenValue
+    , authorBurn : TokenValue
     , message : String
     , metadata : Metadata
     , renderedPost : Element Never
@@ -34,6 +34,8 @@ type alias PublishedPost =
     { txHash : TxHash
     , id : Id
     , post : Post
+    , crowdBurn : Maybe TokenValue
+    , crowdTip : Maybe TokenValue
     }
 
 
@@ -122,7 +124,7 @@ encodeDraft draft =
     EncodedDraft
         draft.post.from
         ("!smokesignal" ++ encodeMessageAndMetadataToString ( draft.post.message, draft.post.metadata ))
-        draft.post.burnAmount
+        draft.post.authorBurn
         draft.donateAmount
 
 
