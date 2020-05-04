@@ -20,12 +20,18 @@ type Post
     | PostDraft Draft
 
 
+type alias Accounting =
+    { firstAuthor : Address
+    , crowdBurn : TokenValue
+    , crowdTip : TokenValue
+    }
+
+
 type alias Published =
     { txHash : TxHash
     , id : Id
     , core : Core
-    , crowdBurn : Maybe TokenValue
-    , crowdTip : Maybe TokenValue
+    , maybeAccounting : Maybe Accounting
     }
 
 
@@ -44,11 +50,19 @@ getCore post =
         PostDraft d ->
             d.core
 
+
 totalBurned : Post -> TokenValue
 totalBurned post =
     case post of
-        PublishedPost publishedPost -> TokenValue.add publishedPost.core.authorBurn (Maybe.withDefault TokenValue.zero publishedPost.crowdBurn)
-        PostDraft postDraft -> postDraft.core.authorBurn
+        PublishedPost publishedPost ->
+            case publishedPost.maybeAccounting of
+                Just accounting ->
+                    TokenValue.add publishedPost.core.authorBurn accounting.crowdBurn
+                Nothing -> 
+                    publishedPost.core.authorBurn
+        PostDraft postDraft ->
+            postDraft.core.authorBurn
+
 
 type alias Core =
     { from : Address

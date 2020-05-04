@@ -3,11 +3,14 @@ module Contracts.SmokeSignal exposing (..)
 import Config
 import Contracts.Generated.SmokeSignal as G
 import Element
+import Eth
 import Eth.Types exposing (..)
 import Eth.Utils as U
+import Http
 import Json.Decode as Decode exposing (Decoder, succeed)
 import Json.Decode.Pipeline exposing (custom)
 import Post
+import Task
 import TokenValue exposing (TokenValue)
 
 
@@ -84,4 +87,17 @@ fromMessageBurn txHash block renderFunc messageEvent =
             (renderFunc extractedMessage)
         )
         Nothing
-        Nothing
+
+toAccounting : G.StoredMessageData -> Post.Accounting
+toAccounting = Debug.todo "empty"
+
+
+getAccountingCmd : Hex -> (Result Http.Error Post.Accounting -> msg) -> Cmd msg
+getAccountingCmd msgHash msgConstructor =
+    Eth.call
+        Config.httpProviderUrl
+        (G.storedMessageData
+            Config.smokesignalContractAddress
+            msgHash
+        )
+        |> Task.map toAccounting |> Task.perform msgConstructor
