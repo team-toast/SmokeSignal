@@ -72,6 +72,7 @@ type Msg
     | TxSentryMsg TxSentry.Msg
     | EventSentryMsg EventSentry.Msg
     | PostLogReceived Eth.Types.Log
+    | PostAccountingFetched Post.Id (Result Http.Error Post.Accounting)
     | ShowExpandedTrackedTxs Bool
     | CheckTrackedTxsStatus
     | TrackedTxStatusResult (Result Http.Error TxReceipt)

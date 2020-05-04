@@ -182,7 +182,7 @@ update msg prevModel =
                         ( newStatus, maybePublishedPost, maybeUserNotice ) =
                             handleTxReceipt txReceipt
                     in
-                    ( prevModel
+                    prevModel
                         |> updateTrackedTxStatusIfMining
                             txReceipt.hash
                             newStatus
@@ -193,10 +193,9 @@ update msg prevModel =
                                     addPost txReceipt.blockNumber post
 
                                 Nothing ->
-                                    identity
+                                    \m ->
+                                        ( m, Cmd.none )
                            )
-                    , Cmd.none
-                    )
 
         WalletStatus walletSentryResult ->
             case walletSentryResult of
@@ -268,14 +267,18 @@ update msg prevModel =
                     )
 
                 Ok ssPost ->
-                    ( prevModel
-                        |> addPost log.blockNumber
-                            (SSContract.fromMessageBurn
-                                log.transactionHash
-                                log.blockNumber
-                                Common.View.renderContentOrError
-                                ssPost
-                            )
+                    let
+                        ( interimModel, newPostCmd ) =
+                            prevModel
+                                |> addPost log.blockNumber
+                                    (SSContract.fromMessageBurn
+                                        log.transactionHash
+                                        log.blockNumber
+                                        Common.View.renderContentOrError
+                                        ssPost
+                                    )
+                    in
+                    ( interimModel
                         |> updateTrackedTxByTxHash
                             log.transactionHash
                             (\trackedTx ->
@@ -288,7 +291,10 @@ update msg prevModel =
                                                     ssPost.hash
                                 }
                             )
-                    , getBlockTimeIfNeededCmd prevModel.blockTimes log.blockNumber
+                    , Cmd.batch
+                        [ newPostCmd
+                        , getBlockTimeIfNeededCmd prevModel.blockTimes log.blockNumber
+                        ]
                     )
 
         BalanceFetched address fetchResult ->
@@ -807,7 +813,7 @@ gotoRoute route prevModel =
             )
 
 
-addPost : Int -> Post.Published -> Model -> Model
+addPost : Int -> Post.Published -> Model -> ( Model, Cmd Msg )
 addPost blockNumber publishedPost prevModel =
     let
         alreadyHavePost =
@@ -822,10 +828,10 @@ addPost blockNumber publishedPost prevModel =
                 |> Maybe.withDefault False
     in
     if alreadyHavePost then
-        prevModel
+        ( prevModel, Cmd.none )
 
     else
-        { prevModel
+        ( { prevModel
             | publishedPosts =
                 prevModel.publishedPosts
                     |> Dict.update blockNumber
@@ -851,7 +857,11 @@ addPost blockNumber publishedPost prevModel =
                         Nothing ->
                             []
                     )
-        }
+          }
+        , SSContract.getAccountingCmd
+            publishedPost.id.messageHash
+            (PostAccountingFetched publishedPost.id)
+        )
 
 
 getBlockTimeIfNeededCmd : Dict Int Time.Posix -> Int -> Cmd Msg
