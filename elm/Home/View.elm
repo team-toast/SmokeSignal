@@ -16,7 +16,7 @@ import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Helpers.Tuple as TupleHelpers
 import Home.Types exposing (..)
-import Post exposing (Post, PublishedPost)
+import Post exposing (Post)
 import Routing exposing (Route)
 import Theme exposing (darkTheme, defaultTheme)
 import TokenValue exposing (TokenValue)
@@ -390,9 +390,9 @@ topicsColumn dProfile topicSearchStr allPosts =
         talliedTopics : List ( String, ( (TokenValue, TokenValue), Int ) )
         talliedTopics =
             let
-                findTopic : PublishedPost -> Maybe String
+                findTopic : Post.Published -> Maybe String
                 findTopic publishedPost =
-                    case publishedPost.post.metadata.context of
+                    case publishedPost.core.metadata.context of
                         Post.ForTopic topic ->
                             Just topic
 
@@ -409,7 +409,7 @@ topicsColumn dProfile topicSearchStr allPosts =
                     (\topic posts ->
                         ( List.foldl
                             (\thisPost ( accBurn, accTip ) ->
-                                ( thisPost.post.authorBurn
+                                ( thisPost.core.authorBurn
                                     |> TokenValue.add
                                         (Maybe.withDefault TokenValue.zero thisPost.crowdBurn)
                                     |> TokenValue.add accBurn

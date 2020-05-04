@@ -7,7 +7,7 @@ import Eth.Types exposing (..)
 import Eth.Utils as U
 import Json.Decode as Decode exposing (Decoder, succeed)
 import Json.Decode.Pipeline exposing (custom)
-import Post exposing (PublishedPost)
+import Post
 import TokenValue exposing (TokenValue)
 
 
@@ -57,7 +57,7 @@ burnEncodedPost encodedPost =
         (TokenValue.getEvmValue encodedPost.donateAmount)
 
 
-fromMessageBurn : TxHash -> Int -> (String -> Element.Element Never) -> MessageBurn -> PublishedPost
+fromMessageBurn : TxHash -> Int -> (String -> Element.Element Never) -> MessageBurn -> Post.Published
 fromMessageBurn txHash block renderFunc messageEvent =
     let
         ( extractedMessage, extractedMetadata ) =
@@ -70,13 +70,13 @@ fromMessageBurn txHash block renderFunc messageEvent =
                     , Post.nullMetadata
                     )
     in
-    PublishedPost
+    Post.Published
         txHash
         (Post.Id
             block
             messageEvent.hash
         )
-        (Post.Post
+        (Post.Core
             messageEvent.from
             messageEvent.burnAmount
             extractedMessage

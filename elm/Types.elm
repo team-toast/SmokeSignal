@@ -17,7 +17,7 @@ import Helpers.Element as EH
 import Home.Types as Home
 import Http
 import List.Extra
-import Post exposing (Post, PublishedPost)
+import Post exposing (Post)
 import Routing exposing (Route)
 import Time
 import TokenValue exposing (TokenValue)
@@ -95,8 +95,8 @@ type Mode
     | ViewContext Post.Context
 
 
-filterBlockPosts : (PublishedPost -> Bool) -> PublishedPostsDict -> PublishedPostsDict
-filterBlockPosts filterFunc =
+filterPosts : (Post.Published -> Bool) -> PublishedPostsDict -> PublishedPostsDict
+filterPosts filterFunc =
     Dict.map
         (always <| List.filter filterFunc)
         >> Dict.filter

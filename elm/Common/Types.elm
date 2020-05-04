@@ -6,7 +6,7 @@ import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address, Hex, TxHash)
 import Json.Decode
 import Json.Encode
-import Post exposing (Post, PublishedPost)
+import Post exposing (Post)
 import TokenValue exposing (TokenValue)
 
 
@@ -33,10 +33,10 @@ withIsUnlocked unlocked userInfo =
 
 
 type alias PublishedPostsDict =
-    Dict Int (List PublishedPost)
+    Dict Int (List Post.Published)
 
 
-getPublishedPostFromId : PublishedPostsDict -> Post.Id -> Maybe PublishedPost
+getPublishedPostFromId : PublishedPostsDict -> Post.Id -> Maybe Post.Published
 getPublishedPostFromId publishedPosts postId =
     publishedPosts
         |> Dict.get postId.block
@@ -49,7 +49,7 @@ getPublishedPostFromId publishedPosts postId =
         |> Maybe.andThen List.head
 
 
-getPublishedPostFromTxHash : PublishedPostsDict -> TxHash -> Maybe PublishedPost
+getPublishedPostFromTxHash : PublishedPostsDict -> TxHash -> Maybe Post.Published
 getPublishedPostFromTxHash publishedPosts txHash =
     publishedPosts
         |> Dict.values

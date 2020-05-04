@@ -28,7 +28,7 @@ import Json.Encode
 import List.Extra
 import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
-import Post exposing (Post, PublishedPost)
+import Post exposing (Post)
 import Random
 import Routing exposing (Route)
 import Task
@@ -373,15 +373,15 @@ update msg prevModel =
                     prevModel.composeUXModel
                         |> (\composeUXModel ->
                                 { composeUXModel
-                                    | message = draft.post.message
+                                    | message = draft.core.message
                                     , daiInput =
-                                        draft.post.authorBurn
+                                        draft.core.authorBurn
                                             |> TokenValue.toFloatString Nothing
                                     , donateChecked = not <| TokenValue.isZero draft.donateAmount
                                 }
                            )
             }
-                |> (gotoRoute <| Routing.Compose draft.post.metadata.context)
+                |> (gotoRoute <| Routing.Compose draft.core.metadata.context)
 
         DismissNotice id ->
             ( { prevModel
@@ -622,7 +622,7 @@ handleMsgUp msgUp prevModel =
             ( prevModel, Cmd.none )
 
 
-handleTxReceipt : Eth.Types.TxReceipt -> ( TxStatus, Maybe PublishedPost, Maybe UserNotice )
+handleTxReceipt : Eth.Types.TxReceipt -> ( TxStatus, Maybe Post.Published, Maybe UserNotice )
 handleTxReceipt txReceipt =
     case txReceipt.status of
         Just True ->
@@ -807,7 +807,7 @@ gotoRoute route prevModel =
             )
 
 
-addPost : Int -> PublishedPost -> Model -> Model
+addPost : Int -> Post.Published -> Model -> Model
 addPost blockNumber publishedPost prevModel =
     let
         alreadyHavePost =
@@ -841,7 +841,7 @@ addPost blockNumber publishedPost prevModel =
             , replies =
                 List.append
                     prevModel.replies
-                    (case Post.contextReplyTo publishedPost.post.metadata.context of
+                    (case Post.contextReplyTo publishedPost.core.metadata.context of
                         Just replyTo ->
                             [ { from = publishedPost.id
                               , to = replyTo

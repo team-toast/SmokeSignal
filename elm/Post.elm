@@ -15,27 +15,42 @@ import Theme exposing (Theme)
 import TokenValue exposing (TokenValue)
 
 
-type alias Post =
-    { from : Address
-    , authorBurn : TokenValue
-    , message : String
-    , metadata : Metadata
-    , renderedPost : Element Never
+type Post
+    = PublishedPost Published
+    | PostDraft Draft
+
+
+type alias Published =
+    { txHash : TxHash
+    , id : Id
+    , core : Core
+    , crowdBurn : Maybe TokenValue
+    , crowdTip : Maybe TokenValue
     }
 
 
 type alias Draft =
     { donateAmount : TokenValue
-    , post : Post
+    , core : Core
     }
 
 
-type alias PublishedPost =
-    { txHash : TxHash
-    , id : Id
-    , post : Post
-    , crowdBurn : Maybe TokenValue
-    , crowdTip : Maybe TokenValue
+getCore : Post -> Core
+getCore post =
+    case post of
+        PublishedPost p ->
+            p.core
+
+        PostDraft d ->
+            d.core
+
+
+type alias Core =
+    { from : Address
+    , authorBurn : TokenValue
+    , message : String
+    , metadata : Metadata
+    , renderedPost : Element Never
     }
 
 
@@ -122,9 +137,9 @@ blankVersionedMetadata =
 encodeDraft : Draft -> EncodedDraft
 encodeDraft draft =
     EncodedDraft
-        draft.post.from
-        ("!smokesignal" ++ encodeMessageAndMetadataToString ( draft.post.message, draft.post.metadata ))
-        draft.post.authorBurn
+        draft.core.from
+        ("!smokesignal" ++ encodeMessageAndMetadataToString ( draft.core.message, draft.core.metadata ))
+        draft.core.authorBurn
         draft.donateAmount
 
 

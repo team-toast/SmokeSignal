@@ -526,7 +526,7 @@ goButtonAndMaybeError dProfile userInfo model =
                                                 Just <|
                                                     Post.Draft
                                                         donateAmount
-                                                        (Post
+                                                        (Post.Core
                                                             userInfo.address
                                                             burnAmount
                                                             message

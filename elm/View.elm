@@ -30,7 +30,7 @@ import List.Extra
 import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
 import Phace
-import Post exposing (Post, PublishedPost)
+import Post exposing (Post)
 import Routing exposing (Route)
 import Theme exposing (defaultTheme)
 import Time
@@ -201,7 +201,7 @@ modals model =
                                 (model.showAddressId == Just PhaceForDraft)
                                 Nothing
                                 PhaceForDraft
-                                draft.post
+                                (Post.PostDraft draft)
                             ]
                 )
          ]
@@ -690,7 +690,7 @@ mapNever =
     Element.map (always <| MsgUp NoOp)
 
 
-viewPostAndReplies : DisplayProfile -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> PublishedPost -> Element Msg
+viewPostAndReplies : DisplayProfile -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> Post.Published -> Element Msg
 viewPostAndReplies dProfile allPosts blockTimes replies showAddressId publishedPost =
     let
         replyingPosts =
@@ -730,7 +730,7 @@ viewPostAndReplies dProfile allPosts blockTimes replies showAddressId publishedP
             )
             Nothing
             (PhaceForPublishedPost publishedPost.id)
-            publishedPost.post
+            (Post.PublishedPost publishedPost)
         , if Dict.isEmpty replyingPosts then
             Element.none
 
@@ -757,7 +757,7 @@ viewPostAndReplies dProfile allPosts blockTimes replies showAddressId publishedP
         ]
 
 
-viewPostHeader : DisplayProfile -> PublishedPost -> Element Msg
+viewPostHeader : DisplayProfile -> Post.Published -> Element Msg
 viewPostHeader dProfile publishedPost =
     Element.row
         (subheaderAttributes dProfile
@@ -791,9 +791,9 @@ viewPostsForTopic dProfile allPosts blockTimes replies showAddressId topic =
     let
         filteredPosts =
             allPosts
-                |> filterBlockPosts
+                |> filterPosts
                     (\publishedPost ->
-                        publishedPost.post.metadata.context == Post.ForTopic topic
+                        publishedPost.core.metadata.context == Post.ForTopic topic
                     )
     in
     Element.column
@@ -867,7 +867,7 @@ viewPostsGroupedByBlock dProfile showContext blockTimes replies showAddressId pu
         )
 
 
-viewBlocknumAndPosts : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List PublishedPost ) -> Element Msg
+viewBlocknumAndPosts : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List Post.Published ) -> Element Msg
 viewBlocknumAndPosts dProfile showContext blockTimes replies showAddressId ( blocknum, publishedPosts ) =
     Element.column
         [ Element.width Element.fill
@@ -909,7 +909,7 @@ viewBlocknumAndPosts dProfile showContext blockTimes replies showAddressId ( blo
         ]
 
 
-viewPosts : DisplayProfile -> Bool -> List Reply -> Maybe PhaceIconId -> List PublishedPost -> Element Msg
+viewPosts : DisplayProfile -> Bool -> List Reply -> Maybe PhaceIconId -> List Post.Published -> Element Msg
 viewPosts dProfile showContext replies showAddressId publishedPosts =
     Element.column
         [ Element.paddingXY 20 0
@@ -936,7 +936,7 @@ viewPosts dProfile showContext replies showAddressId publishedPosts =
                         )
                     )
                     (PhaceForPublishedPost publishedPost.id)
-                    publishedPost.post
+                    (Post.PublishedPost publishedPost)
             )
             publishedPosts
 
@@ -944,10 +944,13 @@ viewPosts dProfile showContext replies showAddressId publishedPosts =
 viewEntirePost : DisplayProfile -> Bool -> Bool -> Maybe Int -> PhaceIconId -> Post -> Element Msg
 viewEntirePost dProfile showContext showAddress maybeNumReplies phaceIconId post =
     let
+        postCore =
+            Post.getCore post
+
         maybePostId =
-            case phaceIconId of
-                PhaceForPublishedPost postId ->
-                    Just postId
+            case post of
+                Post.PublishedPost publishedPost ->
+                    Just publishedPost.id
 
                 _ ->
                     Nothing
@@ -967,7 +970,7 @@ viewEntirePost dProfile showContext showAddress maybeNumReplies phaceIconId post
                         phaceElement
                             True
                             phaceIconId
-                            post.from
+                            postCore.from
                             showAddress
 
             Mobile ->
@@ -979,7 +982,7 @@ viewEntirePost dProfile showContext showAddress maybeNumReplies phaceIconId post
             ]
             [ Element.row
                 [ Element.width Element.fill ]
-                [ viewDaiBurned post.authorBurn post.
+                [ viewDaiBurned post
                 , Maybe.map viewPostLinks maybePostId
                     |> Maybe.withDefault Element.none
                 ]
@@ -999,8 +1002,17 @@ viewEntirePost dProfile showContext showAddress maybeNumReplies phaceIconId post
         ]
 
 
-viewDaiBurned : TokenValue -> Maybe TokenValue -> Element Msg
-viewDaiBurned authorBurn maybeCrowdBurn =
+viewDaiBurned : Post -> Element Msg
+viewDaiBurned post =
+    let
+        maybeCrowdBurn =
+            case post of
+                Post.PublishedPost publishedPost ->
+                    publishedPost.crowdBurn
+
+                _ ->
+                    Nothing
+    in
     Element.el
         [ Element.alignBottom
         , Element.Font.size 22
@@ -1016,15 +1028,19 @@ viewDaiBurned authorBurn maybeCrowdBurn =
         ]
     <|
         Element.row
-            [ Element.spacing 3
-            , EH.withTitle
-                (maybeCrowdBurn
-                    |> Maybe.withDefault TokenValue.zero
-                    |> TokenValue.toConciseString
-                )
-            ]
+            ([ Element.spacing 3 ]
+                ++ (case maybeCrowdBurn of
+                        Just crowdBurn ->
+                            [ EH.withTitle (TokenValue.toConciseString crowdBurn) ]
+
+                        Nothing ->
+                            []
+                   )
+            )
             [ daiSymbol defaultTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
-            , Element.text <| TokenValue.toConciseString authorBurn
+            , Element.text <|
+                TokenValue.toConciseString <|
+                    (Post.getCore post |> .authorBurn)
             ]
 
 
@@ -1074,6 +1090,8 @@ viewPostLinks postId =
 
 viewMainPostBlock : DisplayProfile -> Bool -> PhaceIconId -> Maybe Post.Id -> Bool -> Post -> Element Msg
 viewMainPostBlock dProfile showContext phaceIconId maybePostId showAddress post =
+    let postCore = Post.getCore post
+    in
     Element.column
         [ Element.width Element.fill
         , Element.scrollbarX
@@ -1102,11 +1120,11 @@ viewMainPostBlock dProfile showContext phaceIconId maybePostId showAddress post 
                         phaceElement
                             False
                             phaceIconId
-                            post.from
+                            postCore.from
                             showAddress
-            , Element.map MsgUp <| viewMetadata showContext post.metadata
+            , Element.map MsgUp <| viewMetadata showContext postCore.metadata
             ]
-        , mapNever post.renderedPost
+        , mapNever postCore.renderedPost
         , Maybe.map messageActions maybePostId
             |> Maybe.withDefault Element.none
         ]
