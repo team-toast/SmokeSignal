@@ -61,6 +61,22 @@ getPublishedPostFromTxHash publishedPosts txHash =
         |> List.head
 
 
+updatePublishedPost : Post.Id -> (Post.Published -> Post.Published) -> PublishedPostsDict -> PublishedPostsDict
+updatePublishedPost postId updateFunc posts =
+    posts
+        |> Dict.update postId.block
+            (Maybe.map <|
+                List.map
+                    (\thisPost ->
+                        if thisPost.id == postId then
+                            updateFunc thisPost
+
+                        else
+                            thisPost
+                    )
+            )
+
+
 type alias Reply =
     { from : Post.Id
     , to : Post.Id

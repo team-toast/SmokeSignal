@@ -22,8 +22,8 @@ type Post
 
 type alias Accounting =
     { firstAuthor : Address
-    , totalTipped : TokenValue
     , totalBurned : TokenValue
+    , totalTipped : TokenValue
     }
 
 

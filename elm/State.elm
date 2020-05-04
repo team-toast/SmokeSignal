@@ -297,6 +297,28 @@ update msg prevModel =
                         ]
                     )
 
+        PostAccountingFetched postId fetchResult ->
+            case fetchResult of
+                Ok accounting ->
+                    ( { prevModel
+                        | publishedPosts =
+                            prevModel.publishedPosts
+                                |> updatePublishedPost postId
+                                    (\publishedPost ->
+                                        { publishedPost
+                                            | maybeAccounting = Just accounting
+                                        }
+                                    )
+                      }
+                    , Cmd.none
+                    )
+
+                Err httpErr ->
+                    ( prevModel
+                        |> addUserNotice (UN.web3FetchError "DAI balance" httpErr)
+                    , Cmd.none
+                    )
+
         BalanceFetched address fetchResult ->
             let
                 maybeCurrentAddress =
