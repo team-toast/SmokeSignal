@@ -1029,19 +1029,25 @@ viewDaiBurned post =
 
 burnSummaryString : Post -> String
 burnSummaryString post =
+    let
+        authorBurned =
+            Post.getCore post |> .authorBurn
+
+        totalBurned =
+            Post.totalBurned post
+
+        crowdBurned =
+            TokenValue.sub
+                totalBurned
+                authorBurned
+    in
     "Author burned $"
-        ++ ((Post.getCore post).authorBurn |> TokenValue.toConciseString)
-        ++ (case post of
-                Post.PublishedPost publishedPost ->
-                    case publishedPost.crowdBurn of
-                        Just crowdBurn ->
-                            ", Crowd burned $" ++ (crowdBurn |> TokenValue.toConciseString)
+        ++ (authorBurned |> TokenValue.toConciseString)
+        ++ (if TokenValue.isZero crowdBurned then
+                ""
 
-                        Nothing ->
-                            ""
-
-                _ ->
-                    ""
+            else
+                ", Crowd burned $" ++ (crowdBurned |> TokenValue.toConciseString)
            )
 
 

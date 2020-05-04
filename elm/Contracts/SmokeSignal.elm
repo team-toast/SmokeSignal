@@ -88,8 +88,13 @@ fromMessageBurn txHash block renderFunc messageEvent =
         )
         Nothing
 
+
 toAccounting : G.StoredMessageData -> Post.Accounting
-toAccounting = Debug.todo "empty"
+toAccounting storedMessageData =
+    Post.Accounting
+        storedMessageData.firstAuthor
+        (TokenValue.tokenValue storedMessageData.totalBurned)
+        (TokenValue.tokenValue storedMessageData.totalTipped)
 
 
 getAccountingCmd : Hex -> (Result Http.Error Post.Accounting -> msg) -> Cmd msg
@@ -100,4 +105,5 @@ getAccountingCmd msgHash msgConstructor =
             Config.smokesignalContractAddress
             msgHash
         )
-        |> Task.map toAccounting |> Task.perform msgConstructor
+        |> Task.map toAccounting
+        |> Task.attempt msgConstructor

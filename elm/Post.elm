@@ -22,8 +22,8 @@ type Post
 
 type alias Accounting =
     { firstAuthor : Address
-    , crowdBurn : TokenValue
-    , crowdTip : TokenValue
+    , totalTipped : TokenValue
+    , totalBurned : TokenValue
     }
 
 
@@ -57,7 +57,7 @@ totalBurned post =
         PublishedPost publishedPost ->
             case publishedPost.maybeAccounting of
                 Just accounting ->
-                    TokenValue.add publishedPost.core.authorBurn accounting.crowdBurn
+                    accounting.totalBurned
                 Nothing -> 
                     publishedPost.core.authorBurn
         PostDraft postDraft ->

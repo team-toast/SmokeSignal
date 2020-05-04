@@ -387,7 +387,7 @@ topicsBlock dProfile model posts =
 topicsColumn : EH.DisplayProfile -> String -> PublishedPostsDict -> Element Msg
 topicsColumn dProfile topicSearchStr allPosts =
     let
-        talliedTopics : List ( String, ( (TokenValue, TokenValue), Int ) )
+        talliedTopics : List ( String, ( ( TokenValue, TokenValue ), Int ) )
         talliedTopics =
             let
                 findTopic : Post.Published -> Maybe String
@@ -409,16 +409,22 @@ topicsColumn dProfile topicSearchStr allPosts =
                     (\topic posts ->
                         ( List.foldl
                             (\thisPost ( accBurn, accTip ) ->
-                                ( thisPost.core.authorBurn
-                                    |> TokenValue.add
-                                        (Maybe.withDefault TokenValue.zero thisPost.crowdBurn)
-                                    |> TokenValue.add accBurn
-                                , Maybe.withDefault TokenValue.zero thisPost.crowdTip
-                                    |> TokenValue.add accTip
-                                )
-                             -- .post
-                             --     >> .burnAmount
-                             --     >> TokenValue.add
+                                case thisPost.maybeAccounting of
+                                    Just accounting ->
+                                        ( TokenValue.add
+                                            accounting.totalBurned
+                                            accBurn
+                                        , TokenValue.add
+                                            accounting.totalTipped
+                                            accTip
+                                        )
+
+                                    Nothing ->
+                                        ( TokenValue.add
+                                            thisPost.core.authorBurn
+                                            accBurn
+                                        , accTip
+                                        )
                             )
                             ( TokenValue.zero, TokenValue.zero )
                             posts
@@ -448,7 +454,7 @@ topicsColumn dProfile topicSearchStr allPosts =
         topicEls =
             filteredTalliedTopics
                 |> List.map
-                    (\( topic, ( (totalBurned, totalTipped), count ) ) ->
+                    (\( topic, ( ( totalBurned, totalTipped ), count ) ) ->
                         Element.row
                             (commonElStyles
                                 ++ [ Element.Background.color <| Element.rgba 0 0 1 0.2
