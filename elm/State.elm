@@ -375,7 +375,7 @@ update msg prevModel =
                                 { composeUXModel
                                     | message = draft.post.message
                                     , daiInput =
-                                        draft.post.burnAmount
+                                        draft.post.authorBurn
                                             |> TokenValue.toFloatString Nothing
                                     , donateChecked = not <| TokenValue.isZero draft.donateAmount
                                 }

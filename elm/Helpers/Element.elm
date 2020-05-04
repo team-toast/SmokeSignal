@@ -238,6 +238,12 @@ textWithoutTextCursor s =
         |> Element.html
 
 
+withTitle : String -> Attribute msg
+withTitle title =
+    Html.Attributes.title title
+    |> Element.htmlAttribute
+
+
 onClickNoPropagation : msg -> Attribute msg
 onClickNoPropagation msg =
     Html.Events.stopPropagationOn
