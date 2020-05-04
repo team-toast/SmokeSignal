@@ -44,6 +44,11 @@ getCore post =
         PostDraft d ->
             d.core
 
+totalBurned : Post -> TokenValue
+totalBurned post =
+    case post of
+        PublishedPost publishedPost -> TokenValue.add publishedPost.core.authorBurn (Maybe.withDefault TokenValue.zero publishedPost.crowdBurn)
+        PostDraft postDraft -> postDraft.core.authorBurn
 
 type alias Core =
     { from : Address

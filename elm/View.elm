@@ -1004,15 +1004,6 @@ viewEntirePost dProfile showContext showAddress maybeNumReplies phaceIconId post
 
 viewDaiBurned : Post -> Element Msg
 viewDaiBurned post =
-    let
-        maybeCrowdBurn =
-            case post of
-                Post.PublishedPost publishedPost ->
-                    publishedPost.crowdBurn
-
-                _ ->
-                    Nothing
-    in
     Element.el
         [ Element.alignBottom
         , Element.Font.size 22
@@ -1028,20 +1019,30 @@ viewDaiBurned post =
         ]
     <|
         Element.row
-            ([ Element.spacing 3 ]
-                ++ (case maybeCrowdBurn of
+            [ Element.spacing 3
+            , EH.withTitle (burnSummaryString post)
+            ]
+            [ daiSymbol defaultTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
+            , Element.text <| (Post.totalBurned post |> TokenValue.toConciseString)
+            ]
+
+
+burnSummaryString : Post -> String
+burnSummaryString post =
+    "Author burned $"
+        ++ ((Post.getCore post).authorBurn |> TokenValue.toConciseString)
+        ++ (case post of
+                Post.PublishedPost publishedPost ->
+                    case publishedPost.crowdBurn of
                         Just crowdBurn ->
-                            [ EH.withTitle (TokenValue.toConciseString crowdBurn) ]
+                            ", Crowd burned $" ++ (crowdBurn |> TokenValue.toConciseString)
 
                         Nothing ->
-                            []
-                   )
-            )
-            [ daiSymbol defaultTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
-            , Element.text <|
-                TokenValue.toConciseString <|
-                    (Post.getCore post |> .authorBurn)
-            ]
+                            ""
+
+                _ ->
+                    ""
+           )
 
 
 viewPostLinks : Post.Id -> Element Msg
@@ -1090,7 +1091,9 @@ viewPostLinks postId =
 
 viewMainPostBlock : DisplayProfile -> Bool -> PhaceIconId -> Maybe Post.Id -> Bool -> Post -> Element Msg
 viewMainPostBlock dProfile showContext phaceIconId maybePostId showAddress post =
-    let postCore = Post.getCore post
+    let
+        postCore =
+            Post.getCore post
     in
     Element.column
         [ Element.width Element.fill
