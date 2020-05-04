@@ -970,7 +970,7 @@ viewEntirePost dProfile showContext showAddress maybeNumReplies phaceIconId post
                         phaceElement
                             True
                             phaceIconId
-                            postCore.from
+                            postCore.author
                             showAddress
 
             Mobile ->
@@ -1129,7 +1129,7 @@ viewMainPostBlock dProfile showContext phaceIconId maybePostId showAddress post 
                         phaceElement
                             False
                             phaceIconId
-                            postCore.from
+                            postCore.author
                             showAddress
             , Element.map MsgUp <| viewMetadata showContext postCore.metadata
             ]

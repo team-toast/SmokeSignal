@@ -307,6 +307,13 @@ update msg prevModel =
                                     (\publishedPost ->
                                         { publishedPost
                                             | maybeAccounting = Just accounting
+                                            , core =
+                                                publishedPost.core
+                                                    |> (\c ->
+                                                            { c
+                                                                | author = accounting.firstAuthor
+                                                            }
+                                                       )
                                         }
                                     )
                       }

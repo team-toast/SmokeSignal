@@ -65,7 +65,7 @@ totalBurned post =
 
 
 type alias Core =
-    { from : Address
+    { author : Address
     , authorBurn : TokenValue
     , message : String
     , metadata : Metadata
@@ -156,7 +156,7 @@ blankVersionedMetadata =
 encodeDraft : Draft -> EncodedDraft
 encodeDraft draft =
     EncodedDraft
-        draft.core.from
+        draft.core.author
         ("!smokesignal" ++ encodeMessageAndMetadataToString ( draft.core.message, draft.core.metadata ))
         draft.core.authorBurn
         draft.donateAmount
