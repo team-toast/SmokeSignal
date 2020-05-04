@@ -10,6 +10,7 @@ import Json.Decode as D
 import Json.Encode as E
 import Maybe.Extra
 import Result.Extra
+import String.Extra
 import Theme exposing (Theme)
 import TokenValue exposing (TokenValue)
 
@@ -19,6 +20,7 @@ type alias Post =
     , burnAmount : TokenValue
     , message : String
     , metadata : Metadata
+    , renderedPost : Element Never
     }
 
 
@@ -261,12 +263,15 @@ postIdDecoder =
 
 encodeTopicList : List String -> E.Value
 encodeTopicList topics =
-    E.list E.string topics
+    E.list
+        (String.Extra.clean >> E.string)
+        topics
 
 
 topicListDecoder : D.Decoder (List String)
 topicListDecoder =
-    D.list D.string
+    D.list
+        (D.map sanitizeTopic D.string)
 
 
 encodeHex : Hex -> E.Value
@@ -289,26 +294,6 @@ hexDecoder =
             )
 
 
-renderContentOrError : Theme msg -> String -> Element msg
-renderContentOrError theme content =
-    let
-        renderResult =
-            ElementMarkdown.renderString
-                [ Element.spacing 15
-                , Element.Font.color theme.postBodyTextColor
-                ]
-                content
-    in
-    case renderResult of
-        Ok rendered ->
-            rendered
-
-        Err errStr ->
-            Element.el
-                [ Element.Font.color theme.errorTextColor
-                , Element.Font.italic
-                ]
-            <|
-                Element.text <|
-                    "Error parsing/rendering markdown: "
-                        ++ errStr
+sanitizeTopic : String -> String
+sanitizeTopic =
+    String.toLower >> String.Extra.clean >> String.replace " " "-"

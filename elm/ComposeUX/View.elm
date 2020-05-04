@@ -12,7 +12,7 @@ import Element.Font
 import Element.Input
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
+import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Maybe.Extra
@@ -44,6 +44,13 @@ view dProfile walletUXPhaceInfo showAddressId model =
             , Element.Background.color defaultTheme.postBodyBackground
             , composeUXShadow
             , Element.Border.rounded 10
+            , Element.inFront <|
+                EH.closeButton
+                    [ Element.alignTop
+                    , Element.alignRight
+                    ]
+                    (Element.rgb 0.3 0.3 0.3)
+                    (MsgUp ExitCompose)
             ]
     in
     case dProfile of
@@ -62,7 +69,7 @@ view dProfile walletUXPhaceInfo showAddressId model =
                     [ viewInput dProfile model.message
                     , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model
                     ]
-                , viewPreviewWithPostContext dProfile Nothing model.message model.context
+                , viewPreviewWithPostContext dProfile Nothing model.renderedPreview model.context
                 ]
 
         Mobile ->
@@ -86,7 +93,7 @@ view dProfile walletUXPhaceInfo showAddressId model =
                             Nothing ->
                                 Nothing
                         )
-                        model.message
+                        model.renderedPreview
                         model.context
                     , actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model
                     ]
@@ -130,12 +137,15 @@ viewInput : DisplayProfile -> String -> Element Msg
 viewInput dProfile input =
     EH.scrollbarYEl [] <|
         Element.Input.multiline
-            [ Element.width Element.fill
+            ([ Element.width Element.fill
             , Element.height Element.fill
             , Element.padding (10 |> changeForMobile 5 dProfile)
             , Element.Background.color <| Element.rgba 1 1 1 0.5
-            , Element.Font.size <| commonFontSize dProfile
-            ]
+            
+            ] ++ (responsiveVal dProfile
+                []
+                [Element.Font.size 18])
+            )
             { onChange = MessageInputChanged
             , text = input
             , placeholder = Just messageInputPlaceholder
@@ -144,8 +154,8 @@ viewInput dProfile input =
             }
 
 
-viewPreviewWithPostContext : DisplayProfile -> Maybe ( Address, Bool ) -> String -> Post.Context -> Element Msg
-viewPreviewWithPostContext dProfile maybeShowPhaceInfo input context =
+viewPreviewWithPostContext : DisplayProfile -> Maybe ( Address, Bool ) -> Maybe (Element Never) -> Post.Context -> Element Msg
+viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedMessage context =
     EH.scrollbarYEl [] <|
         Element.column
             [ Element.width Element.fill
@@ -156,7 +166,6 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo input context =
             , Element.Border.color <| Element.rgba 0 0 0 0.5
             , Element.Border.rounded 10
             , Element.spacing 15
-            , Element.Font.size <| commonFontSize dProfile
             ]
             [ Element.map MsgUp <|
                 Element.row
@@ -171,11 +180,12 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo input context =
                             Element.none
                     , Element.el [ Element.alignLeft ] <| viewContext context
                     ]
-            , if input == "" then
-                appStatusMessage defaultTheme.appStatusTextColor "[Preview Box]"
+            , case renderedMessage of
+                Nothing ->
+                    appStatusMessage defaultTheme.appStatusTextColor "[Preview Box]"
 
-              else
-                Post.renderContentOrError defaultTheme input
+                Just rendered ->
+                    mapNever rendered
             ]
 
 
@@ -502,8 +512,16 @@ goButtonAndMaybeError dProfile userInfo model =
                                     )
 
                                 else
-                                    case validateResults.message of
-                                        Just message ->
+                                    let
+                                        maybeUpToDateRender =
+                                            if model.renderNeeded then
+                                                Nothing
+
+                                            else
+                                                model.renderedPreview
+                                    in
+                                    case (validateResults.message, maybeUpToDateRender) of
+                                        (Just message, Just rendered) ->
                                             ( maybeGoButton dProfile <|
                                                 Just <|
                                                     Post.Draft
@@ -513,11 +531,12 @@ goButtonAndMaybeError dProfile userInfo model =
                                                             burnAmount
                                                             message
                                                             (Post.buildMetadataFromContext model.context)
+                                                            rendered
                                                         )
                                             , Nothing
                                             )
 
-                                        Nothing ->
+                                        _ ->
                                             ( maybeGoButton dProfile Nothing
                                             , Nothing
                                             )
@@ -576,3 +595,8 @@ goBackButton dProfile =
         (commonActionButtonStyles dProfile)
         [ "Edit" ]
         MobilePreviewToggle
+
+
+mapNever : Element Never -> Element Msg
+mapNever =
+    Element.map (always NoOp)

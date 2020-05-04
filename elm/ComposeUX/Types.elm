@@ -1,22 +1,28 @@
 module ComposeUX.Types exposing (..)
 
+import Element exposing (Element)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Eth.Types exposing (Address, TxHash)
 import Http
 import Post
+import Time
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
 
 type alias Model =
-    { context : Post.Context
+    { now : Time.Posix
+    , context : Post.Context
     , message : String
     , daiInput : String
     , donateChecked : Bool
     , miningUnlockTx : Maybe TxHash
     , wallet : Wallet
     , showPreviewOnMobile : Bool
+    , lastInputChangedTime : Time.Posix
+    , renderNeeded : Bool
+    , renderedPreview : Maybe (Element Never)
     }
 
 
@@ -26,6 +32,8 @@ type Msg
     | DaiInputChanged String
     | DonationCheckboxSet Bool
     | MobilePreviewToggle
+    | Tick Time.Posix
+    | NoOp
 
 
 type alias UpdateResult =
@@ -109,3 +117,8 @@ validateBurnAmount input =
                             Err "Minimum amount is 0.000000000000000001 DAI"
                     )
             )
+
+
+subscriptions : Sub Msg
+subscriptions =
+    Time.every 200 Tick

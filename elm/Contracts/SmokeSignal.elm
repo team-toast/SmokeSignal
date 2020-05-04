@@ -2,6 +2,7 @@ module Contracts.SmokeSignal exposing (..)
 
 import Config
 import Contracts.Generated.SmokeSignal as G
+import Element
 import Eth.Types exposing (..)
 import Eth.Utils as U
 import Json.Decode as Decode exposing (Decoder, succeed)
@@ -56,8 +57,8 @@ burnEncodedPost encodedPost =
         (TokenValue.getEvmValue encodedPost.donateAmount)
 
 
-fromMessageBurn : TxHash -> Int -> MessageBurn -> PublishedPost
-fromMessageBurn txHash block messageEvent =
+fromMessageBurn : TxHash -> Int -> (String -> Element.Element Never) -> MessageBurn -> PublishedPost 
+fromMessageBurn txHash block renderFunc messageEvent =
     let
         ( extractedMessage, extractedMetadata ) =
             case ( String.left 12 messageEvent.message, String.dropLeft 12 messageEvent.message ) of
@@ -80,4 +81,5 @@ fromMessageBurn txHash block messageEvent =
             messageEvent.burnAmount
             extractedMessage
             extractedMetadata
+            (renderFunc extractedMessage)
         )

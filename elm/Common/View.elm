@@ -7,6 +7,7 @@ import Element.Background
 import Element.Border
 import Element.Events
 import Element.Font
+import ElementMarkdown
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
@@ -45,7 +46,8 @@ web3ConnectButton dProfile attrs =
 phaceElement : Bool -> PhaceIconId -> Address -> Bool -> Element MsgUp
 phaceElement addressHangToRight phaceId fromAddress showAddress =
     let
-        addressOutputEl =
+        addressOutputEl () =
+            -- delay processing because addressToChecksumString is expensive!
             Element.el
                 [ Element.alignBottom
                 , if addressHangToRight then
@@ -63,7 +65,7 @@ phaceElement addressHangToRight phaceId fromAddress showAddress =
     in
     Element.el
         (if showAddress then
-            [ Element.inFront addressOutputEl
+            [ Element.inFront <| addressOutputEl ()
             , Element.alignTop
             ]
 
@@ -98,34 +100,10 @@ loadingElement attrs maybeString =
 
 walletUX : EH.DisplayProfile -> Bool -> WalletUXPhaceInfo -> Element MsgUp
 walletUX dProfile addressHangToRight walletUXPhaceInfo =
-    let
-        commonAttributes =
-            [-- Element.alignRight
-             -- , Element.alignTop
-             -- , Element.padding 10
-             -- , Element.Border.roundEach
-             --     { bottomLeft = 10
-             --     , topLeft = 0
-             --     , topRight = 0
-             --     , bottomRight = 0
-             --     }
-             -- , commonShadow
-             -- , Element.Background.color blue
-             -- , Element.Border.color (Element.rgba 0 0 1 0.5)
-             -- , Element.Border.widthEach
-             --     { top = 1
-             --     , right = 1
-             --     , bottom = 0
-             --     , left = 0
-             --     }
-            ]
-    in
     case walletUXPhaceInfo of
         DemoPhaceInfo demoAddress ->
             Element.column
-                (commonAttributes
-                    ++ [ Element.spacing 5 ]
-                )
+                [ Element.spacing 5 ]
                 [ Element.el
                     [ Element.inFront <|
                         Element.el
@@ -159,7 +137,7 @@ walletUX dProfile addressHangToRight walletUXPhaceInfo =
 
         -- Element.el commonAttributes <|
         UserPhaceInfo ( accountInfo, showAddress ) ->
-            Element.el commonAttributes <|
+            Element.el [] <|
                 phaceElement
                     addressHangToRight
                     UserPhace
@@ -265,14 +243,25 @@ viewMetadata showContext metadata =
 viewMetadataDecodeError : String -> Element msg
 viewMetadataDecodeError error =
     Element.el
-        [ Element.Font.color defaultTheme.errorTextColor
-        , Element.Font.italic
-        , Element.Font.size 18
+        [ Element.Border.rounded 5
+        , Element.Border.width 1
+        , Element.Border.color <| Element.rgba 0 0 0 0.3
+        , Element.clip
         ]
-        (Element.text <|
-            "Metadata decode error: "
-                ++ error
-        )
+    <|
+        Element.el
+            [ Element.Font.color defaultTheme.errorTextColor
+            , Element.Font.italic
+            , Element.Font.size 18
+            , Element.height (Element.shrink |> Element.maximum 80)
+            , Element.width (Element.shrink |> Element.maximum 400)
+            , Element.scrollbars
+            , Element.Background.color <| Element.rgba 1 0 0 0.1
+            ]
+            (Element.text <|
+                "Metadata decode error:\n\n"
+                    ++ error
+            )
 
 
 viewContext : Post.Context -> Element MsgUp
@@ -338,3 +327,41 @@ viewReplyInfo postId =
                 )
             ]
         ]
+
+
+coloredAppTitle : List (Attribute msg) -> Element msg
+coloredAppTitle attributes =
+    Element.row attributes
+        [ Element.el [ Element.Font.color Theme.darkGray ] <| Element.text "Smoke"
+        , Element.el [ Element.Font.color <| Element.rgb 1 0.5 0 ] <| Element.text "Signal"
+        ]
+
+
+maxContentColWidth =
+    1000
+
+
+renderContentOrError : String -> Element msg
+renderContentOrError content =
+    let
+        renderResult =
+            ElementMarkdown.renderString
+                [ Element.spacing 15
+                , Element.Font.color defaultTheme.postBodyTextColor
+                , Element.width Element.fill
+                ]
+                content
+    in
+    case renderResult of
+        Ok rendered ->
+            rendered
+
+        Err errStr ->
+            Element.el
+                [ Element.Font.color defaultTheme.errorTextColor
+                , Element.Font.italic
+                ]
+            <|
+                Element.text <|
+                    "Error parsing/rendering markdown: "
+                        ++ errStr

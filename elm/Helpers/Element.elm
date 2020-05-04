@@ -4,7 +4,6 @@ import Browser.Dom
 import Collage exposing (Collage)
 import Collage.Render
 import Color exposing (Color)
-import Config
 import Css
 import Dict
 import Element exposing (Attribute, Element)
@@ -106,6 +105,16 @@ changeForMobile changed dProfile original =
 
         Mobile ->
             changed
+
+
+responsiveVal : DisplayProfile -> a -> a -> a
+responsiveVal dProfile desktopVal mobileVal =
+    case dProfile of
+        Desktop ->
+            desktopVal
+
+        Mobile ->
+            mobileVal
 
 
 
@@ -389,23 +398,32 @@ subtleShadow =
         }
 
 
-closeButton : Bool -> msg -> Element msg
-closeButton isBlack msg =
+closeButton : List (Attribute msg) -> Element.Color -> msg -> Element msg
+closeButton attributes color msg =
     Element.el
-        [ Element.padding 10
-        , Element.Events.onClick msg
-        , Element.pointer
-        ]
-        (Element.image [ Element.width <| Element.px 22 ]
-            { src =
-                if isBlack then
-                    "img/remove-circle-black.svg"
-
-                else
-                    "img/remove-circle-white.svg"
-            , description = "close"
-            }
+        (attributes
+            ++ [ Element.Events.onClick msg
+               , Element.pointer
+               , Element.width <| Element.px 22
+               ]
         )
+        (Element.el
+            [ Element.Font.bold
+            , Element.Font.size 30
+            , Element.Font.color color
+            ]
+            (Element.text "x")
+        )
+        -- (Element.image [ Element.width <| Element.px 22 ]
+        --     { src =
+        --         if isBlack then
+        --             "img/remove-circle-black.svg"
+
+        --         else
+        --             "img/remove-circle-white.svg"
+        --     , description = "close"
+        --     }
+        -- )
 
 
 elOnCircle : List (Attribute msg) -> Int -> Element.Color -> Element msg -> Element msg
@@ -458,12 +476,12 @@ scrollbarYEl attrs body =
             body
 
 
-thinGrayHRuler : Element msg
-thinGrayHRuler =
+thinHRuler : Element.Color -> Element msg
+thinHRuler color =
     Element.el
         [ Element.height <| Element.px 1
         , Element.width Element.fill
-        , Element.Background.color <| Element.rgba 0 0 0 0.2
+        , Element.Background.color color
         ]
         Element.none
 
@@ -477,3 +495,14 @@ noSelectText : Attribute msg
 noSelectText =
     Element.htmlAttribute <|
         Html.Attributes.style "user-select" "none"
+
+
+visibility : Bool -> Attribute msg
+visibility flag =
+    Element.htmlAttribute <|
+        Html.Attributes.style "visibility" <|
+            if flag then
+                "visible"
+
+            else
+                "hidden"

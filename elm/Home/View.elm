@@ -3,6 +3,7 @@ module Home.View exposing (view)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Common.View exposing (..)
+import Config
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Element)
@@ -12,7 +13,7 @@ import Element.Events
 import Element.Font
 import Element.Input
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
+import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Home.Types exposing (..)
 import Post exposing (Post, PublishedPost)
 import Routing exposing (Route)
@@ -23,105 +24,82 @@ import Wallet exposing (Wallet)
 
 view : EH.DisplayProfile -> Model -> WalletUXPhaceInfo -> PublishedPostsDict -> Element Msg
 view dProfile model walletUXPhaceInfo posts =
-    Element.column
+    Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
         , Element.Background.color darkTheme.appBackground
-        , Element.paddingXY 20 40
+        , Element.paddingXY 40 40
             |> changeForMobile (Element.paddingXY 10 20) dProfile
-        , Element.spacing (60 |> changeForMobile 30 dProfile)
         , Element.Font.color darkTheme.emphasizedTextColor
         ]
-        (case dProfile of
-            Desktop ->
-                [ freeSpeechAttackedEl dProfile
-                , Element.row
-                    [ Element.width Element.fill
-                    , Element.spacing 20
-                    ]
-                    [ Element.el
-                        [ Element.width (Element.fillPortion 1)
-                        , Element.alignTop
-                        ]
-                      <|
-                        Element.none
+    <|
+        Element.column
+            [ Element.width (Element.fill |> Element.maximum 1100)
+            , Element.centerX
+            , Element.spacing (110 |> changeForMobile 30 dProfile)
+            ]
+        <|
+            case dProfile of
+                Desktop ->
+                    [ boldProclamationEl dProfile
                     , Element.column
-                        [ Element.width (Element.fillPortion 2)
-                        , Element.alignTop
-                        , Element.spacing 40
+                        [ Element.width Element.fill
+                        , Element.spacing 150
                         ]
-                        [ composeActionBlock dProfile walletUXPhaceInfo
+                        [ Element.row
+                            [ Element.width Element.fill
+                            , Element.spacing 40
+                            ]
+                            [ Element.el [ Element.width Element.fill ] <| topicsBlock dProfile model posts
+                            , Element.el [ Element.width Element.fill ] <| topicsExplainerEl dProfile
+                            ]
+                        , Element.row
+                            [ Element.width Element.fill
+                            , Element.spacing 40
+                            ]
+                            [ infoBlock dProfile
+                            , composeActionBlock dProfile walletUXPhaceInfo
+                            ]
                         ]
-                    , Element.el
-                        [ Element.width (Element.fillPortion 1)
-                        , Element.alignTop
-                        ]
-                      <|
-                        topicsBlock dProfile model posts
                     ]
-                , infoBlock dProfile
-                ]
 
-            Mobile ->
-                [ freeSpeechAttackedEl dProfile
-                , infoBlock dProfile
-                , conversationAlreadyStartedEl dProfile
-                , topicsExplainerEl dProfile
-                , topicsBlock dProfile model posts
-                , composeActionBlock dProfile walletUXPhaceInfo
-                ]
-        )
+                Mobile ->
+                    [ boldProclamationEl dProfile
+                    , infoBlock dProfile
+                    , conversationAlreadyStartedEl dProfile
+                    , topicsBlock dProfile model posts
+                    , topicsExplainerEl dProfile
+                    , composeActionBlock dProfile walletUXPhaceInfo
+                    ]
 
 
-freeSpeechAttackedEl : DisplayProfile -> Element Msg
-freeSpeechAttackedEl dProfile =
+boldProclamationEl : DisplayProfile -> Element Msg
+boldProclamationEl dProfile =
     Element.column
         [ Element.centerX
-        , Element.spacing 30
+        , Element.Font.bold
+        , Element.spacing (responsiveVal dProfile 20 10)
         ]
-    <|
-        [ case dProfile of
-            Desktop ->
-                Element.paragraph
-                    [ Element.Font.size 50
-                    , Element.Font.center
-                    ]
-                    [ Element.text "Freedom of Speech is being attacked." ]
-
-            Mobile ->
-                Element.column
-                    [ Element.centerX
-                    , Element.Font.size 36
-                    ]
-                    [ Element.el [ Element.centerX ] <| Element.text "Freedom of Speech"
-                    , Element.el [ Element.centerX ] <| Element.text "is being attacked."
-                    ]
-        , case dProfile of
-            Desktop ->
-                Element.paragraph
-                    [ Element.Font.size 60
-                    , Element.Font.center
-                    , Element.Font.semiBold
-                    ]
-                    [ Element.text "SmokeSignal makes this futile." ]
-
-            Mobile ->
-                Element.column
-                    [ Element.centerX ]
-                    [ Element.el
-                        [ Element.centerX
-                        , Element.Font.size 60
-                        , Element.Font.bold
-                        ]
-                      <|
-                        Element.text "SmokeSignal"
-                    , Element.el
-                        [ Element.centerX
-                        , Element.Font.size 44
-                        ]
-                      <|
-                        Element.text "makes this futile."
-                    ]
+        [ coloredAppTitle
+            [ Element.Font.size (responsiveVal dProfile 80 60)
+            , Element.centerX
+            ]
+        , Element.el
+            [ Element.width Element.fill
+            , Element.paddingXY
+                (responsiveVal dProfile 40 15)
+                0
+            ]
+          <|
+            EH.thinHRuler <|
+                Element.rgb 1 0 0
+        , Element.el
+            [ Element.Font.size (responsiveVal dProfile 50 30)
+            , Element.centerX
+            , Element.Font.color Theme.almostWhite
+            ]
+          <|
+            Element.text "A Fatal Wound to Censorship"
         ]
 
 
@@ -132,10 +110,12 @@ infoBlock dProfile =
         , Element.Background.color Theme.darkBlue
         , Element.padding (25 |> changeForMobile 15 dProfile)
         , Element.Font.color <| EH.white
-        , Element.Font.size (26 |> changeForMobile 18 dProfile)
+        , Element.Font.size (22 |> changeForMobile 18 dProfile)
         , Element.Font.color darkTheme.mainTextColor
         , Element.centerX
         , Element.spacing 20
+        , Element.width Element.fill
+        , Element.alignTop
         ]
     <|
         List.map
@@ -145,20 +125,43 @@ infoBlock dProfile =
                 ]
             )
             [ [ Element.text "SmokeSignal uses the Ethereum blockchain to facilitate uncensorable, global chat." ]
-            , [ case dProfile of
-                    Desktop ->
-                        emphasizedText "No usernames. No moderators. No censorship. No deplatforming."
-
-                    Mobile ->
-                        Element.column
-                            [ Element.spacing 3 ]
-                            [ Element.el [ Element.centerX ] <| emphasizedText "No usernames."
-                            , Element.el [ Element.centerX ] <| emphasizedText "No moderators."
-                            , Element.el [ Element.centerX ] <| emphasizedText "No censorship."
-                            , Element.el [ Element.centerX ] <| emphasizedText "No deplatforming."
-                            ]
+            , [ Element.column
+                    [ Element.spacing 3 ]
+                    [ Element.el [ Element.centerX ] <| emphasizedText "No usernames."
+                    , Element.el [ Element.centerX ] <| emphasizedText "No moderators."
+                    , Element.el [ Element.centerX ] <| emphasizedText "No censorship."
+                    , Element.el [ Element.centerX ] <| emphasizedText "No deplatforming."
+                    ]
               ]
             , [ Element.text "All you need is ETH for gas and DAI to burn." ]
+            , [ Element.text "All SmokeSignal posts are permanent and impossible to delete, and can be accessed with any browser via an IPFS Gateway ("
+              , Element.newTabLink
+                    [ Element.Font.color defaultTheme.linkTextColor ]
+                    { url = "https://gateway.ipfs.io/ipfs/QmeXhVyRJYhtpRcQr4uYsJZi6wBYqyEwdjPRjp3EFCtLHQ/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
+                    , label = Element.text "example"
+                    }
+              , Element.text ") or a SmokeSignal mirror ("
+              , Element.newTabLink
+                    [ Element.Font.color defaultTheme.linkTextColor ]
+                    { url = "https://foundrydao.com/smokesignal/app/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
+                    , label = Element.text "example"
+                    }
+              , Element.text ")."
+              ]
+            , [ Element.text "Some browsers also support smokesignal.eth links ("
+              , Element.newTabLink
+                    [ Element.Font.color defaultTheme.linkTextColor ]
+                    { url = "https://smokesignal.eth/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
+                    , label = Element.text "example"
+                    }
+              , Element.text ") or direct IPFS links ("
+              , Element.newTabLink
+                    [ Element.Font.color defaultTheme.linkTextColor ]
+                    { url = "ipfs://QmeXhVyRJYhtpRcQr4uYsJZi6wBYqyEwdjPRjp3EFCtLHQ/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
+                    , label = Element.text "example"
+                    }
+              , Element.text ")."
+              ]
             ]
 
 
@@ -178,9 +181,10 @@ topicsExplainerEl dProfile =
         , Element.Background.color <| Element.rgb 0.3 0 0
         , Element.padding (25 |> changeForMobile 15 dProfile)
         , Element.Font.color <| EH.white
-        , Element.Font.size (26 |> changeForMobile 18 dProfile)
+        , Element.Font.size (22 |> changeForMobile 18 dProfile)
         , Element.Font.color darkTheme.mainTextColor
         , Element.centerX
+        , Element.width Element.fill
         , Element.spacing 20
         ]
     <|
@@ -192,12 +196,17 @@ topicsExplainerEl dProfile =
             )
             [ [ Element.text "Users burn DAI to post messages under any given "
               , emphasizedText "topic"
-              , Element.text ". Theses topics are listed below, along with the "
+              , Element.text <|
+                    ". Theses topics are listed "
+                        ++ responsiveVal dProfile "here" "above"
+                        ++ ", along with the "
               , emphasizedText "total DAI burned"
               , Element.text " in that topic."
               ]
-            , [ Element.text "If you have a web3 wallet, ETH, and DAI, starting a new topic is easy: type it into the box below and click "
+            , [ Element.text "If you have a web3 wallet, ETH, and DAI, starting a new topic is easy: type it into the search input, and click "
               , emphasizedText "Start new topic."
+              ]
+            , [ Element.text " You can then compose the first post for your brand new topic!"
               ]
             ]
 
@@ -210,7 +219,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
                 [ Element.spacing 15 ]
                 (List.map
                     (Element.paragraph
-                        [ Element.Font.size (24 |> changeForMobile 18 dProfile)
+                        [ Element.Font.size (22 |> changeForMobile 18 dProfile)
                         , Element.width Element.fill
                         , Element.Font.color darkTheme.mainTextColor
                         ]
@@ -221,19 +230,18 @@ composeActionBlock dProfile walletUXPhaceInfo =
     Element.column
         [ Element.spacing 25
         , Element.centerX
-        , Element.width <|
-            (Element.px 600 |> changeForMobile Element.fill dProfile)
+        , Element.width <| Element.px 500
         ]
         [ Element.row
-            [ Element.width Element.fill
-            , Element.spacing 40
+            [ Element.spacing 40
+            , Element.centerX
             ]
             [ homeWalletUX dProfile walletUXPhaceInfo
             , Element.column
                 [ Element.spacing 5
-                , Element.Font.size (50 |> changeForMobile 30 dProfile)
+                , Element.Font.size (40 |> changeForMobile 30 dProfile)
                 , Element.Font.bold
-                , Element.alignTop |> changeForMobile Element.alignBottom dProfile
+                , Element.alignBottom
                 ]
                 (case walletUXPhaceInfo of
                     UserPhaceInfo _ ->
@@ -252,7 +260,8 @@ composeActionBlock dProfile walletUXPhaceInfo =
                 UserPhaceInfo _ ->
                     [ [ Element.text "If you don't like that Phace, try switching accounts in your wallet." ]
                     , [ Element.text "Otherwise, you're now free to cavort all over SmokeSignal and wreak all sorts of "
-                      , emphasizedText "immutable havock."
+                      , emphasizedText "immutable havoc."
+                      , Element.text " Browse the topics above or create your own, or click below to read more about what SmokeSignal can be used for."
                       ]
                     ]
 
@@ -268,11 +277,40 @@ composeActionBlock dProfile walletUXPhaceInfo =
                     ]
                     [ Element.map MsgUp <|
                         web3ConnectButton dProfile [ Element.width Element.fill ]
+                    , moreInfoButton dProfile
                     ]
 
             _ ->
-                Element.none
+                Element.column
+                    [ Element.width Element.fill
+                    , Element.spacing 10
+                    ]
+                    [ moreInfoButton dProfile
+                    , defaultTheme.emphasizedActionButton
+                        dProfile
+                        [ Element.width Element.fill ]
+                        [ "Compose Post" ]
+                        (MsgUp <|
+                            GotoRoute <|
+                                Routing.Compose <|
+                                    Post.ForTopic "noob-ramblings-plz-ignore"
+                        )
+                    ]
         ]
+
+
+moreInfoButton : DisplayProfile -> Element Msg
+moreInfoButton dProfile =
+    defaultTheme.secondaryActionButton
+        dProfile
+        [ Element.width Element.fill ]
+        [ "What Can SmokeSignal be Used For?" ]
+        (MsgUp <|
+            GotoRoute <|
+                Routing.ViewContext <|
+                    Post.ForPost <|
+                        Config.moreInfoPostId
+        )
 
 
 homeWalletUX : EH.DisplayProfile -> WalletUXPhaceInfo -> Element Msg
@@ -280,24 +318,29 @@ homeWalletUX dProfile walletUXPhaceInfo =
     Element.map MsgUp <|
         case walletUXPhaceInfo of
             DemoPhaceInfo demoAddress ->
-                Element.column
-                    [ Element.spacing 5
-                    , Element.pointer
+                Element.el
+                    [ Element.pointer
                     , Element.Events.onClick <| ConnectToWeb3
                     , Element.Border.rounded 10
                     , Element.Border.glow
                         (Element.rgba 1 0 1 0.3)
                         9
                     ]
-                    [ phaceElement
+                <|
+                    phaceElement
                         True
                         MorphingPhace
                         (Eth.Utils.unsafeToAddress demoAddress)
                         False
-                    ]
 
             UserPhaceInfo ( accountInfo, showAddress ) ->
-                Element.el [] <|
+                Element.el
+                    [ Element.Border.rounded 10
+                    , Element.Border.glow
+                        (Element.rgba 0 0.5 1 0.4)
+                        9
+                    ]
+                <|
                     phaceElement
                         True
                         UserPhace
@@ -309,8 +352,8 @@ topicsBlock : EH.DisplayProfile -> Model -> PublishedPostsDict -> Element Msg
 topicsBlock dProfile model posts =
     Element.column
         [ Element.spacing 25
-        , Element.alignTop
-        , Element.width <| Element.px 400
+        , Element.centerX
+        , Element.width (Element.fill |> Element.minimum 400)
         ]
         [ Element.column
             [ Element.width Element.fill
@@ -332,7 +375,10 @@ topicsBlock dProfile model posts =
                             (Element.text "Find or Create Topic")
                 , label = Element.Input.labelHidden "topic"
                 }
-            , topicsColumn dProfile model.topicInput posts
+            , topicsColumn
+                dProfile
+                (Post.sanitizeTopic model.topicInput)
+                posts
             ]
         ]
 
@@ -397,29 +443,41 @@ topicsColumn dProfile topicSearchStr posts =
                                                 Post.ForTopic topic
                                    ]
                             )
-                            [ Element.row
-                                [ Element.padding 5
-                                , Element.spacing 3
-                                , Element.Border.rounded 5
-                                , Element.Background.color darkTheme.daiBurnedBackground
-                                , Element.Font.color
-                                    (if darkTheme.daiBurnedTextIsWhite then
-                                        EH.white
+                            [ Element.el
+                                [ Element.width <| Element.px 100 ]
+                              <|
+                                Element.row
+                                    [ Element.padding 5
+                                    , Element.spacing 3
+                                    , Element.Border.rounded 5
+                                    , Element.Background.color darkTheme.daiBurnedBackground
+                                    , Element.Font.color
+                                        (if darkTheme.daiBurnedTextIsWhite then
+                                            EH.white
 
-                                     else
-                                        EH.black
-                                    )
-                                ]
-                                [ daiSymbol darkTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
-                                , Element.text <| TokenValue.toConciseString totalBurned
-                                ]
+                                         else
+                                            EH.black
+                                        )
+                                    ]
+                                    [ daiSymbol darkTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
+                                    , Element.text <|
+                                        (TokenValue.toConciseString totalBurned
+                                            |> (if TokenValue.compare totalBurned (TokenValue.fromIntTokenValue 1) == LT then
+                                                    String.left 5
+
+                                                else
+                                                    identity
+                                               )
+                                        )
+                                    ]
                             , Element.el
                                 [ Element.width Element.fill
+                                , Element.height Element.fill
                                 , Element.clip
-                                , Element.Font.center
                                 ]
                               <|
-                                Element.text topic
+                                Element.el [ Element.centerY ] <|
+                                    Element.text topic
                             , Element.el [ Element.alignRight ] <| Element.text <| String.fromInt count
                             ]
                     )
@@ -434,6 +492,7 @@ topicsColumn dProfile topicSearchStr posts =
                     Element.el
                         (commonElStyles
                             ++ [ Element.Background.color <| Element.rgba 0.5 0.5 1 0.4
+                               , Element.clipX
                                , Element.Events.onClick <|
                                     GotoRoute <|
                                         Routing.Compose <|
@@ -442,8 +501,7 @@ topicsColumn dProfile topicSearchStr posts =
                         )
                     <|
                         Element.row
-                            [ Element.centerX
-                            , Element.centerY
+                            [ Element.centerY
                             ]
                             [ Element.text "Start new topic "
                             , Element.el
@@ -466,7 +524,7 @@ topicsColumn dProfile topicSearchStr posts =
                 , bottomRight = 5
                 , bottomLeft = 5
                 }
-            , Element.width Element.fill
+            , Element.width (Element.fill |> Element.maximum 530)
             , Element.height <| Element.px 300
             , Element.scrollbarY
             , Element.Background.color <| Element.rgba 1 1 1 0.2
