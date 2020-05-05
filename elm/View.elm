@@ -31,6 +31,8 @@ import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
 import Phace
 import Post exposing (Post)
+import PostUX.Types as PostUX
+import PostUX.View as PostUX
 import Routing exposing (Route)
 import Theme exposing (defaultTheme)
 import Time
@@ -195,13 +197,20 @@ modals model =
                                 }
                             ]
                         <|
-                            [ viewEntirePost
-                                model.dProfile
-                                True
-                                (model.showAddressId == Just PhaceForDraft)
-                                Nothing
-                                PhaceForDraft
-                                (Post.PostDraft draft)
+                            [ Element.map
+                                (PostUXMsg DraftPreview)
+                              <|
+                                PostUX.view
+                                    model.dProfile
+                                    True
+                                    (Post.PostDraft draft)
+                                    (case model.postUX of
+                                        Just ( DraftPreview, postUXModel ) ->
+                                            Just postUXModel
+
+                                        _ ->
+                                            Nothing
+                                    )
                             ]
                 )
          ]
@@ -277,8 +286,8 @@ body model =
                                         model.publishedPosts
                                         model.blockTimes
                                         model.replies
-                                        model.showAddressId
                                         post
+                                        model.postUX
                                     ]
 
                             Nothing ->
@@ -304,7 +313,7 @@ body model =
                                 model.publishedPosts
                                 model.blockTimes
                                 model.replies
-                                model.showAddressId
+                                model.postUX
                                 topic
                             ]
         ]
@@ -663,7 +672,7 @@ userNotice dProfile ( id, notice ) =
         , EH.onClickNoPropagation <| MsgUp NoOp
         ]
         (notice.mainParagraphs
-            |> List.map (List.map mapNever)
+            |> List.map (List.map (Element.map never))
             |> List.indexedMap
                 (\pNum paragraphLines ->
                     Element.paragraph
@@ -685,13 +694,8 @@ userNotice dProfile ( id, notice ) =
         )
 
 
-mapNever : Element Never -> Element Msg
-mapNever =
-    Element.map (always <| MsgUp NoOp)
-
-
-viewPostAndReplies : DisplayProfile -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> Post.Published -> Element Msg
-viewPostAndReplies dProfile allPosts blockTimes replies showAddressId publishedPost =
+viewPostAndReplies : DisplayProfile -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
+viewPostAndReplies dProfile allPosts blockTimes replies publishedPost postUX =
     let
         replyingPosts =
             let
@@ -718,19 +722,24 @@ viewPostAndReplies dProfile allPosts blockTimes replies showAddressId publishedP
         , Element.spacing 40
         , Element.padding 20
         ]
-        [ viewEntirePost
-            dProfile
-            True
-            (case showAddressId of
-                Just (PhaceForPublishedPost postId) ->
-                    postId == publishedPost.id
+        [ Element.map
+            (PostUXMsg <| PublishedPost publishedPost.id)
+          <|
+            PostUX.view
+                dProfile
+                True
+                (Post.PublishedPost publishedPost)
+                (case postUX of
+                    Just ( PublishedPost id, postUXModel ) ->
+                        if id == publishedPost.id then
+                            Just postUXModel
 
-                _ ->
-                    False
-            )
-            Nothing
-            (PhaceForPublishedPost publishedPost.id)
-            (Post.PublishedPost publishedPost)
+                        else
+                            Nothing
+
+                    _ ->
+                        Nothing
+                )
         , if Dict.isEmpty replyingPosts then
             Element.none
 
@@ -751,8 +760,8 @@ viewPostAndReplies dProfile allPosts blockTimes replies showAddressId publishedP
                     False
                     blockTimes
                     replies
-                    showAddressId
                     replyingPosts
+                    postUX
                 ]
         ]
 
@@ -786,8 +795,8 @@ viewPostHeader dProfile publishedPost =
         ]
 
 
-viewPostsForTopic : DisplayProfile -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> String -> Element Msg
-viewPostsForTopic dProfile allPosts blockTimes replies showAddressId topic =
+viewPostsForTopic : DisplayProfile -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe ( PostUXId, PostUX.Model ) -> String -> Element Msg
+viewPostsForTopic dProfile allPosts blockTimes replies uxModel topic =
     let
         filteredPosts =
             allPosts
@@ -812,8 +821,8 @@ viewPostsForTopic dProfile allPosts blockTimes replies showAddressId topic =
                 False
                 blockTimes
                 replies
-                showAddressId
                 filteredPosts
+                uxModel
         ]
 
 
@@ -854,8 +863,8 @@ viewTopicHeader dProfile maybeUserInfo topic =
         ]
 
 
-viewPostsGroupedByBlock : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> PublishedPostsDict -> Element Msg
-viewPostsGroupedByBlock dProfile showContext blockTimes replies showAddressId publishedPosts =
+viewPostsGroupedByBlock : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> PublishedPostsDict -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
+viewPostsGroupedByBlock dProfile showContext blockTimes replies publishedPosts postUX =
     Element.column
         [ Element.width Element.fill
         , Element.spacing 20
@@ -863,12 +872,12 @@ viewPostsGroupedByBlock dProfile showContext blockTimes replies showAddressId pu
         (publishedPosts
             |> Dict.toList
             |> List.reverse
-            |> List.map (viewBlocknumAndPosts dProfile showContext blockTimes replies showAddressId)
+            |> List.map (viewBlocknumAndPosts dProfile showContext blockTimes replies postUX)
         )
 
 
-viewBlocknumAndPosts : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe PhaceIconId -> ( Int, List Post.Published ) -> Element Msg
-viewBlocknumAndPosts dProfile showContext blockTimes replies showAddressId ( blocknum, publishedPosts ) =
+viewBlocknumAndPosts : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe ( PostUXId, PostUX.Model ) -> ( Int, List Post.Published ) -> Element Msg
+viewBlocknumAndPosts dProfile showContext blockTimes replies postUX ( blocknum, publishedPosts ) =
     Element.column
         [ Element.width Element.fill
         , Element.spacing 10
@@ -905,12 +914,12 @@ viewBlocknumAndPosts dProfile showContext blockTimes replies showAddressId ( blo
                 |> Maybe.withDefault "[fetching block timestamp]"
                 |> Element.text
             ]
-        , viewPosts dProfile showContext replies showAddressId publishedPosts
+        , viewPosts dProfile showContext replies publishedPosts postUX
         ]
 
 
-viewPosts : DisplayProfile -> Bool -> List Reply -> Maybe PhaceIconId -> List Post.Published -> Element Msg
-viewPosts dProfile showContext replies showAddressId publishedPosts =
+viewPosts : DisplayProfile -> Bool -> List Reply -> List Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
+viewPosts dProfile showContext replies publishedPosts postUX =
     Element.column
         [ Element.paddingXY 20 0
         , Element.spacing 20
@@ -919,255 +928,40 @@ viewPosts dProfile showContext replies showAddressId publishedPosts =
     <|
         List.map
             (\publishedPost ->
-                viewEntirePost
-                    dProfile
-                    showContext
-                    (case showAddressId of
-                        Just (PhaceForPublishedPost postId) ->
-                            publishedPost.id == postId
-
-                        _ ->
-                            False
-                    )
-                    (Just
-                        (replies
+                let
+                    talliedReplies =
+                        replies
                             |> List.Extra.count
                                 (.to >> (==) publishedPost.id)
-                        )
-                    )
-                    (PhaceForPublishedPost publishedPost.id)
-                    (Post.PublishedPost publishedPost)
+                in
+                Element.column
+                    [ Element.width Element.fill
+                    , Element.alignTop
+                    ]
+                    [ Element.map
+                        (PostUXMsg <| PublishedPost publishedPost.id)
+                      <|
+                        PostUX.view
+                            dProfile
+                            showContext
+                            (Post.PublishedPost publishedPost)
+                            (case postUX of
+                                Just ( PublishedPost id, postUXModel ) ->
+                                    if publishedPost.id == id then
+                                        Just postUXModel
+
+                                    else
+                                        Nothing
+
+                                _ ->
+                                    Nothing
+                            )
+                    , viewNumRepliesIfNonzero
+                        publishedPost.id
+                        talliedReplies
+                    ]
             )
             publishedPosts
-
-
-viewEntirePost : DisplayProfile -> Bool -> Bool -> Maybe Int -> PhaceIconId -> Post -> Element Msg
-viewEntirePost dProfile showContext showAddress maybeNumReplies phaceIconId post =
-    let
-        postCore =
-            Post.getCore post
-
-        maybePostId =
-            case post of
-                Post.PublishedPost publishedPost ->
-                    Just publishedPost.id
-
-                _ ->
-                    Nothing
-    in
-    Element.row
-        [ Element.width Element.fill
-        , Element.spacing 20
-        ]
-        [ case dProfile of
-            Desktop ->
-                Element.el
-                    [ Element.alignTop
-                    , Element.height <| Element.px 100
-                    ]
-                <|
-                    Element.map MsgUp <|
-                        phaceElement
-                            True
-                            phaceIconId
-                            postCore.author
-                            showAddress
-
-            Mobile ->
-                Element.none
-        , Element.column
-            [ Element.width Element.fill
-            , Element.alignTop
-            , Element.clipX
-            ]
-            [ Element.row
-                [ Element.width Element.fill ]
-                [ viewDaiBurned post
-                , Maybe.map viewPostLinks maybePostId
-                    |> Maybe.withDefault Element.none
-                ]
-            , viewMainPostBlock dProfile showContext phaceIconId maybePostId showAddress post
-            , case ( maybePostId, maybeNumReplies ) of
-                ( Nothing, _ ) ->
-                    Element.none
-
-                ( _, Nothing ) ->
-                    Element.none
-
-                ( Just postId, Just numReplies ) ->
-                    viewNumRepliesIfNonzero
-                        postId
-                        numReplies
-            ]
-        ]
-
-
-viewDaiBurned : Post -> Element Msg
-viewDaiBurned post =
-    Element.el
-        [ Element.alignBottom
-        , Element.Font.size 22
-        , Element.paddingXY 10 5
-        , Element.Background.color defaultTheme.daiBurnedBackground
-        , Element.Border.roundEach
-            { bottomLeft = 0
-            , bottomRight = 0
-            , topLeft = 5
-            , topRight = 5
-            }
-        , Element.alignLeft
-        ]
-    <|
-        Element.row
-            [ Element.spacing 3
-            , EH.withTitle (burnSummaryString post)
-            ]
-            [ daiSymbol defaultTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
-            , Element.text <| (Post.totalBurned post |> TokenValue.toConciseString)
-            ]
-
-
-burnSummaryString : Post -> String
-burnSummaryString post =
-    let
-        authorBurned =
-            Post.getCore post |> .authorBurn
-
-        totalBurned =
-            Post.totalBurned post
-
-        crowdBurned =
-            TokenValue.sub
-                totalBurned
-                authorBurned
-    in
-    "Author burned $"
-        ++ (authorBurned |> TokenValue.toConciseString)
-        ++ (if TokenValue.isZero crowdBurned then
-                ""
-
-            else
-                ", Crowd burned $" ++ (crowdBurned |> TokenValue.toConciseString)
-           )
-
-
-viewPostLinks : Post.Id -> Element Msg
-viewPostLinks postId =
-    let
-        route =
-            Routing.ViewContext <|
-                Post.ForPost postId
-    in
-    Element.row
-        [ Element.alignBottom
-        , Element.paddingXY 10 5
-        , Element.Font.size 20
-        , Element.Background.color defaultTheme.postBodyBackground
-        , Element.Border.roundEach
-            { bottomLeft = 0
-            , bottomRight = 0
-            , topLeft = 5
-            , topRight = 5
-            }
-        , Element.alignRight
-        , Element.spacing 20
-        ]
-        [ Element.el
-            [ Element.Font.color defaultTheme.linkTextColor
-            , Element.pointer
-            , Element.Font.bold
-            , Element.Events.onClick <|
-                MsgUp <|
-                    GotoRoute <|
-                        route
-            ]
-            (Element.text (shortenedHash postId.messageHash))
-        , Element.newTabLink
-            [ Element.Font.color defaultTheme.linkTextColor
-            , Element.Font.size 16
-            ]
-            { url =
-                Routing.routeToFullDotEthUrlString <|
-                    Routing.ViewContext <|
-                        Post.ForPost postId
-            , label = Element.text "(.eth permalink)"
-            }
-        ]
-
-
-viewMainPostBlock : DisplayProfile -> Bool -> PhaceIconId -> Maybe Post.Id -> Bool -> Post -> Element Msg
-viewMainPostBlock dProfile showContext phaceIconId maybePostId showAddress post =
-    let
-        postCore =
-            Post.getCore post
-    in
-    Element.column
-        [ Element.width Element.fill
-        , Element.scrollbarX
-        , Element.clipY
-        , Element.padding 20
-        , Element.spacing 20
-        , Element.Background.color (Element.rgb 0.8 0.8 1)
-        , Element.Border.roundEach
-            { topLeft = 0
-            , topRight = 0
-            , bottomRight = 10
-            , bottomLeft = 10
-            }
-        , Element.alignTop
-        ]
-        [ Element.row
-            [ Element.width Element.fill
-            , Element.spacing 10
-            ]
-            [ case dProfile of
-                Desktop ->
-                    Element.none
-
-                Mobile ->
-                    Element.map MsgUp <|
-                        phaceElement
-                            False
-                            phaceIconId
-                            postCore.author
-                            showAddress
-            , Element.map MsgUp <| viewMetadata showContext postCore.metadata
-            ]
-        , mapNever postCore.renderedPost
-        , Maybe.map messageActions maybePostId
-            |> Maybe.withDefault Element.none
-        ]
-
-
-messageActions : Post.Id -> Element Msg
-messageActions postId =
-    Element.row
-        [ Element.alignRight ]
-        [ replyButton postId ]
-
-
-replyButton : Post.Id -> Element Msg
-replyButton postId =
-    Element.el
-        [ Element.padding 7
-        , Element.pointer
-        , Element.Border.rounded 4
-        , Element.Background.color <| Element.rgba 1 1 1 0.3
-        , Element.Border.shadow
-            { offset = ( 0, 0 )
-            , size = 0
-            , blur = 5
-            , color = Element.rgba 0 0 0 0.1
-            }
-        , Element.Events.onClick <| MsgUp <| StartInlineCompose <| Post.ForPost postId
-        , Element.width <| Element.px 30
-        ]
-    <|
-        Element.image
-            [ Element.width Element.fill ]
-            { src = "img/reply-arrow.svg"
-            , description = "reply"
-            }
 
 
 viewNumRepliesIfNonzero : Post.Id -> Int -> Element Msg
@@ -1181,7 +975,7 @@ viewNumRepliesIfNonzero postId numReplies =
             , Element.pointer
             , Element.Events.onClick <|
                 MsgUp <|
-                    GotoRoute <|
+                    Common.Msg.GotoRoute <|
                         Routing.ViewContext <|
                             Post.ForPost postId
             , Element.Font.italic

@@ -138,13 +138,13 @@ viewInput dProfile input =
     EH.scrollbarYEl [] <|
         Element.Input.multiline
             ([ Element.width Element.fill
-            , Element.height Element.fill
-            , Element.padding (10 |> changeForMobile 5 dProfile)
-            , Element.Background.color <| Element.rgba 1 1 1 0.5
-            
-            ] ++ (responsiveVal dProfile
-                []
-                [Element.Font.size 18])
+             , Element.height Element.fill
+             , Element.padding (10 |> changeForMobile 5 dProfile)
+             , Element.Background.color <| Element.rgba 1 1 1 0.5
+             ]
+                ++ responsiveVal dProfile
+                    []
+                    [ Element.Font.size 18 ]
             )
             { onChange = MessageInputChanged
             , text = input
@@ -167,25 +167,31 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedMessage context =
             , Element.Border.rounded 10
             , Element.spacing 15
             ]
-            [ Element.map MsgUp <|
-                Element.row
-                    [ Element.spacing 10
-                    , Element.width Element.fill
-                    ]
-                    [ case maybeShowPhaceInfo of
-                        Just ( fromAddress, showAddress ) ->
-                            phaceElement True PhaceForPreview fromAddress showAddress
+            [ Element.row
+                [ Element.spacing 10
+                , Element.width Element.fill
+                ]
+                [ case maybeShowPhaceInfo of
+                    Just ( fromAddress, showAddress ) ->
+                        phaceElement
+                            True
+                            fromAddress
+                            showAddress
+                            (MsgUp <| ShowOrHideAddress PhaceForPreview)
+                            (MsgUp NoOp)
 
-                        Nothing ->
-                            Element.none
-                    , Element.el [ Element.alignLeft ] <| viewContext context
-                    ]
+                    Nothing ->
+                        Element.none
+                , Element.el [ Element.alignLeft ] <|
+                    Element.map MsgUp <|
+                        viewContext context
+                ]
             , case renderedMessage of
                 Nothing ->
                     appStatusMessage defaultTheme.appStatusTextColor "[Preview Box]"
 
                 Just rendered ->
-                    mapNever rendered
+                    Element.map never rendered
             ]
 
 
@@ -279,7 +285,13 @@ actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model =
                         ]
                         [ case dProfile of
                             Desktop ->
-                                Element.map MsgUp <| phaceElement True UserPhace userInfo.address showAddress
+                                Element.map MsgUp <|
+                                    phaceElement
+                                        True
+                                        userInfo.address
+                                        showAddress
+                                        (Common.Msg.ShowOrHideAddress UserPhace)
+                                        NoOp
 
                             Mobile ->
                                 goBackButton dProfile
@@ -520,8 +532,8 @@ goButtonAndMaybeError dProfile userInfo model =
                                             else
                                                 model.renderedPreview
                                     in
-                                    case (validateResults.message, maybeUpToDateRender) of
-                                        (Just message, Just rendered) ->
+                                    case ( validateResults.message, maybeUpToDateRender ) of
+                                        ( Just message, Just rendered ) ->
                                             ( maybeGoButton dProfile <|
                                                 Just <|
                                                     Post.Draft
@@ -595,8 +607,3 @@ goBackButton dProfile =
         (commonActionButtonStyles dProfile)
         [ "Edit" ]
         MobilePreviewToggle
-
-
-mapNever : Element Never -> Element Msg
-mapNever =
-    Element.map (always <| MsgUp NoOp)

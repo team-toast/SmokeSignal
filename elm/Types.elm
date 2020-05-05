@@ -1,5 +1,6 @@
 module Types exposing (..)
 
+import Array exposing (Array)
 import Browser
 import Browser.Navigation
 import Common.Msg exposing (..)
@@ -18,6 +19,7 @@ import Home.Types as Home
 import Http
 import List.Extra
 import Post exposing (Post)
+import PostUX.Types as PostUX
 import Routing exposing (Route)
 import Time
 import TokenValue exposing (TokenValue)
@@ -45,6 +47,7 @@ type alias Model =
     , txSentry : TxSentry Msg
     , eventSentry : EventSentry Msg
     , publishedPosts : PublishedPostsDict
+    , postUX : Maybe ( PostUXId, PostUX.Model )
     , replies : List Reply
     , mode : Mode
     , showHalfComposeUX : Bool
@@ -57,6 +60,11 @@ type alias Model =
     , draftModal : Maybe Post.Draft
     , demoPhaceSrc : String
     }
+
+
+type PostUXId
+    = PublishedPost Post.Id
+    | DraftPreview
 
 
 type Msg
@@ -82,6 +90,7 @@ type Msg
     | RestoreDraft Post.Draft
     | DismissNotice Int
     | ClickHappened
+    | PostUXMsg PostUXId PostUX.Msg
     | ComposeUXMsg ComposeUX.Msg
     | HomeMsg Home.Msg
     | AllowanceFetched Address (Result Http.Error TokenValue)

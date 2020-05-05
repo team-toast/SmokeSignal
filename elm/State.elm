@@ -1,5 +1,6 @@
 port module State exposing (init, subscriptions, update)
 
+import Array exposing (Array)
 import Browser
 import Browser.Events
 import Browser.Navigation
@@ -29,6 +30,7 @@ import List.Extra
 import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
 import Post exposing (Post)
+import PostUX.State as PostUX
 import Random
 import Routing exposing (Route)
 import Task
@@ -84,6 +86,7 @@ init flags url key =
     , txSentry = txSentry
     , eventSentry = eventSentry
     , publishedPosts = Dict.empty
+    , postUX = Nothing
     , replies = []
     , mode = BlankMode
     , showHalfComposeUX = False
@@ -425,6 +428,35 @@ update msg prevModel =
               }
             , Cmd.none
             )
+
+        PostUXMsg postUXId postUXMsg ->
+            let
+                postUXModelBeforeMsg =
+                    case prevModel.postUX of
+                        Just ( prevPostUXId, prevPostUXModel ) ->
+                            if prevPostUXId == postUXId then
+                                prevPostUXModel
+
+                            else
+                                PostUX.init
+
+                        Nothing ->
+                            PostUX.init
+
+                updateResult =
+                    postUXModelBeforeMsg
+                        |> PostUX.update postUXMsg
+            in
+            ( { prevModel
+                | postUX =
+                    Just <|
+                        ( postUXId
+                        , updateResult.newModel
+                        )
+              }
+            , Cmd.map (PostUXMsg postUXId) updateResult.cmd
+            )
+                |> withMsgUps updateResult.msgUps
 
         ComposeUXMsg composeUXMsg ->
             let

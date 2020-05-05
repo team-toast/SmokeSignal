@@ -330,9 +330,10 @@ homeWalletUX dProfile walletUXPhaceInfo =
                 <|
                     phaceElement
                         True
-                        MorphingPhace
                         (Eth.Utils.unsafeToAddress demoAddress)
                         False
+                        (ShowOrHideAddress MorphingPhace)
+                        NoOp
 
             UserPhaceInfo ( accountInfo, showAddress ) ->
                 Element.el
@@ -344,9 +345,10 @@ homeWalletUX dProfile walletUXPhaceInfo =
                 <|
                     phaceElement
                         True
-                        UserPhace
                         accountInfo.address
                         showAddress
+                        (ShowOrHideAddress UserPhace)
+                        NoOp
 
 
 topicsBlock : EH.DisplayProfile -> Model -> PublishedPostsDict -> Element Msg

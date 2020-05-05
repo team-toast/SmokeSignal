@@ -43,8 +43,8 @@ web3ConnectButton dProfile attrs =
         ConnectToWeb3
 
 
-phaceElement : Bool -> PhaceIconId -> Address -> Bool -> Element MsgUp
-phaceElement addressHangToRight phaceId fromAddress showAddress =
+phaceElement : Bool -> Address -> Bool -> msg -> msg -> Element msg
+phaceElement addressHangToRight fromAddress showAddress onClick noOpMsg =
     let
         addressOutputEl () =
             -- delay processing because addressToChecksumString is expensive!
@@ -60,7 +60,7 @@ phaceElement addressHangToRight phaceId fromAddress showAddress =
                 , EH.moveToFront
                 , Element.Border.width 2
                 , Element.Border.color EH.black
-                , EH.onClickNoPropagation NoOp
+                , EH.onClickNoPropagation noOpMsg
                 ]
                 (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
     in
@@ -78,7 +78,7 @@ phaceElement addressHangToRight phaceId fromAddress showAddress =
             [ Element.Border.rounded 10
             , Element.clip
             , Element.pointer
-            , EH.onClickNoPropagation (ShowOrHideAddress phaceId)
+            , EH.onClickNoPropagation onClick
             , Element.Border.width 2
             , Element.Border.color EH.black
             ]
@@ -99,51 +99,51 @@ loadingElement attrs maybeString =
         (Element.text <| Maybe.withDefault "loading..." maybeString)
 
 
-walletUX : EH.DisplayProfile -> Bool -> WalletUXPhaceInfo -> Element MsgUp
-walletUX dProfile addressHangToRight walletUXPhaceInfo =
-    case walletUXPhaceInfo of
-        DemoPhaceInfo demoAddress ->
-            Element.column
-                [ Element.spacing 5 ]
-                [ Element.el
-                    [ Element.inFront <|
-                        Element.el
-                            [ Element.width Element.fill
-                            , Element.height Element.fill
-                            , Element.Background.color <| Element.rgba 0 0 0 0.4
-                            , Element.Border.rounded 10
-                            , Element.pointer
-                            , Element.Events.onClick <|
-                                ConnectToWeb3
-                            ]
-                        <|
-                            Element.el
-                                [ Element.alignBottom
-                                , Element.width Element.fill
-                                , Element.Background.color <| Element.rgba 0 0 0 0.4
-                                , Element.Font.color EH.white
-                                , Element.Font.bold
-                                , Element.Font.size 14
-                                ]
-                            <|
-                                Element.text "Connect Wallet"
-                    ]
-                  <|
-                    phaceElement
-                        addressHangToRight
-                        MorphingPhace
-                        (Eth.Utils.unsafeToAddress demoAddress)
-                        False
-                ]
+-- walletUX : EH.DisplayProfile -> Bool -> WalletUXPhaceInfo -> Element MsgUp
+-- walletUX dProfile addressHangToRight walletUXPhaceInfo =
+--     case walletUXPhaceInfo of
+--         DemoPhaceInfo demoAddress ->
+--             Element.column
+--                 [ Element.spacing 5 ]
+--                 [ Element.el
+--                     [ Element.inFront <|
+--                         Element.el
+--                             [ Element.width Element.fill
+--                             , Element.height Element.fill
+--                             , Element.Background.color <| Element.rgba 0 0 0 0.4
+--                             , Element.Border.rounded 10
+--                             , Element.pointer
+--                             , Element.Events.onClick <|
+--                                 ConnectToWeb3
+--                             ]
+--                         <|
+--                             Element.el
+--                                 [ Element.alignBottom
+--                                 , Element.width Element.fill
+--                                 , Element.Background.color <| Element.rgba 0 0 0 0.4
+--                                 , Element.Font.color EH.white
+--                                 , Element.Font.bold
+--                                 , Element.Font.size 14
+--                                 ]
+--                             <|
+--                                 Element.text "Connect Wallet"
+--                     ]
+--                   <|
+--                     phaceElement
+--                         addressHangToRight
+--                         MorphingPhace
+--                         (Eth.Utils.unsafeToAddress demoAddress)
+--                         False
+--                 ]
 
-        -- Element.el commonAttributes <|
-        UserPhaceInfo ( accountInfo, showAddress ) ->
-            Element.el [] <|
-                phaceElement
-                    addressHangToRight
-                    UserPhace
-                    accountInfo.address
-                    showAddress
+--         -- Element.el commonAttributes <|
+--         UserPhaceInfo ( accountInfo, showAddress ) ->
+--             Element.el [] <|
+--                 phaceElement
+--                     addressHangToRight
+--                     UserPhace
+--                     accountInfo.address
+--                     showAddress
 
 
 emphasizedText : String -> Element msg
