@@ -82,6 +82,8 @@ modals model =
                         (Element.map ComposeUXMsg <|
                             ComposeUX.view
                                 model.dProfile
+                                model.donateChecked
+                                model.wallet
                                 (makeWalletUXPhaceInfo
                                     (Wallet.userInfo model.wallet)
                                     model.showAddressId
@@ -202,6 +204,7 @@ modals model =
                               <|
                                 PostUX.view
                                     model.dProfile
+                                    model.donateChecked
                                     True
                                     (Post.PostDraft draft)
                                     model.wallet
@@ -261,6 +264,8 @@ body model =
                 Element.map ComposeUXMsg <|
                     ComposeUX.viewFull
                         model.dProfile
+                        model.donateChecked
+                        model.wallet
                         walletUXPhaceInfo
                         model.showAddressId
                         model.composeUXModel
@@ -283,7 +288,7 @@ body model =
                                     ]
                                     [ viewPostHeader model.dProfile post
                                     , Element.Lazy.lazy5
-                                        (viewPostAndReplies model.dProfile model.wallet)
+                                        (viewPostAndReplies model.dProfile model.donateChecked model.wallet)
                                         model.publishedPosts
                                         model.blockTimes
                                         model.replies
@@ -310,7 +315,7 @@ body model =
                             ]
                             [ viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
                             , Element.Lazy.lazy5
-                                (viewPostsForTopic model.dProfile model.wallet)
+                                (viewPostsForTopic model.dProfile model.donateChecked model.wallet)
                                 model.publishedPosts
                                 model.blockTimes
                                 model.replies
@@ -727,8 +732,8 @@ userNotice dProfile ( id, notice ) =
         )
 
 
-viewPostAndReplies : DisplayProfile -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
-viewPostAndReplies dProfile wallet allPosts blockTimes replies publishedPost postUX =
+viewPostAndReplies : DisplayProfile -> Bool -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
+viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies publishedPost postUX =
     let
         replyingPosts =
             let
@@ -760,6 +765,7 @@ viewPostAndReplies dProfile wallet allPosts blockTimes replies publishedPost pos
           <|
             PostUX.view
                 dProfile
+                donateChecked
                 True
                 (Post.PublishedPost publishedPost)
                 wallet
@@ -791,6 +797,7 @@ viewPostAndReplies dProfile wallet allPosts blockTimes replies publishedPost pos
                     Element.text "Replies"
                 , viewPostsGroupedByBlock
                     dProfile
+                    donateChecked
                     wallet
                     False
                     blockTimes
@@ -830,8 +837,8 @@ viewPostHeader dProfile publishedPost =
         ]
 
 
-viewPostsForTopic : DisplayProfile -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe ( PostUXId, PostUX.Model ) -> String -> Element Msg
-viewPostsForTopic dProfile wallet allPosts blockTimes replies uxModel topic =
+viewPostsForTopic : DisplayProfile -> Bool -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe ( PostUXId, PostUX.Model ) -> String -> Element Msg
+viewPostsForTopic dProfile donateChecked wallet allPosts blockTimes replies uxModel topic =
     let
         filteredPosts =
             allPosts
@@ -852,7 +859,7 @@ viewPostsForTopic dProfile wallet allPosts blockTimes replies uxModel topic =
 
           else
             Element.Lazy.lazy5
-                (viewPostsGroupedByBlock dProfile wallet)
+                (viewPostsGroupedByBlock dProfile donateChecked wallet)
                 False
                 blockTimes
                 replies
@@ -898,8 +905,8 @@ viewTopicHeader dProfile maybeUserInfo topic =
         ]
 
 
-viewPostsGroupedByBlock : DisplayProfile -> Wallet -> Bool -> Dict Int Time.Posix -> List Reply -> PublishedPostsDict -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
-viewPostsGroupedByBlock dProfile wallet showContext blockTimes replies publishedPosts postUX =
+viewPostsGroupedByBlock : DisplayProfile -> Bool -> Wallet -> Bool -> Dict Int Time.Posix -> List Reply -> PublishedPostsDict -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
+viewPostsGroupedByBlock dProfile donateChecked wallet showContext blockTimes replies publishedPosts postUX =
     Element.column
         [ Element.width Element.fill
         , Element.spacing 20
@@ -907,12 +914,12 @@ viewPostsGroupedByBlock dProfile wallet showContext blockTimes replies published
         (publishedPosts
             |> Dict.toList
             |> List.reverse
-            |> List.map (viewBlocknumAndPosts dProfile wallet showContext blockTimes replies postUX)
+            |> List.map (viewBlocknumAndPosts dProfile donateChecked wallet showContext blockTimes replies postUX)
         )
 
 
-viewBlocknumAndPosts : DisplayProfile -> Wallet -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe ( PostUXId, PostUX.Model ) -> ( Int, List Post.Published ) -> Element Msg
-viewBlocknumAndPosts dProfile wallet showContext blockTimes replies postUX ( blocknum, publishedPosts ) =
+viewBlocknumAndPosts : DisplayProfile -> Bool -> Wallet -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe ( PostUXId, PostUX.Model ) -> ( Int, List Post.Published ) -> Element Msg
+viewBlocknumAndPosts dProfile donateChecked wallet showContext blockTimes replies postUX ( blocknum, publishedPosts ) =
     Element.column
         [ Element.width Element.fill
         , Element.spacing 10
@@ -949,12 +956,12 @@ viewBlocknumAndPosts dProfile wallet showContext blockTimes replies postUX ( blo
                 |> Maybe.withDefault "[fetching block timestamp]"
                 |> Element.text
             ]
-        , viewPosts dProfile wallet showContext replies publishedPosts postUX
+        , viewPosts dProfile donateChecked wallet showContext replies publishedPosts postUX
         ]
 
 
-viewPosts : DisplayProfile -> Wallet -> Bool -> List Reply -> List Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
-viewPosts dProfile wallet showContext replies publishedPosts postUX =
+viewPosts : DisplayProfile -> Bool -> Wallet -> Bool -> List Reply -> List Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
+viewPosts dProfile donateChecked wallet showContext replies publishedPosts postUX =
     Element.column
         [ Element.paddingXY 20 0
         , Element.spacing 20
@@ -978,6 +985,7 @@ viewPosts dProfile wallet showContext replies publishedPosts postUX =
                       <|
                         PostUX.view
                             dProfile
+                            donateChecked
                             showContext
                             (Post.PublishedPost publishedPost)
                             wallet

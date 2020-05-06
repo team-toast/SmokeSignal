@@ -276,8 +276,10 @@ composeActionBlock dProfile walletUXPhaceInfo =
                     [ Element.width Element.fill
                     , Element.spacing 10
                     ]
-                    [ Element.map MsgUp <|
-                        web3ConnectButton dProfile [ Element.width Element.fill ]
+                    [ web3ConnectButton
+                        dProfile
+                        [ Element.width Element.fill ]
+                        MsgUp
                     , moreInfoButton dProfile
                     ]
 

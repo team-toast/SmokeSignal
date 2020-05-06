@@ -59,6 +59,7 @@ type alias Model =
     , showExpandedTrackedTxs : Bool
     , draftModal : Maybe Post.Draft
     , demoPhaceSrc : String
+    , donateChecked : Bool
     }
 
 

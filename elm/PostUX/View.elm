@@ -10,6 +10,7 @@ import Element.Background
 import Element.Border
 import Element.Events
 import Element.Font
+import Element.Input
 import Element.Lazy
 import Eth.Types exposing (Address)
 import Eth.Utils
@@ -26,8 +27,8 @@ import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
 
-view : DisplayProfile -> Bool -> Post -> Wallet -> Maybe Model -> Element Msg
-view dProfile showContext post wallet maybeUXModel =
+view : DisplayProfile -> Bool -> Bool -> Post -> Wallet -> Maybe Model -> Element Msg
+view dProfile donateChecked showContext post wallet maybeUXModel =
     let
         postCore =
             Post.getCore post
@@ -70,6 +71,7 @@ view dProfile showContext post wallet maybeUXModel =
                 ]
             , viewMainPostBlock
                 dProfile
+                donateChecked
                 showContext
                 post
                 (Wallet.unlockStatus wallet)
@@ -184,8 +186,8 @@ viewPostLinks postId =
         ]
 
 
-viewMainPostBlock : DisplayProfile -> Bool -> Post -> UnlockStatus -> Maybe Model -> Element Msg
-viewMainPostBlock dProfile showContext post unlockStatus maybeUXModel =
+viewMainPostBlock : DisplayProfile -> Bool -> Bool -> Post -> UnlockStatus -> Maybe Model -> Element Msg
+viewMainPostBlock dProfile donateChecked showContext post unlockStatus maybeUXModel =
     let
         postCore =
             Post.getCore post
@@ -224,6 +226,7 @@ viewMainPostBlock dProfile showContext post unlockStatus maybeUXModel =
             Post.PublishedPost published ->
                 publishedPostActionForm
                     dProfile
+                    donateChecked
                     published
                     (maybeUXModel
                         |> Maybe.map .showInput
@@ -236,8 +239,8 @@ viewMainPostBlock dProfile showContext post unlockStatus maybeUXModel =
         ]
 
 
-publishedPostActionForm : DisplayProfile -> Post.Published -> ShowInputState -> UnlockStatus -> Element Msg
-publishedPostActionForm dProfile publishedPost showInput unlockStatus =
+publishedPostActionForm : DisplayProfile -> Bool -> Post.Published -> ShowInputState -> UnlockStatus -> Element Msg
+publishedPostActionForm dProfile donateChecked publishedPost showInput unlockStatus =
     Element.el
         [ Element.alignRight ]
     <|
@@ -254,6 +257,7 @@ publishedPostActionForm dProfile publishedPost showInput unlockStatus =
             Tip input ->
                 unlockOrInputForm
                     dProfile
+                    donateChecked
                     (Element.rgba 0 1 0 0.1)
                     input
                     "Tip"
@@ -263,6 +267,7 @@ publishedPostActionForm dProfile publishedPost showInput unlockStatus =
             Burn input ->
                 unlockOrInputForm
                     dProfile
+                    donateChecked
                     (Element.rgba 1 0 0 0.1)
                     input
                     "Burn"
@@ -335,8 +340,8 @@ publishedPostActionButton attributes onClick innerEl =
         innerEl
 
 
-unlockOrInputForm : DisplayProfile -> Element.Color -> String -> String -> (TokenValue -> Msg) -> UnlockStatus -> Element Msg
-unlockOrInputForm dProfile bgColor currentString buttonLabel onSubmit unlockStatus =
+unlockOrInputForm : DisplayProfile -> Bool -> Element.Color -> String -> String -> (TokenValue -> Msg) -> UnlockStatus -> Element Msg
+unlockOrInputForm dProfile donateChecked bgColor currentString buttonLabel onSubmit unlockStatus =
     Element.row
         [ Element.padding 10
         , Element.Border.rounded 6
@@ -348,9 +353,10 @@ unlockOrInputForm dProfile bgColor currentString buttonLabel onSubmit unlockStat
         ]
         [ unlockUXOr
             dProfile
+            []
             unlockStatus
             MsgUp
-            (inputForm dProfile currentString buttonLabel onSubmit)
+            (inputForm dProfile donateChecked currentString buttonLabel onSubmit)
         , EH.closeButton
             [ Element.alignTop
             , Element.moveUp 5
@@ -361,20 +367,51 @@ unlockOrInputForm dProfile bgColor currentString buttonLabel onSubmit unlockStat
         ]
 
 
-inputForm : DisplayProfile -> String -> String -> (TokenValue -> Msg) -> Element Msg
-inputForm dProfile currentString buttonLabel onSubmit =
-    Element.row
+inputForm : DisplayProfile -> Bool -> String -> String -> (TokenValue -> Msg) -> Element Msg
+inputForm dProfile donateChecked currentString buttonLabel onSubmit =
+    Element.column
         [ Element.spacing 10 ]
-        [ daiAmountInput
-            dProfile
-            []
-            currentString
-            AmountInputChanged
-        , maybeSubmitButton
-            dProfile
-            buttonLabel
-            (TokenValue.fromString currentString)
-            onSubmit
+        [ Element.row
+            [ Element.spacing 10
+            , Element.centerX
+            ]
+            [ daiSymbol False
+                [ Element.height <| Element.px 22 ]
+            , daiAmountInput
+                dProfile
+                []
+                currentString
+                AmountInputChanged
+            , maybeSubmitButton
+                dProfile
+                buttonLabel
+                (TokenValue.fromString currentString)
+                onSubmit
+            ]
+        , Element.row
+            [ Element.centerX
+            , Element.Font.size 12
+            ]
+            [ Element.Input.checkbox
+                []
+                { onChange = MsgUp << Common.Msg.DonationCheckboxSet
+                , icon = Element.Input.defaultCheckbox
+                , checked = donateChecked
+                , label =
+                    Element.Input.labelRight
+                        [ Element.centerY
+                        ]
+                    <|
+                        Element.text "Donate an extra 1% to "
+                }
+            , Element.newTabLink
+                [ Element.Font.color defaultTheme.linkTextColor
+                , Element.centerY
+                ]
+                { url = "https://foundrydao.com/"
+                , label = Element.text "Foundry"
+                }
+            ]
         ]
 
 
@@ -383,13 +420,13 @@ maybeSubmitButton dProfile label maybeAmount onSubmit =
     case maybeAmount of
         Just amount ->
             defaultTheme.emphasizedActionButton
-                dProfile
+                Mobile
                 []
                 [ label ]
                 (onSubmit amount)
 
         Nothing ->
             Theme.disabledButton
-                dProfile
+                Mobile
                 []
                 label

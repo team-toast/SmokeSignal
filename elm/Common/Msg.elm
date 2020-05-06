@@ -21,6 +21,7 @@ type MsgUp
     | SubmitPost Post.Draft
     | SubmitTip Post.Id TokenValue
     | SubmitBurn Post.Id TokenValue
+    | DonationCheckboxSet Bool
     | NoOp
 
 

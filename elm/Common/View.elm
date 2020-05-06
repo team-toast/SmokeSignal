@@ -35,13 +35,13 @@ shortenedHash hash =
             ++ String.right 4 hashStr
 
 
-web3ConnectButton : EH.DisplayProfile -> List (Attribute MsgUp) -> Element MsgUp
-web3ConnectButton dProfile attrs =
+web3ConnectButton : EH.DisplayProfile -> List (Attribute msg) -> (MsgUp -> msg) -> Element msg
+web3ConnectButton dProfile attrs msgMapper =
     defaultTheme.emphasizedActionButton
         dProfile
         attrs
         [ "Connect to Wallet" ]
-        ConnectToWeb3
+        (msgMapper ConnectToWeb3)
 
 
 phaceElement : Bool -> Address -> Bool -> msg -> msg -> Element msg
@@ -322,52 +322,44 @@ renderContentOrError content =
                         ++ errStr
 
 
-unlockUXOr : DisplayProfile -> UnlockStatus -> (MsgUp -> msg) -> Element msg -> Element msg
-unlockUXOr dProfile unlockStatus msgMapper el =
+unlockUXOr : DisplayProfile -> List (Attribute msg) -> UnlockStatus -> (MsgUp -> msg) -> Element msg -> Element msg
+unlockUXOr dProfile attributes unlockStatus msgMapper el =
     case unlockStatus of
         NotConnected ->
-            Element.map msgMapper <|
-                web3ConnectButton
-                    dProfile
-                    [ Element.centerX
-                    , Element.centerY
-                    ]
+            web3ConnectButton
+                dProfile
+                attributes
+                msgMapper
 
         Checking ->
             loadingElement
-                [ Element.centerX
-                , Element.centerY
-                ]
+                attributes
             <|
                 Just "Checking DAI lock..."
 
         Locked ->
-            Element.map msgMapper <|
-                unlockButton
-                    dProfile
-                    [ Element.centerX
-                    , Element.centerY
-                    ]
+            unlockButton
+                dProfile
+                attributes
+                msgMapper
 
         Unlocking ->
             loadingElement
-                [ Element.centerX
-                , Element.centerY
-                ]
+                attributes
             <|
-                Just "Checking DAI lock..."
+                Just "Unlocking DAI..."
 
         Unlocked ->
-            el
+            Element.el attributes el
 
 
-unlockButton : EH.DisplayProfile -> List (Attribute MsgUp) -> Element MsgUp
-unlockButton dProfile attrs =
+unlockButton : EH.DisplayProfile -> List (Attribute msg) -> (MsgUp -> msg) -> Element msg
+unlockButton dProfile attrs msgMapper =
     defaultTheme.emphasizedActionButton
         dProfile
         attrs
         [ "Unlock Dai" ]
-        UnlockDai
+        (msgMapper UnlockDai)
 
 
 daiAmountInput : DisplayProfile -> List (Attribute msg) -> String -> (String -> msg) -> Element msg

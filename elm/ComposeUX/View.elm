@@ -23,8 +23,8 @@ import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
 
-viewFull : DisplayProfile -> WalletUXPhaceInfo -> Maybe PhaceIconId -> Model -> Element Msg
-viewFull dProfile walletUXPhaceInfo showAddressId model =
+viewFull : DisplayProfile -> Bool -> Wallet -> WalletUXPhaceInfo -> Maybe PhaceIconId -> Model -> Element Msg
+viewFull dProfile donateChecked wallet walletUXPhaceInfo showAddressId model =
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
@@ -32,11 +32,11 @@ viewFull dProfile walletUXPhaceInfo showAddressId model =
         , Element.Background.color defaultTheme.appBackground
         ]
     <|
-        view dProfile walletUXPhaceInfo showAddressId model
+        view dProfile donateChecked wallet walletUXPhaceInfo showAddressId model
 
 
-view : EH.DisplayProfile -> WalletUXPhaceInfo -> Maybe PhaceIconId -> Model -> Element Msg
-view dProfile walletUXPhaceInfo showAddressId model =
+view : EH.DisplayProfile -> Bool -> Wallet -> WalletUXPhaceInfo -> Maybe PhaceIconId -> Model -> Element Msg
+view dProfile donateChecked wallet walletUXPhaceInfo showAddressId model =
     let
         commonAttributes =
             [ Element.width Element.fill
@@ -67,7 +67,7 @@ view dProfile walletUXPhaceInfo showAddressId model =
                     , Element.spacing 10
                     ]
                     [ viewInput dProfile model.message
-                    , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model
+                    , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile donateChecked walletUXPhaceInfo model
                     ]
                 , viewPreviewWithPostContext dProfile Nothing model.renderedPreview model.context
                 ]
@@ -83,7 +83,7 @@ view dProfile walletUXPhaceInfo showAddressId model =
                 (if model.showPreviewOnMobile then
                     [ viewPreviewWithPostContext
                         dProfile
-                        (case Wallet.userInfo model.wallet of
+                        (case Wallet.userInfo wallet of
                             Just userInfo ->
                                 Just <|
                                     ( userInfo.address
@@ -95,7 +95,7 @@ view dProfile walletUXPhaceInfo showAddressId model =
                         )
                         model.renderedPreview
                         model.context
-                    , actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model
+                    , actionFormAndMaybeErrorEl dProfile donateChecked walletUXPhaceInfo model
                     ]
 
                  else
@@ -268,13 +268,13 @@ viewTopic topic =
         ]
 
 
-actionFormAndMaybeErrorEl : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> Element Msg
-actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model =
+actionFormAndMaybeErrorEl : DisplayProfile -> Bool -> WalletUXPhaceInfo -> Model -> Element Msg
+actionFormAndMaybeErrorEl dProfile donateChecked walletUXPhaceInfo model =
     case walletUXPhaceInfo of
         UserPhaceInfo ( userInfo, showAddress ) ->
             let
                 ( goButtonEl, maybeErrorEls ) =
-                    goButtonAndMaybeError dProfile userInfo model
+                    goButtonAndMaybeError dProfile donateChecked userInfo model
 
                 actionRow =
                     Element.row
@@ -295,7 +295,7 @@ actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model =
 
                             Mobile ->
                                 goBackButton dProfile
-                        , inputsElement dProfile userInfo model
+                        , inputsElement dProfile donateChecked userInfo model
                         , goButtonEl
                         ]
             in
@@ -319,12 +319,14 @@ actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model =
                         ]
 
         _ ->
-            Element.map MsgUp <|
-                web3ConnectButton dProfile [ Element.centerX, Element.centerY ]
+            web3ConnectButton
+                dProfile
+                [ Element.centerX, Element.centerY ]
+                MsgUp
 
 
-inputsElement : EH.DisplayProfile -> UserInfo -> Model -> Element Msg
-inputsElement dProfile userInfo model =
+inputsElement : EH.DisplayProfile -> Bool -> UserInfo -> Model -> Element Msg
+inputsElement dProfile donateChecked userInfo model =
     Element.el
         ([ Element.centerY
          , Element.centerX
@@ -339,7 +341,14 @@ inputsElement dProfile userInfo model =
                )
         )
     <|
-        unlockUXOr dProfile userInfo.unlockStatus MsgUp <|
+        unlockUXOr
+            dProfile
+            [ Element.centerX
+            , Element.centerY
+            ]
+            userInfo.unlockStatus
+            MsgUp
+        <|
             Element.column
                 [ Element.spacing 10 ]
                 [ Element.row
@@ -359,9 +368,9 @@ inputsElement dProfile userInfo model =
                     , Element.spacing 5
                     ]
                     [ Element.Input.checkbox [ Element.alignTop ]
-                        { onChange = DonationCheckboxSet
+                        { onChange = MsgUp << Common.Msg.DonationCheckboxSet
                         , icon = Element.Input.defaultCheckbox
-                        , checked = model.donateChecked
+                        , checked = donateChecked
                         , label = Element.Input.labelHidden "Donate an extra 1% to Foundry"
                         }
                     , Element.column
@@ -409,8 +418,8 @@ inputErrorEl dProfile els =
                 (els |> Maybe.withDefault [ Element.text " " ])
 
 
-goButtonAndMaybeError : EH.DisplayProfile -> UserInfo -> Model -> ( Element Msg, Maybe (List (Element Msg)) )
-goButtonAndMaybeError dProfile userInfo model =
+goButtonAndMaybeError : EH.DisplayProfile -> Bool -> UserInfo -> Model -> ( Element Msg, Maybe (List (Element Msg)) )
+goButtonAndMaybeError dProfile donateChecked userInfo model =
     case userInfo.balance of
         Just balance ->
             if TokenValue.isZero balance then
@@ -433,7 +442,7 @@ goButtonAndMaybeError dProfile userInfo model =
                     Unlocked ->
                         let
                             validateResults =
-                                validateInputs model
+                                validateInputs donateChecked model
                         in
                         case validateResults.burnAndDonateAmount of
                             Just (Ok ( burnAmount, donateAmount )) ->

@@ -90,7 +90,7 @@ init flags url key =
     , replies = []
     , mode = BlankMode
     , showHalfComposeUX = False
-    , composeUXModel = ComposeUX.init now wallet (Post.ForTopic Post.defaultTopic)
+    , composeUXModel = ComposeUX.init now (Post.ForTopic Post.defaultTopic)
     , blockTimes = Dict.empty
     , showAddressId = Nothing
     , userNotices = walletNotices
@@ -98,6 +98,7 @@ init flags url key =
     , showExpandedTrackedTxs = False
     , draftModal = Nothing
     , demoPhaceSrc = initDemoPhaceSrc
+    , donateChecked = True
     }
         |> gotoRoute route
         |> Tuple.mapSecond
@@ -227,10 +228,11 @@ update msg prevModel =
                                     , Cmd.none
                                     )
                     in
-                    { prevModel
+                    ( { prevModel
                         | wallet = newWallet
-                    }
-                        |> sendMsgDown (UpdateWallet newWallet)
+                      }
+                    , Cmd.none
+                    )
 
                 Err errStr ->
                     ( prevModel |> addUserNotice (UN.walletError errStr)
@@ -345,10 +347,11 @@ update msg prevModel =
                             newWallet =
                                 prevModel.wallet |> Wallet.withFetchedBalance balance
                         in
-                        { prevModel
+                        ( { prevModel
                             | wallet = newWallet
-                        }
-                            |> sendMsgDown (UpdateWallet newWallet)
+                          }
+                        , Cmd.none
+                        )
 
                     Err httpErr ->
                         ( prevModel
@@ -369,21 +372,29 @@ update msg prevModel =
                 case fetchResult of
                     Ok allowance ->
                         let
-                            unlockStatus =
+                            isUnlocked =
                                 if TokenValue.isMaxTokenValue allowance then
-                                    Unlocked
+                                    True
 
                                 else
-                                    Locked
+                                    False
 
                             newWallet =
-                                prevModel.wallet |> Wallet.withUnlockStatus unlockStatus
+                                if isUnlocked then
+                                    prevModel.wallet |> Wallet.withUnlockStatus Unlocked
+
+                                else if Wallet.unlockStatus prevModel.wallet /= Unlocking then
+                                    prevModel.wallet |> Wallet.withUnlockStatus Locked
+
+                                else
+                                    prevModel.wallet
                         in
-                        { prevModel
+                        ( { prevModel
                             | wallet =
                                 newWallet
-                        }
-                            |> sendMsgDown (UpdateWallet newWallet)
+                          }
+                        , Cmd.none
+                        )
 
                     Err httpErr ->
                         ( prevModel
@@ -419,7 +430,6 @@ update msg prevModel =
                                     , daiInput =
                                         draft.core.authorBurn
                                             |> TokenValue.toFloatString Nothing
-                                    , donateChecked = not <| TokenValue.isZero draft.donateAmount
                                 }
                            )
             }
@@ -714,7 +724,7 @@ handleMsgUp msgUp prevModel =
         SubmitBurn postId amount ->
             let
                 txParams =
-                    SSContract.burnForPost postId.messageHash amount False
+                    SSContract.burnForPost postId.messageHash amount prevModel.donateChecked
                         |> Eth.toSend
 
                 listeners =
@@ -735,7 +745,7 @@ handleMsgUp msgUp prevModel =
         SubmitTip postId amount ->
             let
                 txParams =
-                    SSContract.tipForPost postId.messageHash amount False
+                    SSContract.tipForPost postId.messageHash amount prevModel.donateChecked
                         |> Eth.toSend
 
                 listeners =
@@ -751,6 +761,13 @@ handleMsgUp msgUp prevModel =
                 | txSentry = txSentry
               }
             , cmd
+            )
+
+        DonationCheckboxSet flag ->
+            ( { prevModel
+                | donateChecked = flag
+              }
+            , Cmd.none
             )
 
         NoOp ->
@@ -853,37 +870,6 @@ withMsgUps msgUps ( prevModel, prevCmd ) =
         |> Tuple.mapSecond
             (\newCmd ->
                 Cmd.batch [ prevCmd, newCmd ]
-            )
-
-
-sendMsgDown : MsgDown -> Model -> ( Model, Cmd Msg )
-sendMsgDown msgDown prevModel =
-    let
-        updateResult =
-            prevModel.composeUXModel
-                |> ComposeUX.handleMsgDown msgDown
-
-        ( newMainModel, cmd1 ) =
-            { prevModel
-                | composeUXModel = updateResult.newModel
-            }
-                |> handleMsgUps updateResult.msgUps
-    in
-    ( newMainModel
-    , Cmd.batch
-        [ cmd1
-        , Cmd.map ComposeUXMsg updateResult.cmd
-        ]
-    )
-
-
-withMsgDown : MsgDown -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-withMsgDown msgDown ( prevModel, prevCmd ) =
-    prevModel
-        |> sendMsgDown msgDown
-        |> Tuple.mapSecond
-            (\newCmd ->
-                Cmd.batch [ newCmd, prevCmd ]
             )
 
 
