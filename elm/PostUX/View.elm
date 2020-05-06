@@ -64,8 +64,15 @@ view dProfile donateChecked showContext post wallet maybeUXModel =
             , Element.clipX
             ]
             [ Element.row
-                [ Element.width Element.fill ]
+                [ Element.width Element.fill 
+                , Element.spacing 5
+                ]
                 [ viewDaiBurned post
+                , if Post.totalTipped post |> TokenValue.isZero then
+                    Element.none
+
+                  else
+                    viewDaiTipped post
                 , Maybe.map viewPostLinks maybePostId
                     |> Maybe.withDefault Element.none
                 ]
@@ -95,11 +102,29 @@ makePhaceElement author maybeUXModel =
 
 viewDaiBurned : Post -> Element Msg
 viewDaiBurned post =
+    viewDaiStatTab
+        defaultTheme.daiBurnedBackground
+        defaultTheme.daiBurnedTextIsWhite
+        (burnSummaryString post)
+        (Post.totalBurned post)
+
+
+viewDaiTipped : Post -> Element Msg
+viewDaiTipped post =
+    viewDaiStatTab
+        defaultTheme.daiTippedBackground
+        defaultTheme.daiTippedTextIsWhite
+        (tipSummaryString post)
+        (Post.totalTipped post)
+
+
+viewDaiStatTab : Element.Color -> Bool -> String -> TokenValue -> Element Msg
+viewDaiStatTab bgColor textIsWhite mouseoverTitle amount =
     Element.el
         [ Element.alignBottom
         , Element.Font.size 22
         , Element.paddingXY 10 5
-        , Element.Background.color defaultTheme.daiBurnedBackground
+        , Element.Background.color bgColor
         , Element.Border.roundEach
             { bottomLeft = 0
             , bottomRight = 0
@@ -107,14 +132,14 @@ viewDaiBurned post =
             , topRight = 5
             }
         , Element.alignLeft
+        , EH.withTitle mouseoverTitle
         ]
     <|
         Element.row
             [ Element.spacing 3
-            , EH.withTitle (burnSummaryString post)
             ]
-            [ daiSymbol defaultTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
-            , Element.text <| (Post.totalBurned post |> TokenValue.toConciseString)
+            [ daiSymbol textIsWhite [ Element.height <| Element.px 18 ]
+            , Element.text <| (amount |> TokenValue.toConciseString)
             ]
 
 
@@ -139,7 +164,15 @@ burnSummaryString post =
 
             else
                 ", Crowd burned $" ++ (crowdBurned |> TokenValue.toConciseString)
+                ++ " in support"
            )
+
+
+tipSummaryString : Post -> String
+tipSummaryString post =
+    "Author received $"
+        ++ (Post.totalTipped post |> TokenValue.toConciseString)
+        ++ " in tips"
 
 
 viewPostLinks : Post.Id -> Element Msg
