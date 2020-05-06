@@ -1,8 +1,8 @@
 module ComposeUX.Types exposing (..)
 
-import Element exposing (Element)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
+import Element exposing (Element)
 import Eth.Types exposing (Address, TxHash)
 import Http
 import Post
@@ -17,7 +17,6 @@ type alias Model =
     , message : String
     , daiInput : String
     , donateChecked : Bool
-    , miningUnlockTx : Maybe TxHash
     , wallet : Wallet
     , showPreviewOnMobile : Bool
     , lastInputChangedTime : Time.Posix
@@ -60,11 +59,6 @@ updateDaiInput input m =
 updateDonateChecked : Bool -> Model -> Model
 updateDonateChecked flag m =
     { m | donateChecked = flag }
-
-
-updateMiningUnlockTx : Maybe TxHash -> Model -> Model
-updateMiningUnlockTx maybeTxHash m =
-    { m | miningUnlockTx = maybeTxHash }
 
 
 type alias CheckedMaybeValidInputs =

@@ -21,13 +21,20 @@ import TokenValue exposing (TokenValue)
 
 type alias Model =
     { showAddress : Bool
+    , showInput : ShowInputState
     }
 
 
 type Msg
     = MsgUp MsgUp
     | NoOp
-    | ShowOrHideAuthorAddress
+    | PhaceIconClicked
+    | SupportBurnClicked
+    | SupportTipClicked
+    | AmountInputChanged String
+    | SupportTipSubmitClicked Post.Id TokenValue
+    | SupportBurnSubmitClicked Post.Id TokenValue
+    | ResetActionForm
 
 
 type alias UpdateResult =
@@ -36,6 +43,10 @@ type alias UpdateResult =
     , msgUps : List MsgUp
     }
 
+type ShowInputState
+    = None
+    | Burn String
+    | Tip String
 
 justModelUpdate : Model -> UpdateResult
 justModelUpdate model =

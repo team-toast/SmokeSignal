@@ -218,7 +218,7 @@ update msg prevModel =
                                                 walletSentry.networkId
                                                 newAddress
                                                 Nothing
-                                                Nothing
+                                                Checking
                                         , fetchDaiBalanceAndAllowanceCmd newAddress
                                         )
 
@@ -369,11 +369,15 @@ update msg prevModel =
                 case fetchResult of
                     Ok allowance ->
                         let
-                            isUnlocked =
-                                TokenValue.isMaxTokenValue allowance
+                            unlockStatus =
+                                if TokenValue.isMaxTokenValue allowance then
+                                    Unlocked
+
+                                else
+                                    Locked
 
                             newWallet =
-                                prevModel.wallet |> Wallet.withIsUnlocked isUnlocked
+                                prevModel.wallet |> Wallet.withUnlockStatus unlockStatus
                         in
                         { prevModel
                             | wallet =
@@ -506,9 +510,31 @@ update msg prevModel =
                                 _ ->
                                     Nothing
 
+                        newPostUX =
+                            case txInfo of
+                                TipTx _ _ ->
+                                    Nothing
+
+                                BurnTx _ _ ->
+                                    Nothing
+
+                                _ ->
+                                    prevModel.postUX
+
+                        newWallet =
+                            case txInfo of
+                                UnlockTx ->
+                                    prevModel.wallet
+                                        |> Wallet.withUnlockStatus Unlocking
+
+                                _ ->
+                                    prevModel.wallet
+
                         interimModel =
                             { prevModel
                                 | showExpandedTrackedTxs = True
+                                , postUX = newPostUX
+                                , wallet = newWallet
                             }
                                 |> addTrackedTx txHash txInfo
                     in
@@ -673,6 +699,48 @@ handleMsgUp msgUp prevModel =
                 listeners =
                     { onMined = Nothing
                     , onSign = Just <| TxSigned <| PostTx postDraft
+                    , onBroadcast = Nothing
+                    }
+
+                ( txSentry, cmd ) =
+                    TxSentry.customSend prevModel.txSentry listeners txParams
+            in
+            ( { prevModel
+                | txSentry = txSentry
+              }
+            , cmd
+            )
+
+        SubmitBurn postId amount ->
+            let
+                txParams =
+                    SSContract.burnForPost postId.messageHash amount False
+                        |> Eth.toSend
+
+                listeners =
+                    { onMined = Nothing
+                    , onSign = Just <| TxSigned <| BurnTx postId amount
+                    , onBroadcast = Nothing
+                    }
+
+                ( txSentry, cmd ) =
+                    TxSentry.customSend prevModel.txSentry listeners txParams
+            in
+            ( { prevModel
+                | txSentry = txSentry
+              }
+            , cmd
+            )
+
+        SubmitTip postId amount ->
+            let
+                txParams =
+                    SSContract.tipForPost postId.messageHash amount False
+                        |> Eth.toSend
+
+                listeners =
+                    { onMined = Nothing
+                    , onSign = Just <| TxSigned <| TipTx postId amount
                     , onBroadcast = Nothing
                     }
 

@@ -7,6 +7,7 @@ import Element.Background
 import Element.Border
 import Element.Events
 import Element.Font
+import Element.Input
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
@@ -97,53 +98,6 @@ loadingElement attrs maybeString =
             ++ attrs
         )
         (Element.text <| Maybe.withDefault "loading..." maybeString)
-
-
--- walletUX : EH.DisplayProfile -> Bool -> WalletUXPhaceInfo -> Element MsgUp
--- walletUX dProfile addressHangToRight walletUXPhaceInfo =
---     case walletUXPhaceInfo of
---         DemoPhaceInfo demoAddress ->
---             Element.column
---                 [ Element.spacing 5 ]
---                 [ Element.el
---                     [ Element.inFront <|
---                         Element.el
---                             [ Element.width Element.fill
---                             , Element.height Element.fill
---                             , Element.Background.color <| Element.rgba 0 0 0 0.4
---                             , Element.Border.rounded 10
---                             , Element.pointer
---                             , Element.Events.onClick <|
---                                 ConnectToWeb3
---                             ]
---                         <|
---                             Element.el
---                                 [ Element.alignBottom
---                                 , Element.width Element.fill
---                                 , Element.Background.color <| Element.rgba 0 0 0 0.4
---                                 , Element.Font.color EH.white
---                                 , Element.Font.bold
---                                 , Element.Font.size 14
---                                 ]
---                             <|
---                                 Element.text "Connect Wallet"
---                     ]
---                   <|
---                     phaceElement
---                         addressHangToRight
---                         MorphingPhace
---                         (Eth.Utils.unsafeToAddress demoAddress)
---                         False
---                 ]
-
---         -- Element.el commonAttributes <|
---         UserPhaceInfo ( accountInfo, showAddress ) ->
---             Element.el [] <|
---                 phaceElement
---                     addressHangToRight
---                     UserPhace
---                     accountInfo.address
---                     showAddress
 
 
 emphasizedText : String -> Element msg
@@ -366,3 +320,66 @@ renderContentOrError content =
                 Element.text <|
                     "Error parsing/rendering markdown: "
                         ++ errStr
+
+
+unlockUXOr : DisplayProfile -> List (Attribute msg) -> UnlockStatus -> (MsgUp -> msg) -> Element msg -> Element msg
+unlockUXOr dProfile attributes unlockStatus msgMapper el =
+    case unlockStatus of
+        NotConnected ->
+            Element.map msgMapper <|
+                web3ConnectButton
+                    dProfile
+                    [ Element.centerX
+                    , Element.centerY
+                    ]
+
+        Checking ->
+            loadingElement
+                [ Element.centerX
+                , Element.centerY
+                ]
+            <|
+                Just "Checking DAI lock..."
+
+        Locked ->
+            Element.map msgMapper <|
+                unlockButton
+                    dProfile
+                    [ Element.centerX
+                    , Element.centerY
+                    ]
+
+        Unlocking ->
+            loadingElement
+                [ Element.centerX
+                , Element.centerY
+                ]
+            <|
+                Just "Checking DAI lock..."
+
+        Unlocked ->
+            el
+
+
+unlockButton : EH.DisplayProfile -> List (Attribute MsgUp) -> Element MsgUp
+unlockButton dProfile attrs =
+    defaultTheme.emphasizedActionButton
+        dProfile
+        attrs
+        [ "Unlock Dai" ]
+        UnlockDai
+
+
+daiAmountInput : DisplayProfile -> List (Attribute msg) -> String -> (String -> msg) -> Element msg
+daiAmountInput dProfile attributes currentInput onChange =
+    Element.Input.text
+        [ Element.width <| Element.px (100 |> changeForMobile 60 dProfile)
+        , Element.height <| Element.px (40 |> changeForMobile 35 dProfile)
+        , Element.Font.size (20 |> changeForMobile 14 dProfile)
+        , Element.Background.color <| Element.rgba 1 1 1 0.4
+        ]
+        { onChange = onChange
+        , text = currentInput
+        , placeholder = Nothing
+        , label = Element.Input.labelHidden "dai amount"
+        }

@@ -48,12 +48,20 @@ withFetchedBalance balance wallet =
             wallet
 
 
-withIsUnlocked : Bool -> Wallet -> Wallet
-withIsUnlocked isUnlocked wallet =
+withUnlockStatus : UnlockStatus -> Wallet -> Wallet
+withUnlockStatus status wallet =
     case wallet of
         Active uInfo ->
             Active <|
-                (uInfo |> Common.Types.withIsUnlocked isUnlocked)
+                (uInfo |> Common.Types.withUnlockStatus status)
 
         _ ->
             wallet
+
+unlockStatus : Wallet -> UnlockStatus
+unlockStatus wallet =
+    case wallet of
+        Active uInfo ->
+            uInfo.unlockStatus
+        _ ->
+            NotConnected

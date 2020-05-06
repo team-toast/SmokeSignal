@@ -16,4 +16,3 @@ main =
         , onUrlRequest = LinkClicked
         , onUrlChange = UrlChanged
         }
-  

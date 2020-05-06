@@ -1,5 +1,6 @@
 module Common.Msg exposing (..)
 
+import TokenValue exposing (TokenValue)
 import Common.Types exposing (..)
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address, TxHash)
@@ -18,6 +19,8 @@ type MsgUp
     | AddUserNotice UN.UserNotice
     | UnlockDai
     | SubmitPost Post.Draft
+    | SubmitTip Post.Id TokenValue
+    | SubmitBurn Post.Id TokenValue
     | NoOp
 
 

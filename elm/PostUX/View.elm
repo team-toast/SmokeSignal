@@ -5,7 +5,7 @@ import Common.Types exposing (..)
 import Common.View exposing (..)
 import Dict exposing (Dict)
 import Dict.Extra
-import Element exposing (Element)
+import Element exposing (Attribute, Element)
 import Element.Background
 import Element.Border
 import Element.Events
@@ -23,10 +23,11 @@ import Routing exposing (Route)
 import Theme exposing (defaultTheme)
 import Time
 import TokenValue exposing (TokenValue)
+import Wallet exposing (Wallet)
 
 
-view : DisplayProfile -> Bool -> Post -> Maybe Model -> Element Msg
-view dProfile showContext post maybeUXModel =
+view : DisplayProfile -> Bool -> Post -> Wallet -> Maybe Model -> Element Msg
+view dProfile showContext post wallet maybeUXModel =
     let
         postCore =
             Post.getCore post
@@ -67,7 +68,12 @@ view dProfile showContext post maybeUXModel =
                 , Maybe.map viewPostLinks maybePostId
                     |> Maybe.withDefault Element.none
                 ]
-            , viewMainPostBlock dProfile showContext post maybeUXModel
+            , viewMainPostBlock
+                dProfile
+                showContext
+                post
+                (Wallet.unlockStatus wallet)
+                maybeUXModel
             ]
         ]
 
@@ -81,7 +87,7 @@ makePhaceElement author maybeUXModel =
             |> Maybe.map .showAddress
             |> Maybe.withDefault False
         )
-        ShowOrHideAuthorAddress
+        PhaceIconClicked
         NoOp
 
 
@@ -178,8 +184,8 @@ viewPostLinks postId =
         ]
 
 
-viewMainPostBlock : DisplayProfile -> Bool -> Post -> Maybe Model -> Element Msg
-viewMainPostBlock dProfile showContext post maybeUXModel =
+viewMainPostBlock : DisplayProfile -> Bool -> Post -> UnlockStatus -> Maybe Model -> Element Msg
+viewMainPostBlock dProfile showContext post unlockStatus maybeUXModel =
     let
         postCore =
             Post.getCore post
@@ -216,38 +222,89 @@ viewMainPostBlock dProfile showContext post maybeUXModel =
         , Element.map never postCore.renderedPost
         , case post of
             Post.PublishedPost published ->
-                publishedPostActions published
+                publishedPostActionForm
+                    dProfile
+                    published
+                    (maybeUXModel
+                        |> Maybe.map .showInput
+                        |> Maybe.withDefault None
+                    )
+                    unlockStatus
 
             _ ->
                 Element.none
         ]
 
 
-publishedPostActions : Post.Published -> Element Msg
-publishedPostActions publishedPost =
-    Element.row
+publishedPostActionForm : DisplayProfile -> Post.Published -> ShowInputState -> UnlockStatus -> Element Msg
+publishedPostActionForm dProfile publishedPost showInput unlockStatus =
+    Element.el
         [ Element.alignRight ]
-        [ Element.text "tip button here!"
-        , replyButton publishedPost.id
-        ]
+    <|
+        case showInput of
+            None ->
+                Element.row
+                    [ Element.spacing 5
+                    ]
+                    [ supportTipButton publishedPost.id
+                    , supportBurnButton publishedPost.id
+                    , replyButton publishedPost.id
+                    ]
+
+            Tip input ->
+                unlockOrInputForm
+                    dProfile
+                    (Element.rgba 0 1 0 0.1)
+                    input
+                    "Tip"
+                    (SupportTipSubmitClicked publishedPost.id)
+                    unlockStatus
+
+            Burn input ->
+                unlockOrInputForm
+                    dProfile
+                    (Element.rgba 1 0 0 0.1)
+                    input
+                    "Burn"
+                    (SupportBurnSubmitClicked publishedPost.id)
+                    unlockStatus
+
+
+supportTipButton : Post.Id -> Element Msg
+supportTipButton postId =
+    publishedPostActionButton
+        [ EH.withTitle "Tip DAI for this post, rewarding the author" ]
+        SupportTipClicked
+    <|
+        Element.image
+            [ Element.height <| Element.px 18
+            , Element.centerX
+            ]
+            { src = "img/dai-unit-char-green.svg"
+            , description = "support green"
+            }
+
+
+supportBurnButton : Post.Id -> Element Msg
+supportBurnButton postId =
+    publishedPostActionButton
+        [ EH.withTitle "Burn DAI to increase this post's visibility" ]
+        SupportBurnClicked
+    <|
+        Element.image
+            [ Element.height <| Element.px 18
+            , Element.centerX
+            ]
+            { src = "img/dai-unit-char-red.svg"
+            , description = "support burn"
+            }
 
 
 replyButton : Post.Id -> Element Msg
 replyButton postId =
-    Element.el
-        [ Element.padding 7
-        , Element.pointer
-        , Element.Border.rounded 4
-        , Element.Background.color <| Element.rgba 1 1 1 0.3
-        , Element.Border.shadow
-            { offset = ( 0, 0 )
-            , size = 0
-            , blur = 5
-            , color = Element.rgba 0 0 0 0.1
-            }
-        , Element.Events.onClick <| MsgUp <| Common.Msg.StartInlineCompose <| Post.ForPost postId
-        , Element.width <| Element.px 30
-        ]
+    publishedPostActionButton
+        [ EH.withTitle "Reply" ]
+        (MsgUp <| Common.Msg.StartInlineCompose <| Post.ForPost postId)
     <|
         Element.image
             [ Element.width Element.fill ]
@@ -256,4 +313,84 @@ replyButton postId =
             }
 
 
+publishedPostActionButton : List (Attribute Msg) -> Msg -> Element Msg -> Element Msg
+publishedPostActionButton attributes onClick innerEl =
+    Element.el
+        (attributes
+            ++ [ Element.padding 7
+               , Element.pointer
+               , Element.Border.rounded 4
+               , Element.Background.color <| Element.rgba 1 1 1 0.3
+               , Element.Border.shadow
+                    { offset = ( 0, 0 )
+                    , size = 0
+                    , blur = 5
+                    , color = Element.rgba 0 0 0 0.1
+                    }
+               , Element.Events.onClick onClick
+               , Element.width <| Element.px 30
+               , Element.height <| Element.px 30
+               ]
+        )
+        innerEl
 
+
+unlockOrInputForm : DisplayProfile -> Element.Color -> String -> String -> (TokenValue -> Msg) -> UnlockStatus -> Element Msg
+unlockOrInputForm dProfile bgColor currentString buttonLabel onSubmit unlockStatus =
+    Element.row
+        [ Element.padding 10
+        , Element.Border.rounded 6
+        , Element.Background.color bgColor
+        , Element.spacing 10
+        , Element.Border.glow
+            (Element.rgba 0 0 0 0.1)
+            5
+        ]
+        [ unlockUXOr
+            dProfile
+            []
+            unlockStatus
+            MsgUp
+            (inputForm dProfile currentString buttonLabel onSubmit)
+        , EH.closeButton
+            [ Element.alignTop
+            , Element.moveUp 5
+            , Element.moveRight 5
+            ]
+            EH.black
+            ResetActionForm
+        ]
+
+
+inputForm : DisplayProfile -> String -> String -> (TokenValue -> Msg) -> Element Msg
+inputForm dProfile currentString buttonLabel onSubmit =
+    Element.row
+        [ Element.spacing 10 ]
+        [ daiAmountInput
+            dProfile
+            []
+            currentString
+            AmountInputChanged
+        , maybeSubmitButton
+            dProfile
+            buttonLabel
+            (TokenValue.fromString currentString)
+            onSubmit
+        ]
+
+
+maybeSubmitButton : DisplayProfile -> String -> Maybe TokenValue -> (TokenValue -> Msg) -> Element Msg
+maybeSubmitButton dProfile label maybeAmount onSubmit =
+    case maybeAmount of
+        Just amount ->
+            defaultTheme.emphasizedActionButton
+                dProfile
+                []
+                [ label ]
+                (onSubmit amount)
+
+        Nothing ->
+            Theme.disabledButton
+                dProfile
+                []
+                label

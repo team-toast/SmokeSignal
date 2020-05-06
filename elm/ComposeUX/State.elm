@@ -25,7 +25,6 @@ init now wallet context =
     , message = ""
     , daiInput = ""
     , donateChecked = True
-    , miningUnlockTx = Nothing
     , wallet = wallet
     , showPreviewOnMobile = False
     , lastInputChangedTime = Time.millisToPosix 0

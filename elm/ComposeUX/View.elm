@@ -341,61 +341,62 @@ inputsElement dProfile userInfo model =
             , Element.Font.size (20 |> changeForMobile 14 dProfile)
             ]
         <|
-            case model.miningUnlockTx of
-                Just txHash ->
-                    Element.column
-                        [ Element.spacing 4
-                        , Element.Font.color (Element.rgb 0.3 0.3 0.3)
-                        , Element.centerY
-                        ]
-                        [ Element.el
-                            [ Element.centerX ]
-                            (Element.text "Mining DAI unlock tx...")
-                        , Element.newTabLink
-                            [ Element.Font.color defaultTheme.linkTextColor
-                            , Element.Font.size 14
-                            , Element.centerX
-                            ]
-                            { url = EthHelpers.etherscanTxUrl txHash
-                            , label = Element.text "(track on etherscan)"
-                            }
-                        , Element.el
-                            [ Element.centerX ]
-                            (Element.text "Feel free to draft your message")
-                        , Element.el
-                            [ Element.centerX ]
-                            (Element.text "while waiting!")
-                        ]
+            -- case model.miningUnlockTx of
+            --     Just txHash ->
+            --         Element.column
+            --             [ Element.spacing 4
+            --             , Element.Font.color (Element.rgb 0.3 0.3 0.3)
+            --             , Element.centerY
+            --             ]
+            --             [ Element.el
+            --                 [ Element.centerX ]
+            --                 (Element.text "Mining DAI unlock tx...")
+            --             , Element.newTabLink
+            --                 [ Element.Font.color defaultTheme.linkTextColor
+            --                 , Element.Font.size 14
+            --                 , Element.centerX
+            --                 ]
+            --                 { url = EthHelpers.etherscanTxUrl txHash
+            --                 , label = Element.text "(track on etherscan)"
+            --                 }
+            --             , Element.el
+            --                 [ Element.centerX ]
+            --                 (Element.text "Feel free to draft your message")
+            --             , Element.el
+            --                 [ Element.centerX ]
+            --                 (Element.text "while waiting!")
+            --             ]
 
-                Nothing ->
-                    case userInfo.daiUnlocked of
-                        Nothing ->
-                            loadingElement
-                                [ Element.centerX
-                                , Element.centerY
-                                ]
-                            <|
-                                Just "Checking DAI lock..."
+            --     Nothing ->
+            --         case userInfo.daiUnlocked of
+            --             Nothing ->
+            --                 loadingElement
+            --                     [ Element.centerX
+            --                     , Element.centerY
+            --                     ]
+            --                 <|
+            --                     Just "Checking DAI lock..."
 
-                        Just False ->
-                            unlockButton
-                                dProfile
-                                [ Element.centerX
-                                , Element.centerY
-                                ]
+            --             Just False ->
+            --                 unlockButton
+            --                     dProfile
+            --                     [ Element.centerX
+            --                     , Element.centerY
+            --                     ]
 
-                        Just True ->
-                            Element.column
-                                [ Element.spacing 10 ]
-                                [ Element.row
-                                    [ Element.spacing (10 |> changeForMobile 5 dProfile)
-                                    , Element.centerX
-                                    ]
-                                    [ Element.text "Burn"
-                                    , burnAmountInput dProfile model.daiInput
-                                    , Element.text "DAI"
-                                    ]
-                                , Element.row
+            --             Just True ->
+            --                 Element.column
+            --                     [ Element.spacing 10 ]
+            --                     [ Element.row
+            --                         [ Element.spacing (10 |> changeForMobile 5 dProfile)
+            --                         , Element.centerX
+            --                         ]
+            --                         [ Element.text "Burn"
+            --                         , burnAmountInput dProfile model.daiInput
+            --                         , Element.text "DAI"
+            --                         ]
+                                -- ,
+                                 Element.row
                                     [ Element.Font.size (14 |> changeForMobile 10 dProfile)
                                     , Element.spacing 5
                                     ]
@@ -418,7 +419,7 @@ inputsElement dProfile userInfo model =
                                         , Element.text "so we can build more cool stuff!"
                                         ]
                                     ]
-                                ]
+                                
 
 
 inputErrorEl : DisplayProfile -> Maybe (List (Element Msg)) -> Element Msg
@@ -450,30 +451,7 @@ inputErrorEl dProfile els =
                 (els |> Maybe.withDefault [ Element.text " " ])
 
 
-unlockButton : EH.DisplayProfile -> List (Attribute Msg) -> Element Msg
-unlockButton dProfile attrs =
-    defaultTheme.emphasizedActionButton
-        dProfile
-        attrs
-        [ "Unlock Dai" ]
-        (MsgUp UnlockDai)
 
-
-burnAmountInput : DisplayProfile -> String -> Element Msg
-burnAmountInput dProfile daiInput =
-    Element.row []
-        [ Element.Input.text
-            [ Element.width <| Element.px (100 |> changeForMobile 60 dProfile)
-            , Element.height <| Element.px (40 |> changeForMobile 35 dProfile)
-            , Element.Font.size (20 |> changeForMobile 14 dProfile)
-            , Element.Background.color <| Element.rgba 1 1 1 0.4
-            ]
-            { onChange = DaiInputChanged
-            , text = daiInput
-            , placeholder = Nothing
-            , label = Element.Input.labelHidden "amount to burn"
-            }
-        ]
 
 
 goButtonAndMaybeError : EH.DisplayProfile -> UserInfo -> Model -> ( Element Msg, Maybe (List (Element Msg)) )
@@ -496,8 +474,8 @@ goButtonAndMaybeError dProfile userInfo model =
                 )
 
             else
-                case userInfo.daiUnlocked of
-                    Just True ->
+                case userInfo.unlockStatus of
+                    Unlocked ->
                         let
                             validateResults =
                                 validateInputs model

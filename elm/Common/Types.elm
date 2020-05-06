@@ -14,8 +14,16 @@ type alias UserInfo =
     { network : Eth.Net.NetworkId
     , address : Address
     , balance : Maybe TokenValue
-    , daiUnlocked : Maybe Bool
+    , unlockStatus : UnlockStatus
     }
+
+
+type UnlockStatus
+    = NotConnected
+    | Checking
+    | Locked
+    | Unlocking
+    | Unlocked
 
 
 withBalance : TokenValue -> UserInfo -> UserInfo
@@ -25,10 +33,10 @@ withBalance balance userInfo =
     }
 
 
-withIsUnlocked : Bool -> UserInfo -> UserInfo
-withIsUnlocked unlocked userInfo =
+withUnlockStatus : UnlockStatus -> UserInfo -> UserInfo
+withUnlockStatus unlockStatus userInfo =
     { userInfo
-        | daiUnlocked = Just <| unlocked
+        | unlockStatus = unlockStatus
     }
 
 
@@ -101,6 +109,8 @@ type alias TrackedTx =
 type TxInfo
     = PostTx Post.Draft
     | UnlockTx
+    | TipTx Post.Id TokenValue
+    | BurnTx Post.Id TokenValue
 
 
 type TxStatus
@@ -120,6 +130,12 @@ txInfoToNameStr txInfo =
 
         PostTx _ ->
             "Post Submit"
+
+        TipTx postId amount ->
+            "Tip"
+
+        BurnTx postId amount ->
+            "Burn"
 
 
 type WalletUXPhaceInfo

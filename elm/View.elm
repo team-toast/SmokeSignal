@@ -40,7 +40,7 @@ import TokenValue exposing (TokenValue)
 import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
-import Wallet
+import Wallet exposing (Wallet)
 
 
 root : Model -> Browser.Document Msg
@@ -204,6 +204,7 @@ modals model =
                                     model.dProfile
                                     True
                                     (Post.PostDraft draft)
+                                    model.wallet
                                     (case model.postUX of
                                         Just ( DraftPreview, postUXModel ) ->
                                             Just postUXModel
@@ -282,7 +283,7 @@ body model =
                                     ]
                                     [ viewPostHeader model.dProfile post
                                     , Element.Lazy.lazy5
-                                        (viewPostAndReplies model.dProfile)
+                                        (viewPostAndReplies model.dProfile model.wallet)
                                         model.publishedPosts
                                         model.blockTimes
                                         model.replies
@@ -309,7 +310,7 @@ body model =
                             ]
                             [ viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
                             , Element.Lazy.lazy5
-                                (viewPostsForTopic model.dProfile)
+                                (viewPostsForTopic model.dProfile model.wallet)
                                 model.publishedPosts
                                 model.blockTimes
                                 model.replies
@@ -515,6 +516,38 @@ viewTrackedTxRow trackedTx =
                 ( UnlockTx, _ ) ->
                     Element.text "Unlock DAI"
 
+                ( TipTx postId amount, _ ) ->
+                    Element.row
+                        []
+                        [ Element.text "Tip "
+                        , Element.el
+                            [ Element.Font.color defaultTheme.linkTextColor
+                            , Element.pointer
+                            , Element.Events.onClick <|
+                                MsgUp <|
+                                    GotoRoute <|
+                                        Routing.ViewContext <|
+                                            Post.ForPost postId
+                            ]
+                            (Element.text "Post")
+                        ]
+
+                ( BurnTx postId amount, _ ) ->
+                    Element.row
+                        []
+                        [ Element.text "Burn for "
+                        , Element.el
+                            [ Element.Font.color defaultTheme.linkTextColor
+                            , Element.pointer
+                            , Element.Events.onClick <|
+                                MsgUp <|
+                                    GotoRoute <|
+                                        Routing.ViewContext <|
+                                            Post.ForPost postId
+                            ]
+                            (Element.text "Post")
+                        ]
+
                 ( PostTx _, Mined _ ) ->
                     Element.text "Post"
 
@@ -543,9 +576,6 @@ viewTrackedTxRow trackedTx =
 
                 Mined maybePostId ->
                     case trackedTx.txInfo of
-                        UnlockTx ->
-                            etherscanLink "Mined"
-
                         PostTx draft ->
                             case maybePostId of
                                 Just postId ->
@@ -558,6 +588,9 @@ viewTrackedTxRow trackedTx =
 
                                 Nothing ->
                                     etherscanLink "Mined"
+
+                        _ ->
+                            etherscanLink "Mined"
     in
     Element.row
         [ Element.width <| Element.px 250
@@ -694,8 +727,8 @@ userNotice dProfile ( id, notice ) =
         )
 
 
-viewPostAndReplies : DisplayProfile -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
-viewPostAndReplies dProfile allPosts blockTimes replies publishedPost postUX =
+viewPostAndReplies : DisplayProfile -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
+viewPostAndReplies dProfile wallet allPosts blockTimes replies publishedPost postUX =
     let
         replyingPosts =
             let
@@ -729,6 +762,7 @@ viewPostAndReplies dProfile allPosts blockTimes replies publishedPost postUX =
                 dProfile
                 True
                 (Post.PublishedPost publishedPost)
+                wallet
                 (case postUX of
                     Just ( PublishedPost id, postUXModel ) ->
                         if id == publishedPost.id then
@@ -757,6 +791,7 @@ viewPostAndReplies dProfile allPosts blockTimes replies publishedPost postUX =
                     Element.text "Replies"
                 , viewPostsGroupedByBlock
                     dProfile
+                    wallet
                     False
                     blockTimes
                     replies
@@ -795,8 +830,8 @@ viewPostHeader dProfile publishedPost =
         ]
 
 
-viewPostsForTopic : DisplayProfile -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe ( PostUXId, PostUX.Model ) -> String -> Element Msg
-viewPostsForTopic dProfile allPosts blockTimes replies uxModel topic =
+viewPostsForTopic : DisplayProfile -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe ( PostUXId, PostUX.Model ) -> String -> Element Msg
+viewPostsForTopic dProfile wallet allPosts blockTimes replies uxModel topic =
     let
         filteredPosts =
             allPosts
@@ -817,7 +852,7 @@ viewPostsForTopic dProfile allPosts blockTimes replies uxModel topic =
 
           else
             Element.Lazy.lazy5
-                (viewPostsGroupedByBlock dProfile)
+                (viewPostsGroupedByBlock dProfile wallet)
                 False
                 blockTimes
                 replies
@@ -863,8 +898,8 @@ viewTopicHeader dProfile maybeUserInfo topic =
         ]
 
 
-viewPostsGroupedByBlock : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> PublishedPostsDict -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
-viewPostsGroupedByBlock dProfile showContext blockTimes replies publishedPosts postUX =
+viewPostsGroupedByBlock : DisplayProfile -> Wallet -> Bool -> Dict Int Time.Posix -> List Reply -> PublishedPostsDict -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
+viewPostsGroupedByBlock dProfile wallet showContext blockTimes replies publishedPosts postUX =
     Element.column
         [ Element.width Element.fill
         , Element.spacing 20
@@ -872,12 +907,12 @@ viewPostsGroupedByBlock dProfile showContext blockTimes replies publishedPosts p
         (publishedPosts
             |> Dict.toList
             |> List.reverse
-            |> List.map (viewBlocknumAndPosts dProfile showContext blockTimes replies postUX)
+            |> List.map (viewBlocknumAndPosts dProfile wallet showContext blockTimes replies postUX)
         )
 
 
-viewBlocknumAndPosts : DisplayProfile -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe ( PostUXId, PostUX.Model ) -> ( Int, List Post.Published ) -> Element Msg
-viewBlocknumAndPosts dProfile showContext blockTimes replies postUX ( blocknum, publishedPosts ) =
+viewBlocknumAndPosts : DisplayProfile -> Wallet -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe ( PostUXId, PostUX.Model ) -> ( Int, List Post.Published ) -> Element Msg
+viewBlocknumAndPosts dProfile wallet showContext blockTimes replies postUX ( blocknum, publishedPosts ) =
     Element.column
         [ Element.width Element.fill
         , Element.spacing 10
@@ -914,12 +949,12 @@ viewBlocknumAndPosts dProfile showContext blockTimes replies postUX ( blocknum, 
                 |> Maybe.withDefault "[fetching block timestamp]"
                 |> Element.text
             ]
-        , viewPosts dProfile showContext replies publishedPosts postUX
+        , viewPosts dProfile wallet showContext replies publishedPosts postUX
         ]
 
 
-viewPosts : DisplayProfile -> Bool -> List Reply -> List Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
-viewPosts dProfile showContext replies publishedPosts postUX =
+viewPosts : DisplayProfile -> Wallet -> Bool -> List Reply -> List Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
+viewPosts dProfile wallet showContext replies publishedPosts postUX =
     Element.column
         [ Element.paddingXY 20 0
         , Element.spacing 20
@@ -945,6 +980,7 @@ viewPosts dProfile showContext replies publishedPosts postUX =
                             dProfile
                             showContext
                             (Post.PublishedPost publishedPost)
+                            wallet
                             (case postUX of
                                 Just ( PublishedPost id, postUXModel ) ->
                                     if publishedPost.id == id then
