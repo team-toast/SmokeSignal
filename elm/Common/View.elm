@@ -322,8 +322,8 @@ renderContentOrError content =
                         ++ errStr
 
 
-unlockUXOr : DisplayProfile -> List (Attribute msg) -> UnlockStatus -> (MsgUp -> msg) -> Element msg -> Element msg
-unlockUXOr dProfile attributes unlockStatus msgMapper el =
+unlockUXOr : DisplayProfile -> UnlockStatus -> (MsgUp -> msg) -> Element msg -> Element msg
+unlockUXOr dProfile unlockStatus msgMapper el =
     case unlockStatus of
         NotConnected ->
             Element.map msgMapper <|

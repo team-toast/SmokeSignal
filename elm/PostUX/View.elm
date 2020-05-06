@@ -348,7 +348,6 @@ unlockOrInputForm dProfile bgColor currentString buttonLabel onSubmit unlockStat
         ]
         [ unlockUXOr
             dProfile
-            []
             unlockStatus
             MsgUp
             (inputForm dProfile currentString buttonLabel onSubmit)
