@@ -58,10 +58,27 @@ totalBurned post =
             case publishedPost.maybeAccounting of
                 Just accounting ->
                     accounting.totalBurned
-                Nothing -> 
+
+                Nothing ->
                     publishedPost.core.authorBurn
+
         PostDraft postDraft ->
             postDraft.core.authorBurn
+
+
+totalTipped : Post -> TokenValue
+totalTipped post =
+    case post of
+        PublishedPost publishedPost ->
+            case publishedPost.maybeAccounting of
+                Just accounting ->
+                    accounting.totalTipped
+
+                Nothing ->
+                    TokenValue.zero
+
+        _ ->
+            TokenValue.zero
 
 
 type alias Core =

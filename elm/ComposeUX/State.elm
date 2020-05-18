@@ -18,15 +18,12 @@ import UserNotice as UN
 import Wallet exposing (Wallet)
 
 
-init : Time.Posix -> Wallet -> Post.Context -> Model
-init now wallet context =
+init : Time.Posix -> Post.Context -> Model
+init now context =
     { now = now
     , context = context
     , message = ""
     , daiInput = ""
-    , donateChecked = True
-    , miningUnlockTx = Nothing
-    , wallet = wallet
     , showPreviewOnMobile = False
     , lastInputChangedTime = Time.millisToPosix 0
     , renderNeeded = False
@@ -45,10 +42,6 @@ update msg prevModel =
                  }
                     |> updateMessage input
                 )
-
-        DonationCheckboxSet flag ->
-            justModelUpdate
-                (prevModel |> updateDonateChecked flag)
 
         DaiInputChanged input ->
             justModelUpdate
@@ -89,14 +82,6 @@ update msg prevModel =
                 prevModel
                 Cmd.none
                 [ msgUp ]
-
-
-handleMsgDown : MsgDown -> Model -> UpdateResult
-handleMsgDown msgDown prevModel =
-    case msgDown of
-        UpdateWallet newWallet ->
-            justModelUpdate
-                { prevModel | wallet = newWallet }
 
 
 resetModel : Model -> Model

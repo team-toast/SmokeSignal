@@ -107,3 +107,37 @@ getAccountingCmd msgHash msgConstructor =
         )
         |> Task.map toAccounting
         |> Task.attempt msgConstructor
+
+
+tipForPost : Hex -> TokenValue -> Bool -> Call ()
+tipForPost messageHash amount donate =
+    G.tipHashOrBurnIfNoAuthor
+        Config.smokesignalContractAddress
+        messageHash
+        (TokenValue.getEvmValue amount)
+        (if donate then
+            TokenValue.div
+                amount
+                100
+                |> TokenValue.getEvmValue
+
+         else
+            TokenValue.zero |> TokenValue.getEvmValue
+        )
+
+
+burnForPost : Hex -> TokenValue -> Bool -> Call ()
+burnForPost messageHash amount donate =
+    G.burnHash
+        Config.smokesignalContractAddress
+        messageHash
+        (TokenValue.getEvmValue amount)
+        (if donate then
+            TokenValue.div
+                amount
+                100
+                |> TokenValue.getEvmValue
+
+         else
+            TokenValue.zero |> TokenValue.getEvmValue
+        )

@@ -1,5 +1,6 @@
 port module State exposing (init, subscriptions, update)
 
+import Array exposing (Array)
 import Browser
 import Browser.Events
 import Browser.Navigation
@@ -29,6 +30,7 @@ import List.Extra
 import Maybe.Extra
 import MaybeDebugLog exposing (maybeDebugLog)
 import Post exposing (Post)
+import PostUX.State as PostUX
 import Random
 import Routing exposing (Route)
 import Task
@@ -84,10 +86,11 @@ init flags url key =
     , txSentry = txSentry
     , eventSentry = eventSentry
     , publishedPosts = Dict.empty
+    , postUX = Nothing
     , replies = []
     , mode = BlankMode
     , showHalfComposeUX = False
-    , composeUXModel = ComposeUX.init now wallet (Post.ForTopic Post.defaultTopic)
+    , composeUXModel = ComposeUX.init now (Post.ForTopic Post.defaultTopic)
     , blockTimes = Dict.empty
     , showAddressId = Nothing
     , userNotices = walletNotices
@@ -95,6 +98,7 @@ init flags url key =
     , showExpandedTrackedTxs = False
     , draftModal = Nothing
     , demoPhaceSrc = initDemoPhaceSrc
+    , donateChecked = True
     }
         |> gotoRoute route
         |> Tuple.mapSecond
@@ -215,7 +219,7 @@ update msg prevModel =
                                                 walletSentry.networkId
                                                 newAddress
                                                 Nothing
-                                                Nothing
+                                                Checking
                                         , fetchDaiBalanceAndAllowanceCmd newAddress
                                         )
 
@@ -224,10 +228,11 @@ update msg prevModel =
                                     , Cmd.none
                                     )
                     in
-                    { prevModel
+                    ( { prevModel
                         | wallet = newWallet
-                    }
-                        |> sendMsgDown (UpdateWallet newWallet)
+                      }
+                    , Cmd.none
+                    )
 
                 Err errStr ->
                     ( prevModel |> addUserNotice (UN.walletError errStr)
@@ -342,10 +347,11 @@ update msg prevModel =
                             newWallet =
                                 prevModel.wallet |> Wallet.withFetchedBalance balance
                         in
-                        { prevModel
+                        ( { prevModel
                             | wallet = newWallet
-                        }
-                            |> sendMsgDown (UpdateWallet newWallet)
+                          }
+                        , Cmd.none
+                        )
 
                     Err httpErr ->
                         ( prevModel
@@ -367,16 +373,28 @@ update msg prevModel =
                     Ok allowance ->
                         let
                             isUnlocked =
-                                TokenValue.isMaxTokenValue allowance
+                                if TokenValue.isMaxTokenValue allowance then
+                                    True
+
+                                else
+                                    False
 
                             newWallet =
-                                prevModel.wallet |> Wallet.withIsUnlocked isUnlocked
+                                if isUnlocked then
+                                    prevModel.wallet |> Wallet.withUnlockStatus Unlocked
+
+                                else if Wallet.unlockStatus prevModel.wallet /= Unlocking then
+                                    prevModel.wallet |> Wallet.withUnlockStatus Locked
+
+                                else
+                                    prevModel.wallet
                         in
-                        { prevModel
+                        ( { prevModel
                             | wallet =
                                 newWallet
-                        }
-                            |> sendMsgDown (UpdateWallet newWallet)
+                          }
+                        , Cmd.none
+                        )
 
                     Err httpErr ->
                         ( prevModel
@@ -412,7 +430,6 @@ update msg prevModel =
                                     , daiInput =
                                         draft.core.authorBurn
                                             |> TokenValue.toFloatString Nothing
-                                    , donateChecked = not <| TokenValue.isZero draft.donateAmount
                                 }
                            )
             }
@@ -425,6 +442,35 @@ update msg prevModel =
               }
             , Cmd.none
             )
+
+        PostUXMsg postUXId postUXMsg ->
+            let
+                postUXModelBeforeMsg =
+                    case prevModel.postUX of
+                        Just ( prevPostUXId, prevPostUXModel ) ->
+                            if prevPostUXId == postUXId then
+                                prevPostUXModel
+
+                            else
+                                PostUX.init
+
+                        Nothing ->
+                            PostUX.init
+
+                updateResult =
+                    postUXModelBeforeMsg
+                        |> PostUX.update postUXMsg
+            in
+            ( { prevModel
+                | postUX =
+                    Just <|
+                        ( postUXId
+                        , updateResult.newModel
+                        )
+              }
+            , Cmd.map (PostUXMsg postUXId) updateResult.cmd
+            )
+                |> withMsgUps updateResult.msgUps
 
         ComposeUXMsg composeUXMsg ->
             let
@@ -474,9 +520,31 @@ update msg prevModel =
                                 _ ->
                                     Nothing
 
+                        newPostUX =
+                            case txInfo of
+                                TipTx _ _ ->
+                                    Nothing
+
+                                BurnTx _ _ ->
+                                    Nothing
+
+                                _ ->
+                                    prevModel.postUX
+
+                        newWallet =
+                            case txInfo of
+                                UnlockTx ->
+                                    prevModel.wallet
+                                        |> Wallet.withUnlockStatus Unlocking
+
+                                _ ->
+                                    prevModel.wallet
+
                         interimModel =
                             { prevModel
                                 | showExpandedTrackedTxs = True
+                                , postUX = newPostUX
+                                , wallet = newWallet
                             }
                                 |> addTrackedTx txHash txInfo
                     in
@@ -653,6 +721,55 @@ handleMsgUp msgUp prevModel =
             , cmd
             )
 
+        SubmitBurn postId amount ->
+            let
+                txParams =
+                    SSContract.burnForPost postId.messageHash amount prevModel.donateChecked
+                        |> Eth.toSend
+
+                listeners =
+                    { onMined = Nothing
+                    , onSign = Just <| TxSigned <| BurnTx postId amount
+                    , onBroadcast = Nothing
+                    }
+
+                ( txSentry, cmd ) =
+                    TxSentry.customSend prevModel.txSentry listeners txParams
+            in
+            ( { prevModel
+                | txSentry = txSentry
+              }
+            , cmd
+            )
+
+        SubmitTip postId amount ->
+            let
+                txParams =
+                    SSContract.tipForPost postId.messageHash amount prevModel.donateChecked
+                        |> Eth.toSend
+
+                listeners =
+                    { onMined = Nothing
+                    , onSign = Just <| TxSigned <| TipTx postId amount
+                    , onBroadcast = Nothing
+                    }
+
+                ( txSentry, cmd ) =
+                    TxSentry.customSend prevModel.txSentry listeners txParams
+            in
+            ( { prevModel
+                | txSentry = txSentry
+              }
+            , cmd
+            )
+
+        DonationCheckboxSet flag ->
+            ( { prevModel
+                | donateChecked = flag
+              }
+            , Cmd.none
+            )
+
         NoOp ->
             ( prevModel, Cmd.none )
 
@@ -753,37 +870,6 @@ withMsgUps msgUps ( prevModel, prevCmd ) =
         |> Tuple.mapSecond
             (\newCmd ->
                 Cmd.batch [ prevCmd, newCmd ]
-            )
-
-
-sendMsgDown : MsgDown -> Model -> ( Model, Cmd Msg )
-sendMsgDown msgDown prevModel =
-    let
-        updateResult =
-            prevModel.composeUXModel
-                |> ComposeUX.handleMsgDown msgDown
-
-        ( newMainModel, cmd1 ) =
-            { prevModel
-                | composeUXModel = updateResult.newModel
-            }
-                |> handleMsgUps updateResult.msgUps
-    in
-    ( newMainModel
-    , Cmd.batch
-        [ cmd1
-        , Cmd.map ComposeUXMsg updateResult.cmd
-        ]
-    )
-
-
-withMsgDown : MsgDown -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-withMsgDown msgDown ( prevModel, prevCmd ) =
-    prevModel
-        |> sendMsgDown msgDown
-        |> Tuple.mapSecond
-            (\newCmd ->
-                Cmd.batch [ newCmd, prevCmd ]
             )
 
 

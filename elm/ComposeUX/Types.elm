@@ -1,8 +1,8 @@
 module ComposeUX.Types exposing (..)
 
-import Element exposing (Element)
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
+import Element exposing (Element)
 import Eth.Types exposing (Address, TxHash)
 import Http
 import Post
@@ -16,9 +16,6 @@ type alias Model =
     , context : Post.Context
     , message : String
     , daiInput : String
-    , donateChecked : Bool
-    , miningUnlockTx : Maybe TxHash
-    , wallet : Wallet
     , showPreviewOnMobile : Bool
     , lastInputChangedTime : Time.Posix
     , renderNeeded : Bool
@@ -30,7 +27,6 @@ type Msg
     = MsgUp MsgUp
     | MessageInputChanged String
     | DaiInputChanged String
-    | DonationCheckboxSet Bool
     | MobilePreviewToggle
     | Tick Time.Posix
 
@@ -57,14 +53,6 @@ updateDaiInput input m =
     { m | daiInput = input }
 
 
-updateDonateChecked : Bool -> Model -> Model
-updateDonateChecked flag m =
-    { m | donateChecked = flag }
-
-
-updateMiningUnlockTx : Maybe TxHash -> Model -> Model
-updateMiningUnlockTx maybeTxHash m =
-    { m | miningUnlockTx = maybeTxHash }
 
 
 type alias CheckedMaybeValidInputs =
@@ -73,8 +61,8 @@ type alias CheckedMaybeValidInputs =
     }
 
 
-validateInputs : Model -> CheckedMaybeValidInputs
-validateInputs composeModel =
+validateInputs : Bool -> Model -> CheckedMaybeValidInputs
+validateInputs donateChecked composeModel =
     { message =
         if composeModel.message == "" then
             Nothing
@@ -87,7 +75,7 @@ validateInputs composeModel =
                 (Result.map
                     (\burnAmount ->
                         ( burnAmount
-                        , if composeModel.donateChecked then
+                        , if donateChecked then
                             TokenValue.div burnAmount 100
 
                           else

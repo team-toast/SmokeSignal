@@ -23,8 +23,8 @@ import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
 
-viewFull : DisplayProfile -> WalletUXPhaceInfo -> Maybe PhaceIconId -> Model -> Element Msg
-viewFull dProfile walletUXPhaceInfo showAddressId model =
+viewFull : DisplayProfile -> Bool -> Wallet -> WalletUXPhaceInfo -> Maybe PhaceIconId -> Model -> Element Msg
+viewFull dProfile donateChecked wallet walletUXPhaceInfo showAddressId model =
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
@@ -32,11 +32,11 @@ viewFull dProfile walletUXPhaceInfo showAddressId model =
         , Element.Background.color defaultTheme.appBackground
         ]
     <|
-        view dProfile walletUXPhaceInfo showAddressId model
+        view dProfile donateChecked wallet walletUXPhaceInfo showAddressId model
 
 
-view : EH.DisplayProfile -> WalletUXPhaceInfo -> Maybe PhaceIconId -> Model -> Element Msg
-view dProfile walletUXPhaceInfo showAddressId model =
+view : EH.DisplayProfile -> Bool -> Wallet -> WalletUXPhaceInfo -> Maybe PhaceIconId -> Model -> Element Msg
+view dProfile donateChecked wallet walletUXPhaceInfo showAddressId model =
     let
         commonAttributes =
             [ Element.width Element.fill
@@ -67,7 +67,7 @@ view dProfile walletUXPhaceInfo showAddressId model =
                     , Element.spacing 10
                     ]
                     [ viewInput dProfile model.message
-                    , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model
+                    , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile donateChecked walletUXPhaceInfo model
                     ]
                 , viewPreviewWithPostContext dProfile Nothing model.renderedPreview model.context
                 ]
@@ -83,7 +83,7 @@ view dProfile walletUXPhaceInfo showAddressId model =
                 (if model.showPreviewOnMobile then
                     [ viewPreviewWithPostContext
                         dProfile
-                        (case Wallet.userInfo model.wallet of
+                        (case Wallet.userInfo wallet of
                             Just userInfo ->
                                 Just <|
                                     ( userInfo.address
@@ -95,7 +95,7 @@ view dProfile walletUXPhaceInfo showAddressId model =
                         )
                         model.renderedPreview
                         model.context
-                    , actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model
+                    , actionFormAndMaybeErrorEl dProfile donateChecked walletUXPhaceInfo model
                     ]
 
                  else
@@ -138,13 +138,13 @@ viewInput dProfile input =
     EH.scrollbarYEl [] <|
         Element.Input.multiline
             ([ Element.width Element.fill
-            , Element.height Element.fill
-            , Element.padding (10 |> changeForMobile 5 dProfile)
-            , Element.Background.color <| Element.rgba 1 1 1 0.5
-            
-            ] ++ (responsiveVal dProfile
-                []
-                [Element.Font.size 18])
+             , Element.height Element.fill
+             , Element.padding (10 |> changeForMobile 5 dProfile)
+             , Element.Background.color <| Element.rgba 1 1 1 0.5
+             ]
+                ++ responsiveVal dProfile
+                    []
+                    [ Element.Font.size 18 ]
             )
             { onChange = MessageInputChanged
             , text = input
@@ -167,25 +167,31 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedMessage context =
             , Element.Border.rounded 10
             , Element.spacing 15
             ]
-            [ Element.map MsgUp <|
-                Element.row
-                    [ Element.spacing 10
-                    , Element.width Element.fill
-                    ]
-                    [ case maybeShowPhaceInfo of
-                        Just ( fromAddress, showAddress ) ->
-                            phaceElement True PhaceForPreview fromAddress showAddress
+            [ Element.row
+                [ Element.spacing 10
+                , Element.width Element.fill
+                ]
+                [ case maybeShowPhaceInfo of
+                    Just ( fromAddress, showAddress ) ->
+                        phaceElement
+                            True
+                            fromAddress
+                            showAddress
+                            (MsgUp <| ShowOrHideAddress PhaceForPreview)
+                            (MsgUp NoOp)
 
-                        Nothing ->
-                            Element.none
-                    , Element.el [ Element.alignLeft ] <| viewContext context
-                    ]
+                    Nothing ->
+                        Element.none
+                , Element.el [ Element.alignLeft ] <|
+                    Element.map MsgUp <|
+                        viewContext context
+                ]
             , case renderedMessage of
                 Nothing ->
                     appStatusMessage defaultTheme.appStatusTextColor "[Preview Box]"
 
                 Just rendered ->
-                    mapNever rendered
+                    Element.map never rendered
             ]
 
 
@@ -262,13 +268,13 @@ viewTopic topic =
         ]
 
 
-actionFormAndMaybeErrorEl : EH.DisplayProfile -> WalletUXPhaceInfo -> Model -> Element Msg
-actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model =
+actionFormAndMaybeErrorEl : DisplayProfile -> Bool -> WalletUXPhaceInfo -> Model -> Element Msg
+actionFormAndMaybeErrorEl dProfile donateChecked walletUXPhaceInfo model =
     case walletUXPhaceInfo of
         UserPhaceInfo ( userInfo, showAddress ) ->
             let
                 ( goButtonEl, maybeErrorEls ) =
-                    goButtonAndMaybeError dProfile userInfo model
+                    goButtonAndMaybeError dProfile donateChecked userInfo model
 
                 actionRow =
                     Element.row
@@ -279,11 +285,17 @@ actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model =
                         ]
                         [ case dProfile of
                             Desktop ->
-                                Element.map MsgUp <| phaceElement True UserPhace userInfo.address showAddress
+                                Element.map MsgUp <|
+                                    phaceElement
+                                        True
+                                        userInfo.address
+                                        showAddress
+                                        (Common.Msg.ShowOrHideAddress UserPhace)
+                                        NoOp
 
                             Mobile ->
                                 goBackButton dProfile
-                        , inputsElement dProfile userInfo model
+                        , inputsElement dProfile donateChecked userInfo model
                         , goButtonEl
                         ]
             in
@@ -307,14 +319,19 @@ actionFormAndMaybeErrorEl dProfile walletUXPhaceInfo model =
                         ]
 
         _ ->
-            Element.map MsgUp <|
-                web3ConnectButton dProfile [ Element.centerX, Element.centerY ]
+            web3ConnectButton
+                dProfile
+                [ Element.centerX, Element.centerY ]
+                MsgUp
 
 
-inputsElement : EH.DisplayProfile -> UserInfo -> Model -> Element Msg
-inputsElement dProfile userInfo model =
+inputsElement : EH.DisplayProfile -> Bool -> UserInfo -> Model -> Element Msg
+inputsElement dProfile donateChecked userInfo model =
     Element.el
-        ([ Element.centerY ]
+        ([ Element.centerY
+         , Element.centerX
+         , Element.Font.size (20 |> changeForMobile 14 dProfile)
+         ]
             ++ (case dProfile of
                     Desktop ->
                         [ Element.width <| Element.px 260 ]
@@ -324,89 +341,52 @@ inputsElement dProfile userInfo model =
                )
         )
     <|
-        Element.el
+        unlockUXOr
+            dProfile
             [ Element.centerX
-            , Element.Font.size (20 |> changeForMobile 14 dProfile)
+            , Element.centerY
             ]
+            userInfo.unlockStatus
+            MsgUp
         <|
-            case model.miningUnlockTx of
-                Just txHash ->
-                    Element.column
-                        [ Element.spacing 4
-                        , Element.Font.color (Element.rgb 0.3 0.3 0.3)
-                        , Element.centerY
-                        ]
-                        [ Element.el
-                            [ Element.centerX ]
-                            (Element.text "Mining DAI unlock tx...")
-                        , Element.newTabLink
-                            [ Element.Font.color defaultTheme.linkTextColor
-                            , Element.Font.size 14
-                            , Element.centerX
+            Element.column
+                [ Element.spacing 10 ]
+                [ Element.row
+                    [ Element.spacing (10 |> changeForMobile 5 dProfile)
+                    , Element.centerX
+                    ]
+                    [ Element.text "Burn"
+                    , daiAmountInput
+                        dProfile
+                        []
+                        model.daiInput
+                        DaiInputChanged
+                    , Element.text "DAI"
+                    ]
+                , Element.row
+                    [ Element.Font.size (14 |> changeForMobile 10 dProfile)
+                    , Element.spacing 5
+                    ]
+                    [ Element.Input.checkbox [ Element.alignTop ]
+                        { onChange = MsgUp << Common.Msg.DonationCheckboxSet
+                        , icon = Element.Input.defaultCheckbox
+                        , checked = donateChecked
+                        , label = Element.Input.labelHidden "Donate an extra 1% to Foundry"
+                        }
+                    , Element.column
+                        [ Element.spacing 5 ]
+                        [ Element.row []
+                            [ Element.text "Donate an extra 1% to "
+                            , Element.newTabLink
+                                [ Element.Font.color defaultTheme.linkTextColor ]
+                                { url = "https://foundrydao.com/"
+                                , label = Element.text "Foundry"
+                                }
                             ]
-                            { url = EthHelpers.etherscanTxUrl txHash
-                            , label = Element.text "(track on etherscan)"
-                            }
-                        , Element.el
-                            [ Element.centerX ]
-                            (Element.text "Feel free to draft your message")
-                        , Element.el
-                            [ Element.centerX ]
-                            (Element.text "while waiting!")
+                        , Element.text "so we can build more cool stuff!"
                         ]
-
-                Nothing ->
-                    case userInfo.daiUnlocked of
-                        Nothing ->
-                            loadingElement
-                                [ Element.centerX
-                                , Element.centerY
-                                ]
-                            <|
-                                Just "Checking DAI lock..."
-
-                        Just False ->
-                            unlockButton
-                                dProfile
-                                [ Element.centerX
-                                , Element.centerY
-                                ]
-
-                        Just True ->
-                            Element.column
-                                [ Element.spacing 10 ]
-                                [ Element.row
-                                    [ Element.spacing (10 |> changeForMobile 5 dProfile)
-                                    , Element.centerX
-                                    ]
-                                    [ Element.text "Burn"
-                                    , burnAmountInput dProfile model.daiInput
-                                    , Element.text "DAI"
-                                    ]
-                                , Element.row
-                                    [ Element.Font.size (14 |> changeForMobile 10 dProfile)
-                                    , Element.spacing 5
-                                    ]
-                                    [ Element.Input.checkbox [ Element.alignTop ]
-                                        { onChange = DonationCheckboxSet
-                                        , icon = Element.Input.defaultCheckbox
-                                        , checked = model.donateChecked
-                                        , label = Element.Input.labelHidden "Donate an extra 1% to Foundry"
-                                        }
-                                    , Element.column
-                                        [ Element.spacing 5 ]
-                                        [ Element.row []
-                                            [ Element.text "Donate an extra 1% to "
-                                            , Element.newTabLink
-                                                [ Element.Font.color defaultTheme.linkTextColor ]
-                                                { url = "https://foundrydao.com/"
-                                                , label = Element.text "Foundry"
-                                                }
-                                            ]
-                                        , Element.text "so we can build more cool stuff!"
-                                        ]
-                                    ]
-                                ]
+                    ]
+                ]
 
 
 inputErrorEl : DisplayProfile -> Maybe (List (Element Msg)) -> Element Msg
@@ -438,34 +418,8 @@ inputErrorEl dProfile els =
                 (els |> Maybe.withDefault [ Element.text " " ])
 
 
-unlockButton : EH.DisplayProfile -> List (Attribute Msg) -> Element Msg
-unlockButton dProfile attrs =
-    defaultTheme.emphasizedActionButton
-        dProfile
-        attrs
-        [ "Unlock Dai" ]
-        (MsgUp UnlockDai)
-
-
-burnAmountInput : DisplayProfile -> String -> Element Msg
-burnAmountInput dProfile daiInput =
-    Element.row []
-        [ Element.Input.text
-            [ Element.width <| Element.px (100 |> changeForMobile 60 dProfile)
-            , Element.height <| Element.px (40 |> changeForMobile 35 dProfile)
-            , Element.Font.size (20 |> changeForMobile 14 dProfile)
-            , Element.Background.color <| Element.rgba 1 1 1 0.4
-            ]
-            { onChange = DaiInputChanged
-            , text = daiInput
-            , placeholder = Nothing
-            , label = Element.Input.labelHidden "amount to burn"
-            }
-        ]
-
-
-goButtonAndMaybeError : EH.DisplayProfile -> UserInfo -> Model -> ( Element Msg, Maybe (List (Element Msg)) )
-goButtonAndMaybeError dProfile userInfo model =
+goButtonAndMaybeError : EH.DisplayProfile -> Bool -> UserInfo -> Model -> ( Element Msg, Maybe (List (Element Msg)) )
+goButtonAndMaybeError dProfile donateChecked userInfo model =
     case userInfo.balance of
         Just balance ->
             if TokenValue.isZero balance then
@@ -484,11 +438,11 @@ goButtonAndMaybeError dProfile userInfo model =
                 )
 
             else
-                case userInfo.daiUnlocked of
-                    Just True ->
+                case userInfo.unlockStatus of
+                    Unlocked ->
                         let
                             validateResults =
-                                validateInputs model
+                                validateInputs donateChecked model
                         in
                         case validateResults.burnAndDonateAmount of
                             Just (Ok ( burnAmount, donateAmount )) ->
@@ -520,8 +474,8 @@ goButtonAndMaybeError dProfile userInfo model =
                                             else
                                                 model.renderedPreview
                                     in
-                                    case (validateResults.message, maybeUpToDateRender) of
-                                        (Just message, Just rendered) ->
+                                    case ( validateResults.message, maybeUpToDateRender ) of
+                                        ( Just message, Just rendered ) ->
                                             ( maybeGoButton dProfile <|
                                                 Just <|
                                                     Post.Draft
@@ -595,8 +549,3 @@ goBackButton dProfile =
         (commonActionButtonStyles dProfile)
         [ "Edit" ]
         MobilePreviewToggle
-
-
-mapNever : Element Never -> Element Msg
-mapNever =
-    Element.map (always <| MsgUp NoOp)

@@ -26,6 +26,8 @@ type alias Theme msg =
     , appStatusTextColor : Color
     , daiBurnedBackground : Color
     , daiBurnedTextIsWhite : Bool
+    , daiTippedBackground : Color
+    , daiTippedTextIsWhite : Bool
     , emphasizedActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
     , secondaryActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
     , disabledActionButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Element msg
@@ -57,6 +59,8 @@ basicTheme =
     , appStatusTextColor = darkGray
     , daiBurnedBackground = lightRed
     , daiBurnedTextIsWhite = False
+    , daiTippedBackground = lightGreen
+    , daiTippedTextIsWhite = False
     , emphasizedActionButton = redButton
     , secondaryActionButton = blueButton
     , disabledActionButton = disabledButton
@@ -96,6 +100,7 @@ blue =
 darkBlue =
     Element.rgb255 7 27 92
 
+
 darkerBlue =
     Element.rgb255 7 20 60
 
@@ -114,6 +119,10 @@ almostWhite =
 
 lightRed =
     Element.rgb 1 0.8 0.8
+
+
+lightGreen =
+    Element.rgb 0.8 1 0.8
 
 
 veryDarkGray =

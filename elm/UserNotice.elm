@@ -200,7 +200,7 @@ routeNotFound =
 
 debugMsg : String -> UserNotice
 debugMsg s =
-    { uniqueLabel = "debug"
+    { uniqueLabel = "debug" ++ s
     , noticeType = Caution
     , mainParagraphs =
         [ [ Element.text <| "debug: " ++ s ] ]

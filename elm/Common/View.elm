@@ -7,6 +7,7 @@ import Element.Background
 import Element.Border
 import Element.Events
 import Element.Font
+import Element.Input
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
@@ -34,17 +35,17 @@ shortenedHash hash =
             ++ String.right 4 hashStr
 
 
-web3ConnectButton : EH.DisplayProfile -> List (Attribute MsgUp) -> Element MsgUp
-web3ConnectButton dProfile attrs =
+web3ConnectButton : EH.DisplayProfile -> List (Attribute msg) -> (MsgUp -> msg) -> Element msg
+web3ConnectButton dProfile attrs msgMapper =
     defaultTheme.emphasizedActionButton
         dProfile
         attrs
         [ "Connect to Wallet" ]
-        ConnectToWeb3
+        (msgMapper ConnectToWeb3)
 
 
-phaceElement : Bool -> PhaceIconId -> Address -> Bool -> Element MsgUp
-phaceElement addressHangToRight phaceId fromAddress showAddress =
+phaceElement : Bool -> Address -> Bool -> msg -> msg -> Element msg
+phaceElement addressHangToRight fromAddress showAddress onClick noOpMsg =
     let
         addressOutputEl () =
             -- delay processing because addressToChecksumString is expensive!
@@ -60,7 +61,7 @@ phaceElement addressHangToRight phaceId fromAddress showAddress =
                 , EH.moveToFront
                 , Element.Border.width 2
                 , Element.Border.color EH.black
-                , EH.onClickNoPropagation NoOp
+                , EH.onClickNoPropagation noOpMsg
                 ]
                 (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
     in
@@ -78,7 +79,7 @@ phaceElement addressHangToRight phaceId fromAddress showAddress =
             [ Element.Border.rounded 10
             , Element.clip
             , Element.pointer
-            , EH.onClickNoPropagation (ShowOrHideAddress phaceId)
+            , EH.onClickNoPropagation onClick
             , Element.Border.width 2
             , Element.Border.color EH.black
             ]
@@ -97,53 +98,6 @@ loadingElement attrs maybeString =
             ++ attrs
         )
         (Element.text <| Maybe.withDefault "loading..." maybeString)
-
-
-walletUX : EH.DisplayProfile -> Bool -> WalletUXPhaceInfo -> Element MsgUp
-walletUX dProfile addressHangToRight walletUXPhaceInfo =
-    case walletUXPhaceInfo of
-        DemoPhaceInfo demoAddress ->
-            Element.column
-                [ Element.spacing 5 ]
-                [ Element.el
-                    [ Element.inFront <|
-                        Element.el
-                            [ Element.width Element.fill
-                            , Element.height Element.fill
-                            , Element.Background.color <| Element.rgba 0 0 0 0.4
-                            , Element.Border.rounded 10
-                            , Element.pointer
-                            , Element.Events.onClick <|
-                                ConnectToWeb3
-                            ]
-                        <|
-                            Element.el
-                                [ Element.alignBottom
-                                , Element.width Element.fill
-                                , Element.Background.color <| Element.rgba 0 0 0 0.4
-                                , Element.Font.color EH.white
-                                , Element.Font.bold
-                                , Element.Font.size 14
-                                ]
-                            <|
-                                Element.text "Connect Wallet"
-                    ]
-                  <|
-                    phaceElement
-                        addressHangToRight
-                        MorphingPhace
-                        (Eth.Utils.unsafeToAddress demoAddress)
-                        False
-                ]
-
-        -- Element.el commonAttributes <|
-        UserPhaceInfo ( accountInfo, showAddress ) ->
-            Element.el [] <|
-                phaceElement
-                    addressHangToRight
-                    UserPhace
-                    accountInfo.address
-                    showAddress
 
 
 emphasizedText : String -> Element msg
@@ -366,3 +320,58 @@ renderContentOrError content =
                 Element.text <|
                     "Error parsing/rendering markdown: "
                         ++ errStr
+
+
+unlockUXOr : DisplayProfile -> List (Attribute msg) -> UnlockStatus -> (MsgUp -> msg) -> Element msg -> Element msg
+unlockUXOr dProfile attributes unlockStatus msgMapper el =
+    case unlockStatus of
+        NotConnected ->
+            web3ConnectButton
+                dProfile
+                attributes
+                msgMapper
+
+        Checking ->
+            loadingElement
+                attributes
+            <|
+                Just "Checking DAI lock..."
+
+        Locked ->
+            unlockButton
+                dProfile
+                attributes
+                msgMapper
+
+        Unlocking ->
+            loadingElement
+                attributes
+            <|
+                Just "Unlocking DAI..."
+
+        Unlocked ->
+            Element.el attributes el
+
+
+unlockButton : EH.DisplayProfile -> List (Attribute msg) -> (MsgUp -> msg) -> Element msg
+unlockButton dProfile attrs msgMapper =
+    defaultTheme.emphasizedActionButton
+        dProfile
+        attrs
+        [ "Unlock Dai" ]
+        (msgMapper UnlockDai)
+
+
+daiAmountInput : DisplayProfile -> List (Attribute msg) -> String -> (String -> msg) -> Element msg
+daiAmountInput dProfile attributes currentInput onChange =
+    Element.Input.text
+        [ Element.width <| Element.px (100 |> changeForMobile 60 dProfile)
+        , Element.height <| Element.px (40 |> changeForMobile 35 dProfile)
+        , Element.Font.size (20 |> changeForMobile 14 dProfile)
+        , Element.Background.color <| Element.rgba 1 1 1 0.4
+        ]
+        { onChange = onChange
+        , text = currentInput
+        , placeholder = Nothing
+        , label = Element.Input.labelHidden "dai amount"
+        }
