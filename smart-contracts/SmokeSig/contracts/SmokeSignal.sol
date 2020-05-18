@@ -21,14 +21,14 @@ struct StoredMessageData
 
 contract SmokeSignal 
 {
-    address public donationAddress;
+    address public fryBurner;
     EthPriceOracle public oracle;
     mapping (bytes32 => StoredMessageData) public storedMessageData;
 
-    constructor(address _donationAddress, EthPriceOracle _oracle) 
+    constructor(address _fryBurner, EthPriceOracle _oracle) 
         public 
     {
-        donationAddress = _donationAddress;
+        fryBurner = _fryBurner;
         oracle = _oracle;
     }
 
@@ -46,18 +46,15 @@ contract SmokeSignal
         uint _burnAmount,
         string _message);
 
-    function burnMessage(string calldata _message, uint _donateAmount)
+    function burnMessage(string calldata _message, bool _burnFry)
         external
         payable
         returns(bytes32)
     {
-        internalDonateIfNonzero(_donateAmount);
-
         bytes32 hash = keccak256(abi.encode(_message));
 
-        uint burnAmount = msg.value - _donateAmount;
-        uint burnValue = EthPrice() * burnAmount;
-        internalBurnForMessageHash(hash, burnAmount, burnValue);
+        uint burnValue = EthPrice() * msg.value;
+        internalBurnForMessageHash(hash, msg.value, burnValue, _burnFry);
 
         if (storedMessageData[hash].firstAuthor == address(0))
         {
@@ -79,15 +76,12 @@ contract SmokeSignal
         uint _burnAmount
     );
 
-    function burnHash(bytes32 _hash, uint _donateAmount)
+    function burnHash(bytes32 _hash, bool _burnFry)
         external
         payable
-    {        
-        internalDonateIfNonzero(_donateAmount);
-
-        uint burnAmount = msg.value - _donateAmount;
-        uint burnValue = EthPrice() * burnAmount;
-        internalBurnForMessageHash(_hash, burnAmount, burnValue);
+    {
+        uint burnValue = EthPrice() * msg.value;
+        internalBurnForMessageHash(_hash, msg.value, burnValue, _burnFry);
 
         emit HashBurn(
             _hash,
@@ -100,18 +94,16 @@ contract SmokeSignal
         address indexed _from,
         uint _tipAmount);
 
-    function tipHashOrBurnIfNoAuthor(bytes32 _hash, uint _donateAmount)
+    function tipHashOrBurnIfNoAuthor(bytes32 _hash, bool _burnFry)
         external
         payable
     {
-        uint burnAmount = msg.value - _donateAmount;
-        uint burnValue = EthPrice() * burnAmount;
-        internalDonateIfNonzero(_donateAmount);
+        uint burnValue = EthPrice() * msg.value;
         
         address author = storedMessageData[_hash].firstAuthor;
         if (author == address(0))
         {
-            internalBurnForMessageHash(_hash, burnAmount, burnValue);
+            internalBurnForMessageHash(_hash, msg.value, burnValue, _burnFry);
 
             emit HashBurn(
                 _hash,
@@ -120,7 +112,7 @@ contract SmokeSignal
         }
         else 
         {
-            internalTipForMessageHash(_hash, author, burnAmount, burnValue);
+            internalTipForMessageHash(_hash, author, msg.value, burnValue);
 
             emit HashTip(
                 _hash,
@@ -129,10 +121,10 @@ contract SmokeSignal
         }
     }
 
-    function internalBurnForMessageHash(bytes32 _hash, uint _burnAmount, uint _burnValue)
+    function internalBurnForMessageHash(bytes32 _hash, uint _burnAmount, uint _burnValue, bool _burnFry)
         internal
     {
-        internalSend(address(0), _burnAmount);
+        internalSend(_burnFry ? fryBurner : address(0), _burnAmount);
         storedMessageData[_hash].nativeBurned += _burnAmount;
         storedMessageData[_hash].dollarsBurned += _burnValue;
     }
@@ -145,15 +137,6 @@ contract SmokeSignal
         storedMessageData[_hash].dollarsTipped += _tipValue;
     }
 
-    function internalDonateIfNonzero(uint _donateAmount)
-        internal
-    {
-        if (_donateAmount > 0) 
-        {
-            internalSend(donationAddress, _donateAmount);
-        }
-    }
-
     function internalSend(address _to, uint _wei)
         internal
     {
@@ -163,14 +146,14 @@ contract SmokeSignal
 
 contract SmokeSignal_Ethereum is SmokeSignal
 {
-    constructor(address _donationAddress) SmokeSignal(_donationAddress, EthPriceOracle(0x729D19f657BD0614b4985Cf1D82531c67569197B))
+    constructor(address _fryBurner) SmokeSignal(_fryBurner, EthPriceOracle(0x729D19f657BD0614b4985Cf1D82531c67569197B))
         public 
     { }
 }
 
 contract SmokeSignal_xDai is SmokeSignal
 {
-    constructor(address _donationAddress) SmokeSignal(_donationAddress, EthPriceOracle(address(0)))
+    constructor(address _fryBurner) SmokeSignal(_fryBurner, EthPriceOracle(address(0)))
         public 
     { }
 }
