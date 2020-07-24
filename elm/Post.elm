@@ -41,6 +41,35 @@ type alias Draft =
     }
 
 
+type alias Core =
+    { author : Address
+    , authorBurn : TokenValue
+    , message : String
+    , metadata : Metadata
+    , renderedPost : Element Never
+    }
+
+
+type alias EncodedDraft =
+    { author : Address
+    , encodedMessageAndMetadata : String
+    , burnAmount : TokenValue
+    , donateAmount : TokenValue
+    }
+
+
+type alias Metadata =
+    { metadataVersion : Int
+    , context : Context
+    , maybeDecodeError : Maybe String
+    }
+
+
+type Context
+    = ForPost Id
+    | ForTopic String
+
+
 getCore : Post -> Core
 getCore post =
     case post of
@@ -79,35 +108,6 @@ totalTipped post =
 
         _ ->
             TokenValue.zero
-
-
-type alias Core =
-    { author : Address
-    , authorBurn : TokenValue
-    , message : String
-    , metadata : Metadata
-    , renderedPost : Element Never
-    }
-
-
-type alias EncodedDraft =
-    { author : Address
-    , encodedMessageAndMetadata : String
-    , burnAmount : TokenValue
-    , donateAmount : TokenValue
-    }
-
-
-type alias Metadata =
-    { metadataVersion : Int
-    , context : Context
-    , maybeDecodeError : Maybe String
-    }
-
-
-type Context
-    = ForPost Id
-    | ForTopic String
 
 
 buildMetadataFromContext : Context -> Metadata
