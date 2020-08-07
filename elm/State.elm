@@ -231,7 +231,7 @@ update msg prevModel =
                     ( { prevModel
                         | wallet = newWallet
                       }
-                    , Cmd.none
+                    , cmd
                     )
 
                 Err errStr ->
