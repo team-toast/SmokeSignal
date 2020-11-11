@@ -144,7 +144,7 @@ infoBlock dProfile =
               , Element.text ") or a SmokeSignal mirror ("
               , Element.newTabLink
                     [ Element.Font.color defaultTheme.linkTextColor ]
-                    { url = "https://foundrydao.com/smokesignal/app/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
+                    { url = "https://foundrydao.com/smokesignal/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
                     , label = Element.text "example"
                     }
               , Element.text ")."
