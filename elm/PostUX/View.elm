@@ -14,7 +14,7 @@ import Element.Input
 import Element.Lazy
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
+import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Eth as EthHelpers
 import List.Extra
 import Maybe.Extra
@@ -64,7 +64,7 @@ view dProfile donateChecked showContext post wallet maybeUXModel =
             , Element.clipX
             ]
             [ Element.row
-                [ Element.width Element.fill 
+                [ Element.width Element.fill
                 , Element.spacing 5
                 ]
                 [ viewDaiBurned post
@@ -163,8 +163,9 @@ burnSummaryString post =
                 ""
 
             else
-                ", Crowd burned $" ++ (crowdBurned |> TokenValue.toConciseString)
-                ++ " in support"
+                ", Crowd burned $"
+                    ++ (crowdBurned |> TokenValue.toConciseString)
+                    ++ " in support"
            )
 
 
