@@ -179,15 +179,15 @@ infoBlock dProfile =
                     { url = "https://gateway.ipfs.io/ipfs/QmeXhVyRJYhtpRcQr4uYsJZi6wBYqyEwdjPRjp3EFCtLHQ/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
                     , label = Element.text "example"
                     }
-              , Element.text ") or a SmokeSignal mirror ("
+              , Element.text ") or the smokesignal.eth.link mirror ("
               , Element.newTabLink
                     [ Element.Font.color defaultTheme.linkTextColor ]
-                    { url = "https://foundrydao.com/smokesignal/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
+                    { url = "https://smokesignal.eth.link/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
                     , label = Element.text "example"
                     }
               , Element.text ")."
               ]
-            , [ Element.text "Some browsers also support smokesignal.eth links ("
+            , [ Element.text "If the above two methods prove unreliable, some browsers also support direct smokesignal.eth links ("
               , Element.newTabLink
                     [ Element.Font.color defaultTheme.linkTextColor ]
                     { url = "https://smokesignal.eth/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"

@@ -336,14 +336,28 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
 
             Desktop ->
                 logoBlock dProfile
-        , Element.el
+        , Element.column
             [ Element.centerY
             , Element.alignRight
+            , Element.spacing 5
             ]
-          <|
-            EH.forgedByFoundry dProfile
+            [ getInvolvedButton dProfile
+            ]
         ]
 
+getInvolvedButton : DisplayProfile -> Element Msg
+getInvolvedButton dProfile =
+    Element.newTabLink
+        [ Element.padding 10
+        , Element.Border.rounded 5
+        , Element.Background.color <| Element.rgb 1 0 0 
+        , Element.Font.color EH.white
+        , Element.Font.medium
+        ]
+        { url = "https://foundrydao.com"
+        , label = 
+            Element.text "Support Radical Freedom"
+        }
 
 logoBlock : EH.DisplayProfile -> Element Msg
 logoBlock dProfile =
