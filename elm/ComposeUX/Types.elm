@@ -14,7 +14,7 @@ import Wallet exposing (Wallet)
 type alias Model =
     { now : Time.Posix
     , context : Post.Context
-    , message : String
+    , content : Post.Content
     , daiInput : String
     , showPreviewOnMobile : Bool
     , lastInputChangedTime : Time.Posix
@@ -25,7 +25,7 @@ type alias Model =
 
 type Msg
     = MsgUp MsgUp
-    | MessageInputChanged String
+    | BodyInputChanged String
     | DaiInputChanged String
     | MobilePreviewToggle
     | Tick Time.Posix
@@ -43,9 +43,18 @@ updateContext context m =
     { m | context = context }
 
 
-updateMessage : String -> Model -> Model
-updateMessage message m =
-    { m | message = message }
+updateBody : String -> Model -> Model
+updateBody body m =
+    let
+        prevContent =
+            m.content
+    in
+    { m
+        | content =
+            { prevContent
+                | body = body
+            }
+    }
 
 
 updateDaiInput : String -> Model -> Model
@@ -53,22 +62,20 @@ updateDaiInput input m =
     { m | daiInput = input }
 
 
-
-
 type alias CheckedMaybeValidInputs =
-    { message : Maybe String
+    { content : Maybe Post.Content
     , burnAndDonateAmount : Maybe (Result String ( TokenValue, TokenValue ))
     }
 
 
 validateInputs : Bool -> Model -> CheckedMaybeValidInputs
 validateInputs donateChecked composeModel =
-    { message =
-        if composeModel.message == "" then
+    { content =
+        if composeModel.content.body == "" then
             Nothing
 
         else
-            Just composeModel.message
+            Just composeModel.content
     , burnAndDonateAmount =
         validateBurnAmount composeModel.daiInput
             |> Maybe.map

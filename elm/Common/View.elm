@@ -222,10 +222,10 @@ viewMetadataDecodeError error =
 viewContext : Post.Context -> Element MsgUp
 viewContext context =
     case context of
-        Post.ForPost postId ->
+        Post.Reply postId ->
             viewReplyInfo postId
 
-        Post.ForTopic topic ->
+        Post.TopLevel topic ->
             viewTopic topic
 
 
@@ -249,7 +249,7 @@ viewTopic topic =
             , Element.Events.onClick <|
                 GotoRoute <|
                     Routing.ViewContext <|
-                        Post.ForTopic topic
+                        Post.TopLevel topic
             ]
             (Element.text topic)
         ]
@@ -275,7 +275,7 @@ viewReplyInfo postId =
                 , Element.Events.onClick <|
                     GotoRoute <|
                         Routing.ViewContext <|
-                            Post.ForPost postId
+                            Post.Reply postId
                 ]
                 (Element.text <|
                     shortenedHash postId.messageHash
@@ -296,7 +296,7 @@ maxContentColWidth =
     1000
 
 
-renderContentOrError : String -> Element msg
+renderContentOrError : Post.Content -> Element msg
 renderContentOrError content =
     let
         renderResult =
@@ -305,7 +305,7 @@ renderContentOrError content =
                 , Element.Font.color defaultTheme.postBodyTextColor
                 , Element.width Element.fill
                 ]
-                content
+                content.body
     in
     case renderResult of
         Ok rendered ->

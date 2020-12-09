@@ -180,7 +180,7 @@ viewPostLinks postId =
     let
         route =
             Routing.ViewContext <|
-                Post.ForPost postId
+                Post.Reply postId
     in
     Element.row
         [ Element.alignBottom
@@ -213,7 +213,7 @@ viewPostLinks postId =
             { url =
                 Routing.routeToFullDotEthUrlString <|
                     Routing.ViewContext <|
-                        Post.ForPost postId
+                        Post.Reply postId
             , label = Element.text "(.eth permalink)"
             }
         ]
@@ -342,7 +342,7 @@ replyButton : Post.Id -> Element Msg
 replyButton postId =
     publishedPostActionButton
         [ EH.withTitle "Reply" ]
-        (MsgUp <| Common.Msg.StartInlineCompose <| Post.ForPost postId)
+        (MsgUp <| Common.Msg.StartInlineCompose <| Post.Reply postId)
     <|
         Element.image
             [ Element.width Element.fill ]

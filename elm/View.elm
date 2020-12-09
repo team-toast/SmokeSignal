@@ -93,7 +93,7 @@ modals model =
 
                     _ ->
                         (model.showHalfComposeUX == False)
-                            && (model.composeUXModel.message /= "")
+                            && (not <| Post.contentIsEmpty model.composeUXModel.content)
            in
            if showDraftInProgressButton then
             Just <|
@@ -172,7 +172,7 @@ body model =
 
             ViewContext context ->
                 case context of
-                    Post.ForPost postId ->
+                    Post.Reply postId ->
                         case getPublishedPostFromId model.publishedPosts postId of
                             Just post ->
                                 Element.column
@@ -201,7 +201,7 @@ body model =
                                     defaultTheme.appStatusTextColor
                                     "Loading post..."
 
-                    Post.ForTopic topic ->
+                    Post.TopLevel topic ->
                         Element.column
                             [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
                             , Element.centerX
@@ -448,7 +448,7 @@ viewTrackedTxRow trackedTx =
                                 MsgUp <|
                                     GotoRoute <|
                                         Routing.ViewContext <|
-                                            Post.ForPost postId
+                                            Post.Reply postId
                             ]
                             (Element.text "Post")
                         ]
@@ -464,7 +464,7 @@ viewTrackedTxRow trackedTx =
                                 MsgUp <|
                                     GotoRoute <|
                                         Routing.ViewContext <|
-                                            Post.ForPost postId
+                                            Post.Reply postId
                             ]
                             (Element.text "Post")
                         ]
@@ -503,7 +503,7 @@ viewTrackedTxRow trackedTx =
                                     Element.el
                                         [ Element.Font.color defaultTheme.linkTextColor
                                         , Element.pointer
-                                        , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.ViewContext <| Post.ForPost postId
+                                        , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.ViewContext <| Post.Reply postId
                                         ]
                                         (Element.text "Published")
 
@@ -760,7 +760,7 @@ viewPostsForTopic dProfile donateChecked wallet allPosts blockTimes replies uxMo
             allPosts
                 |> filterPosts
                     (\publishedPost ->
-                        publishedPost.core.metadata.context == Post.ForTopic topic
+                        publishedPost.core.metadata.context == Post.TopLevel topic
                     )
     in
     Element.column
@@ -809,7 +809,7 @@ viewTopicHeader dProfile maybeUserInfo topic =
                     (MsgUp <|
                         GotoRoute <|
                             Routing.Compose <|
-                                Post.ForTopic topic
+                                Post.TopLevel topic
                     )
 
             Nothing ->
@@ -937,7 +937,7 @@ viewNumRepliesIfNonzero postId numReplies =
                 MsgUp <|
                     Common.Msg.GotoRoute <|
                         Routing.ViewContext <|
-                            Post.ForPost postId
+                            Post.Reply postId
             , Element.Font.italic
             , Element.paddingXY 20 10
             ]

@@ -296,7 +296,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
                         (MsgUp <|
                             GotoRoute <|
                                 Routing.Compose <|
-                                    Post.ForTopic "noob-ramblings-plz-ignore"
+                                    Post.TopLevel "noob-ramblings-plz-ignore"
                         )
                     ]
         ]
@@ -311,7 +311,7 @@ moreInfoButton dProfile =
         (MsgUp <|
             GotoRoute <|
                 Routing.ViewContext <|
-                    Post.ForPost <|
+                    Post.Reply <|
                         Config.moreInfoPostId
         )
 
@@ -397,10 +397,10 @@ topicsColumn dProfile topicSearchStr allPosts =
                 findTopic : Post.Published -> Maybe String
                 findTopic publishedPost =
                     case publishedPost.core.metadata.context of
-                        Post.ForTopic topic ->
+                        Post.TopLevel topic ->
                             Just topic
 
-                        Post.ForPost postId ->
+                        Post.Reply postId ->
                             getPublishedPostFromId allPosts postId
                                 |> Maybe.andThen findTopic
             in
@@ -465,7 +465,7 @@ topicsColumn dProfile topicSearchStr allPosts =
                                    , Element.Events.onClick <|
                                         GotoRoute <|
                                             Routing.ViewContext <|
-                                                Post.ForTopic topic
+                                                Post.TopLevel topic
                                    ]
                             )
                             [ Element.el
@@ -521,7 +521,7 @@ topicsColumn dProfile topicSearchStr allPosts =
                                , Element.Events.onClick <|
                                     GotoRoute <|
                                         Routing.Compose <|
-                                            Post.ForTopic topicSearchStr
+                                            Post.TopLevel topicSearchStr
                                ]
                         )
                     <|

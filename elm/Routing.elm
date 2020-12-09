@@ -64,20 +64,20 @@ contextParser : Parser (Result String Post.Context -> a) a
 contextParser =
     Parser.oneOf
         [ (Parser.s "re" <?> postIdQueryParser)
-            |> Parser.map (Result.map Post.ForPost)
+            |> Parser.map (Result.map Post.Reply)
         , (Parser.s "topic" </> topicParser)
             |> Parser.map (Result.fromMaybe "Couldn't parse topic")
-            |> Parser.map (Result.map Post.ForTopic)
+            |> Parser.map (Result.map Post.TopLevel)
         ]
 
 
 encodeContextPaths : Post.Context -> List String
 encodeContextPaths context =
     case context of
-        Post.ForPost _ ->
+        Post.Reply _ ->
             [ "re" ]
 
-        Post.ForTopic topic ->
+        Post.TopLevel topic ->
             [ "topic", encodeTopic topic ]
 
 
@@ -95,10 +95,10 @@ topicParser =
 encodeContextQueryParams : Post.Context -> List Builder.QueryParameter
 encodeContextQueryParams context =
     case context of
-        Post.ForPost postId ->
+        Post.Reply postId ->
             encodePostIdQueryParameters postId
 
-        Post.ForTopic _ ->
+        Post.TopLevel _ ->
             []
 
 
