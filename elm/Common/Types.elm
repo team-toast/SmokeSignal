@@ -151,3 +151,10 @@ makeWalletUXPhaceInfo maybeUserInfo maybeShowAddressId demoPhaceSrc =
 
         Nothing ->
             DemoPhaceInfo demoPhaceSrc
+
+type alias GTagData =
+    { event : String
+    , category : String
+    , label : String
+    , value : Int
+    }

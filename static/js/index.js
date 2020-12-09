@@ -34,8 +34,11 @@ function startDapp() {
                     width: window.innerWidth,
                     height: window.innerHeight,
                     nowInMillis: Date.now(),
+                    cookieConsent: getCookieConsent(),
                 }
             });
+            
+            analyticsGtagPortStuff(app);
 
             web3PortStuff(app, web3);
         });
@@ -48,11 +51,36 @@ function startDapp() {
                 width: window.innerWidth,
                 height: window.innerHeight,
                 nowInMillis: Date.now(),
+                cookieConsent: getCookieConsent(),
             }
         });
 
+        analyticsGtagPortStuff(app);
+
         console.log("Web3 wallet not detected.");
     }
+}
+
+function analyticsGtagPortStuff(elmApp) {
+    console.log(elmApp.ports);
+    elmApp.ports.gTagOut.subscribe(function (data) {
+        gtag('event', data.event, {
+            'event_category': data.category,
+            'event_label': data.label,
+            'value': data.value
+        });
+    });
+
+    elmApp.ports.consentToCookies.subscribe(function() {
+        setCookieConsent();
+    });
+}
+
+function getCookieConsent() {
+    return Boolean(window.localStorage.getItem('cookie-consent'))
+}
+function setCookieConsent() {
+    window.localStorage.setItem('cookie-consent', true)
 }
 
 function web3PortStuff(app, web3) {

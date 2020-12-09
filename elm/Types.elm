@@ -34,6 +34,7 @@ type alias Flags =
     , width : Int
     , height : Int
     , nowInMillis : Int
+    , cookieConsent : Bool
     }
 
 
@@ -60,6 +61,7 @@ type alias Model =
     , draftModal : Maybe Post.Draft
     , demoPhaceSrc : String
     , donateChecked : Bool
+    , cookieConsentGranted : Bool
     }
 
 
@@ -96,6 +98,7 @@ type Msg
     | HomeMsg Home.Msg
     | AllowanceFetched Address (Result Http.Error TokenValue)
     | BalanceFetched Address (Result Http.Error TokenValue)
+    | CookieConsentGranted
     | MsgUp MsgUp
 
 

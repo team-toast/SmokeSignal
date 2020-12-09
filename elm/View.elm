@@ -41,6 +41,7 @@ import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import Wallet exposing (Wallet)
+import Theme
 
 
 root : Model -> Browser.Document Msg
@@ -65,34 +66,7 @@ modals model =
     Maybe.Extra.values
         ([ if model.mode /= Compose && model.showHalfComposeUX then
             Just <|
-                Element.column
-                    [ Element.height Element.fill
-                    , Element.width Element.fill
-                    , EH.visibility False
-                    ]
-                    [ Element.el
-                        [ Element.height Element.fill
-                        ]
-                        Element.none
-                    , Element.el
-                        [ EH.visibility True
-                        , Element.width Element.fill
-                        , Element.height Element.fill
-                        ]
-                        (Element.map ComposeUXMsg <|
-                            ComposeUX.view
-                                model.dProfile
-                                model.donateChecked
-                                model.wallet
-                                (makeWalletUXPhaceInfo
-                                    (Wallet.userInfo model.wallet)
-                                    model.showAddressId
-                                    model.demoPhaceSrc
-                                )
-                                model.showAddressId
-                                model.composeUXModel
-                        )
-                    ]
+                viewHalfComposeUX model
 
            else
             Nothing
@@ -137,86 +111,12 @@ modals model =
 
            else
             Nothing
-         , model.draftModal
-            |> Maybe.map
-                (\draft ->
-                    Element.el
-                        [ Element.centerX
-                        , Element.centerY
-                        , Element.Border.rounded 10
-                        , EH.onClickNoPropagation <| MsgUp NoOp
-                        , Element.padding (responsiveVal model.dProfile 20 10)
-                        , Element.Background.color defaultTheme.draftModalBackground
-                        , Element.Border.glow
-                            (Element.rgba 0 0 0 0.3)
-                            10
-                        , Element.inFront <|
-                            Element.row
-                                [ Element.alignRight
-                                , Element.alignTop
-                                , Element.spacing 20
-                                ]
-                                [ Element.el
-                                    [ Element.alignTop
-                                    , responsiveVal model.dProfile
-                                        (Element.paddingXY 40 20)
-                                        (Element.padding 20)
-                                    ]
-                                  <|
-                                    defaultTheme.secondaryActionButton
-                                        model.dProfile
-                                        [ Element.Border.glow
-                                            (Element.rgba 0 0 0 0.4)
-                                            5
-                                        ]
-                                        [ "Restore Draft" ]
-                                        (RestoreDraft draft)
-                                , Element.el
-                                    [ Element.alignTop
-                                    , Element.paddingXY 10 0
-                                    ]
-                                  <|
-                                    EH.closeButton
-                                        [ Element.Border.rounded 4
-                                        , Element.Background.color Theme.darkBlue
-                                        , Element.padding 3
-                                        ]
-                                        EH.white
-                                        (ViewDraft Nothing)
-                                ]
-                        ]
-                    <|
-                        Element.column
-                            [ Element.htmlAttribute <| Html.Attributes.style "height" "80vh"
-                            , Element.htmlAttribute <| Html.Attributes.style "width" "80vw"
-                            , Element.Events.onClick (ViewDraft Nothing)
-                            , Element.scrollbarY
-                            , Element.paddingEach
-                                { right = responsiveVal model.dProfile 20 10
-                                , left = 0
-                                , bottom = 0
-                                , top = 0
-                                }
-                            ]
-                        <|
-                            [ Element.map
-                                (PostUXMsg DraftPreview)
-                              <|
-                                PostUX.view
-                                    model.dProfile
-                                    model.donateChecked
-                                    True
-                                    (Post.PostDraft draft)
-                                    model.wallet
-                                    (case model.postUX of
-                                        Just ( DraftPreview, postUXModel ) ->
-                                            Just postUXModel
+         , maybeViewDraftModal model
+         , if not model.cookieConsentGranted then
+            Just <| viewCookieConsentModal model.dProfile
 
-                                        _ ->
-                                            Nothing
-                                    )
-                            ]
-                )
+           else
+            Nothing
          ]
             ++ List.map Just
                 (userNoticeEls
@@ -351,19 +251,21 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
             ]
         ]
 
+
 getInvolvedButton : DisplayProfile -> Element Msg
 getInvolvedButton dProfile =
     Element.newTabLink
         [ Element.padding 10
         , Element.Border.rounded 5
-        , Element.Background.color <| Element.rgb 1 0 0 
+        , Element.Background.color <| Element.rgb 1 0 0
         , Element.Font.color EH.white
         , Element.Font.medium
         ]
         { url = "https://foundrydao.com"
-        , label = 
+        , label =
             Element.text "Support Radical Freedom"
         }
+
 
 logoBlock : EH.DisplayProfile -> Element Msg
 logoBlock dProfile =
@@ -1048,3 +950,158 @@ viewNumRepliesIfNonzero postId numReplies =
                             " replies"
                        )
             )
+
+
+viewHalfComposeUX : Model -> Element Msg
+viewHalfComposeUX model =
+    Element.column
+        [ Element.height Element.fill
+        , Element.width Element.fill
+        , EH.visibility False
+        ]
+        [ Element.el
+            [ Element.height Element.fill
+            ]
+            Element.none
+        , Element.el
+            [ EH.visibility True
+            , Element.width Element.fill
+            , Element.height Element.fill
+            ]
+            (Element.map ComposeUXMsg <|
+                ComposeUX.view
+                    model.dProfile
+                    model.donateChecked
+                    model.wallet
+                    (makeWalletUXPhaceInfo
+                        (Wallet.userInfo model.wallet)
+                        model.showAddressId
+                        model.demoPhaceSrc
+                    )
+                    model.showAddressId
+                    model.composeUXModel
+            )
+        ]
+
+
+maybeViewDraftModal : Model -> Maybe (Element Msg)
+maybeViewDraftModal model =
+    model.draftModal
+        |> Maybe.map
+            (\draft ->
+                Element.el
+                    [ Element.centerX
+                    , Element.centerY
+                    , Element.Border.rounded 10
+                    , EH.onClickNoPropagation <| MsgUp NoOp
+                    , Element.padding (responsiveVal model.dProfile 20 10)
+                    , Element.Background.color defaultTheme.draftModalBackground
+                    , Element.Border.glow
+                        (Element.rgba 0 0 0 0.3)
+                        10
+                    , Element.inFront <|
+                        Element.row
+                            [ Element.alignRight
+                            , Element.alignTop
+                            , Element.spacing 20
+                            ]
+                            [ Element.el
+                                [ Element.alignTop
+                                , responsiveVal model.dProfile
+                                    (Element.paddingXY 40 20)
+                                    (Element.padding 20)
+                                ]
+                              <|
+                                defaultTheme.secondaryActionButton
+                                    model.dProfile
+                                    [ Element.Border.glow
+                                        (Element.rgba 0 0 0 0.4)
+                                        5
+                                    ]
+                                    [ "Restore Draft" ]
+                                    (RestoreDraft draft)
+                            , Element.el
+                                [ Element.alignTop
+                                , Element.paddingXY 10 0
+                                ]
+                              <|
+                                EH.closeButton
+                                    [ Element.Border.rounded 4
+                                    , Element.Background.color Theme.darkBlue
+                                    , Element.padding 3
+                                    ]
+                                    EH.white
+                                    (ViewDraft Nothing)
+                            ]
+                    ]
+                <|
+                    Element.column
+                        [ Element.htmlAttribute <| Html.Attributes.style "height" "80vh"
+                        , Element.htmlAttribute <| Html.Attributes.style "width" "80vw"
+                        , Element.Events.onClick (ViewDraft Nothing)
+                        , Element.scrollbarY
+                        , Element.paddingEach
+                            { right = responsiveVal model.dProfile 20 10
+                            , left = 0
+                            , bottom = 0
+                            , top = 0
+                            }
+                        ]
+                    <|
+                        [ Element.map
+                            (PostUXMsg DraftPreview)
+                          <|
+                            PostUX.view
+                                model.dProfile
+                                model.donateChecked
+                                True
+                                (Post.PostDraft draft)
+                                model.wallet
+                                (case model.postUX of
+                                    Just ( DraftPreview, postUXModel ) ->
+                                        Just postUXModel
+
+                                    _ ->
+                                        Nothing
+                                )
+                        ]
+            )
+
+
+viewCookieConsentModal : DisplayProfile -> Element Msg
+viewCookieConsentModal dProfile =
+    Element.row
+        [ Element.alignBottom
+        , Element.centerX
+        , Element.Border.roundEach
+            { topLeft = 5
+            , topRight = 5
+            , bottomLeft = 0
+            , bottomRight = 0
+            }
+        , Element.padding 15
+        , Element.spacing 15
+        , Element.Background.color <| Theme.darkBlue
+        , Element.Font.color EH.white
+        , Element.Border.glow
+            (Element.rgba 0 0 0 0.2)
+            10
+        ]
+        [ Element.paragraph
+            [ Element.width <| Element.px 800 ]
+            [ Element.text "Foundry products use cookies and analytics to track behavior patterns, to help zero in on effective marketing strategies. To avoid being tracked in this way, we recommend using the "
+            , Element.newTabLink
+                [ Element.Font.color Theme.blue ]
+                { url = "https://brave.com/"
+                , label = Element.text "Brave browser"
+                }
+            , Element.text " or installing the "
+            , Element.newTabLink
+                [Element.Font.color Theme.blue]
+                { url = "https://tools.google.com/dlpage/gaoptout"
+                , label = Element.text "Google Analytics Opt-Out browser addon"
+                }
+            , Element.text "."
+            ]
+        , Theme.blueButton dProfile [] ["Understood"] CookieConsentGranted
+        ]
