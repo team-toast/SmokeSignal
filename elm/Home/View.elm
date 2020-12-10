@@ -12,6 +12,8 @@ import Element.Border
 import Element.Events
 import Element.Font
 import Element.Input
+import Embed.Youtube
+import Embed.Youtube.Attributes
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Helpers.Tuple as TupleHelpers
@@ -42,7 +44,7 @@ view dProfile model walletUXPhaceInfo posts =
         <|
             case dProfile of
                 Desktop ->
-                    [ boldProclamationEl dProfile
+                    [ tutorialVideo dProfile
                     , Element.column
                         [ Element.width Element.fill
                         , Element.spacing 150
@@ -65,7 +67,7 @@ view dProfile model walletUXPhaceInfo posts =
                     ]
 
                 Mobile ->
-                    [ boldProclamationEl dProfile
+                    [ tutorialVideo dProfile
                     , infoBlock dProfile
                     , conversationAlreadyStartedEl dProfile
                     , topicsBlock dProfile model posts
@@ -74,34 +76,61 @@ view dProfile model walletUXPhaceInfo posts =
                     ]
 
 
-boldProclamationEl : DisplayProfile -> Element Msg
-boldProclamationEl dProfile =
-    Element.column
+tutorialVideo : DisplayProfile -> Element Msg
+tutorialVideo dProfile =
+    let
+        (width, height) =
+            responsiveVal dProfile
+                (654, 480)
+                (426,240)
+        html =
+            Embed.Youtube.fromString "pV70Q0wgnnU"
+                |> Embed.Youtube.attributes
+                    [ Embed.Youtube.Attributes.width width
+                    , Embed.Youtube.Attributes.height height
+                    ]
+                |> Embed.Youtube.toHtml
+    in
+    Element.el
         [ Element.centerX
-        , Element.Font.bold
-        , Element.spacing (responsiveVal dProfile 20 10)
+        , Element.paddingEach
+            { top = 20
+            , bottom = 0
+            , right = 0
+            , left = 0
+            }
         ]
-        [ coloredAppTitle
-            [ Element.Font.size (responsiveVal dProfile 80 60)
-            , Element.centerX
-            ]
-        , Element.el
-            [ Element.width Element.fill
-            , Element.paddingXY
-                (responsiveVal dProfile 40 15)
-                0
-            ]
-          <|
-            EH.thinHRuler <|
-                Element.rgb 1 0 0
-        , Element.el
-            [ Element.Font.size (responsiveVal dProfile 50 30)
-            , Element.centerX
-            , Element.Font.color Theme.almostWhite
-            ]
-          <|
-            Element.text "A Bunker for Free Speech"
-        ]
+        <| Element.html html
+    
+
+-- boldProclamationEl : DisplayProfile -> Element Msg
+-- boldProclamationEl dProfile =
+--     Element.column
+--         [ Element.centerX
+--         , Element.Font.bold
+--         , Element.spacing (responsiveVal dProfile 20 10)
+--         ]
+--         [ coloredAppTitle
+--             [ Element.Font.size (responsiveVal dProfile 80 60)
+--             , Element.centerX
+--             ]
+--         , Element.el
+--             [ Element.width Element.fill
+--             , Element.paddingXY
+--                 (responsiveVal dProfile 40 15)
+--                 0
+--             ]
+--           <|
+--             EH.thinHRuler <|
+--                 Element.rgb 1 0 0
+--         , Element.el
+--             [ Element.Font.size (responsiveVal dProfile 50 30)
+--             , Element.centerX
+--             , Element.Font.color Theme.almostWhite
+--             ]
+--           <|
+--             Element.text "A Bunker for Free Speech"
+--         ]
 
 
 infoBlock : DisplayProfile -> Element Msg
