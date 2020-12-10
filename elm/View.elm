@@ -41,7 +41,6 @@ import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import Wallet exposing (Wallet)
-import Theme
 
 
 root : Model -> Browser.Document Msg
@@ -50,6 +49,7 @@ root model =
     , body =
         [ Element.layout
             ([ Element.width Element.fill
+             , Element.clipX
              , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
              , Element.Events.onClick ClickHappened
              ]
@@ -260,6 +260,7 @@ getInvolvedButton dProfile =
         , Element.Background.color <| Element.rgb 1 0 0
         , Element.Font.color EH.white
         , Element.Font.medium
+        , Element.Font.size <| responsiveVal dProfile 20 12
         ]
         { url = "https://foundrydao.com"
         , label =
@@ -1072,7 +1073,7 @@ viewCookieConsentModal : DisplayProfile -> Element Msg
 viewCookieConsentModal dProfile =
     Element.row
         [ Element.alignBottom
-        , Element.centerX
+        , responsiveVal dProfile Element.centerX (Element.width Element.fill)
         , Element.Border.roundEach
             { topLeft = 5
             , topRight = 5
@@ -1088,7 +1089,9 @@ viewCookieConsentModal dProfile =
             10
         ]
         [ Element.paragraph
-            [ Element.width <| Element.px 800 ]
+            [ Element.width <| responsiveVal dProfile (Element.px 800) Element.fill
+            , Element.Font.size <| responsiveVal dProfile 20 12
+            ]
             [ Element.text "Foundry products use cookies and analytics to track behavior patterns, to help zero in on effective marketing strategies. To avoid being tracked in this way, we recommend using the "
             , Element.newTabLink
                 [ Element.Font.color Theme.blue ]
@@ -1097,11 +1100,11 @@ viewCookieConsentModal dProfile =
                 }
             , Element.text " or installing the "
             , Element.newTabLink
-                [Element.Font.color Theme.blue]
+                [ Element.Font.color Theme.blue ]
                 { url = "https://tools.google.com/dlpage/gaoptout"
                 , label = Element.text "Google Analytics Opt-Out browser addon"
                 }
             , Element.text "."
             ]
-        , Theme.blueButton dProfile [] ["Understood"] CookieConsentGranted
+        , Theme.blueButton dProfile [Element.alignTop] [ "Understood" ] CookieConsentGranted
         ]

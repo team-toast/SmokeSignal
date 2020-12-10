@@ -81,7 +81,7 @@ tutorialVideo dProfile =
     let
         (width, height) =
             responsiveVal dProfile
-                (654, 480)
+                (854, 480)
                 (426,240)
         html =
             Embed.Youtube.fromString "pV70Q0wgnnU"
