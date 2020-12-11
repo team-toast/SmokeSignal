@@ -97,7 +97,7 @@ modals model =
 
                     _ ->
                         (model.showHalfComposeUX == False)
-                            && (model.composeUXModel.message /= "")
+                            && (not <| Post.contentIsEmpty model.composeUXModel.content)
            in
            if showDraftInProgressButton then
             Just <|
@@ -172,7 +172,7 @@ body model =
 
             ViewContext context ->
                 case context of
-                    Post.ForPost postId ->
+                    Post.Reply postId ->
                         case getPublishedPostFromId model.publishedPosts postId of
                             Just post ->
                                 Element.column
@@ -201,7 +201,7 @@ body model =
                                     defaultTheme.appStatusTextColor
                                     "Loading post..."
 
-                    Post.ForTopic topic ->
+                    Post.TopLevel topic ->
                         Element.column
                             [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
                             , Element.centerX
@@ -453,7 +453,7 @@ viewTrackedTxRow trackedTx =
                                 MsgUp <|
                                     GotoRoute <|
                                         Routing.ViewContext <|
-                                            Post.ForPost postId
+                                            Post.Reply postId
                             ]
                             (Element.text "Post")
                         ]
@@ -469,7 +469,7 @@ viewTrackedTxRow trackedTx =
                                 MsgUp <|
                                     GotoRoute <|
                                         Routing.ViewContext <|
-                                            Post.ForPost postId
+                                            Post.Reply postId
                             ]
                             (Element.text "Post")
                         ]
@@ -508,7 +508,7 @@ viewTrackedTxRow trackedTx =
                                     Element.el
                                         [ Element.Font.color defaultTheme.linkTextColor
                                         , Element.pointer
-                                        , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.ViewContext <| Post.ForPost postId
+                                        , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.ViewContext <| Post.Reply postId
                                         ]
                                         (Element.text "Published")
 
@@ -766,6 +766,103 @@ viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies pub
         ]
 
 
+viewPostHeader : DisplayProfile -> Post.Published -> Element Msg
+viewPostHeader dProfile publishedPost =
+    Element.row
+        (subheaderAttributes dProfile
+            ++ [ Element.spacing 40
+               , Element.Font.center
+               , Element.centerX
+               ]
+        )
+        [ Element.el [ Element.Font.bold ] <| Element.text "Viewing Post"
+        , Element.column
+            [ Element.Font.size 16 ]
+            [ case dProfile of
+                Desktop ->
+                    Element.text <|
+                        "id: "
+                            ++ (publishedPost.id.messageHash |> Eth.Utils.hexToString)
+
+                Mobile ->
+                    Element.none
+            , Element.newTabLink
+                [ Element.Font.color defaultTheme.linkTextColorAgainstBackground ]
+                { url = EthHelpers.etherscanTxUrl publishedPost.txHash
+                , label = Element.text "View on etherscan"
+                }
+            ]
+        ]
+
+
+viewPostsForTopic : DisplayProfile -> Bool -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe ( PostUXId, PostUX.Model ) -> String -> Element Msg
+viewPostsForTopic dProfile donateChecked wallet allPosts blockTimes replies uxModel topic =
+    let
+        filteredPosts =
+            allPosts
+                |> filterPosts
+                    (\publishedPost ->
+                        publishedPost.core.metadata.context == Post.TopLevel topic
+                    )
+    in
+    Element.column
+        [ Element.width (Element.fill |> Element.maximum maxContentColWidth)
+        , Element.centerX
+        , Element.height Element.fill
+        , Element.padding 20
+        , Element.spacing 40
+        ]
+        [ if Dict.isEmpty filteredPosts then
+            appStatusMessage defaultTheme.appStatusTextColor <| "Haven't yet found any posts for this topic..."
+
+          else
+            Element.Lazy.lazy5
+                (viewPostsGroupedByBlock dProfile donateChecked wallet)
+                False
+                blockTimes
+                replies
+                filteredPosts
+                uxModel
+        ]
+
+
+viewTopicHeader : DisplayProfile -> Maybe UserInfo -> String -> Element Msg
+viewTopicHeader dProfile maybeUserInfo topic =
+    Element.column
+        (subheaderAttributes dProfile
+            ++ [ Element.spacing 10 ]
+        )
+        [ Element.row
+            []
+            [ Element.el [ Element.Font.bold ] <| Element.text "Viewing Topic "
+            , Element.el
+                [ Element.Font.bold
+                , Element.Font.italic
+                ]
+              <|
+                Element.text topic
+            ]
+        , case maybeUserInfo of
+            Just userInfo ->
+                defaultTheme.secondaryActionButton
+                    dProfile
+                    []
+                    [ "Post in Topic" ]
+                    (MsgUp <|
+                        GotoRoute <|
+                            Routing.Compose <|
+                                Post.TopLevel topic
+                    )
+
+            Nothing ->
+                defaultTheme.emphasizedActionButton
+                    dProfile
+                    [ Element.paddingXY 30 10 ]
+                    [ "Activate Wallet to Post" ]
+                    (MsgUp <| ConnectToWeb3)
+        ]
+
+
 viewPostsGroupedByBlock : DisplayProfile -> Bool -> Wallet -> Bool -> Dict Int Time.Posix -> List Reply -> PublishedPostsDict -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
 viewPostsGroupedByBlock dProfile donateChecked wallet showContext blockTimes replies publishedPosts postUX =
     Element.column
@@ -950,7 +1047,7 @@ viewNumRepliesIfNonzero postId numReplies =
                 MsgUp <|
                     Common.Msg.GotoRoute <|
                         Routing.ViewContext <|
-                            Post.ForPost postId
+                            Post.Reply postId
             , Element.Font.italic
             , Element.paddingXY 20 10
             ]

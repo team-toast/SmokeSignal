@@ -66,7 +66,7 @@ view dProfile donateChecked wallet walletUXPhaceInfo showAddressId model =
                     , Element.height Element.fill
                     , Element.spacing 10
                     ]
-                    [ viewInput dProfile model.message
+                    [ viewInput dProfile model.content
                     , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile donateChecked walletUXPhaceInfo model
                     ]
                 , viewPreviewWithPostContext dProfile Nothing model.renderedPreview model.context
@@ -99,10 +99,10 @@ view dProfile donateChecked wallet walletUXPhaceInfo showAddressId model =
                     ]
 
                  else
-                    [ viewInput dProfile model.message
+                    [ viewInput dProfile model.content
                     , viewPreviewButton
                         dProfile
-                        (model.message /= "")
+                        (model.content.body /= "")
                     ]
                 )
 
@@ -133,8 +133,8 @@ viewPreviewButton dProfile enabled =
             "Preview"
 
 
-viewInput : DisplayProfile -> String -> Element Msg
-viewInput dProfile input =
+viewInput : DisplayProfile -> Post.Content -> Element Msg
+viewInput dProfile content =
     EH.scrollbarYEl [] <|
         Element.Input.multiline
             ([ Element.width Element.fill
@@ -146,8 +146,8 @@ viewInput dProfile input =
                     []
                     [ Element.Font.size 18 ]
             )
-            { onChange = MessageInputChanged
-            , text = input
+            { onChange = BodyInputChanged
+            , text = content.body
             , placeholder = Just messageInputPlaceholder
             , label = Element.Input.labelHidden "messageInput"
             , spellcheck = True
@@ -155,7 +155,7 @@ viewInput dProfile input =
 
 
 viewPreviewWithPostContext : DisplayProfile -> Maybe ( Address, Bool ) -> Maybe (Element Never) -> Post.Context -> Element Msg
-viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedMessage context =
+viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedContent context =
     EH.scrollbarYEl [] <|
         Element.column
             [ Element.width Element.fill
@@ -186,7 +186,7 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedMessage context =
                     Element.map MsgUp <|
                         viewContext context
                 ]
-            , case renderedMessage of
+            , case renderedContent of
                 Nothing ->
                     appStatusMessage defaultTheme.appStatusTextColor "[Preview Box]"
 
@@ -233,7 +233,7 @@ viewReplyInfo postId =
                 MsgUp <|
                     GotoRoute <|
                         Routing.ViewContext <|
-                            Post.ForPost postId
+                            Post.Reply postId
             ]
             (Element.text <|
                 shortenedHash postId.messageHash
@@ -262,7 +262,7 @@ viewTopic topic =
                 MsgUp <|
                     GotoRoute <|
                         Routing.ViewContext <|
-                            Post.ForTopic topic
+                            Post.TopLevel topic
             ]
             (Element.text <| topic)
         ]
@@ -474,8 +474,8 @@ goButtonAndMaybeError dProfile donateChecked userInfo model =
                                             else
                                                 model.renderedPreview
                                     in
-                                    case ( validateResults.message, maybeUpToDateRender ) of
-                                        ( Just message, Just rendered ) ->
+                                    case ( validateResults.content, maybeUpToDateRender ) of
+                                        ( Just content, Just rendered ) ->
                                             ( maybeGoButton dProfile <|
                                                 Just <|
                                                     Post.Draft
@@ -483,7 +483,7 @@ goButtonAndMaybeError dProfile donateChecked userInfo model =
                                                         (Post.Core
                                                             userInfo.address
                                                             burnAmount
-                                                            message
+                                                            content
                                                             (Post.buildMetadataFromContext model.context)
                                                             rendered
                                                         )
