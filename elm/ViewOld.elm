@@ -1,4 +1,4 @@
-module View exposing (..)
+module ViewOld exposing (root)
 
 import Browser
 import Common.Msg exposing (..)
@@ -18,7 +18,7 @@ import Element.Lazy
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Helpers.Time as TimeHelpers
@@ -43,15 +43,12 @@ import UserNotice as UN exposing (UserNotice)
 import Wallet exposing (Wallet)
 
 
-root :
-    Model
-    -> Browser.Document Msg
+root : Model -> Browser.Document Msg
 root model =
     { title = "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
     , body =
         [ Element.layout
             ([ Element.width Element.fill
-             , Element.clipX
              , Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
              , Element.Events.onClick ClickHappened
              ]
@@ -63,14 +60,39 @@ root model =
     }
 
 
-modals :
-    Model
-    -> List (Element Msg)
+modals : Model -> List (Element Msg)
 modals model =
     Maybe.Extra.values
         ([ if model.mode /= Compose && model.showHalfComposeUX then
             Just <|
-                viewHalfComposeUX model
+                Element.column
+                    [ Element.height Element.fill
+                    , Element.width Element.fill
+                    , EH.visibility False
+                    ]
+                    [ Element.el
+                        [ Element.height Element.fill
+                        ]
+                        Element.none
+                    , Element.el
+                        [ EH.visibility True
+                        , Element.width Element.fill
+                        , Element.height Element.fill
+                        ]
+                        (Element.map ComposeUXMsg <|
+                            ComposeUX.view
+                                model.dProfile
+                                model.donateChecked
+                                model.wallet
+                                (makeWalletUXPhaceInfo
+                                    (Wallet.userInfo model.wallet)
+                                    model.showAddressId
+                                    model.demoPhaceSrc
+                                )
+                                model.showAddressId
+                                model.composeUXModel
+                        )
+                    ]
 
            else
             Nothing
@@ -97,7 +119,7 @@ modals model =
 
                     _ ->
                         (model.showHalfComposeUX == False)
-                            && (not <| Post.contentIsEmpty model.composeUXModel.content)
+                            && (model.composeUXModel.message /= "")
            in
            if showDraftInProgressButton then
             Just <|
@@ -115,12 +137,86 @@ modals model =
 
            else
             Nothing
-         , maybeViewDraftModal model
-         , if not model.cookieConsentGranted then
-            Just <| viewCookieConsentModal model.dProfile
+         , model.draftModal
+            |> Maybe.map
+                (\draft ->
+                    Element.el
+                        [ Element.centerX
+                        , Element.centerY
+                        , Element.Border.rounded 10
+                        , EH.onClickNoPropagation <| MsgUp NoOp
+                        , Element.padding (responsiveVal model.dProfile 20 10)
+                        , Element.Background.color defaultTheme.draftModalBackground
+                        , Element.Border.glow
+                            (Element.rgba 0 0 0 0.3)
+                            10
+                        , Element.inFront <|
+                            Element.row
+                                [ Element.alignRight
+                                , Element.alignTop
+                                , Element.spacing 20
+                                ]
+                                [ Element.el
+                                    [ Element.alignTop
+                                    , responsiveVal model.dProfile
+                                        (Element.paddingXY 40 20)
+                                        (Element.padding 20)
+                                    ]
+                                  <|
+                                    defaultTheme.secondaryActionButton
+                                        model.dProfile
+                                        [ Element.Border.glow
+                                            (Element.rgba 0 0 0 0.4)
+                                            5
+                                        ]
+                                        [ "Restore Draft" ]
+                                        (RestoreDraft draft)
+                                , Element.el
+                                    [ Element.alignTop
+                                    , Element.paddingXY 10 0
+                                    ]
+                                  <|
+                                    EH.closeButton
+                                        [ Element.Border.rounded 4
+                                        , Element.Background.color Theme.darkBlue
+                                        , Element.padding 3
+                                        ]
+                                        EH.white
+                                        (ViewDraft Nothing)
+                                ]
+                        ]
+                    <|
+                        Element.column
+                            [ Element.htmlAttribute <| Html.Attributes.style "height" "80vh"
+                            , Element.htmlAttribute <| Html.Attributes.style "width" "80vw"
+                            , Element.Events.onClick (ViewDraft Nothing)
+                            , Element.scrollbarY
+                            , Element.paddingEach
+                                { right = responsiveVal model.dProfile 20 10
+                                , left = 0
+                                , bottom = 0
+                                , top = 0
+                                }
+                            ]
+                        <|
+                            [ Element.map
+                                (PostUXMsg DraftPreview)
+                              <|
+                                PostUX.view
+                                    model.dProfile
+                                    model.donateChecked
+                                    True
+                                    (Post.PostDraft draft)
+                                    model.wallet
+                                    (case model.postUX of
+                                        Just ( DraftPreview, postUXModel ) ->
+                                            Just postUXModel
 
-           else
-            Nothing
+                                        _ ->
+                                            Nothing
+                                    )
+                            ]
+                )
          ]
             ++ List.map Just
                 (userNoticeEls
@@ -130,9 +226,7 @@ modals model =
         )
 
 
-body :
-    Model
-    -> Element Msg
+body : Model -> Element Msg
 body model =
     let
         walletUXPhaceInfo =
@@ -172,7 +266,7 @@ body model =
 
             ViewContext context ->
                 case context of
-                    Post.Reply postId ->
+                    Post.ForPost postId ->
                         case getPublishedPostFromId model.publishedPosts postId of
                             Just post ->
                                 Element.column
@@ -201,7 +295,7 @@ body model =
                                     defaultTheme.appStatusTextColor
                                     "Loading post..."
 
-                    Post.TopLevel topic ->
+                    Post.ForTopic topic ->
                         Element.column
                             [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
                             , Element.centerX
@@ -230,8 +324,8 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
     Element.row
         [ Element.width Element.fill
         , Element.Background.color defaultTheme.headerBackground
-        , Element.padding (20 |> changeForMobile 10 dProfile)
-        , Element.spacing (10 |> changeForMobile 5 dProfile)
+        , Element.padding (responsiveVal dProfile 20 10)
+        , Element.spacing (responsiveVal dProfile 10 5)
         , Element.Border.glow
             (EH.black |> EH.withAlpha 0.5)
             5
@@ -260,7 +354,6 @@ getInvolvedButton dProfile =
         , Element.Background.color <| Element.rgb 1 0 0
         , Element.Font.color EH.white
         , Element.Font.medium
-        , Element.Font.size <| responsiveVal dProfile 20 12
         ]
         { url = "https://foundrydao.com"
         , label =
@@ -271,7 +364,7 @@ getInvolvedButton dProfile =
 logoBlock : EH.DisplayProfile -> Element Msg
 logoBlock dProfile =
     Element.column
-        [ Element.spacing (15 |> changeForMobile 8 dProfile) ]
+        [ Element.spacing (responsiveVal dProfile 15 8) ]
         [ Element.row
             (case dProfile of
                 Desktop ->
@@ -284,14 +377,14 @@ logoBlock dProfile =
                     ]
             )
             [ coloredAppTitle
-                [ Element.Font.size (50 |> changeForMobile 30 dProfile)
+                [ Element.Font.size (responsiveVal dProfile 50 30)
                 , Element.Font.bold
                 , Element.pointer
                 , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.Home
                 ]
             ]
         , Element.el
-            [ Element.Font.size (20 |> changeForMobile 14 dProfile)
+            [ Element.Font.size (responsiveVal dProfile 20 14)
             , Element.centerX
             , Element.Font.color Theme.softRed
             ]
@@ -403,9 +496,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                         )
 
 
-trackedTxsColumn :
-    List TrackedTx
-    -> Element Msg
+trackedTxsColumn : List TrackedTx -> Element Msg
 trackedTxsColumn trackedTxs =
     Element.column
         [ Element.Background.color <| Theme.lightBlue
@@ -423,9 +514,7 @@ trackedTxsColumn trackedTxs =
         (List.map viewTrackedTxRow trackedTxs)
 
 
-viewTrackedTxRow :
-    TrackedTx
-    -> Element Msg
+viewTrackedTxRow : TrackedTx -> Element Msg
 viewTrackedTxRow trackedTx =
     let
         etherscanLink label =
@@ -453,7 +542,7 @@ viewTrackedTxRow trackedTx =
                                 MsgUp <|
                                     GotoRoute <|
                                         Routing.ViewContext <|
-                                            Post.Reply postId
+                                            Post.ForPost postId
                             ]
                             (Element.text "Post")
                         ]
@@ -469,7 +558,7 @@ viewTrackedTxRow trackedTx =
                                 MsgUp <|
                                     GotoRoute <|
                                         Routing.ViewContext <|
-                                            Post.Reply postId
+                                            Post.ForPost postId
                             ]
                             (Element.text "Post")
                         ]
@@ -508,7 +597,7 @@ viewTrackedTxRow trackedTx =
                                     Element.el
                                         [ Element.Font.color defaultTheme.linkTextColor
                                         , Element.pointer
-                                        , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.ViewContext <| Post.Reply postId
+                                        , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.ViewContext <| Post.ForPost postId
                                         ]
                                         (Element.text "Published")
 
@@ -536,9 +625,7 @@ viewTrackedTxRow trackedTx =
         ]
 
 
-trackedTxStatusToColor :
-    TxStatus
-    -> Element.Color
+trackedTxStatusToColor : TxStatus -> Element.Color
 trackedTxStatusToColor txStatus =
     case txStatus of
         Mining ->
@@ -551,10 +638,7 @@ trackedTxStatusToColor txStatus =
             Theme.softRed
 
 
-userNoticeEls :
-    EH.DisplayProfile
-    -> List UserNotice
-    -> List (Element Msg)
+userNoticeEls : EH.DisplayProfile -> List UserNotice -> List (Element Msg)
 userNoticeEls dProfile notices =
     if notices == [] then
         []
@@ -591,10 +675,7 @@ userNoticeEls dProfile notices =
         ]
 
 
-userNotice :
-    EH.DisplayProfile
-    -> ( Int, UserNotice )
-    -> Element Msg
+userNotice : EH.DisplayProfile -> ( Int, UserNotice ) -> Element Msg
 userNotice dProfile ( id, notice ) =
     let
         color =
@@ -659,35 +740,6 @@ userNotice dProfile ( id, notice ) =
                 , Element.width Element.fill
                 ]
         )
-
-
-viewPostHeader : DisplayProfile -> Post.Published -> Element Msg
-viewPostHeader dProfile publishedPost =
-    Element.row
-        (subheaderAttributes dProfile
-            ++ [ Element.spacing 40
-               , Element.Font.center
-               , Element.centerX
-               ]
-        )
-        [ Element.el [ Element.Font.bold ] <| Element.text "Viewing Post"
-        , Element.column
-            [ Element.Font.size 16 ]
-            [ case dProfile of
-                Desktop ->
-                    Element.text <|
-                        "id: "
-                            ++ (publishedPost.id.messageHash |> Eth.Utils.hexToString)
-
-                Mobile ->
-                    Element.none
-            , Element.newTabLink
-                [ Element.Font.color defaultTheme.linkTextColorAgainstBackground ]
-                { url = EthHelpers.etherscanTxUrl publishedPost.txHash
-                , label = Element.text "View on etherscan"
-                }
-            ]
-        ]
 
 
 viewPostAndReplies : DisplayProfile -> Bool -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
@@ -766,6 +818,35 @@ viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies pub
         ]
 
 
+viewPostHeader : DisplayProfile -> Post.Published -> Element Msg
+viewPostHeader dProfile publishedPost =
+    Element.row
+        (subheaderAttributes dProfile
+            ++ [ Element.spacing 40
+               , Element.Font.center
+               , Element.centerX
+               ]
+        )
+        [ Element.el [ Element.Font.bold ] <| Element.text "Viewing Post"
+        , Element.column
+            [ Element.Font.size 16 ]
+            [ case dProfile of
+                Desktop ->
+                    Element.text <|
+                        "id: "
+                            ++ (publishedPost.id.messageHash |> Eth.Utils.hexToString)
+
+                Mobile ->
+                    Element.none
+            , Element.newTabLink
+                [ Element.Font.color defaultTheme.linkTextColorAgainstBackground ]
+                { url = EthHelpers.etherscanTxUrl publishedPost.txHash
+                , label = Element.text "View on etherscan"
+                }
+            ]
+        ]
+
+
 viewPostsForTopic : DisplayProfile -> Bool -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe ( PostUXId, PostUX.Model ) -> String -> Element Msg
 viewPostsForTopic dProfile donateChecked wallet allPosts blockTimes replies uxModel topic =
     let
@@ -773,7 +854,7 @@ viewPostsForTopic dProfile donateChecked wallet allPosts blockTimes replies uxMo
             allPosts
                 |> filterPosts
                     (\publishedPost ->
-                        publishedPost.core.metadata.context == Post.TopLevel topic
+                        publishedPost.core.metadata.context == Post.ForTopic topic
                     )
     in
     Element.column
@@ -822,7 +903,7 @@ viewTopicHeader dProfile maybeUserInfo topic =
                     (MsgUp <|
                         GotoRoute <|
                             Routing.Compose <|
-                                Post.TopLevel topic
+                                Post.ForTopic topic
                     )
 
             Nothing ->
@@ -950,7 +1031,7 @@ viewNumRepliesIfNonzero postId numReplies =
                 MsgUp <|
                     Common.Msg.GotoRoute <|
                         Routing.ViewContext <|
-                            Post.Reply postId
+                            Post.ForPost postId
             , Element.Font.italic
             , Element.paddingXY 20 10
             ]
@@ -963,160 +1044,3 @@ viewNumRepliesIfNonzero postId numReplies =
                             " replies"
                        )
             )
-
-
-viewHalfComposeUX : Model -> Element Msg
-viewHalfComposeUX model =
-    Element.column
-        [ Element.height Element.fill
-        , Element.width Element.fill
-        , EH.visibility False
-        ]
-        [ Element.el
-            [ Element.height Element.fill
-            ]
-            Element.none
-        , Element.el
-            [ EH.visibility True
-            , Element.width Element.fill
-            , Element.height Element.fill
-            ]
-            (Element.map ComposeUXMsg <|
-                ComposeUX.view
-                    model.dProfile
-                    model.donateChecked
-                    model.wallet
-                    (makeWalletUXPhaceInfo
-                        (Wallet.userInfo model.wallet)
-                        model.showAddressId
-                        model.demoPhaceSrc
-                    )
-                    model.showAddressId
-                    model.composeUXModel
-            )
-        ]
-
-
-maybeViewDraftModal : Model -> Maybe (Element Msg)
-maybeViewDraftModal model =
-    model.draftModal
-        |> Maybe.map
-            (\draft ->
-                Element.el
-                    [ Element.centerX
-                    , Element.centerY
-                    , Element.Border.rounded 10
-                    , EH.onClickNoPropagation <| MsgUp NoOp
-                    , Element.padding (responsiveVal model.dProfile 20 10)
-                    , Element.Background.color defaultTheme.draftModalBackground
-                    , Element.Border.glow
-                        (Element.rgba 0 0 0 0.3)
-                        10
-                    , Element.inFront <|
-                        Element.row
-                            [ Element.alignRight
-                            , Element.alignTop
-                            , Element.spacing 20
-                            ]
-                            [ Element.el
-                                [ Element.alignTop
-                                , responsiveVal model.dProfile
-                                    (Element.paddingXY 40 20)
-                                    (Element.padding 20)
-                                ]
-                              <|
-                                defaultTheme.secondaryActionButton
-                                    model.dProfile
-                                    [ Element.Border.glow
-                                        (Element.rgba 0 0 0 0.4)
-                                        5
-                                    ]
-                                    [ "Restore Draft" ]
-                                    (RestoreDraft draft)
-                            , Element.el
-                                [ Element.alignTop
-                                , Element.paddingXY 10 0
-                                ]
-                              <|
-                                EH.closeButton
-                                    [ Element.Border.rounded 4
-                                    , Element.Background.color Theme.darkBlue
-                                    , Element.padding 3
-                                    ]
-                                    EH.white
-                                    (ViewDraft Nothing)
-                            ]
-                    ]
-                <|
-                    Element.column
-                        [ Element.htmlAttribute <| Html.Attributes.style "height" "80vh"
-                        , Element.htmlAttribute <| Html.Attributes.style "width" "80vw"
-                        , Element.Events.onClick (ViewDraft Nothing)
-                        , Element.scrollbarY
-                        , Element.paddingEach
-                            { right = responsiveVal model.dProfile 20 10
-                            , left = 0
-                            , bottom = 0
-                            , top = 0
-                            }
-                        ]
-                    <|
-                        [ Element.map
-                            (PostUXMsg DraftPreview)
-                          <|
-                            PostUX.view
-                                model.dProfile
-                                model.donateChecked
-                                True
-                                (Post.PostDraft draft)
-                                model.wallet
-                                (case model.postUX of
-                                    Just ( DraftPreview, postUXModel ) ->
-                                        Just postUXModel
-
-                                    _ ->
-                                        Nothing
-                                )
-                        ]
-            )
-
-
-viewCookieConsentModal : DisplayProfile -> Element Msg
-viewCookieConsentModal dProfile =
-    Element.row
-        [ Element.alignBottom
-        , responsiveVal dProfile Element.centerX (Element.width Element.fill)
-        , Element.Border.roundEach
-            { topLeft = 5
-            , topRight = 5
-            , bottomLeft = 0
-            , bottomRight = 0
-            }
-        , Element.padding 15
-        , Element.spacing 15
-        , Element.Background.color <| Theme.darkBlue
-        , Element.Font.color EH.white
-        , Element.Border.glow
-            (Element.rgba 0 0 0 0.2)
-            10
-        ]
-        [ Element.paragraph
-            [ Element.width <| responsiveVal dProfile (Element.px 800) Element.fill
-            , Element.Font.size <| responsiveVal dProfile 20 12
-            ]
-            [ Element.text "Foundry products use cookies and analytics to track behavior patterns, to help zero in on effective marketing strategies. To avoid being tracked in this way, we recommend using the "
-            , Element.newTabLink
-                [ Element.Font.color Theme.blue ]
-                { url = "https://brave.com/"
-                , label = Element.text "Brave browser"
-                }
-            , Element.text " or installing the "
-            , Element.newTabLink
-                [ Element.Font.color Theme.blue ]
-                { url = "https://tools.google.com/dlpage/gaoptout"
-                , label = Element.text "Google Analytics Opt-Out browser addon"
-                }
-            , Element.text "."
-            ]
-        , Theme.blueButton dProfile [ Element.alignTop ] [ "Understood" ] CookieConsentGranted
-        ]

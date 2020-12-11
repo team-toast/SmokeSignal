@@ -90,7 +90,7 @@ init flags url key =
     , replies = []
     , mode = BlankMode
     , showHalfComposeUX = False
-    , composeUXModel = ComposeUX.init now (Post.ForTopic Post.defaultTopic)
+    , composeUXModel = ComposeUX.init now (Post.TopLevel Post.defaultTopic)
     , blockTimes = Dict.empty
     , showAddressId = Nothing
     , userNotices = walletNotices
@@ -427,7 +427,7 @@ update msg prevModel =
                     prevModel.composeUXModel
                         |> (\composeUXModel ->
                                 { composeUXModel
-                                    | message = draft.core.message
+                                    | content = draft.core.content
                                     , daiInput =
                                         draft.core.authorBurn
                                             |> TokenValue.toFloatString Nothing

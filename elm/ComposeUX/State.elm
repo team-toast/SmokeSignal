@@ -22,7 +22,7 @@ init : Time.Posix -> Post.Context -> Model
 init now context =
     { now = now
     , context = context
-    , message = ""
+    , content = Post.justBodyContent ""
     , daiInput = ""
     , showPreviewOnMobile = False
     , lastInputChangedTime = Time.millisToPosix 0
@@ -34,13 +34,13 @@ init now context =
 update : Msg -> Model -> UpdateResult
 update msg prevModel =
     case msg of
-        MessageInputChanged input ->
+        BodyInputChanged input ->
             justModelUpdate
                 ({ prevModel
                     | renderNeeded = True
                     , lastInputChangedTime = prevModel.now
                  }
-                    |> updateMessage input
+                    |> updateBody input
                 )
 
         DaiInputChanged input ->
@@ -67,7 +67,7 @@ update msg prevModel =
                     { prevModel
                         | now = time
                         , renderedPreview =
-                            renderPreviewIfNonEmpty prevModel.message
+                            renderPreviewIfNonEmpty prevModel.content
                         , renderNeeded = False
                     }
 
@@ -87,7 +87,7 @@ update msg prevModel =
 resetModel : Model -> Model
 resetModel model =
     { model
-        | message = ""
+        | content = Post.justBodyContent ""
         , showPreviewOnMobile = False
         , daiInput = ""
         , renderedPreview = Nothing
@@ -102,10 +102,10 @@ justModelUpdate model =
         []
 
 
-renderPreviewIfNonEmpty : String -> Maybe (Element Never)
-renderPreviewIfNonEmpty message =
-    if message == "" then
+renderPreviewIfNonEmpty : Post.Content -> Maybe (Element Never)
+renderPreviewIfNonEmpty content =
+    if Post.contentIsEmpty content then
         Nothing
 
     else
-        Just <| Common.View.renderContentOrError message
+        Just <| Common.View.renderContentOrError content
