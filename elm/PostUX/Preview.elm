@@ -29,8 +29,6 @@ view dProfile donateChecked showAddressOnPhace maybeUXModel publishedPost =
         [ Element.width Element.fill
         , Element.height <| Element.px <| 100
         , Element.spacing 20
-        , Element.clipX
-        , Element.clipY
         , Element.Background.color Theme.darkGray
         , Element.Border.rounded 10
         , Element.padding 10
