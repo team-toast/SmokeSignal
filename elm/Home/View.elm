@@ -35,7 +35,7 @@ view :
 view dProfile model walletUXPhaceInfo posts =
     let
         listOfPosts =
-            Dict.values posts
+            List.concat <| Dict.values posts
     in
     Element.el
         [ Element.width Element.fill
@@ -68,11 +68,10 @@ view dProfile model walletUXPhaceInfo posts =
                             , Element.height Element.fill
                             ]
                           <|
-                            List.map
-                                (postFeed
-                                    dProfile
-                                )
+                            [ postFeed
+                                dProfile
                                 listOfPosts
+                            ]
                         ]
                     ]
 
@@ -125,7 +124,7 @@ postFeed dProfile listOfPosts =
     in
     Element.column
         [ Element.width Element.fill
-        , Element.spacingXY 0 5
+        , Element.spacingXY 0 20
         , Element.paddingXY 0 20
         ]
     <|
@@ -148,14 +147,17 @@ feedEl dProfile post =
         topic =
             case post.core.metadata.context of
                 Post.Reply id ->
-                    ""
+                    "[No Topic]"
 
                 Post.TopLevel theTopic ->
                     theTopic
     in
     Element.column
         [ Element.width Element.fill
-        , Element.spacingXY 0 5
+        , Element.spacingXY 0 20
+        , Element.padding 10
+        , Element.Border.rounded 15
+        , Element.Border.glow EH.white 0.8
         ]
         [ Element.text <|
             (topic
