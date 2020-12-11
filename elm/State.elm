@@ -99,6 +99,7 @@ init flags url key =
     , draftModal = Nothing
     , demoPhaceSrc = initDemoPhaceSrc
     , donateChecked = True
+    , cookieConsentGranted = flags.cookieConsent
     }
         |> gotoRoute route
         |> Tuple.mapSecond
@@ -231,7 +232,7 @@ update msg prevModel =
                     ( { prevModel
                         | wallet = newWallet
                       }
-                    , Cmd.none
+                    , cmd
                     )
 
                 Err errStr ->
@@ -598,6 +599,22 @@ update msg prevModel =
                 , draftModal = Nothing
               }
             , Cmd.none
+            )
+        
+        CookieConsentGranted ->
+            ( { prevModel
+                | cookieConsentGranted = True
+            }
+            , Cmd.batch
+                [consentToCookies ()
+                , gTagOut <|
+                    encodeGTag <|
+                        GTagData
+                            "accept cookies"
+                            ""
+                            ""
+                            0
+                ]
             )
 
 
@@ -1035,6 +1052,15 @@ addUserNotices notices model =
     }
 
 
+encodeGTag : GTagData -> Json.Decode.Value
+encodeGTag gtag =
+    Json.Encode.object
+        [ ( "event", Json.Encode.string gtag.event )
+        , ( "category", Json.Encode.string gtag.category )
+        , ( "label", Json.Encode.string gtag.label )
+        , ( "value", Json.Encode.int gtag.value )
+        ]
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
@@ -1063,3 +1089,9 @@ port txOut : Json.Decode.Value -> Cmd msg
 
 
 port txIn : (Json.Decode.Value -> msg) -> Sub msg
+
+
+port gTagOut : Json.Decode.Value -> Cmd msg
+
+
+port consentToCookies : () -> Cmd msg
