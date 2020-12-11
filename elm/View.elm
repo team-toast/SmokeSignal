@@ -234,7 +234,95 @@ body :
     Model
     -> Element Msg
 body model =
-    Debug.todo "body"
+    let
+        walletUXPhaceInfo =
+            makeWalletUXPhaceInfo
+                (Wallet.userInfo model.wallet)
+                model.showAddressId
+                model.demoPhaceSrc
+    in
+    Element.column
+        [ Element.width Element.fill
+        , Element.Background.color defaultTheme.appBackground
+        , Element.height Element.fill
+        ]
+        [ case model.mode of
+            BlankMode ->
+                Element.none
+
+            Home homeModel ->
+                Element.map HomeMsg <|
+                    Element.Lazy.lazy
+                        (Home.View.view
+                            model.dProfile
+                            homeModel
+                            walletUXPhaceInfo
+                        )
+                        model.publishedPosts
+
+            Compose ->
+                Element.map ComposeUXMsg <|
+                    ComposeUX.viewFull
+                        model.dProfile
+                        model.donateChecked
+                        model.wallet
+                        walletUXPhaceInfo
+                        model.showAddressId
+                        model.composeUXModel
+
+            ViewContext context ->
+                case context of
+                    Post.ForPost postId ->
+                        case getPublishedPostFromId model.publishedPosts postId of
+                            Just post ->
+                                Element.column
+                                    [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
+                                    , Element.centerX
+                                    , Element.spacing 20
+                                    , Element.paddingEach
+                                        { top = 20
+                                        , bottom = 0
+                                        , right = 0
+                                        , left = 0
+                                        }
+                                    ]
+                                    [ viewPostHeader model.dProfile post
+                                    , Element.Lazy.lazy5
+                                        (viewPostAndReplies model.dProfile model.donateChecked model.wallet)
+                                        model.publishedPosts
+                                        model.blockTimes
+                                        model.replies
+                                        post
+                                        model.postUX
+                                    ]
+
+                            Nothing ->
+                                appStatusMessage
+                                    defaultTheme.appStatusTextColor
+                                    "Loading post..."
+
+                    Post.ForTopic topic ->
+                        Element.column
+                            [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
+                            , Element.centerX
+                            , Element.spacing 20
+                            , Element.paddingEach
+                                { top = 20
+                                , bottom = 0
+                                , right = 0
+                                , left = 0
+                                }
+                            ]
+                            [ viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
+                            , Element.Lazy.lazy5
+                                (viewPostsForTopic model.dProfile model.donateChecked model.wallet)
+                                model.publishedPosts
+                                model.blockTimes
+                                model.replies
+                                model.postUX
+                                topic
+                            ]
+        ]
 
 
 maybeTxTracker :
@@ -601,3 +689,307 @@ userNotice dProfile ( id, notice ) =
                 , Element.width Element.fill
                 ]
         )
+
+
+viewPostHeader : DisplayProfile -> Post.Published -> Element Msg
+viewPostHeader dProfile publishedPost =
+    Element.row
+        (subheaderAttributes dProfile
+            ++ [ Element.spacing 40
+               , Element.Font.center
+               , Element.centerX
+               ]
+        )
+        [ Element.el [ Element.Font.bold ] <| Element.text "Viewing Post"
+        , Element.column
+            [ Element.Font.size 16 ]
+            [ case dProfile of
+                Desktop ->
+                    Element.text <|
+                        "id: "
+                            ++ (publishedPost.id.messageHash |> Eth.Utils.hexToString)
+
+                Mobile ->
+                    Element.none
+            , Element.newTabLink
+                [ Element.Font.color defaultTheme.linkTextColorAgainstBackground ]
+                { url = EthHelpers.etherscanTxUrl publishedPost.txHash
+                , label = Element.text "View on etherscan"
+                }
+            ]
+        ]
+
+
+viewPostAndReplies : DisplayProfile -> Bool -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
+viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies publishedPost postUX =
+    let
+        replyingPosts =
+            let
+                postIds =
+                    replies
+                        |> List.filterMap
+                            (\reply ->
+                                if reply.to == publishedPost.id then
+                                    Just reply.from
+
+                                else
+                                    Nothing
+                            )
+            in
+            postIds
+                |> List.map (getPublishedPostFromId allPosts)
+                |> Maybe.Extra.values
+                |> Dict.Extra.groupBy (.id >> .block)
+    in
+    Element.column
+        [ Element.centerX
+        , Element.width (Element.fill |> Element.maximum maxContentColWidth)
+        , Element.height Element.fill
+        , Element.spacing 40
+        , Element.padding 20
+        ]
+        [ Element.map
+            (PostUXMsg <| PublishedPost publishedPost.id)
+          <|
+            PostUX.view
+                dProfile
+                donateChecked
+                True
+                (Post.PublishedPost publishedPost)
+                wallet
+                (case postUX of
+                    Just ( PublishedPost id, postUXModel ) ->
+                        if id == publishedPost.id then
+                            Just postUXModel
+
+                        else
+                            Nothing
+
+                    _ ->
+                        Nothing
+                )
+        , if Dict.isEmpty replyingPosts then
+            Element.none
+
+          else
+            Element.column
+                [ Element.width Element.fill
+                , Element.spacing 20
+                ]
+                [ Element.el
+                    [ Element.Font.size (responsiveVal dProfile 50 30)
+                    , Element.Font.bold
+                    , Element.Font.color defaultTheme.mainTextColor
+                    ]
+                  <|
+                    Element.text "Replies"
+                , viewPostsGroupedByBlock
+                    dProfile
+                    donateChecked
+                    wallet
+                    False
+                    blockTimes
+                    replies
+                    replyingPosts
+                    postUX
+                ]
+        ]
+
+
+viewPostsGroupedByBlock : DisplayProfile -> Bool -> Wallet -> Bool -> Dict Int Time.Posix -> List Reply -> PublishedPostsDict -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
+viewPostsGroupedByBlock dProfile donateChecked wallet showContext blockTimes replies publishedPosts postUX =
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing 20
+        ]
+        (publishedPosts
+            |> Dict.toList
+            |> List.reverse
+            |> List.map (viewBlocknumAndPosts dProfile donateChecked wallet showContext blockTimes replies postUX)
+        )
+
+
+viewBlocknumAndPosts : DisplayProfile -> Bool -> Wallet -> Bool -> Dict Int Time.Posix -> List Reply -> Maybe ( PostUXId, PostUX.Model ) -> ( Int, List Post.Published ) -> Element Msg
+viewBlocknumAndPosts dProfile donateChecked wallet showContext blockTimes replies postUX ( blocknum, publishedPosts ) =
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing 10
+        ]
+        [ Element.column
+            [ Element.width Element.fill
+            , Element.spacing 5
+            , Element.Font.italic
+            , Element.Font.size 14
+            , Element.Font.color defaultTheme.mainTextColor
+            ]
+            [ Element.row
+                [ Element.width Element.fill
+                , Element.spacing 5
+                ]
+                [ Element.text <| "block " ++ String.fromInt blocknum
+                , Element.el
+                    [ Element.width Element.fill
+                    , Element.height <| Element.px 1
+                    , Element.Border.color defaultTheme.mainTextColor
+                    , Element.Border.widthEach
+                        { top = 1
+                        , bottom = 0
+                        , right = 0
+                        , left = 0
+                        }
+                    , Element.Border.dashed
+                    ]
+                    Element.none
+                ]
+            , blockTimes
+                |> Dict.get blocknum
+                |> Maybe.map posixToString
+                |> Maybe.withDefault "[fetching block timestamp]"
+                |> Element.text
+            ]
+        , viewPosts dProfile donateChecked wallet showContext replies publishedPosts postUX
+        ]
+
+
+viewTopicHeader : DisplayProfile -> Maybe UserInfo -> String -> Element Msg
+viewTopicHeader dProfile maybeUserInfo topic =
+    Element.column
+        (subheaderAttributes dProfile
+            ++ [ Element.spacing 10 ]
+        )
+        [ Element.row
+            []
+            [ Element.el [ Element.Font.bold ] <| Element.text "Viewing Topic "
+            , Element.el
+                [ Element.Font.bold
+                , Element.Font.italic
+                ]
+              <|
+                Element.text topic
+            ]
+        , case maybeUserInfo of
+            Just userInfo ->
+                defaultTheme.secondaryActionButton
+                    dProfile
+                    []
+                    [ "Post in Topic" ]
+                    (MsgUp <|
+                        GotoRoute <|
+                            Routing.Compose <|
+                                Post.ForTopic topic
+                    )
+
+            Nothing ->
+                defaultTheme.emphasizedActionButton
+                    dProfile
+                    [ Element.paddingXY 30 10 ]
+                    [ "Activate Wallet to Post" ]
+                    (MsgUp <| ConnectToWeb3)
+        ]
+
+
+viewPostsForTopic : DisplayProfile -> Bool -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe ( PostUXId, PostUX.Model ) -> String -> Element Msg
+viewPostsForTopic dProfile donateChecked wallet allPosts blockTimes replies uxModel topic =
+    let
+        filteredPosts =
+            allPosts
+                |> filterPosts
+                    (\publishedPost ->
+                        publishedPost.core.metadata.context == Post.ForTopic topic
+                    )
+    in
+    Element.column
+        [ Element.width (Element.fill |> Element.maximum maxContentColWidth)
+        , Element.centerX
+        , Element.height Element.fill
+        , Element.padding 20
+        , Element.spacing 40
+        ]
+        [ if Dict.isEmpty filteredPosts then
+            appStatusMessage defaultTheme.appStatusTextColor <| "Haven't yet found any posts for this topic..."
+
+          else
+            Element.Lazy.lazy5
+                (viewPostsGroupedByBlock dProfile donateChecked wallet)
+                False
+                blockTimes
+                replies
+                filteredPosts
+                uxModel
+        ]
+
+
+viewPosts : DisplayProfile -> Bool -> Wallet -> Bool -> List Reply -> List Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
+viewPosts dProfile donateChecked wallet showContext replies publishedPosts postUX =
+    Element.column
+        [ Element.paddingXY 20 0
+        , Element.spacing 20
+        , Element.width Element.fill
+        ]
+    <|
+        List.map
+            (\publishedPost ->
+                let
+                    talliedReplies =
+                        replies
+                            |> List.Extra.count
+                                (.to >> (==) publishedPost.id)
+                in
+                Element.column
+                    [ Element.width Element.fill
+                    , Element.alignTop
+                    ]
+                    [ Element.map
+                        (PostUXMsg <| PublishedPost publishedPost.id)
+                      <|
+                        PostUX.view
+                            dProfile
+                            donateChecked
+                            showContext
+                            (Post.PublishedPost publishedPost)
+                            wallet
+                            (case postUX of
+                                Just ( PublishedPost id, postUXModel ) ->
+                                    if publishedPost.id == id then
+                                        Just postUXModel
+
+                                    else
+                                        Nothing
+
+                                _ ->
+                                    Nothing
+                            )
+                    , viewNumRepliesIfNonzero
+                        publishedPost.id
+                        talliedReplies
+                    ]
+            )
+            publishedPosts
+
+
+viewNumRepliesIfNonzero : Post.Id -> Int -> Element Msg
+viewNumRepliesIfNonzero postId numReplies =
+    if numReplies == 0 then
+        Element.none
+
+    else
+        Element.el
+            [ Element.Font.color defaultTheme.linkTextColorAgainstBackground
+            , Element.pointer
+            , Element.Events.onClick <|
+                MsgUp <|
+                    Common.Msg.GotoRoute <|
+                        Routing.ViewContext <|
+                            Post.ForPost postId
+            , Element.Font.italic
+            , Element.paddingXY 20 10
+            ]
+            (Element.text <|
+                String.fromInt numReplies
+                    ++ (if numReplies == 1 then
+                            " reply"
+
+                        else
+                            " replies"
+                       )
+            )

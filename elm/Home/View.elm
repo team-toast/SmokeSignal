@@ -16,6 +16,7 @@ import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Tuple as TupleHelpers
 import Home.Types exposing (..)
+import Html.Attributes exposing (list)
 import Post exposing (Post)
 import Routing exposing (Route)
 import Theme exposing (darkTheme, defaultTheme)
@@ -23,8 +24,17 @@ import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
 
-view : EH.DisplayProfile -> Model -> WalletUXPhaceInfo -> PublishedPostsDict -> Element Msg
+view :
+    EH.DisplayProfile
+    -> Model
+    -> WalletUXPhaceInfo
+    -> PublishedPostsDict
+    -> Element Msg
 view dProfile model walletUXPhaceInfo posts =
+    let
+        listOfPosts =
+            Dict.values posts
+    in
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
@@ -49,25 +59,16 @@ view dProfile model walletUXPhaceInfo posts =
                         , Element.height Element.fill
                         , Element.spacing 40
                         ]
-                        [ Element.el
-                            [ Element.width <| Element.fillPortion 5
+                        [ Element.column
+                            [ Element.width Element.fill
                             , Element.height Element.fill
                             ]
                           <|
-                            topicsBlock dProfile model posts
-                        , Element.el
-                            [ Element.width <| Element.fillPortion 1 ]
-                          <|
-                            Element.column
-                                [ Element.spacing 15
-                                ]
-                                [ composeActionBlock dProfile walletUXPhaceInfo
-                                , Element.el
-                                    [ Element.width Element.fill ]
-                                  <|
-                                    topicsExplainerEl dProfile
-                                , infoBlock dProfile
-                                ]
+                            List.map
+                                (postFeed
+                                    dProfile
+                                )
+                                listOfPosts
                         ]
                     ]
 
@@ -103,6 +104,67 @@ view dProfile model walletUXPhaceInfo posts =
                     -- , topicsExplainerEl dProfile
                     --, composeActionBlock dProfile walletUXPhaceInfo
                     ]
+
+
+postFeed :
+    DisplayProfile
+    -> List Post.Published
+    -> Element Msg
+postFeed dProfile listOfPosts =
+    let
+        posts =
+            List.sortBy (\post -> toFloat post.id.block * TokenValue.toFloatWithWarning post.core.authorBurn / pi)
+                listOfPosts
+                |> List.reverse
+    in
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacingXY 0 5
+        , Element.paddingXY 0 20
+        ]
+    <|
+        List.map
+            (feedEl
+                dProfile
+            )
+            posts
+
+
+feedEl :
+    DisplayProfile
+    -> Post.Published
+    -> Element Msg
+feedEl dProfile post =
+    let
+        message =
+            post.core.message
+
+        topic =
+            case post.core.metadata.context of
+                Post.ForPost id ->
+                    ""
+
+                Post.ForTopic theTopic ->
+                    theTopic ++ " -- "
+    in
+    Element.paragraph [ Element.width Element.fill ] <|
+        [ Element.text <|
+            ("("
+                ++ String.fromInt post.id.block
+                ++ ") "
+                ++ "("
+                ++ String.fromFloat (TokenValue.toFloatWithWarning post.core.authorBurn)
+                ++ ") "
+            )
+                ++ topic
+                ++ String.left (responsiveVal dProfile 200 50) message
+                ++ (if String.length message > 50 then
+                        "..."
+
+                    else
+                        ""
+                   )
+        ]
 
 
 boldProclamationEl : DisplayProfile -> Element Msg
