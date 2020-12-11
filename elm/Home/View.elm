@@ -24,18 +24,21 @@ import PostUX.Preview as PostPreview
 import PostUX.Types as PostUX
 import Routing exposing (Route)
 import Theme exposing (darkTheme, defaultTheme)
+import Time
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
 
 view :
     EH.DisplayProfile
+    -> Bool
+    -> Dict Int Time.Posix
+    -> Time.Posix
     -> Maybe PhaceIconId
     -> WalletUXPhaceInfo
-    -> Bool
     -> PublishedPostsDict
     -> Element Msg
-view dProfile showAddressId walletUXPhaceInfo donateChecked posts =
+view dProfile donateChecked blockTimes now showAddressId walletUXPhaceInfo posts =
     let
         listOfPosts =
             List.concat <| Dict.values posts
@@ -84,6 +87,8 @@ view dProfile showAddressId walletUXPhaceInfo donateChecked posts =
                             [ postFeed
                                 dProfile
                                 donateChecked
+                                blockTimes
+                                now
                                 maybeShowAddressForId
                                 listOfPosts
                             ]
@@ -128,10 +133,12 @@ view dProfile showAddressId walletUXPhaceInfo donateChecked posts =
 postFeed :
     DisplayProfile
     -> Bool
+    -> Dict Int Time.Posix
+    -> Time.Posix
     -> Maybe Post.Id
     -> List Post.Published
     -> Element Msg
-postFeed dProfile donateChecked maybeShowAddressForId listOfPosts =
+postFeed dProfile donateChecked blockTimes now maybeShowAddressForId listOfPosts =
     let
         posts =
             List.sortBy (\post -> toFloat post.id.block * TokenValue.toFloatWithWarning post.core.authorBurn / pi)
@@ -148,6 +155,8 @@ postFeed dProfile donateChecked maybeShowAddressForId listOfPosts =
             (previewPost
                 dProfile
                 donateChecked
+                blockTimes
+                now
                 maybeShowAddressForId
                 Nothing
             )
@@ -157,16 +166,20 @@ postFeed dProfile donateChecked maybeShowAddressForId listOfPosts =
 previewPost :
     DisplayProfile
     -> Bool
+    -> Dict Int Time.Posix
+    -> Time.Posix
     -> Maybe Post.Id
     -> Maybe PostUX.Model
     -> Post.Published
     -> Element Msg
-previewPost dProfile donateChecked maybeShowAddressForId maybePostUXModel post =
+previewPost dProfile donateChecked blockTimes now maybeShowAddressForId maybePostUXModel post =
     Element.map PostUXMsg <|
         PostPreview.view
             dProfile
             donateChecked
             (maybeShowAddressForId == Just post.id)
+            blockTimes
+            now
             maybePostUXModel
             post
 

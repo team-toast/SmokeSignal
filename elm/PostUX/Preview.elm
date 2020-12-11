@@ -3,16 +3,19 @@ module PostUX.Preview exposing (..)
 import Common.Msg
 import Common.Types exposing (..)
 import Common.View exposing (daiSymbol)
+import Dict exposing (Dict)
 import Element exposing (Element)
 import Element.Background
 import Element.Border
 import Element.Font
 import Helpers.Element as EH exposing (DisplayProfile, responsiveVal)
+import Helpers.Time as TimeHelpers
 import Html.Attributes
 import Post
 import PostUX.Types exposing (..)
 import PostUX.View
 import Theme
+import Time
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
@@ -21,10 +24,12 @@ view :
     DisplayProfile
     -> Bool
     -> Bool
+    -> Dict Int Time.Posix
+    -> Time.Posix
     -> Maybe Model
     -> Post.Published
     -> Element Msg
-view dProfile donateChecked showAddressOnPhace maybeUXModel publishedPost =
+view dProfile donateChecked showAddressOnPhace blockTimes now maybeUXModel publishedPost =
     Element.row
         [ Element.width Element.fill
         , Element.height <| Element.px <| 100
@@ -34,7 +39,7 @@ view dProfile donateChecked showAddressOnPhace maybeUXModel publishedPost =
         , Element.padding 10
         ]
         [ daiBurnedPane dProfile publishedPost
-        , mainPreviewPane dProfile showAddressOnPhace publishedPost
+        , mainPreviewPane dProfile showAddressOnPhace blockTimes now publishedPost
         ]
 
 
@@ -53,32 +58,36 @@ daiBurnedPane dProfile publishedPost =
 mainPreviewPane :
     DisplayProfile
     -> Bool
+    -> Dict Int Time.Posix
+    -> Time.Posix
     -> Post.Published
     -> Element Msg
-mainPreviewPane dProfile showAddress publishedPost =
+mainPreviewPane dProfile showAddress blockTimes now publishedPost =
     Element.column
         [ Element.width Element.fill
         , Element.height Element.fill
         , Element.spacing 5
         ]
-        [ previewMetadata dProfile publishedPost
+        [ previewMetadata dProfile blockTimes now publishedPost
         , previewBody dProfile showAddress publishedPost
         ]
 
 
 previewMetadata :
     DisplayProfile
+    -> Dict Int Time.Posix
+    -> Time.Posix
     -> Post.Published
     -> Element Msg
-previewMetadata dProfile publishedPost =
+previewMetadata dProfile blockTimes now publishedPost =
     Element.row
         [ Element.spaceEvenly
-        , Element.spacing 5
         , Element.Font.size <| responsiveVal dProfile 16 10
-        , Element.width Element.fill
+        , Element.width <| Element.px 300
         ]
+        
         [ viewContext dProfile publishedPost.core.metadata.context
-        , viewTiming dProfile publishedPost.id
+        , viewTiming dProfile blockTimes now publishedPost.id
         , Maybe.map
             (viewDaiTipped dProfile)
             (publishedPost.maybeAccounting |> Maybe.map .totalTipped)
@@ -101,10 +110,29 @@ viewContext dProfile context =
 
 viewTiming :
     DisplayProfile
+    -> Dict Int Time.Posix
+    -> Time.Posix
     -> Post.Id
     -> Element Msg
-viewTiming dProfile id =
-    Element.text <| String.fromInt id.block
+viewTiming dProfile blockTimes now id =
+    let
+        maybePostTime =
+            blockTimes
+                |> Dict.get id.block
+
+        maybeTimePassed =
+            maybePostTime
+                |> Maybe.map
+                    (\postTime ->
+                        TimeHelpers.sub now postTime
+                    )
+    in
+    Element.text
+        (maybeTimePassed
+            |> Maybe.map TimeHelpers.roundToSingleUnit
+            |> Maybe.map (\s -> s ++ " ago")
+            |> Maybe.withDefault "..."
+        )
 
 
 viewDaiTipped :
