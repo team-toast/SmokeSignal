@@ -20,6 +20,8 @@ import Helpers.Tuple as TupleHelpers
 import Home.Types exposing (..)
 import Html.Attributes exposing (list)
 import Post exposing (Post)
+import PostUX.Preview as PostPreview
+import PostUX.Types as PostUX
 import Routing exposing (Route)
 import Theme exposing (darkTheme, defaultTheme)
 import TokenValue exposing (TokenValue)
@@ -28,14 +30,23 @@ import Wallet exposing (Wallet)
 
 view :
     EH.DisplayProfile
-    -> Model
+    -> Maybe PhaceIconId
     -> WalletUXPhaceInfo
+    -> Bool
     -> PublishedPostsDict
     -> Element Msg
-view dProfile model walletUXPhaceInfo posts =
+view dProfile showAddressId walletUXPhaceInfo donateChecked posts =
     let
         listOfPosts =
             Dict.values posts
+
+        maybeShowAddressForId =
+            case showAddressId of
+                Just (PhaceForPublishedPost id) ->
+                    Just id
+
+                _ ->
+                    Nothing
     in
     Element.el
         [ Element.width Element.fill
@@ -71,6 +82,8 @@ view dProfile model walletUXPhaceInfo posts =
                             List.map
                                 (postFeed
                                     dProfile
+                                    donateChecked
+                                    maybeShowAddressForId
                                 )
                                 listOfPosts
                         ]
@@ -105,8 +118,7 @@ view dProfile model walletUXPhaceInfo posts =
 
                     --, infoBlock dProfile
                     --, conversationAlreadyStartedEl dProfile
-                    , topicsBlock dProfile model posts
-
+                    -- , topicsBlock dProfile posts
                     -- , topicsExplainerEl dProfile
                     --, composeActionBlock dProfile walletUXPhaceInfo
                     ]
@@ -114,9 +126,11 @@ view dProfile model walletUXPhaceInfo posts =
 
 postFeed :
     DisplayProfile
+    -> Bool
+    -> Maybe Post.Id
     -> List Post.Published
     -> Element Msg
-postFeed dProfile listOfPosts =
+postFeed dProfile donateChecked maybeShowAddressForId listOfPosts =
     let
         posts =
             List.sortBy (\post -> toFloat post.id.block * TokenValue.toFloatWithWarning post.core.authorBurn / pi)
@@ -130,10 +144,30 @@ postFeed dProfile listOfPosts =
         ]
     <|
         List.map
-            (feedEl
+            (previewPost
                 dProfile
+                donateChecked
+                maybeShowAddressForId
+                Nothing
             )
             posts
+
+
+previewPost :
+    DisplayProfile
+    -> Bool
+    -> Maybe Post.Id
+    -> Maybe PostUX.Model
+    -> Post.Published
+    -> Element Msg
+previewPost dProfile donateChecked maybeShowAddressForId maybePostUXModel post =
+    Element.map PostUXMsg <|
+        PostPreview.view
+            dProfile
+            donateChecked
+            (maybeShowAddressForId == Just post.id)
+            maybePostUXModel
+            post
 
 
 feedEl :
@@ -520,232 +554,3 @@ homeWalletUX dProfile walletUXPhaceInfo =
                         showAddress
                         (ShowOrHideAddress UserPhace)
                         NoOp
-
-
-topicsBlock : EH.DisplayProfile -> Model -> PublishedPostsDict -> Element Msg
-topicsBlock dProfile model posts =
-    let
-        fontSize =
-            case dProfile of
-                Desktop ->
-                    20
-
-                Mobile ->
-                    14
-    in
-    Element.column
-        [ Element.spacing 25
-        , Element.centerX
-        , Element.width (Element.fill |> Element.minimum (responsiveVal dProfile 400 350))
-        ]
-        [ Element.column
-            [ Element.width Element.fill
-            , Element.alignTop
-            ]
-            [ Element.Input.text
-                [ Element.width Element.fill
-                , Element.Background.color <| Element.rgba 1 1 1 0.2
-                , Element.Border.color <| Element.rgba 1 1 1 0.6
-                , Element.Font.size fontSize
-                ]
-                { onChange = TopicInputChanged
-                , text = model.topicInput
-                , placeholder =
-                    Just <|
-                        Element.Input.placeholder
-                            [ Element.Font.color <| Element.rgba 1 1 1 0.4
-                            , Element.Font.italic
-                            ]
-                            (Element.text "Find or Create Topic")
-                , label = Element.Input.labelHidden "topic"
-                }
-            , topicsColumn
-                dProfile
-                (Post.sanitizeTopic model.topicInput)
-                posts
-            ]
-        ]
-
-
-topicsColumn : EH.DisplayProfile -> String -> PublishedPostsDict -> Element Msg
-topicsColumn dProfile topicSearchStr allPosts =
-    let
-        fontSize =
-            case dProfile of
-                Desktop ->
-                    20
-
-                Mobile ->
-                    14
-
-        talliedTopics : List ( String, ( ( TokenValue, TokenValue ), Int ) )
-        talliedTopics =
-            let
-                findTopic : Post.Published -> Maybe String
-                findTopic publishedPost =
-                    case publishedPost.core.metadata.context of
-                        Post.TopLevel topic ->
-                            Just topic
-
-                        Post.Reply postId ->
-                            getPublishedPostFromId allPosts postId
-                                |> Maybe.andThen findTopic
-            in
-            allPosts
-                |> Dict.values
-                |> List.concat
-                |> Dict.Extra.filterGroupBy findTopic
-                -- This ignores any replies that lead eventually to a postId not in 'posts'
-                |> Dict.map
-                    (\topic posts ->
-                        ( List.foldl
-                            (\thisPost ( accBurn, accTip ) ->
-                                case thisPost.maybeAccounting of
-                                    Just accounting ->
-                                        ( TokenValue.add
-                                            accounting.totalBurned
-                                            accBurn
-                                        , TokenValue.add
-                                            accounting.totalTipped
-                                            accTip
-                                        )
-
-                                    Nothing ->
-                                        ( TokenValue.add
-                                            thisPost.core.authorBurn
-                                            accBurn
-                                        , accTip
-                                        )
-                            )
-                            ( TokenValue.zero, TokenValue.zero )
-                            posts
-                        , List.length posts
-                        )
-                    )
-                |> Dict.toList
-                |> List.sortBy (Tuple.second >> Tuple.first >> Tuple.first >> TokenValue.toFloatWithWarning >> negate)
-
-        filteredTalliedTopics =
-            talliedTopics
-                |> List.filter
-                    (\( topic, _ ) ->
-                        String.contains topicSearchStr topic
-                    )
-
-        commonElStyles =
-            [ Element.spacing 5
-            , Element.padding 5
-            , Element.Border.width 1
-            , Element.Border.color <| Element.rgba 1 1 1 0.3
-            , Element.width Element.fill
-            , Element.pointer
-            , Element.height <| Element.px 40
-            , Element.Font.size fontSize
-            ]
-
-        topicEls =
-            filteredTalliedTopics
-                |> List.map
-                    (\( topic, ( ( totalBurned, totalTipped ), count ) ) ->
-                        Element.row
-                            (commonElStyles
-                                ++ [ Element.Background.color <| Element.rgba 0 0 1 0.2
-                                   , Element.Events.onClick <|
-                                        GotoRoute <|
-                                            Routing.ViewContext <|
-                                                Post.TopLevel topic
-                                   ]
-                            )
-                            [ Element.el
-                                [ Element.width <| Element.px 100 ]
-                              <|
-                                Element.row
-                                    [ Element.padding 5
-                                    , Element.spacing 3
-                                    , Element.Border.rounded 5
-                                    , Element.Background.color darkTheme.daiBurnedBackground
-                                    , Element.Font.color
-                                        (if darkTheme.daiBurnedTextIsWhite then
-                                            EH.white
-
-                                         else
-                                            EH.black
-                                        )
-                                    ]
-                                    [ daiSymbol darkTheme.daiBurnedTextIsWhite [ Element.height <| Element.px (responsiveVal dProfile 18 14) ]
-                                    , Element.text <|
-                                        (TokenValue.toConciseString totalBurned
-                                            |> (if TokenValue.compare totalBurned (TokenValue.fromIntTokenValue 1) == LT then
-                                                    String.left 5
-
-                                                else
-                                                    identity
-                                               )
-                                        )
-                                    ]
-                            , Element.el
-                                [ Element.width Element.fill
-                                , Element.height Element.fill
-                                , Element.clip
-                                ]
-                              <|
-                                Element.el [ Element.centerY ] <|
-                                    Element.text topic
-                            , Element.el [ Element.alignRight ] <| Element.text <| String.fromInt count
-                            ]
-                    )
-
-        exactTopicFound =
-            talliedTopics
-                |> List.any (Tuple.first >> (==) topicSearchStr)
-
-        maybeCreateTopicEl =
-            if topicSearchStr /= "" && not exactTopicFound then
-                Just <|
-                    Element.el
-                        (commonElStyles
-                            ++ [ Element.Background.color <| Element.rgba 0.5 0.5 1 0.4
-                               , Element.clipX
-                               , Element.Events.onClick <|
-                                    GotoRoute <|
-                                        Routing.Compose <|
-                                            Post.TopLevel topicSearchStr
-                               ]
-                        )
-                    <|
-                        Element.row
-                            [ Element.centerY
-                            ]
-                            [ Element.text "Start new topic "
-                            , Element.el
-                                [ Element.Font.italic
-                                , Element.Font.bold
-                                , Element.Font.color EH.white
-                                ]
-                              <|
-                                Element.text topicSearchStr
-                            ]
-
-            else
-                Nothing
-    in
-    Element.map MsgUp <|
-        Element.column
-            [ Element.Border.roundEach
-                { topRight = 0
-                , topLeft = 0
-                , bottomRight = 5
-                , bottomLeft = 5
-                }
-            , Element.width (Element.fill |> Element.maximum 530)
-            , Element.height Element.fill --<| Element.px 300
-            , Element.scrollbarY
-            , Element.Background.color <| Element.rgba 1 1 1 0.2
-            , Element.padding 5
-            , Element.spacing 5
-            ]
-            ((Maybe.map List.singleton maybeCreateTopicEl
-                |> Maybe.withDefault []
-             )
-                ++ topicEls
-            )

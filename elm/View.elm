@@ -152,12 +152,19 @@ body model =
 
             Home homeModel ->
                 Element.map HomeMsg <|
-                    Element.Lazy.lazy
-                        (Home.View.view
-                            model.dProfile
-                            homeModel
-                            walletUXPhaceInfo
-                        )
+                    -- Element.Lazy.lazy
+                    --     (Home.View.view
+                    --         model.dProfile
+                    --         model.showAddressId
+                    --         walletUXPhaceInfo
+                    --         model.donateChecked
+                    --     )
+                    --     model.publishedPosts
+                    Home.View.view
+                        model.dProfile
+                        model.showAddressId
+                        walletUXPhaceInfo
+                        model.donateChecked
                         model.publishedPosts
 
             Compose ->

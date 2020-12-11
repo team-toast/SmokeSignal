@@ -1,15 +1,16 @@
 module Home.Types exposing (..)
 
 import Common.Msg exposing (..)
+import PostUX.Types as PostUX
 
 
 type alias Model =
-    { topicInput : String
+    { maybePostUXModel : Maybe PostUX.Model
     }
 
 
 type Msg
-    = TopicInputChanged String
+    = PostUXMsg PostUX.Msg
     | MsgUp MsgUp
 
 
