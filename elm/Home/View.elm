@@ -50,13 +50,14 @@ view dProfile model walletUXPhaceInfo posts =
         Element.column
             [ Element.width (Element.fill |> Element.maximum 1100)
             , Element.centerX
-            , Element.spacing (responsiveVal dProfile 110 30)
+            , Element.spacing (responsiveVal dProfile 50 30)
             ]
         <|
             case dProfile of
                 Desktop ->
                     [ boldProclamationEl dProfile
                     , tutorialVideo dProfile
+                    , conversationAlreadyStartedEl dProfile
                     , Element.row
                         [ Element.width Element.fill
                         , Element.height Element.fill
@@ -78,6 +79,7 @@ view dProfile model walletUXPhaceInfo posts =
                 Mobile ->
                     [ boldProclamationEl dProfile
                     , tutorialVideo dProfile
+                    , conversationAlreadyStartedEl dProfile
                     , case walletUXPhaceInfo of
                         DemoPhaceInfo _ ->
                             web3ConnectButton
@@ -149,25 +151,28 @@ feedEl dProfile post =
                     ""
 
                 Post.ForTopic theTopic ->
-                    theTopic ++ " -- "
+                    theTopic
     in
-    Element.paragraph [ Element.width Element.fill ] <|
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacingXY 0 5
+        ]
         [ Element.text <|
-            ("("
-                ++ String.fromInt post.id.block
-                ++ ") "
-                ++ "("
-                ++ String.fromFloat (TokenValue.toFloatWithWarning post.core.authorBurn)
+            (topic
+                ++ "   (rank: "
+                ++ String.fromFloat (toFloat post.id.block * TokenValue.toFloatWithWarning post.core.authorBurn / pi)
                 ++ ") "
             )
-                ++ topic
-                ++ String.left (responsiveVal dProfile 200 50) message
-                ++ (if String.length message > 50 then
-                        "..."
+        , Element.paragraph [ Element.width Element.fill ] <|
+            [ Element.text <|
+                String.left (responsiveVal dProfile 200 50) message
+                    ++ (if String.length message > 50 then
+                            "..."
 
-                    else
-                        ""
-                   )
+                        else
+                            ""
+                       )
+            ]
         ]
 
 
@@ -227,7 +232,7 @@ tutorialVideo dProfile =
     Element.el
         [ Element.centerX
         , Element.paddingEach
-            { top = 20
+            { top = 0
             , bottom = 0
             , right = 0
             , left = 0
