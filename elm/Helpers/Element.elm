@@ -107,6 +107,16 @@ responsiveVal dProfile desktopVal mobileVal =
             mobileVal
 
 
+changeForMobile : a -> DisplayProfile -> a -> a
+changeForMobile changed dProfile original =
+    case dProfile of
+        Desktop ->
+            original
+
+        Mobile ->
+            changed
+
+
 
 -- COLORS
 
