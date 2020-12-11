@@ -99,7 +99,7 @@ view dProfile model walletUXPhaceInfo posts =
                                     (MsgUp <|
                                         GotoRoute <|
                                             Routing.Compose <|
-                                                Post.ForTopic Post.defaultTopic
+                                                Post.TopLevel Post.defaultTopic
                                     )
                                 ]
 
@@ -143,14 +143,14 @@ feedEl :
 feedEl dProfile post =
     let
         message =
-            post.core.message
+            post.core.content.body
 
         topic =
             case post.core.metadata.context of
-                Post.ForPost id ->
+                Post.Reply id ->
                     ""
 
-                Post.ForTopic theTopic ->
+                Post.TopLevel theTopic ->
                     theTopic
     in
     Element.column
