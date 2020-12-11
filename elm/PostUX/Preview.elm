@@ -8,13 +8,13 @@ import Element.Background
 import Element.Border
 import Element.Font
 import Helpers.Element as EH exposing (DisplayProfile, responsiveVal)
+import Html.Attributes
 import Post
 import PostUX.Types exposing (..)
 import PostUX.View
 import Theme
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
-import Html.Attributes
 
 
 view :
@@ -77,6 +77,7 @@ previewMetadata dProfile publishedPost =
         [ Element.spaceEvenly
         , Element.spacing 5
         , Element.Font.size <| responsiveVal dProfile 16 10
+        , Element.width Element.fill
         ]
         [ viewContext dProfile publishedPost.core.metadata.context
         , viewTiming dProfile publishedPost.id
@@ -130,9 +131,7 @@ previewBody dProfile showAddress publishedPost =
         [ Element.width Element.fill
         , Element.height Element.fill
         , Element.spacing 5
-        , Element.htmlAttribute (Html.Attributes.style "flex-shrink" "1")
-        , Element.clipX
-        , Element.clipY
+        , Element.clip
         ]
         [ Common.View.phaceElement True
             publishedPost.core.author
@@ -148,16 +147,9 @@ viewTitleOrTextPreview :
     -> Post.Content
     -> Element Msg
 viewTitleOrTextPreview dProfile content =
-    Element.el
-        [ Element.clipX
-        , Element.clipY
-        , Element.width Element.fill
-        , Element.height Element.fill
-        ]
-    <|
-        case content.title of
-            Just title ->
-                Element.text title
+    case content.title of
+        Just title ->
+            Element.text title
 
-            Nothing ->
-                Element.text content.body
+        Nothing ->
+            Element.text content.body
