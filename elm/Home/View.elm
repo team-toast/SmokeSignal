@@ -72,12 +72,13 @@ view dProfile showAddressId walletUXPhaceInfo donateChecked posts =
                     , Element.row
                         [ Element.width Element.fill
                         , Element.spacing 40
-                        -- , Element.clip
-                        -- , Element.htmlAttribute (Html.Attributes.style "flex-shrink" "1")
+                        , Element.clip
+                        , Element.htmlAttribute (Html.Attributes.style "flex-shrink" "1")
                         ]
                         [ Element.column
                             [ Element.width Element.fill
                             , Element.height Element.fill
+                            , Element.clip
                             ]
                           <|
                             [ postFeed
