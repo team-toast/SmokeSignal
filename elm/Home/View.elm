@@ -73,6 +73,8 @@ view dProfile showAddressId walletUXPhaceInfo donateChecked posts =
                         [ Element.width Element.fill
                         , Element.height Element.fill
                         , Element.spacing 40
+                        , Element.clip
+                        , Element.htmlAttribute (Html.Attributes.style "flex-shrink" "1")
                         ]
                         [ Element.column
                             [ Element.width Element.fill
@@ -138,6 +140,7 @@ postFeed dProfile donateChecked maybeShowAddressForId listOfPosts =
     in
     Element.column
         [ Element.width Element.fill
+        , Element.height Element.fill
         , Element.spacingXY 0 20
         , Element.paddingXY 0 20
         ]
@@ -167,49 +170,6 @@ previewPost dProfile donateChecked maybeShowAddressForId maybePostUXModel post =
             (maybeShowAddressForId == Just post.id)
             maybePostUXModel
             post
-
-
-feedEl :
-    DisplayProfile
-    -> Post.Published
-    -> Element Msg
-feedEl dProfile post =
-    let
-        message =
-            post.core.content.body
-
-        topic =
-            case post.core.metadata.context of
-                Post.Reply id ->
-                    "[No Topic]"
-
-                Post.TopLevel theTopic ->
-                    theTopic
-    in
-    Element.column
-        [ Element.width Element.fill
-        , Element.spacingXY 0 20
-        , Element.padding 10
-        , Element.Border.rounded 15
-        , Element.Border.glow EH.white 0.8
-        ]
-        [ Element.text <|
-            (topic
-                ++ "   (rank: "
-                ++ String.fromFloat (toFloat post.id.block * TokenValue.toFloatWithWarning post.core.authorBurn / pi)
-                ++ ") "
-            )
-        , Element.paragraph [ Element.width Element.fill ] <|
-            [ Element.text <|
-                String.left (responsiveVal dProfile 200 50) message
-                    ++ (if String.length message > 50 then
-                            "..."
-
-                        else
-                            ""
-                       )
-            ]
-        ]
 
 
 boldProclamationEl : DisplayProfile -> Element Msg

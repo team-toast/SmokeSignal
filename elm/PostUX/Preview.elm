@@ -4,13 +4,17 @@ import Common.Msg
 import Common.Types exposing (..)
 import Common.View exposing (daiSymbol)
 import Element exposing (Element)
+import Element.Background
+import Element.Border
 import Element.Font
 import Helpers.Element as EH exposing (DisplayProfile, responsiveVal)
 import Post
 import PostUX.Types exposing (..)
 import PostUX.View
+import Theme
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
+import Html.Attributes
 
 
 view :
@@ -23,8 +27,13 @@ view :
 view dProfile donateChecked showAddressOnPhace maybeUXModel publishedPost =
     Element.row
         [ Element.width Element.fill
+        , Element.height <| Element.px <| 100
         , Element.spacing 20
-        , Element.explain Debug.todo
+        , Element.clipX
+        , Element.clipY
+        , Element.Background.color Theme.darkGray
+        , Element.Border.rounded 10
+        , Element.padding 10
         ]
         [ daiBurnedPane dProfile publishedPost
         , mainPreviewPane dProfile showAddressOnPhace publishedPost
@@ -51,6 +60,7 @@ mainPreviewPane :
 mainPreviewPane dProfile showAddress publishedPost =
     Element.column
         [ Element.width Element.fill
+        , Element.height Element.fill
         , Element.spacing 5
         ]
         [ previewMetadata dProfile publishedPost
@@ -118,7 +128,11 @@ previewBody :
 previewBody dProfile showAddress publishedPost =
     Element.row
         [ Element.width Element.fill
+        , Element.height Element.fill
         , Element.spacing 5
+        , Element.htmlAttribute (Html.Attributes.style "flex-shrink" "1")
+        , Element.clipX
+        , Element.clipY
         ]
         [ Common.View.phaceElement True
             publishedPost.core.author
@@ -134,9 +148,16 @@ viewTitleOrTextPreview :
     -> Post.Content
     -> Element Msg
 viewTitleOrTextPreview dProfile content =
-    case content.title of
-        Just title ->
-            Element.text title
+    Element.el
+        [ Element.clipX
+        , Element.clipY
+        , Element.width Element.fill
+        , Element.height Element.fill
+        ]
+    <|
+        case content.title of
+            Just title ->
+                Element.text title
 
-        Nothing ->
-            Element.text content.body
+            Nothing ->
+                Element.text content.body
