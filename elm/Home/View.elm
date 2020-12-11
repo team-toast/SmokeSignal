@@ -70,8 +70,6 @@ view dProfile donateChecked blockTimes now showAddressId walletUXPhaceInfo posts
             case dProfile of
                 Desktop ->
                     [ boldProclamationEl dProfile
-                    , tutorialVideo dProfile
-                    , conversationAlreadyStartedEl dProfile
                     , Element.row
                         [ Element.width Element.fill
                         , Element.spacing 40
@@ -211,13 +209,6 @@ boldProclamationEl dProfile =
             ]
           <|
             Element.text "Uncensorable - Immutable - Unkillable"
-        , Element.el
-            [ Element.Font.size (responsiveVal dProfile 45 15)
-            , Element.centerX
-            , Element.Font.color Theme.almostWhite
-            ]
-          <|
-            Element.text "Real Free Speech - Cemented on the Blockchain"
         ]
 
 
