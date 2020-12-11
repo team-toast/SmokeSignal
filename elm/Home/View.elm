@@ -79,10 +79,11 @@ view dProfile model walletUXPhaceInfo posts =
 tutorialVideo : DisplayProfile -> Element Msg
 tutorialVideo dProfile =
     let
-        (width, height) =
+        ( width, height ) =
             responsiveVal dProfile
-                (854, 480)
-                (426,240)
+                ( 854, 480 )
+                ( 426, 240 )
+
         html =
             Embed.Youtube.fromString "pV70Q0wgnnU"
                 |> Embed.Youtube.attributes
@@ -100,8 +101,10 @@ tutorialVideo dProfile =
             , left = 0
             }
         ]
-        <| Element.html html
-    
+    <|
+        Element.html html
+
+
 
 -- boldProclamationEl : DisplayProfile -> Element Msg
 -- boldProclamationEl dProfile =
