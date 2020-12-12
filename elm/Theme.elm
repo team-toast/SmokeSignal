@@ -12,6 +12,7 @@ type alias Theme msg =
     , headerTextColor : Color
     , appBackground : Color
     , blockBackground : Color
+    , blockBorderColor : Color
     , txTrackerBackground : Color
     , postBodyBackground : Color
     , draftModalBackground : Color
@@ -39,8 +40,9 @@ theme : Theme msg
 theme =
     { headerBackground = darkBlue
     , headerTextColor = EH.white
-    , appBackground = darkerBlue
-    , blockBackground = lightBlue
+    , appBackground = EH.black
+    , blockBackground = Element.rgb 0.1 0.1 0.1
+    , blockBorderColor = Element.rgb 0.25 0.25 0.25
     , postBodyBackground = lightBlue
     , draftModalBackground = darkBlue
     , txTrackerBackground = lightBlue

@@ -14,7 +14,7 @@ import Html.Attributes
 import Post
 import PostUX.Types exposing (..)
 import PostUX.View
-import Theme
+import Theme exposing (theme)
 import Time
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
@@ -34,8 +34,10 @@ view dProfile donateChecked showAddressOnPhace blockTimes now maybeUXModel publi
         [ Element.width Element.fill
         , Element.height <| Element.px <| 100
         , Element.spacing 20
-        , Element.Background.color Theme.darkGray
-        , Element.Border.rounded 10
+        , Element.Background.color theme.blockBackground
+        , Element.Border.width 1
+        , Element.Border.color theme.blockBorderColor 
+        , Element.Border.rounded 5
         , Element.padding 10
         ]
         [ daiBurnedPane dProfile publishedPost
@@ -50,7 +52,7 @@ daiBurnedPane :
 daiBurnedPane dProfile publishedPost =
     Element.row
         [ Element.spacing 3 ]
-        [ daiSymbol False [ Element.height <| Element.px 18 ]
+        [ daiSymbol True [ Element.height <| Element.px 18 ]
         , Element.text <| TokenValue.toConciseString <| Post.totalBurned <| Post.PublishedPost publishedPost
         ]
 
@@ -142,7 +144,7 @@ viewDaiTipped :
 viewDaiTipped dProfile amount =
     Element.row
         [ Element.spacing 3 ]
-        [ daiSymbol False [ Element.height <| Element.px 18 ]
+        [ daiSymbol True [ Element.height <| Element.px 18 ]
         , Element.text <| TokenValue.toConciseString amount
         ]
 
