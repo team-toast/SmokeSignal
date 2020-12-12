@@ -55,9 +55,9 @@ theme =
     , loadingTextColor = darkGray
     , errorTextColor = softRed
     , appStatusTextColor = darkGray
-    , daiBurnedBackground = lightRed
+    , daiBurnedBackground = darkRed
     , daiBurnedTextIsWhite = False
-    , daiTippedBackground = lightGreen
+    , daiTippedBackground = darkGreen
     , daiTippedTextIsWhite = False
     , emphasizedActionButton = redButton
     , secondaryActionButton = blueButton
@@ -130,6 +130,9 @@ veryDarkGray =
 
 green =
     Element.rgb255 51 183 2
+
+darkGreen =
+    Element.rgb255 0 120 0
 
 
 yellow =

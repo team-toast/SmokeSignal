@@ -29,31 +29,18 @@ view :
     -> Maybe Model
     -> Post.Published
     -> Element Msg
-view dProfile donateChecked showAddressOnPhace blockTimes now maybeUXModel publishedPost =
+view dProfile donateChecked showAddressOnPhace blockTimes now maybeUXModel post =
     Element.row
         [ Element.width Element.fill
         , Element.height <| Element.px <| 100
         , Element.spacing 20
         , Element.Background.color theme.blockBackground
         , Element.Border.width 1
-        , Element.Border.color theme.blockBorderColor 
+        , Element.Border.color theme.blockBorderColor
         , Element.Border.rounded 5
         , Element.padding 10
         ]
-        [ daiBurnedPane dProfile publishedPost
-        , mainPreviewPane dProfile showAddressOnPhace blockTimes now publishedPost
-        ]
-
-
-daiBurnedPane :
-    DisplayProfile
-    -> Post.Published
-    -> Element Msg
-daiBurnedPane dProfile publishedPost =
-    Element.row
-        [ Element.spacing 3 ]
-        [ daiSymbol True [ Element.height <| Element.px 18 ]
-        , Element.text <| TokenValue.toConciseString <| Post.totalBurned <| Post.PublishedPost publishedPost
+        [ mainPreviewPane dProfile showAddressOnPhace blockTimes now post
         ]
 
 
@@ -64,14 +51,14 @@ mainPreviewPane :
     -> Time.Posix
     -> Post.Published
     -> Element Msg
-mainPreviewPane dProfile showAddress blockTimes now publishedPost =
+mainPreviewPane dProfile showAddress blockTimes now post =
     Element.column
         [ Element.width Element.fill
         , Element.height Element.fill
         , Element.spacing 5
         ]
-        [ previewMetadata dProfile blockTimes now publishedPost
-        , previewBody dProfile showAddress publishedPost
+        [ previewMetadata dProfile blockTimes now post
+        , previewBody dProfile showAddress post
         ]
 
 
@@ -81,19 +68,70 @@ previewMetadata :
     -> Time.Posix
     -> Post.Published
     -> Element Msg
-previewMetadata dProfile blockTimes now publishedPost =
+previewMetadata dProfile blockTimes now post =
     Element.row
         [ Element.spaceEvenly
         , Element.Font.size <| responsiveVal dProfile 16 10
         , Element.width <| Element.px 300
         ]
-        
-        [ viewContext dProfile publishedPost.core.metadata.context
-        , viewTiming dProfile blockTimes now publishedPost.id
-        , Maybe.map
-            (viewDaiTipped dProfile)
-            (publishedPost.maybeAccounting |> Maybe.map .totalTipped)
-            |> Maybe.withDefault Element.none
+        [ viewAccounting dProfile post
+        , viewContext dProfile post.core.metadata.context
+        , viewTiming dProfile blockTimes now post.id
+        ]
+
+
+viewAccounting : DisplayProfile -> Post.Published -> Element Msg
+viewAccounting dProfile post =
+    Element.row
+        [ Element.width <| Element.px 100
+        , Element.spacing 5
+        ]
+        [ Element.el [ Element.width Element.fill ] <|
+            Element.el [ Element.alignRight ] <|
+                viewDaiBurned dProfile post
+        , Element.el [ Element.width Element.fill ] <|
+            Element.el [ Element.alignLeft ] <|
+                Maybe.withDefault Element.none <|
+                    Maybe.map
+                        (viewDaiTipped dProfile)
+                        (post.maybeAccounting |> Maybe.map .totalTipped)
+        ]
+
+
+commonDaiElStyles : List (Element.Attribute Msg)
+commonDaiElStyles =
+    [ Element.spacing 3
+    , Element.padding 3
+    , Element.Border.rounded 3
+    , Element.Font.size 14
+    ]
+
+
+viewDaiBurned :
+    DisplayProfile
+    -> Post.Published
+    -> Element Msg
+viewDaiBurned dProfile post =
+    Element.row
+        (commonDaiElStyles
+            ++ [ Element.Background.color theme.daiBurnedBackground ]
+        )
+        [ daiSymbol True [ Element.height <| Element.px 14 ]
+        , Element.text <| TokenValue.toConciseString <| Post.totalBurned <| Post.PublishedPost post
+        ]
+
+
+viewDaiTipped :
+    DisplayProfile
+    -> TokenValue
+    -> Element Msg
+viewDaiTipped dProfile amount =
+    Element.row
+        (commonDaiElStyles
+            ++ [ Element.Background.color theme.daiTippedBackground ]
+        )
+        [ daiSymbol True [ Element.height <| Element.px 14 ]
+        , Element.text <| TokenValue.toConciseString amount
         ]
 
 
@@ -137,24 +175,12 @@ viewTiming dProfile blockTimes now id =
         )
 
 
-viewDaiTipped :
-    DisplayProfile
-    -> TokenValue
-    -> Element Msg
-viewDaiTipped dProfile amount =
-    Element.row
-        [ Element.spacing 3 ]
-        [ daiSymbol True [ Element.height <| Element.px 18 ]
-        , Element.text <| TokenValue.toConciseString amount
-        ]
-
-
 previewBody :
     DisplayProfile
     -> Bool
     -> Post.Published
     -> Element Msg
-previewBody dProfile showAddress publishedPost =
+previewBody dProfile showAddress post =
     Element.row
         [ Element.width Element.fill
         , Element.height Element.fill
@@ -162,11 +188,11 @@ previewBody dProfile showAddress publishedPost =
         , Element.clip
         ]
         [ Common.View.phaceElement True
-            publishedPost.core.author
+            post.core.author
             showAddress
-            (MsgUp <| Common.Msg.ShowOrHideAddress <| PhaceForPublishedPost publishedPost.id)
+            (MsgUp <| Common.Msg.ShowOrHideAddress <| PhaceForPublishedPost post.id)
             NoOp
-        , viewTitleOrTextPreview dProfile publishedPost.core.content
+        , viewTitleOrTextPreview dProfile post.core.content
         ]
 
 
