@@ -174,6 +174,7 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedContent context =
                 [ case maybeShowPhaceInfo of
                     Just ( fromAddress, showAddress ) ->
                         phaceElement
+                            (100,100)
                             True
                             fromAddress
                             showAddress
@@ -287,6 +288,7 @@ actionFormAndMaybeErrorEl dProfile donateChecked walletUXPhaceInfo model =
                             Desktop ->
                                 Element.map MsgUp <|
                                     phaceElement
+                                        (100,100)
                                         True
                                         userInfo.address
                                         showAddress

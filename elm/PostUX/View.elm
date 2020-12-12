@@ -53,6 +53,7 @@ view dProfile donateChecked showContext post wallet maybeUXModel =
                     ]
                 <|
                     makePhaceElement
+                        ( 100, 100 )
                         postCore.author
                         maybeUXModel
 
@@ -87,9 +88,10 @@ view dProfile donateChecked showContext post wallet maybeUXModel =
         ]
 
 
-makePhaceElement : Address -> Maybe Model -> Element Msg
-makePhaceElement author maybeUXModel =
+makePhaceElement : ( Int, Int ) -> Address -> Maybe Model -> Element Msg
+makePhaceElement ( width, height ) author maybeUXModel =
     phaceElement
+        ( width, height )
         True
         author
         (maybeUXModel
@@ -251,6 +253,7 @@ viewMainPostBlock dProfile donateChecked showContext post unlockStatus maybeUXMo
 
                 Mobile ->
                     makePhaceElement
+                        ( 100, 100 )
                         postCore.author
                         maybeUXModel
             , Element.map MsgUp <| viewMetadata showContext postCore.metadata

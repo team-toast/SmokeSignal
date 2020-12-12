@@ -499,6 +499,7 @@ homeWalletUX dProfile walletUXPhaceInfo =
                     ]
                 <|
                     phaceElement
+                        (100,100)
                         True
                         (Eth.Utils.unsafeToAddress demoAddress)
                         False
@@ -514,6 +515,7 @@ homeWalletUX dProfile walletUXPhaceInfo =
                     ]
                 <|
                     phaceElement
+                        (100,100)
                         True
                         accountInfo.address
                         showAddress

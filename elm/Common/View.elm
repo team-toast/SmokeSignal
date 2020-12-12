@@ -44,8 +44,8 @@ web3ConnectButton dProfile attrs msgMapper =
         (msgMapper ConnectToWeb3)
 
 
-phaceElement : Bool -> Address -> Bool -> msg -> msg -> Element msg
-phaceElement addressHangToRight fromAddress showAddress onClick noOpMsg =
+phaceElement : (Int, Int) -> Bool -> Address -> Bool -> msg -> msg -> Element msg
+phaceElement (width, height) addressHangToRight fromAddress showAddress onClick noOpMsg =
     let
         addressOutputEl () =
             -- delay processing because addressToChecksumString is expensive!
@@ -85,7 +85,7 @@ phaceElement addressHangToRight fromAddress showAddress onClick noOpMsg =
             ]
         <|
             Element.html
-                (Phace.fromEthAddress fromAddress)
+                (Phace.fromEthAddress fromAddress width height)
 
 
 loadingElement : List (Attribute msg) -> Maybe String -> Element msg

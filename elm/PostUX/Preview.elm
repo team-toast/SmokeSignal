@@ -189,7 +189,9 @@ previewBody dProfile showAddress post =
         , Element.spacing 5
         , Element.clip
         ]
-        [ Common.View.phaceElement True
+        [ Common.View.phaceElement
+            (60,60)
+            True
             post.core.author
             showAddress
             (MsgUp <| Common.Msg.ShowOrHideAddress <| PhaceForPublishedPost post.id)
