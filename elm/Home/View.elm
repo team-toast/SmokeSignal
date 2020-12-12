@@ -142,6 +142,7 @@ postFeed dProfile donateChecked blockTimes now maybeShowAddressForId listOfPosts
             List.sortBy (\post -> toFloat post.id.block * TokenValue.toFloatWithWarning post.core.authorBurn / pi)
                 listOfPosts
                 |> List.reverse
+                |> List.take 20
     in
     Element.column
         [ Element.width Element.fill
