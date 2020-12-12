@@ -23,7 +23,7 @@ import Post exposing (Post)
 import PostUX.Preview as PostPreview
 import PostUX.Types as PostUX
 import Routing exposing (Route)
-import Theme exposing (darkTheme, defaultTheme)
+import Theme exposing (theme)
 import Time
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
@@ -54,11 +54,11 @@ view dProfile donateChecked blockTimes now showAddressId walletUXPhaceInfo posts
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
-        , Element.Background.color darkTheme.appBackground
+        , Element.Background.color theme.appBackground
         , responsiveVal dProfile
             (Element.paddingXY 40 40)
             (Element.paddingXY 10 20)
-        , Element.Font.color darkTheme.emphasizedTextColor
+        , Element.Font.color theme.emphasizedTextColor
         ]
     <|
         Element.column
@@ -109,7 +109,7 @@ view dProfile donateChecked blockTimes now showAddressId walletUXPhaceInfo posts
                                 [ Element.width Element.fill
                                 , Element.spacing 10
                                 ]
-                                [ defaultTheme.greenActionButton
+                                [ theme.greenActionButton
                                     dProfile
                                     [ Element.width Element.fill ]
                                     [ "Create a New Post" ]
@@ -280,7 +280,7 @@ infoBlock dProfile =
         , Element.padding (responsiveVal dProfile 25 15)
         , Element.Font.color <| EH.white
         , Element.Font.size (responsiveVal dProfile 22 18)
-        , Element.Font.color darkTheme.mainTextColor
+        , Element.Font.color theme.mainTextColor
         , Element.centerX
         , Element.spacing 20
         , Element.width Element.fill
@@ -305,13 +305,13 @@ infoBlock dProfile =
             , [ Element.text "All you need is ETH for gas and DAI to burn." ]
             , [ Element.text "All SmokeSignal posts are permanent and impossible to delete, and can be accessed with any browser via an IPFS Gateway ("
               , Element.newTabLink
-                    [ Element.Font.color defaultTheme.linkTextColor ]
+                    [ Element.Font.color theme.linkTextColor ]
                     { url = "https://gateway.ipfs.io/ipfs/QmeXhVyRJYhtpRcQr4uYsJZi6wBYqyEwdjPRjp3EFCtLHQ/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
                     , label = Element.text "example"
                     }
               , Element.text ") or the smokesignal.eth.link mirror ("
               , Element.newTabLink
-                    [ Element.Font.color defaultTheme.linkTextColor ]
+                    [ Element.Font.color theme.linkTextColor ]
                     { url = "https://smokesignal.eth.link/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
                     , label = Element.text "example"
                     }
@@ -319,13 +319,13 @@ infoBlock dProfile =
               ]
             , [ Element.text "If the above two methods prove unreliable, some browsers also support direct smokesignal.eth links ("
               , Element.newTabLink
-                    [ Element.Font.color defaultTheme.linkTextColor ]
+                    [ Element.Font.color theme.linkTextColor ]
                     { url = "https://smokesignal.eth/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
                     , label = Element.text "example"
                     }
               , Element.text ") or direct IPFS links ("
               , Element.newTabLink
-                    [ Element.Font.color defaultTheme.linkTextColor ]
+                    [ Element.Font.color theme.linkTextColor ]
                     { url = "ipfs://QmeXhVyRJYhtpRcQr4uYsJZi6wBYqyEwdjPRjp3EFCtLHQ/#/context/re?block=9956062&hash=0x0a7e09be33cd207ad208f057e26fba8f8343cfd6c536904c20dbbdf87aa2b257"
                     , label = Element.text "example"
                     }
@@ -351,7 +351,7 @@ topicsExplainerEl dProfile =
         , Element.padding (responsiveVal dProfile 25 15)
         , Element.Font.color <| EH.white
         , Element.Font.size (responsiveVal dProfile 22 18)
-        , Element.Font.color darkTheme.mainTextColor
+        , Element.Font.color theme.mainTextColor
         , Element.centerX
         , Element.width Element.fill
         , Element.spacing 20
@@ -390,7 +390,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
                     (Element.paragraph
                         [ Element.Font.size (responsiveVal dProfile 22 18)
                         , Element.width Element.fill
-                        , Element.Font.color darkTheme.mainTextColor
+                        , Element.Font.color theme.mainTextColor
                         ]
                     )
                     paras
@@ -457,7 +457,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
                     , Element.spacing 10
                     ]
                     [ moreInfoButton dProfile
-                    , defaultTheme.greenActionButton
+                    , theme.greenActionButton
                         dProfile
                         [ Element.width Element.fill ]
                         [ "Create a New Post" ]
@@ -472,7 +472,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
 
 moreInfoButton : DisplayProfile -> Element Msg
 moreInfoButton dProfile =
-    defaultTheme.secondaryActionButton
+    theme.secondaryActionButton
         dProfile
         [ Element.width Element.fill ]
         [ "What Can SmokeSignal be Used For?" ]

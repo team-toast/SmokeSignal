@@ -35,13 +35,8 @@ type alias Theme msg =
     }
 
 
-defaultTheme : Theme msg
-defaultTheme =
-    basicTheme
-
-
-basicTheme : Theme msg
-basicTheme =
+theme : Theme msg
+theme =
     { headerBackground = darkBlue
     , headerTextColor = EH.white
     , appBackground = darkerBlue
@@ -69,18 +64,18 @@ basicTheme =
     }
 
 
-darkTheme : Theme msg
-darkTheme =
-    { basicTheme
-        | appBackground = veryDarkGray
-        , blockBackground = darkBlue
-        , mainTextColor = almostWhite
-        , emphasizedTextColor = EH.white
-        , loadingTextColor = lightGray
-        , appStatusTextColor = lightGray
-        , daiBurnedBackground = darkRed
-        , daiBurnedTextIsWhite = True
-    }
+-- darkTheme : Theme msg
+-- darkTheme =
+--     { basicTheme
+--         | appBackground = EH.black
+--         , blockBackground = darkBlue
+--         , mainTextColor = almostWhite
+--         , emphasizedTextColor = EH.white
+--         , loadingTextColor = lightGray
+--         , appStatusTextColor = lightGray
+--         , daiBurnedBackground = darkRed
+--         , daiBurnedTextIsWhite = True
+--     }
 
 
 softRed =
