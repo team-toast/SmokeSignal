@@ -752,7 +752,7 @@ viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies pub
                 [ Element.el
                     [ Element.Font.size (responsiveVal dProfile 50 30)
                     , Element.Font.bold
-                    , Element.Font.color theme.mainTextColor
+                    , Element.Font.color theme.defaultTextColor
                     ]
                   <|
                     Element.text "Replies"
@@ -861,7 +861,7 @@ viewBlocknumAndPosts dProfile donateChecked wallet showContext blockTimes replie
             , Element.spacing 5
             , Element.Font.italic
             , Element.Font.size 14
-            , Element.Font.color theme.mainTextColor
+            , Element.Font.color theme.defaultTextColor
             ]
             [ Element.row
                 [ Element.width Element.fill
@@ -871,7 +871,7 @@ viewBlocknumAndPosts dProfile donateChecked wallet showContext blockTimes replie
                 , Element.el
                     [ Element.width Element.fill
                     , Element.height <| Element.px 1
-                    , Element.Border.color theme.mainTextColor
+                    , Element.Border.color theme.defaultTextColor
                     , Element.Border.widthEach
                         { top = 1
                         , bottom = 0

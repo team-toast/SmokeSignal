@@ -55,7 +55,7 @@ mainPreviewPane dProfile showAddress blockTimes now post =
     Element.column
         [ Element.width Element.fill
         , Element.height Element.fill
-        , Element.spacing 5
+        , Element.spacing 20
         ]
         [ previewMetadata dProfile blockTimes now post
         , previewBody dProfile showAddress post
@@ -70,31 +70,29 @@ previewMetadata :
     -> Element Msg
 previewMetadata dProfile blockTimes now post =
     Element.row
-        [ Element.spaceEvenly
-        , Element.Font.size <| responsiveVal dProfile 16 10
+        [ Element.Font.size <| responsiveVal dProfile 16 10
         , Element.width <| Element.px 300
+        , Element.spacing 40
         ]
         [ viewAccounting dProfile post
-        , viewContext dProfile post.core.metadata.context
         , viewTiming dProfile blockTimes now post.id
+        , viewContext dProfile post.core.metadata.context
         ]
 
 
-viewAccounting : DisplayProfile -> Post.Published -> Element Msg
+viewAccounting :
+    DisplayProfile
+    -> Post.Published
+    -> Element Msg
 viewAccounting dProfile post =
     Element.row
         [ Element.width <| Element.px 100
         , Element.spacing 5
         ]
-        [ Element.el [ Element.width Element.fill ] <|
-            Element.el [ Element.alignRight ] <|
-                viewDaiBurned dProfile post
-        , Element.el [ Element.width Element.fill ] <|
-            Element.el [ Element.alignLeft ] <|
-                Maybe.withDefault Element.none <|
-                    Maybe.map
-                        (viewDaiTipped dProfile)
-                        (post.maybeAccounting |> Maybe.map .totalTipped)
+        [ viewDaiBurned dProfile post
+        , Maybe.map (viewDaiTipped dProfile)
+            (post.maybeAccounting |> Maybe.map .totalTipped)
+            |> Maybe.withDefault Element.none
         ]
 
 
@@ -167,12 +165,16 @@ viewTiming dProfile blockTimes now id =
                         TimeHelpers.sub now postTime
                     )
     in
-    Element.text
-        (maybeTimePassed
-            |> Maybe.map TimeHelpers.roundToSingleUnit
-            |> Maybe.map (\s -> s ++ " ago")
-            |> Maybe.withDefault "..."
-        )
+    Element.el
+        [ Element.width <| Element.px 100 
+        , Element.Font.color theme.subtleTextColor
+        ] <|
+        Element.text
+            (maybeTimePassed
+                |> Maybe.map TimeHelpers.roundToSingleUnit
+                |> Maybe.map (\s -> s ++ " ago")
+                |> Maybe.withDefault "..."
+            )
 
 
 previewBody :

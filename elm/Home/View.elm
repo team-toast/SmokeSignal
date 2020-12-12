@@ -280,7 +280,7 @@ infoBlock dProfile =
         , Element.padding (responsiveVal dProfile 25 15)
         , Element.Font.color <| EH.white
         , Element.Font.size (responsiveVal dProfile 22 18)
-        , Element.Font.color theme.mainTextColor
+        , Element.Font.color theme.defaultTextColor
         , Element.centerX
         , Element.spacing 20
         , Element.width Element.fill
@@ -351,7 +351,7 @@ topicsExplainerEl dProfile =
         , Element.padding (responsiveVal dProfile 25 15)
         , Element.Font.color <| EH.white
         , Element.Font.size (responsiveVal dProfile 22 18)
-        , Element.Font.color theme.mainTextColor
+        , Element.Font.color theme.defaultTextColor
         , Element.centerX
         , Element.width Element.fill
         , Element.spacing 20
@@ -390,7 +390,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
                     (Element.paragraph
                         [ Element.Font.size (responsiveVal dProfile 22 18)
                         , Element.width Element.fill
-                        , Element.Font.color theme.mainTextColor
+                        , Element.Font.color theme.defaultTextColor
                         ]
                     )
                     paras

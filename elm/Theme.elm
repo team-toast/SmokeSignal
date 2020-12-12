@@ -16,7 +16,8 @@ type alias Theme msg =
     , txTrackerBackground : Color
     , postBodyBackground : Color
     , draftModalBackground : Color
-    , mainTextColor : Color
+    , defaultTextColor : Color
+    , subtleTextColor : Color
     , linkTextColor : Color
     , linkTextColorAgainstBackground : Color
     , emphasizedTextColor : Color
@@ -46,7 +47,8 @@ theme =
     , postBodyBackground = lightBlue
     , draftModalBackground = darkBlue
     , txTrackerBackground = lightBlue
-    , mainTextColor = EH.white
+    , defaultTextColor = Element.rgb 0.9 0.9 0.9
+    , subtleTextColor = Element.rgb 0.5 0.5 0.5
     , linkTextColor = blue
     , linkTextColorAgainstBackground = Element.rgb 0.4 0.6 1
     , emphasizedTextColor = EH.white
