@@ -32,7 +32,7 @@ view :
 view dProfile donateChecked showAddressOnPhace blockTimes now maybeUXModel post =
     Element.row
         [ Element.width Element.fill
-        , Element.height <| Element.px <| 100
+        , Element.height <| Element.px <| 120
         , Element.spacing 20
         , Element.Background.color theme.blockBackground
         , Element.Border.width 1
@@ -55,7 +55,7 @@ mainPreviewPane dProfile showAddress blockTimes now post =
     Element.column
         [ Element.width Element.fill
         , Element.height Element.fill
-        , Element.spacing 20
+        , Element.spacing 10
         ]
         [ previewMetadata dProfile blockTimes now post
         , previewBody dProfile showAddress post

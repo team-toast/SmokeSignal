@@ -76,12 +76,12 @@ phaceElement (width, height) addressHangToRight fromAddress showAddress onClick 
         )
     <|
         Element.el
-            [ Element.Border.rounded 10
+            [ Element.Border.rounded 5
             , Element.clip
             , Element.pointer
             , EH.onClickNoPropagation onClick
-            , Element.Border.width 2
-            , Element.Border.color EH.black
+            -- , Element.Border.width 1
+            -- , Element.Border.color Theme.blue
             ]
         <|
             Element.html
