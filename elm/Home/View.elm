@@ -16,6 +16,7 @@ import Embed.Youtube
 import Embed.Youtube.Attributes
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
+import Helpers.Time as TimeHelpers
 import Helpers.Tuple as TupleHelpers
 import Home.Types exposing (..)
 import Html.Attributes exposing (list)
@@ -139,10 +140,10 @@ postFeed :
 postFeed dProfile donateChecked blockTimes now maybeShowAddressForId listOfPosts =
     let
         posts =
-            List.sortBy (\post -> toFloat post.id.block * TokenValue.toFloatWithWarning post.core.authorBurn / pi)
+            List.sortBy (feedSortByFunc blockTimes now)
                 listOfPosts
                 |> List.reverse
-                |> List.take 20
+                |> List.take 10
     in
     Element.column
         [ Element.width Element.fill
@@ -160,6 +161,36 @@ postFeed dProfile donateChecked blockTimes now maybeShowAddressForId listOfPosts
                 Nothing
             )
             posts
+
+
+feedSortByFunc : Dict Int Time.Posix -> Time.Posix -> (Post.Published -> Float)
+feedSortByFunc blockTimes now =
+    \post ->
+        let
+            postTimeDefaultZero =
+                blockTimes
+                    |> Dict.get post.id.block
+                    |> Maybe.withDefault (Time.millisToPosix 0)
+
+            age =
+                TimeHelpers.sub now postTimeDefaultZero
+
+            ageFactor =
+                -- 1 at age zero, falls to 0 when 3 days old
+                TimeHelpers.getRatio
+                    age
+                    (TimeHelpers.mul TimeHelpers.oneDay 90)
+                    |> clamp 0 1
+                    |> \ascNum -> 1 - ascNum
+
+            totalBurned =
+                Post.totalBurned (Post.PublishedPost post)
+                    |> TokenValue.toFloatWithWarning
+
+            newnessMultiplier = 1
+                -- (ageFactor * 4.0) + 1
+        in
+        totalBurned * newnessMultiplier
 
 
 previewPost :
@@ -500,7 +531,7 @@ homeWalletUX dProfile walletUXPhaceInfo =
                     ]
                 <|
                     phaceElement
-                        (100,100)
+                        ( 100, 100 )
                         True
                         (Eth.Utils.unsafeToAddress demoAddress)
                         False
@@ -516,7 +547,7 @@ homeWalletUX dProfile walletUXPhaceInfo =
                     ]
                 <|
                     phaceElement
-                        (100,100)
+                        ( 100, 100 )
                         True
                         accountInfo.address
                         showAddress
