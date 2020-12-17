@@ -1,6 +1,6 @@
 module App exposing (main)
 
-import Browser.Hash as Hash
+import Browser.Hashbang as Hashbang
 import State
 import Types exposing (..)
 import View
@@ -8,7 +8,7 @@ import View
 
 main : Program Flags Model Msg
 main =
-    Hash.application
+    Hashbang.application
         { init = State.init
         , view = View.root
         , update = State.update

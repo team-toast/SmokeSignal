@@ -35,22 +35,22 @@ routeToString basePath route =
         ++ (case route of
                 Home ->
                     Builder.relative
-                        [ "#" ]
+                        [ "#!" ]
                         []
 
                 Compose context ->
                     Builder.relative
-                        ([ "#", "compose" ] ++ encodeContextPaths context)
+                        ([ "#!", "compose" ] ++ encodeContextPaths context)
                         (encodeContextQueryParams context)
 
                 ViewContext context ->
                     Builder.relative
-                        ([ "#", "context" ] ++ encodeContextPaths context)
+                        ([ "#!", "context" ] ++ encodeContextPaths context)
                         (encodeContextQueryParams context)
 
                 NotFound _ ->
                     Builder.relative
-                        [ "#" ]
+                        [ "#!" ]
                         []
            )
 
