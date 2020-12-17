@@ -31,9 +31,9 @@ import TokenValue exposing (TokenValue)
 forgedByFoundry : DisplayProfile -> Element msg
 forgedByFoundry dProfile =
     Element.newTabLink
-        [ Element.padding (responsiveVal dProfile 8 4)
+        [ Element.padding (8 |> changeForMobile 4 dProfile)
         , Element.Background.color <| Element.rgb 0.3 0.3 0.3
-        , Element.Border.rounded (responsiveVal dProfile 5 3)
+        , Element.Border.rounded (5 |> changeForMobile 3 dProfile)
         , Element.inFront <|
             Element.el
                 [ Element.width Element.fill
@@ -68,12 +68,12 @@ forgedByFoundry dProfile =
                 ]
                 [ Element.el
                     [ Element.Font.color white
-                    , Element.Font.size (responsiveVal dProfile 20 14)
+                    , Element.Font.size (20 |> changeForMobile 14 dProfile)
                     ]
                   <|
                     Element.text "Forged by"
                 , Element.el
-                    [ Element.Font.size (responsiveVal dProfile 22 16)
+                    [ Element.Font.size (22 |> changeForMobile 16 dProfile)
                     , Element.Font.bold
                     , Element.Font.color <| Element.rgb255 255 0 110
                     ]
@@ -97,16 +97,6 @@ screenWidthToDisplayProfile width =
         Mobile
 
 
-responsiveVal : DisplayProfile -> a -> a -> a
-responsiveVal dProfile desktopVal mobileVal =
-    case dProfile of
-        Desktop ->
-            desktopVal
-
-        Mobile ->
-            mobileVal
-
-
 changeForMobile : a -> DisplayProfile -> a -> a
 changeForMobile changed dProfile original =
     case dProfile of
@@ -115,6 +105,16 @@ changeForMobile changed dProfile original =
 
         Mobile ->
             changed
+
+
+responsiveVal : DisplayProfile -> a -> a -> a
+responsiveVal dProfile desktopVal mobileVal =
+    case dProfile of
+        Desktop ->
+            desktopVal
+
+        Mobile ->
+            mobileVal
 
 
 
@@ -197,12 +197,12 @@ button : DisplayProfile -> List (Attribute msg) -> ( Element.Color, Element.Colo
 button dProfile attributes ( bgColor, bgHoverColor, bgPressedColor ) textColor lines msg =
     Element.column
         ([ Element.Border.rounded 4
-         , Element.spacing (responsiveVal dProfile 8 5)
+         , Element.spacing (8 |> changeForMobile 5 dProfile)
          , Element.pointer
          , Element.Events.onClick msg
-         , responsiveVal dProfile (Element.paddingXY 25 17) (Element.padding 10)
+         , Element.paddingXY 25 17 |> changeForMobile (Element.padding 10) dProfile
          , Element.Font.color textColor
-         , Element.Font.size (responsiveVal dProfile 18 16)
+         , Element.Font.size (18 |> changeForMobile 16 dProfile)
          , Element.Font.semiBold
          , Element.Background.color bgColor
          , Element.mouseDown [ Element.Background.color bgPressedColor ]
@@ -241,7 +241,7 @@ textWithoutTextCursor s =
 withTitle : String -> Attribute msg
 withTitle title =
     Html.Attributes.title title
-        |> Element.htmlAttribute
+    |> Element.htmlAttribute
 
 
 onClickNoPropagation : msg -> Attribute msg
@@ -420,18 +420,16 @@ closeButton attributes color msg =
             ]
             (Element.text "x")
         )
+        -- (Element.image [ Element.width <| Element.px 22 ]
+        --     { src =
+        --         if isBlack then
+        --             "img/remove-circle-black.svg"
 
-
-
--- (Element.image [ Element.width <| Element.px 22 ]
---     { src =
---         if isBlack then
---             "img/remove-circle-black.svg"
---         else
---             "img/remove-circle-white.svg"
---     , description = "close"
---     }
--- )
+        --         else
+        --             "img/remove-circle-white.svg"
+        --     , description = "close"
+        --     }
+        -- )
 
 
 elOnCircle : List (Attribute msg) -> Int -> Element.Color -> Element msg -> Element msg

@@ -15,10 +15,9 @@ import Element.Input
 import Embed.Youtube
 import Embed.Youtube.Attributes
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
 import Helpers.Tuple as TupleHelpers
 import Home.Types exposing (..)
-import Html.Attributes exposing (list)
 import Post exposing (Post)
 import Routing exposing (Route)
 import Theme exposing (darkTheme, defaultTheme)
@@ -26,191 +25,55 @@ import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
 
-view :
-    EH.DisplayProfile
-    -> Model
-    -> WalletUXPhaceInfo
-    -> PublishedPostsDict
-    -> Element Msg
+view : EH.DisplayProfile -> Model -> WalletUXPhaceInfo -> PublishedPostsDict -> Element Msg
 view dProfile model walletUXPhaceInfo posts =
-    let
-        listOfPosts =
-            Dict.values posts
-    in
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
         , Element.Background.color darkTheme.appBackground
-        , responsiveVal dProfile
-            (Element.paddingXY 40 40)
-            (Element.paddingXY 10 20)
+        , Element.paddingXY 40 40
+            |> changeForMobile (Element.paddingXY 10 20) dProfile
         , Element.Font.color darkTheme.emphasizedTextColor
         ]
     <|
         Element.column
             [ Element.width (Element.fill |> Element.maximum 1100)
             , Element.centerX
-            , Element.spacing (responsiveVal dProfile 50 30)
+            , Element.spacing (110 |> changeForMobile 30 dProfile)
             ]
         <|
             case dProfile of
                 Desktop ->
-                    [ boldProclamationEl dProfile
-                    , tutorialVideo dProfile
-                    , conversationAlreadyStartedEl dProfile
-                    , Element.row
+                    [ tutorialVideo dProfile
+                    , Element.column
                         [ Element.width Element.fill
-                        , Element.height Element.fill
-                        , Element.spacing 40
+                        , Element.spacing 150
                         ]
-                        [ Element.column
+                        [ Element.row
                             [ Element.width Element.fill
-                            , Element.height Element.fill
+                            , Element.spacing 40
                             ]
-                          <|
-                            List.map
-                                (postFeed
-                                    dProfile
-                                )
-                                listOfPosts
+                            [ Element.el [ Element.width Element.fill ] <| topicsBlock dProfile model posts
+                            , Element.el [ Element.width Element.fill ] <| topicsExplainerEl dProfile
+                            ]
+                        , Element.row
+                            [ Element.width Element.fill
+                            , Element.spacing 40
+                            ]
+                            [ infoBlock dProfile
+                            , composeActionBlock dProfile walletUXPhaceInfo
+                            ]
                         ]
                     ]
 
                 Mobile ->
-                    [ boldProclamationEl dProfile
-                    , tutorialVideo dProfile
+                    [ tutorialVideo dProfile
+                    , infoBlock dProfile
                     , conversationAlreadyStartedEl dProfile
-                    , case walletUXPhaceInfo of
-                        DemoPhaceInfo _ ->
-                            web3ConnectButton
-                                dProfile
-                                [ Element.width Element.fill ]
-                                MsgUp
-
-                        _ ->
-                            Element.column
-                                [ Element.width Element.fill
-                                , Element.spacing 10
-                                ]
-                                [ defaultTheme.greenActionButton
-                                    dProfile
-                                    [ Element.width Element.fill ]
-                                    [ "Create a New Post" ]
-                                    (MsgUp <|
-                                        GotoRoute <|
-                                            Routing.Compose <|
-                                                Post.TopLevel Post.defaultTopic
-                                    )
-                                ]
-
-                    --, infoBlock dProfile
-                    --, conversationAlreadyStartedEl dProfile
                     , topicsBlock dProfile model posts
-
-                    -- , topicsExplainerEl dProfile
-                    --, composeActionBlock dProfile walletUXPhaceInfo
+                    , topicsExplainerEl dProfile
+                    , composeActionBlock dProfile walletUXPhaceInfo
                     ]
-
-
-postFeed :
-    DisplayProfile
-    -> List Post.Published
-    -> Element Msg
-postFeed dProfile listOfPosts =
-    let
-        posts =
-            List.sortBy (\post -> toFloat post.id.block * TokenValue.toFloatWithWarning post.core.authorBurn / pi)
-                listOfPosts
-                |> List.reverse
-    in
-    Element.column
-        [ Element.width Element.fill
-        , Element.spacingXY 0 5
-        , Element.paddingXY 0 20
-        ]
-    <|
-        List.map
-            (feedEl
-                dProfile
-            )
-            posts
-
-
-feedEl :
-    DisplayProfile
-    -> Post.Published
-    -> Element Msg
-feedEl dProfile post =
-    let
-        message =
-            post.core.content.body
-
-        topic =
-            case post.core.metadata.context of
-                Post.Reply id ->
-                    ""
-
-                Post.TopLevel theTopic ->
-                    theTopic
-    in
-    Element.column
-        [ Element.width Element.fill
-        , Element.spacingXY 0 5
-        ]
-        [ Element.text <|
-            (topic
-                ++ "   (rank: "
-                ++ String.fromFloat (toFloat post.id.block * TokenValue.toFloatWithWarning post.core.authorBurn / pi)
-                ++ ") "
-            )
-        , Element.paragraph [ Element.width Element.fill ] <|
-            [ Element.text <|
-                String.left (responsiveVal dProfile 200 50) message
-                    ++ (if String.length message > 50 then
-                            "..."
-
-                        else
-                            ""
-                       )
-            ]
-        ]
-
-
-boldProclamationEl : DisplayProfile -> Element Msg
-boldProclamationEl dProfile =
-    Element.column
-        [ Element.centerX
-        , Element.Font.bold
-        , Element.spacing (responsiveVal dProfile 20 10)
-        ]
-        [ coloredAppTitle
-            [ Element.Font.size (responsiveVal dProfile 80 50)
-            , Element.centerX
-            ]
-        , Element.el
-            [ Element.width Element.fill
-            , Element.paddingXY
-                (responsiveVal dProfile 40 15)
-                0
-            ]
-          <|
-            EH.thinHRuler <|
-                Element.rgb 1 0 0
-        , Element.el
-            [ Element.Font.size (responsiveVal dProfile 50 15)
-            , Element.centerX
-            , Element.Font.color Theme.almostWhite
-            ]
-          <|
-            Element.text "Uncensorable - Immutable - Unkillable"
-        , Element.el
-            [ Element.Font.size (responsiveVal dProfile 45 15)
-            , Element.centerX
-            , Element.Font.color Theme.almostWhite
-            ]
-          <|
-            Element.text "Real Free Speech - Cemented on the Blockchain"
-        ]
 
 
 tutorialVideo : DisplayProfile -> Element Msg
@@ -232,7 +95,7 @@ tutorialVideo dProfile =
     Element.el
         [ Element.centerX
         , Element.paddingEach
-            { top = 0
+            { top = 20
             , bottom = 0
             , right = 0
             , left = 0
@@ -278,9 +141,9 @@ infoBlock dProfile =
     Element.column
         [ Element.Border.rounded 15
         , Element.Background.color Theme.darkBlue
-        , Element.padding (responsiveVal dProfile 25 15)
+        , Element.padding (25 |> changeForMobile 15 dProfile)
         , Element.Font.color <| EH.white
-        , Element.Font.size (responsiveVal dProfile 22 18)
+        , Element.Font.size (22 |> changeForMobile 18 dProfile)
         , Element.Font.color darkTheme.mainTextColor
         , Element.centerX
         , Element.spacing 20
@@ -338,7 +201,7 @@ infoBlock dProfile =
 conversationAlreadyStartedEl : DisplayProfile -> Element Msg
 conversationAlreadyStartedEl dProfile =
     Element.paragraph
-        [ Element.Font.size (responsiveVal dProfile 50 36)
+        [ Element.Font.size (50 |> changeForMobile 36 dProfile)
         , Element.Font.center
         ]
         [ Element.text "The conversation has already started." ]
@@ -349,9 +212,9 @@ topicsExplainerEl dProfile =
     Element.column
         [ Element.Border.rounded 15
         , Element.Background.color <| Element.rgb 0.3 0 0
-        , Element.padding (responsiveVal dProfile 25 15)
+        , Element.padding (25 |> changeForMobile 15 dProfile)
         , Element.Font.color <| EH.white
-        , Element.Font.size (responsiveVal dProfile 22 18)
+        , Element.Font.size (22 |> changeForMobile 18 dProfile)
         , Element.Font.color darkTheme.mainTextColor
         , Element.centerX
         , Element.width Element.fill
@@ -389,7 +252,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
                 [ Element.spacing 15 ]
                 (List.map
                     (Element.paragraph
-                        [ Element.Font.size (responsiveVal dProfile 22 18)
+                        [ Element.Font.size (22 |> changeForMobile 18 dProfile)
                         , Element.width Element.fill
                         , Element.Font.color darkTheme.mainTextColor
                         ]
@@ -409,7 +272,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
             [ homeWalletUX dProfile walletUXPhaceInfo
             , Element.column
                 [ Element.spacing 5
-                , Element.Font.size (responsiveVal dProfile 40 30)
+                , Element.Font.size (40 |> changeForMobile 30 dProfile)
                 , Element.Font.bold
                 , Element.alignBottom
                 ]
@@ -458,14 +321,14 @@ composeActionBlock dProfile walletUXPhaceInfo =
                     , Element.spacing 10
                     ]
                     [ moreInfoButton dProfile
-                    , defaultTheme.greenActionButton
+                    , defaultTheme.emphasizedActionButton
                         dProfile
                         [ Element.width Element.fill ]
-                        [ "Create a New Post" ]
+                        [ "Compose Post" ]
                         (MsgUp <|
                             GotoRoute <|
                                 Routing.Compose <|
-                                    Post.TopLevel "noob-ramblings-plz-ignore"
+                                    Post.ForTopic "noob-ramblings-plz-ignore"
                         )
                     ]
         ]
@@ -480,7 +343,7 @@ moreInfoButton dProfile =
         (MsgUp <|
             GotoRoute <|
                 Routing.ViewContext <|
-                    Post.Reply <|
+                    Post.ForPost <|
                         Config.moreInfoPostId
         )
 
@@ -524,19 +387,10 @@ homeWalletUX dProfile walletUXPhaceInfo =
 
 topicsBlock : EH.DisplayProfile -> Model -> PublishedPostsDict -> Element Msg
 topicsBlock dProfile model posts =
-    let
-        fontSize =
-            case dProfile of
-                Desktop ->
-                    20
-
-                Mobile ->
-                    14
-    in
     Element.column
         [ Element.spacing 25
         , Element.centerX
-        , Element.width (Element.fill |> Element.minimum (responsiveVal dProfile 400 350))
+        , Element.width (Element.fill |> Element.minimum 400)
         ]
         [ Element.column
             [ Element.width Element.fill
@@ -546,7 +400,6 @@ topicsBlock dProfile model posts =
                 [ Element.width Element.fill
                 , Element.Background.color <| Element.rgba 1 1 1 0.2
                 , Element.Border.color <| Element.rgba 1 1 1 0.6
-                , Element.Font.size fontSize
                 ]
                 { onChange = TopicInputChanged
                 , text = model.topicInput
@@ -570,24 +423,16 @@ topicsBlock dProfile model posts =
 topicsColumn : EH.DisplayProfile -> String -> PublishedPostsDict -> Element Msg
 topicsColumn dProfile topicSearchStr allPosts =
     let
-        fontSize =
-            case dProfile of
-                Desktop ->
-                    20
-
-                Mobile ->
-                    14
-
         talliedTopics : List ( String, ( ( TokenValue, TokenValue ), Int ) )
         talliedTopics =
             let
                 findTopic : Post.Published -> Maybe String
                 findTopic publishedPost =
                     case publishedPost.core.metadata.context of
-                        Post.TopLevel topic ->
+                        Post.ForTopic topic ->
                             Just topic
 
-                        Post.Reply postId ->
+                        Post.ForPost postId ->
                             getPublishedPostFromId allPosts postId
                                 |> Maybe.andThen findTopic
             in
@@ -640,7 +485,6 @@ topicsColumn dProfile topicSearchStr allPosts =
             , Element.width Element.fill
             , Element.pointer
             , Element.height <| Element.px 40
-            , Element.Font.size fontSize
             ]
 
         topicEls =
@@ -653,7 +497,7 @@ topicsColumn dProfile topicSearchStr allPosts =
                                    , Element.Events.onClick <|
                                         GotoRoute <|
                                             Routing.ViewContext <|
-                                                Post.TopLevel topic
+                                                Post.ForTopic topic
                                    ]
                             )
                             [ Element.el
@@ -672,7 +516,7 @@ topicsColumn dProfile topicSearchStr allPosts =
                                             EH.black
                                         )
                                     ]
-                                    [ daiSymbol darkTheme.daiBurnedTextIsWhite [ Element.height <| Element.px (responsiveVal dProfile 18 14) ]
+                                    [ daiSymbol darkTheme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
                                     , Element.text <|
                                         (TokenValue.toConciseString totalBurned
                                             |> (if TokenValue.compare totalBurned (TokenValue.fromIntTokenValue 1) == LT then
@@ -709,7 +553,7 @@ topicsColumn dProfile topicSearchStr allPosts =
                                , Element.Events.onClick <|
                                     GotoRoute <|
                                         Routing.Compose <|
-                                            Post.TopLevel topicSearchStr
+                                            Post.ForTopic topicSearchStr
                                ]
                         )
                     <|
@@ -738,7 +582,7 @@ topicsColumn dProfile topicSearchStr allPosts =
                 , bottomLeft = 5
                 }
             , Element.width (Element.fill |> Element.maximum 530)
-            , Element.height Element.fill --<| Element.px 300
+            , Element.height <| Element.px 300
             , Element.scrollbarY
             , Element.Background.color <| Element.rgba 1 1 1 0.2
             , Element.padding 5

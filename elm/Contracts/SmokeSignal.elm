@@ -55,22 +55,22 @@ burnEncodedPost : Post.EncodedDraft -> Call Hex
 burnEncodedPost encodedPost =
     G.burnMessage
         Config.smokesignalContractAddress
-        encodedPost.encodedContentAndMetadata
+        encodedPost.encodedMessageAndMetadata
         (TokenValue.getEvmValue encodedPost.burnAmount)
         (TokenValue.getEvmValue encodedPost.donateAmount)
 
 
-fromMessageBurn : TxHash -> Int -> (Post.Content -> Element.Element Never) -> MessageBurn -> Post.Published
+fromMessageBurn : TxHash -> Int -> (String -> Element.Element Never) -> MessageBurn -> Post.Published
 fromMessageBurn txHash block renderFunc messageEvent =
     let
-        ( extractedMetadata, extractedMessage ) =
+        ( extractedMessage, extractedMetadata ) =
             case ( String.left 12 messageEvent.message, String.dropLeft 12 messageEvent.message ) of
                 ( "!smokesignal", jsonStr ) ->
-                    Post.decodePostData jsonStr
+                    Post.decodeMessageAndMetadata jsonStr
 
                 _ ->
-                    ( Post.nullMetadata
-                    , Post.justBodyContent messageEvent.message
+                    ( messageEvent.message
+                    , Post.nullMetadata
                     )
     in
     Post.Published

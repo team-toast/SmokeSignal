@@ -11,7 +11,7 @@ import Element.Input
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
 import Helpers.Time as TimeHelpers
 import Phace
 import Post
@@ -158,8 +158,8 @@ posixToString t =
 
 subheaderAttributes : DisplayProfile -> List (Attribute msg)
 subheaderAttributes dProfile =
-    [ Element.paddingXY 0 (responsiveVal dProfile 20 10)
-    , Element.Font.size (responsiveVal dProfile 50 30)
+    [ Element.paddingXY 0 (20 |> changeForMobile 10 dProfile)
+    , Element.Font.size (50 |> changeForMobile 30 dProfile)
     , Element.Font.color defaultTheme.headerTextColor
     ]
 
@@ -222,10 +222,10 @@ viewMetadataDecodeError error =
 viewContext : Post.Context -> Element MsgUp
 viewContext context =
     case context of
-        Post.Reply postId ->
+        Post.ForPost postId ->
             viewReplyInfo postId
 
-        Post.TopLevel topic ->
+        Post.ForTopic topic ->
             viewTopic topic
 
 
@@ -249,7 +249,7 @@ viewTopic topic =
             , Element.Events.onClick <|
                 GotoRoute <|
                     Routing.ViewContext <|
-                        Post.TopLevel topic
+                        Post.ForTopic topic
             ]
             (Element.text topic)
         ]
@@ -275,7 +275,7 @@ viewReplyInfo postId =
                 , Element.Events.onClick <|
                     GotoRoute <|
                         Routing.ViewContext <|
-                            Post.Reply postId
+                            Post.ForPost postId
                 ]
                 (Element.text <|
                     shortenedHash postId.messageHash
@@ -296,7 +296,7 @@ maxContentColWidth =
     1000
 
 
-renderContentOrError : Post.Content -> Element msg
+renderContentOrError : String -> Element msg
 renderContentOrError content =
     let
         renderResult =
@@ -305,7 +305,7 @@ renderContentOrError content =
                 , Element.Font.color defaultTheme.postBodyTextColor
                 , Element.width Element.fill
                 ]
-                content.body
+                content
     in
     case renderResult of
         Ok rendered ->
@@ -365,9 +365,9 @@ unlockButton dProfile attrs msgMapper =
 daiAmountInput : DisplayProfile -> List (Attribute msg) -> String -> (String -> msg) -> Element msg
 daiAmountInput dProfile attributes currentInput onChange =
     Element.Input.text
-        [ Element.width <| Element.px (responsiveVal dProfile 100 60)
-        , Element.height <| Element.px (responsiveVal dProfile 40 35)
-        , Element.Font.size (responsiveVal dProfile 20 14)
+        [ Element.width <| Element.px (100 |> changeForMobile 60 dProfile)
+        , Element.height <| Element.px (40 |> changeForMobile 35 dProfile)
+        , Element.Font.size (20 |> changeForMobile 14 dProfile)
         , Element.Background.color <| Element.rgba 1 1 1 0.4
         ]
         { onChange = onChange
