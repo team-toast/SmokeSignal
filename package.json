@@ -10,7 +10,7 @@
     "dev": "parcel static/index.html",
     "devhttps": "parcel static/index.html --https",
     "devbuild": "parcel static/index.html --public-url ./",
-    "build": "parcel build static/index.html --public-url ./"
+    "build": "parcel build static/index.html --public-url ./ && cp static/robots.txt dist/"
   },
   "devDependencies": {
     "cssnano": "^4.1.10",
