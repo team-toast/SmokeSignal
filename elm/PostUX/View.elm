@@ -21,7 +21,7 @@ import Maybe.Extra
 import Post exposing (Post)
 import PostUX.Types exposing (..)
 import Routing exposing (Route)
-import Theme exposing (defaultTheme)
+import Theme exposing (theme)
 import Time
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
@@ -53,6 +53,7 @@ view dProfile donateChecked showContext post wallet maybeUXModel =
                     ]
                 <|
                     makePhaceElement
+                        ( 100, 100 )
                         postCore.author
                         maybeUXModel
 
@@ -87,9 +88,10 @@ view dProfile donateChecked showContext post wallet maybeUXModel =
         ]
 
 
-makePhaceElement : Address -> Maybe Model -> Element Msg
-makePhaceElement author maybeUXModel =
+makePhaceElement : ( Int, Int ) -> Address -> Maybe Model -> Element Msg
+makePhaceElement ( width, height ) author maybeUXModel =
     phaceElement
+        ( width, height )
         True
         author
         (maybeUXModel
@@ -103,8 +105,8 @@ makePhaceElement author maybeUXModel =
 viewDaiBurned : Post -> Element Msg
 viewDaiBurned post =
     viewDaiStatTab
-        defaultTheme.daiBurnedBackground
-        defaultTheme.daiBurnedTextIsWhite
+        theme.daiBurnedBackground
+        theme.daiBurnedTextIsWhite
         (burnSummaryString post)
         (Post.totalBurned post)
 
@@ -112,8 +114,8 @@ viewDaiBurned post =
 viewDaiTipped : Post -> Element Msg
 viewDaiTipped post =
     viewDaiStatTab
-        defaultTheme.daiTippedBackground
-        defaultTheme.daiTippedTextIsWhite
+        theme.daiTippedBackground
+        theme.daiTippedTextIsWhite
         (tipSummaryString post)
         (Post.totalTipped post)
 
@@ -186,7 +188,7 @@ viewPostLinks postId =
         [ Element.alignBottom
         , Element.paddingXY 10 5
         , Element.Font.size 20
-        , Element.Background.color defaultTheme.postBodyBackground
+        , Element.Background.color theme.postBodyBackground
         , Element.Border.roundEach
             { bottomLeft = 0
             , bottomRight = 0
@@ -197,7 +199,7 @@ viewPostLinks postId =
         , Element.spacing 20
         ]
         [ Element.el
-            [ Element.Font.color defaultTheme.linkTextColor
+            [ Element.Font.color theme.linkTextColor
             , Element.pointer
             , Element.Font.bold
             , Element.Events.onClick <|
@@ -207,7 +209,7 @@ viewPostLinks postId =
             ]
             (Element.text (shortenedHash postId.messageHash))
         , Element.newTabLink
-            [ Element.Font.color defaultTheme.linkTextColor
+            [ Element.Font.color theme.linkTextColor
             , Element.Font.size 16
             ]
             { url =
@@ -250,6 +252,7 @@ viewMainPostBlock dProfile donateChecked showContext post unlockStatus maybeUXMo
 
                 Mobile ->
                     makePhaceElement
+                        ( 100, 100 )
                         postCore.author
                         maybeUXModel
             , Element.map MsgUp <| viewMetadata showContext postCore.metadata
@@ -438,7 +441,7 @@ inputForm dProfile donateChecked currentString buttonLabel onSubmit =
                         Element.text "Donate an extra 1% to "
                 }
             , Element.newTabLink
-                [ Element.Font.color defaultTheme.linkTextColor
+                [ Element.Font.color theme.linkTextColor
                 , Element.centerY
                 ]
                 { url = "https://foundrydao.com/"
@@ -452,7 +455,7 @@ maybeSubmitButton : DisplayProfile -> String -> Maybe TokenValue -> (TokenValue 
 maybeSubmitButton dProfile label maybeAmount onSubmit =
     case maybeAmount of
         Just amount ->
-            defaultTheme.emphasizedActionButton
+            theme.emphasizedActionButton
                 Mobile
                 []
                 [ label ]

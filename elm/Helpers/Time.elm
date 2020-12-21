@@ -112,7 +112,9 @@ compare t1 t2 =
 
 
 type alias HumanReadableInterval =
-    { days : Int
+    { years : Int
+    , months : Int
+    , days : Int
     , hours : Int
     , min : Int
     , sec : Int
@@ -126,23 +128,37 @@ type alias HumanReadableInterval =
 toHumanReadableInterval : Time.Posix -> HumanReadableInterval
 toHumanReadableInterval t =
     let
-        secsInDays =
+        defaultToZeros : Maybe ( BigInt, BigInt ) -> ( BigInt, BigInt )
+        defaultToZeros =
+            Maybe.withDefault ( BigInt.fromInt 0, BigInt.fromInt 0 )
+
+        secsInYears =
             posixToSecondsBigInt t
     in
-    BigInt.divmod secsInDays (BigInt.fromInt <| 60 * 60 * 24)
-        |> Maybe.withDefault ( BigInt.fromInt 0, BigInt.fromInt 0 )
-        |> (\( days, secsInHours ) ->
-                BigInt.divmod secsInHours (BigInt.fromInt <| 60 * 60)
-                    |> Maybe.withDefault ( BigInt.fromInt 0, BigInt.fromInt 0 )
-                    |> (\( hours, secsInMin ) ->
-                            BigInt.divmod secsInMin (BigInt.fromInt 60)
-                                |> Maybe.withDefault ( BigInt.fromInt 0, BigInt.fromInt 0 )
-                                |> (\( min, sec ) ->
-                                        HumanReadableInterval
-                                            (BigIntHelpers.toIntWithWarning days)
-                                            (BigIntHelpers.toIntWithWarning hours)
-                                            (BigIntHelpers.toIntWithWarning min)
-                                            (BigIntHelpers.toIntWithWarning sec)
+    BigInt.divmod secsInYears (BigInt.fromInt <| 60 * 60 * 24 * 365)
+        |> defaultToZeros
+        |> (\( years, secsInMonths ) ->
+                BigInt.divmod secsInMonths (BigInt.fromInt <| 60 * 60 * 24 * 30)
+                    |> defaultToZeros
+                    |> (\( months, secsInDays ) ->
+                            BigInt.divmod secsInDays (BigInt.fromInt <| 60 * 60 * 24)
+                                |> defaultToZeros
+                                |> (\( days, secsInHours ) ->
+                                        BigInt.divmod secsInHours (BigInt.fromInt <| 60 * 60)
+                                            |> defaultToZeros
+                                            |> (\( hours, secsInMin ) ->
+                                                    BigInt.divmod secsInMin (BigInt.fromInt 60)
+                                                        |> defaultToZeros
+                                                        |> (\( min, sec ) ->
+                                                                HumanReadableInterval
+                                                                    (BigIntHelpers.toIntWithWarning years)
+                                                                    (BigIntHelpers.toIntWithWarning months)
+                                                                    (BigIntHelpers.toIntWithWarning days)
+                                                                    (BigIntHelpers.toIntWithWarning hours)
+                                                                    (BigIntHelpers.toIntWithWarning min)
+                                                                    (BigIntHelpers.toIntWithWarning sec)
+                                                           )
+                                               )
                                    )
                        )
            )
@@ -154,7 +170,13 @@ toConciseIntervalString t =
         hri =
             toHumanReadableInterval t
     in
-    if hri.days > 0 then
+    if hri.years > 0 then
+        String.fromInt hri.years ++ "y " ++ String.fromInt hri.months ++ "m"
+
+    else if hri.months > 0 then
+        String.fromInt hri.months ++ "m " ++ String.fromInt hri.days ++ "d"
+
+    else if hri.days > 0 then
         String.fromInt hri.days ++ "d " ++ String.fromInt hri.hours ++ "h"
 
     else if hri.hours > 0 then
@@ -165,6 +187,41 @@ toConciseIntervalString t =
 
     else
         String.fromInt hri.sec ++ "s"
+
+
+roundToSingleUnit : Time.Posix -> String
+roundToSingleUnit t =
+    let
+        hri =
+            toHumanReadableInterval t
+
+        ( num, unitStr ) =
+            if hri.years > 0 then
+                ( hri.years, "year" )
+
+            else if hri.months > 0 then
+                ( hri.months, "month" )
+
+            else if hri.days > 0 then
+                ( hri.days, "day" )
+
+            else if hri.hours > 0 then
+                ( hri.hours, "hour" )
+
+            else if hri.min > 0 then
+                ( hri.min, "minute" )
+
+            else
+                ( hri.sec, "second" )
+
+        pluralizedUnitStr =
+            if num > 1 then
+                unitStr ++ "s"
+
+            else
+                unitStr
+    in
+    String.fromInt num ++ " " ++ pluralizedUnitStr
 
 
 oneSecond : Time.Posix

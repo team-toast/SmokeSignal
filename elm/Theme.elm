@@ -12,10 +12,12 @@ type alias Theme msg =
     , headerTextColor : Color
     , appBackground : Color
     , blockBackground : Color
+    , blockBorderColor : Color
     , txTrackerBackground : Color
     , postBodyBackground : Color
     , draftModalBackground : Color
-    , mainTextColor : Color
+    , defaultTextColor : Color
+    , subtleTextColor : Color
     , linkTextColor : Color
     , linkTextColorAgainstBackground : Color
     , emphasizedTextColor : Color
@@ -34,21 +36,18 @@ type alias Theme msg =
     }
 
 
-defaultTheme : Theme msg
-defaultTheme =
-    basicTheme
-
-
-basicTheme : Theme msg
-basicTheme =
+theme : Theme msg
+theme =
     { headerBackground = darkBlue
     , headerTextColor = EH.white
-    , appBackground = darkerBlue
-    , blockBackground = lightBlue
+    , appBackground = EH.black
+    , blockBackground = Element.rgb 0.1 0.1 0.1
+    , blockBorderColor = Element.rgb 0.25 0.25 0.25
     , postBodyBackground = lightBlue
     , draftModalBackground = darkBlue
     , txTrackerBackground = lightBlue
-    , mainTextColor = EH.white
+    , defaultTextColor = Element.rgb 0.9 0.9 0.9
+    , subtleTextColor = Element.rgb 0.5 0.5 0.5
     , linkTextColor = blue
     , linkTextColorAgainstBackground = Element.rgb 0.4 0.6 1
     , emphasizedTextColor = EH.white
@@ -57,9 +56,9 @@ basicTheme =
     , loadingTextColor = darkGray
     , errorTextColor = softRed
     , appStatusTextColor = darkGray
-    , daiBurnedBackground = lightRed
+    , daiBurnedBackground = darkRed
     , daiBurnedTextIsWhite = False
-    , daiTippedBackground = lightGreen
+    , daiTippedBackground = darkGreen
     , daiTippedTextIsWhite = False
     , emphasizedActionButton = redButton
     , secondaryActionButton = blueButton
@@ -67,18 +66,18 @@ basicTheme =
     }
 
 
-darkTheme : Theme msg
-darkTheme =
-    { basicTheme
-        | appBackground = veryDarkGray
-        , blockBackground = darkBlue
-        , mainTextColor = almostWhite
-        , emphasizedTextColor = EH.white
-        , loadingTextColor = lightGray
-        , appStatusTextColor = lightGray
-        , daiBurnedBackground = darkRed
-        , daiBurnedTextIsWhite = True
-    }
+-- darkTheme : Theme msg
+-- darkTheme =
+--     { basicTheme
+--         | appBackground = EH.black
+--         , blockBackground = darkBlue
+--         , mainTextColor = almostWhite
+--         , emphasizedTextColor = EH.white
+--         , loadingTextColor = lightGray
+--         , appStatusTextColor = lightGray
+--         , daiBurnedBackground = darkRed
+--         , daiBurnedTextIsWhite = True
+--     }
 
 
 softRed =
@@ -131,6 +130,9 @@ veryDarkGray =
 
 green =
     Element.rgb255 51 183 2
+
+darkGreen =
+    Element.rgb255 0 120 0
 
 
 yellow =

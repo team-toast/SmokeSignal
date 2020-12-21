@@ -16,7 +16,7 @@ import Helpers.Time as TimeHelpers
 import Phace
 import Post
 import Routing exposing (Route)
-import Theme exposing (defaultTheme)
+import Theme exposing (theme)
 import Time
 
 
@@ -37,15 +37,15 @@ shortenedHash hash =
 
 web3ConnectButton : EH.DisplayProfile -> List (Attribute msg) -> (MsgUp -> msg) -> Element msg
 web3ConnectButton dProfile attrs msgMapper =
-    defaultTheme.emphasizedActionButton
+    theme.emphasizedActionButton
         dProfile
         attrs
         [ "Connect to Wallet" ]
         (msgMapper ConnectToWeb3)
 
 
-phaceElement : Bool -> Address -> Bool -> msg -> msg -> Element msg
-phaceElement addressHangToRight fromAddress showAddress onClick noOpMsg =
+phaceElement : (Int, Int) -> Bool -> Address -> Bool -> msg -> msg -> Element msg
+phaceElement (width, height) addressHangToRight fromAddress showAddress onClick noOpMsg =
     let
         addressOutputEl () =
             -- delay processing because addressToChecksumString is expensive!
@@ -76,23 +76,23 @@ phaceElement addressHangToRight fromAddress showAddress onClick noOpMsg =
         )
     <|
         Element.el
-            [ Element.Border.rounded 10
+            [ Element.Border.rounded 5
             , Element.clip
             , Element.pointer
             , EH.onClickNoPropagation onClick
-            , Element.Border.width 2
-            , Element.Border.color EH.black
+            -- , Element.Border.width 1
+            -- , Element.Border.color Theme.blue
             ]
         <|
             Element.html
-                (Phace.fromEthAddress fromAddress)
+                (Phace.fromEthAddress fromAddress width height)
 
 
 loadingElement : List (Attribute msg) -> Maybe String -> Element msg
 loadingElement attrs maybeString =
     Element.el
         ([ Element.Font.italic
-         , Element.Font.color defaultTheme.loadingTextColor
+         , Element.Font.color theme.loadingTextColor
          , Element.Font.size 20
          ]
             ++ attrs
@@ -158,9 +158,9 @@ posixToString t =
 
 subheaderAttributes : DisplayProfile -> List (Attribute msg)
 subheaderAttributes dProfile =
-    [ Element.paddingXY 0 (20 |> changeForMobile 10 dProfile)
-    , Element.Font.size (50 |> changeForMobile 30 dProfile)
-    , Element.Font.color defaultTheme.headerTextColor
+    [ Element.paddingXY 0 (responsiveVal dProfile 20 10)
+    , Element.Font.size (responsiveVal dProfile 50 30)
+    , Element.Font.color theme.headerTextColor
     ]
 
 
@@ -205,7 +205,7 @@ viewMetadataDecodeError error =
         ]
     <|
         Element.el
-            [ Element.Font.color defaultTheme.errorTextColor
+            [ Element.Font.color theme.errorTextColor
             , Element.Font.italic
             , Element.Font.size 18
             , Element.height (Element.shrink |> Element.maximum 80)
@@ -244,7 +244,7 @@ viewTopic topic =
         ]
         [ Element.text "Topic:"
         , Element.el
-            [ Element.Font.color defaultTheme.linkTextColor
+            [ Element.Font.color theme.linkTextColor
             , Element.pointer
             , Element.Events.onClick <|
                 GotoRoute <|
@@ -270,7 +270,7 @@ viewReplyInfo postId =
             ]
             [ Element.text "Replying to:"
             , Element.el
-                [ Element.Font.color defaultTheme.linkTextColor
+                [ Element.Font.color theme.linkTextColor
                 , Element.pointer
                 , Element.Events.onClick <|
                     GotoRoute <|
@@ -302,7 +302,7 @@ renderContentOrError content =
         renderResult =
             ElementMarkdown.renderString
                 [ Element.spacing 15
-                , Element.Font.color defaultTheme.postBodyTextColor
+                , Element.Font.color theme.postBodyTextColor
                 , Element.width Element.fill
                 ]
                 content
@@ -313,7 +313,7 @@ renderContentOrError content =
 
         Err errStr ->
             Element.el
-                [ Element.Font.color defaultTheme.errorTextColor
+                [ Element.Font.color theme.errorTextColor
                 , Element.Font.italic
                 ]
             <|
@@ -355,7 +355,7 @@ unlockUXOr dProfile attributes unlockStatus msgMapper el =
 
 unlockButton : EH.DisplayProfile -> List (Attribute msg) -> (MsgUp -> msg) -> Element msg
 unlockButton dProfile attrs msgMapper =
-    defaultTheme.emphasizedActionButton
+    theme.emphasizedActionButton
         dProfile
         attrs
         [ "Unlock Dai" ]

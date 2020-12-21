@@ -18,7 +18,7 @@ import Helpers.List as ListHelpers
 import Maybe.Extra
 import Post exposing (Post)
 import Routing exposing (Route)
-import Theme exposing (defaultTheme)
+import Theme exposing (theme)
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
@@ -28,8 +28,8 @@ viewFull dProfile donateChecked wallet walletUXPhaceInfo showAddressId model =
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
-        , Element.padding (20 |> changeForMobile 10 dProfile)
-        , Element.Background.color defaultTheme.appBackground
+        , Element.padding (responsiveVal dProfile 20 10)
+        , Element.Background.color theme.appBackground
         ]
     <|
         view dProfile donateChecked wallet walletUXPhaceInfo showAddressId model
@@ -41,7 +41,7 @@ view dProfile donateChecked wallet walletUXPhaceInfo showAddressId model =
         commonAttributes =
             [ Element.width Element.fill
             , Element.height Element.fill
-            , Element.Background.color defaultTheme.postBodyBackground
+            , Element.Background.color theme.postBodyBackground
             , composeUXShadow
             , Element.Border.rounded 10
             , Element.inFront <|
@@ -120,14 +120,14 @@ composeUXShadow =
 viewPreviewButton : DisplayProfile -> Bool -> Element Msg
 viewPreviewButton dProfile enabled =
     if enabled then
-        defaultTheme.secondaryActionButton
+        theme.secondaryActionButton
             dProfile
             []
             [ "Preview" ]
             MobilePreviewToggle
 
     else
-        defaultTheme.disabledActionButton
+        theme.disabledActionButton
             dProfile
             []
             "Preview"
@@ -174,6 +174,7 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedMessage context =
                 [ case maybeShowPhaceInfo of
                     Just ( fromAddress, showAddress ) ->
                         phaceElement
+                            (100,100)
                             True
                             fromAddress
                             showAddress
@@ -188,7 +189,7 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedMessage context =
                 ]
             , case renderedMessage of
                 Nothing ->
-                    appStatusMessage defaultTheme.appStatusTextColor "[Preview Box]"
+                    appStatusMessage theme.appStatusTextColor "[Preview Box]"
 
                 Just rendered ->
                     Element.map never rendered
@@ -205,7 +206,7 @@ messageInputPlaceholder =
         <|
             List.map
                 (Element.paragraph
-                    [ Element.Font.color defaultTheme.messageInputPlaceholderTextColor
+                    [ Element.Font.color theme.messageInputPlaceholderTextColor
                     , Element.Font.italic
                     ]
                     << List.map Element.text
@@ -227,7 +228,7 @@ viewReplyInfo postId =
         ]
         [ Element.text "Replying to:"
         , Element.el
-            [ Element.Font.color defaultTheme.linkTextColor
+            [ Element.Font.color theme.linkTextColor
             , Element.pointer
             , Element.Events.onClick <|
                 MsgUp <|
@@ -256,7 +257,7 @@ viewTopic topic =
         ]
         [ Element.text "Topic:"
         , Element.el
-            [ Element.Font.color defaultTheme.linkTextColor
+            [ Element.Font.color theme.linkTextColor
             , Element.pointer
             , Element.Events.onClick <|
                 MsgUp <|
@@ -287,6 +288,7 @@ actionFormAndMaybeErrorEl dProfile donateChecked walletUXPhaceInfo model =
                             Desktop ->
                                 Element.map MsgUp <|
                                     phaceElement
+                                        (100,100)
                                         True
                                         userInfo.address
                                         showAddress
@@ -378,7 +380,7 @@ inputsElement dProfile donateChecked userInfo model =
                         [ Element.row []
                             [ Element.text "Donate an extra 1% to "
                             , Element.newTabLink
-                                [ Element.Font.color defaultTheme.linkTextColor ]
+                                [ Element.Font.color theme.linkTextColor ]
                                 { url = "https://foundrydao.com/"
                                 , label = Element.text "Foundry"
                                 }
@@ -393,7 +395,7 @@ inputErrorEl : DisplayProfile -> Maybe (List (Element Msg)) -> Element Msg
 inputErrorEl dProfile els =
     let
         commonAttributes =
-            [ Element.Font.color defaultTheme.errorTextColor
+            [ Element.Font.color theme.errorTextColor
             , Element.Font.italic
             ]
     in
@@ -429,7 +431,7 @@ goButtonAndMaybeError dProfile donateChecked userInfo model =
                         "That account ("
                             ++ Eth.Utils.addressToChecksumString userInfo.address
                             ++ ") doesn't have any DAI! "
-                    , Element.newTabLink [ Element.Font.color defaultTheme.linkTextColor ]
+                    , Element.newTabLink [ Element.Font.color theme.linkTextColor ]
                         { url = "https://kyberswap.com/swap/eth-dai"
                         , label = Element.text "Kyberswap"
                         }
@@ -457,7 +459,7 @@ goButtonAndMaybeError dProfile donateChecked userInfo model =
                                     ( maybeGoButton dProfile Nothing
                                     , Just
                                         [ Element.text "You don't have that much DAI in your wallet! "
-                                        , Element.newTabLink [ Element.Font.color defaultTheme.linkTextColor ]
+                                        , Element.newTabLink [ Element.Font.color theme.linkTextColor ]
                                             { url = "https://kyberswap.com/swap/eth-dai"
                                             , label = Element.text "Kyberswap"
                                             }
@@ -529,14 +531,14 @@ maybeGoButton : EH.DisplayProfile -> Maybe Post.Draft -> Element Msg
 maybeGoButton dProfile maybeDraft =
     case maybeDraft of
         Just draft ->
-            defaultTheme.emphasizedActionButton
+            theme.emphasizedActionButton
                 dProfile
                 (commonActionButtonStyles dProfile)
                 [ "GO" ]
                 (MsgUp <| SubmitPost draft)
 
         Nothing ->
-            defaultTheme.disabledActionButton
+            theme.disabledActionButton
                 dProfile
                 (commonActionButtonStyles dProfile)
                 "GO"
@@ -544,7 +546,7 @@ maybeGoButton dProfile maybeDraft =
 
 goBackButton : EH.DisplayProfile -> Element Msg
 goBackButton dProfile =
-    defaultTheme.secondaryActionButton
+    theme.secondaryActionButton
         dProfile
         (commonActionButtonStyles dProfile)
         [ "Edit" ]
