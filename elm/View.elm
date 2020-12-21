@@ -1,4 +1,4 @@
-module View exposing (root)
+module View exposing (..)
 
 import Browser
 import Common.Msg exposing (..)
@@ -43,9 +43,11 @@ import UserNotice as UN exposing (UserNotice)
 import Wallet exposing (Wallet)
 
 
-root : Model -> Browser.Document Msg
+root :
+    Model
+    -> Browser.Document Msg
 root model =
-    { title = "SmokeSignal"
+    { title = "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
     , body =
         [ Element.layout
             ([ Element.width Element.fill
@@ -61,7 +63,9 @@ root model =
     }
 
 
-modals : Model -> List (Element Msg)
+modals :
+    Model
+    -> List (Element Msg)
 modals model =
     Maybe.Extra.values
         ([ if model.mode /= Compose && model.showHalfComposeUX then
@@ -74,7 +78,7 @@ modals model =
             (Element.el
                 [ Element.alignTop
                 , Element.alignRight
-                , Element.padding (20 |> changeForMobile 10 model.dProfile)
+                , Element.padding (responsiveVal model.dProfile 20 10)
                 , EH.visibility False
                 ]
                 << Element.el
@@ -93,7 +97,7 @@ modals model =
 
                     _ ->
                         (model.showHalfComposeUX == False)
-                            && (model.composeUXModel.message /= "")
+                            && (not <| Post.contentIsEmpty model.composeUXModel.content)
            in
            if showDraftInProgressButton then
             Just <|
@@ -126,7 +130,9 @@ modals model =
         )
 
 
-body : Model -> Element Msg
+body :
+    Model
+    -> Element Msg
 body model =
     let
         walletUXPhaceInfo =
@@ -140,13 +146,7 @@ body model =
         , Element.Background.color theme.appBackground
         , Element.height Element.fill
         ]
-        [ header
-            model.dProfile
-            model.mode
-            walletUXPhaceInfo
-            model.trackedTxs
-            model.showExpandedTrackedTxs
-        , case model.mode of
+        [ case model.mode of
             BlankMode ->
                 Element.none
 
@@ -175,7 +175,7 @@ body model =
 
             ViewContext context ->
                 case context of
-                    Post.ForPost postId ->
+                    Post.Reply postId ->
                         case getPublishedPostFromId model.publishedPosts postId of
                             Just post ->
                                 Element.column
@@ -204,7 +204,7 @@ body model =
                                     theme.appStatusTextColor
                                     "Loading post..."
 
-                    Post.ForTopic topic ->
+                    Post.TopLevel topic ->
                         Element.column
                             [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
                             , Element.centerX
@@ -390,9 +390,9 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                     Element.column
                         [ Element.Border.rounded 5
                         , Element.Background.color <| Element.rgb 0.2 0.2 0.2
-                        , Element.padding (10 |> changeForMobile 5 dProfile)
-                        , Element.spacing (10 |> changeForMobile 5 dProfile)
-                        , Element.Font.size (20 |> changeForMobile 12 dProfile)
+                        , Element.padding (responsiveVal dProfile 10 5)
+                        , Element.spacing (responsiveVal dProfile 10 5)
+                        , Element.Font.size (responsiveVal dProfile 20 12)
                         , Element.pointer
                         , EH.onClickNoPropagation <|
                             if showExpanded then
@@ -406,7 +406,9 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                         )
 
 
-trackedTxsColumn : List TrackedTx -> Element Msg
+trackedTxsColumn :
+    List TrackedTx
+    -> Element Msg
 trackedTxsColumn trackedTxs =
     Element.column
         [ Element.Background.color <| Theme.lightBlue
@@ -424,7 +426,9 @@ trackedTxsColumn trackedTxs =
         (List.map viewTrackedTxRow trackedTxs)
 
 
-viewTrackedTxRow : TrackedTx -> Element Msg
+viewTrackedTxRow :
+    TrackedTx
+    -> Element Msg
 viewTrackedTxRow trackedTx =
     let
         etherscanLink label =
@@ -452,7 +456,7 @@ viewTrackedTxRow trackedTx =
                                 MsgUp <|
                                     GotoRoute <|
                                         Routing.ViewContext <|
-                                            Post.ForPost postId
+                                            Post.Reply postId
                             ]
                             (Element.text "Post")
                         ]
@@ -468,7 +472,7 @@ viewTrackedTxRow trackedTx =
                                 MsgUp <|
                                     GotoRoute <|
                                         Routing.ViewContext <|
-                                            Post.ForPost postId
+                                            Post.Reply postId
                             ]
                             (Element.text "Post")
                         ]
@@ -507,7 +511,7 @@ viewTrackedTxRow trackedTx =
                                     Element.el
                                         [ Element.Font.color theme.linkTextColor
                                         , Element.pointer
-                                        , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.ViewContext <| Post.ForPost postId
+                                        , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.ViewContext <| Post.Reply postId
                                         ]
                                         (Element.text "Published")
 
@@ -535,7 +539,9 @@ viewTrackedTxRow trackedTx =
         ]
 
 
-trackedTxStatusToColor : TxStatus -> Element.Color
+trackedTxStatusToColor :
+    TxStatus
+    -> Element.Color
 trackedTxStatusToColor txStatus =
     case txStatus of
         Mining ->
@@ -548,20 +554,23 @@ trackedTxStatusToColor txStatus =
             Theme.softRed
 
 
-userNoticeEls : EH.DisplayProfile -> List UserNotice -> List (Element Msg)
+userNoticeEls :
+    EH.DisplayProfile
+    -> List UserNotice
+    -> List (Element Msg)
 userNoticeEls dProfile notices =
     if notices == [] then
         []
 
     else
         [ Element.column
-            [ Element.moveLeft (20 |> EH.changeForMobile 5 dProfile)
-            , Element.moveUp (20 |> EH.changeForMobile 5 dProfile)
-            , Element.spacing (10 |> EH.changeForMobile 5 dProfile)
+            [ Element.moveLeft (EH.responsiveVal dProfile 20 5)
+            , Element.moveUp (EH.responsiveVal dProfile 20 5)
+            , Element.spacing (EH.responsiveVal dProfile 10 5)
             , Element.alignRight
             , Element.alignBottom
-            , Element.width <| Element.px (300 |> EH.changeForMobile 150 dProfile)
-            , Element.Font.size (15 |> EH.changeForMobile 10 dProfile)
+            , Element.width <| Element.px (EH.responsiveVal dProfile 300 150)
+            , Element.Font.size (EH.responsiveVal dProfile 15 10)
             ]
             (notices
                 |> List.indexedMap (\id notice -> ( id, notice ))
@@ -569,13 +578,13 @@ userNoticeEls dProfile notices =
                 |> List.map (userNotice dProfile)
             )
         , Element.column
-            [ Element.moveRight (20 |> EH.changeForMobile 5 dProfile)
+            [ Element.moveRight (EH.responsiveVal dProfile 20 5)
             , Element.moveDown 100
-            , Element.spacing (10 |> EH.changeForMobile 5 dProfile)
+            , Element.spacing (EH.responsiveVal dProfile 10 5)
             , Element.alignLeft
             , Element.alignTop
-            , Element.width <| Element.px (300 |> EH.changeForMobile 150 dProfile)
-            , Element.Font.size (15 |> EH.changeForMobile 10 dProfile)
+            , Element.width <| Element.px (EH.responsiveVal dProfile 300 150)
+            , Element.Font.size (EH.responsiveVal dProfile 15 10)
             ]
             (notices
                 |> List.indexedMap (\id notice -> ( id, notice ))
@@ -585,7 +594,10 @@ userNoticeEls dProfile notices =
         ]
 
 
-userNotice : EH.DisplayProfile -> ( Int, UserNotice ) -> Element Msg
+userNotice :
+    EH.DisplayProfile
+    -> ( Int, UserNotice )
+    -> Element Msg
 userNotice dProfile ( id, notice ) =
     let
         color =
@@ -621,8 +633,8 @@ userNotice dProfile ( id, notice ) =
     in
     Element.el
         [ Element.Background.color color
-        , Element.Border.rounded (10 |> EH.changeForMobile 5 dProfile)
-        , Element.padding (8 |> EH.changeForMobile 3 dProfile)
+        , Element.Border.rounded (EH.responsiveVal dProfile 10 5)
+        , Element.padding (EH.responsiveVal dProfile 8 3)
         , Element.width Element.fill
         , Element.Border.width 1
         , Element.Border.color <| Element.rgba 0 0 0 0.15
@@ -650,6 +662,35 @@ userNotice dProfile ( id, notice ) =
                 , Element.width Element.fill
                 ]
         )
+
+
+viewPostHeader : DisplayProfile -> Post.Published -> Element Msg
+viewPostHeader dProfile publishedPost =
+    Element.row
+        (subheaderAttributes dProfile
+            ++ [ Element.spacing 40
+               , Element.Font.center
+               , Element.centerX
+               ]
+        )
+        [ Element.el [ Element.Font.bold ] <| Element.text "Viewing Post"
+        , Element.column
+            [ Element.Font.size 16 ]
+            [ case dProfile of
+                Desktop ->
+                    Element.text <|
+                        "id: "
+                            ++ (publishedPost.id.messageHash |> Eth.Utils.hexToString)
+
+                Mobile ->
+                    Element.none
+            , Element.newTabLink
+                [ Element.Font.color defaultTheme.linkTextColorAgainstBackground ]
+                { url = EthHelpers.etherscanTxUrl publishedPost.txHash
+                , label = Element.text "View on etherscan"
+                }
+            ]
+        ]
 
 
 viewPostAndReplies : DisplayProfile -> Bool -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
@@ -709,7 +750,7 @@ viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies pub
                 , Element.spacing 20
                 ]
                 [ Element.el
-                    [ Element.Font.size (50 |> changeForMobile 30 dProfile)
+                    [ Element.Font.size (responsiveVal dProfile 50 30)
                     , Element.Font.bold
                     , Element.Font.color theme.defaultTextColor
                     ]
@@ -728,35 +769,6 @@ viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies pub
         ]
 
 
-viewPostHeader : DisplayProfile -> Post.Published -> Element Msg
-viewPostHeader dProfile publishedPost =
-    Element.row
-        (subheaderAttributes dProfile
-            ++ [ Element.spacing 40
-               , Element.Font.center
-               , Element.centerX
-               ]
-        )
-        [ Element.el [ Element.Font.bold ] <| Element.text "Viewing Post"
-        , Element.column
-            [ Element.Font.size 16 ]
-            [ case dProfile of
-                Desktop ->
-                    Element.text <|
-                        "id: "
-                            ++ (publishedPost.id.messageHash |> Eth.Utils.hexToString)
-
-                Mobile ->
-                    Element.none
-            , Element.newTabLink
-                [ Element.Font.color defaultTheme.linkTextColorAgainstBackground ]
-                { url = EthHelpers.etherscanTxUrl publishedPost.txHash
-                , label = Element.text "View on etherscan"
-                }
-            ]
-        ]
-
-
 viewPostsForTopic : DisplayProfile -> Bool -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Maybe ( PostUXId, PostUX.Model ) -> String -> Element Msg
 viewPostsForTopic dProfile donateChecked wallet allPosts blockTimes replies uxModel topic =
     let
@@ -764,7 +776,7 @@ viewPostsForTopic dProfile donateChecked wallet allPosts blockTimes replies uxMo
             allPosts
                 |> filterPosts
                     (\publishedPost ->
-                        publishedPost.core.metadata.context == Post.ForTopic topic
+                        publishedPost.core.metadata.context == Post.TopLevel topic
                     )
     in
     Element.column
@@ -813,7 +825,7 @@ viewTopicHeader dProfile maybeUserInfo topic =
                     (MsgUp <|
                         GotoRoute <|
                             Routing.Compose <|
-                                Post.ForTopic topic
+                                Post.TopLevel topic
                     )
 
             Nothing ->
@@ -941,7 +953,7 @@ viewNumRepliesIfNonzero postId numReplies =
                 MsgUp <|
                     Common.Msg.GotoRoute <|
                         Routing.ViewContext <|
-                            Post.ForPost postId
+                            Post.Reply postId
             , Element.Font.italic
             , Element.paddingXY 20 10
             ]
@@ -1109,5 +1121,5 @@ viewCookieConsentModal dProfile =
                 }
             , Element.text "."
             ]
-        , Theme.blueButton dProfile [Element.alignTop] [ "Understood" ] CookieConsentGranted
+        , Theme.blueButton dProfile [ Element.alignTop ] [ "Understood" ] CookieConsentGranted
         ]

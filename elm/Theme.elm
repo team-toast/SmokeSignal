@@ -33,6 +33,7 @@ type alias Theme msg =
     , emphasizedActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
     , secondaryActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
     , disabledActionButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Element msg
+    , greenActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
     }
 
 
@@ -63,8 +64,8 @@ theme =
     , emphasizedActionButton = redButton
     , secondaryActionButton = blueButton
     , disabledActionButton = disabledButton
+    , greenActionButton = unscaryButton
     }
-
 
 
 -- darkTheme : Theme msg
@@ -131,7 +132,6 @@ veryDarkGray =
 
 green =
     Element.rgb255 51 183 2
-
 
 darkGreen =
     Element.rgb255 0 120 0
@@ -230,14 +230,25 @@ redButton dProfile attributes text msg =
         msg
 
 
+unscaryButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
+unscaryButton dProfile attributes text msg =
+    EH.button dProfile
+        attributes
+        ( Element.rgb255 0 153 0
+        , Element.rgba 0 1 0 0.8
+        , Element.rgba 0 1 0 0.6
+        )
+        EH.white
+        text
+        msg
+
+
 disabledButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Element msg
 disabledButton dProfile attributes text =
     Element.el
         ([ Element.Border.rounded 4
-         , EH.responsiveVal dProfile
-            (Element.paddingXY 25 17)
-            (Element.padding 10)
-         , Element.Font.size <| EH.responsiveVal dProfile 18 16
+         , EH.responsiveVal dProfile (Element.paddingXY 25 17) (Element.padding 10)
+         , Element.Font.size (EH.responsiveVal dProfile 18 16)
          , Element.Font.semiBold
          , Element.Background.color lightGray
          , Element.Font.center
