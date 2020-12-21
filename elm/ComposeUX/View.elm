@@ -12,7 +12,7 @@ import Element.Font
 import Element.Input
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..),  responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Maybe.Extra
@@ -66,7 +66,7 @@ view dProfile donateChecked wallet walletUXPhaceInfo showAddressId model =
                     , Element.height Element.fill
                     , Element.spacing 10
                     ]
-                    [ viewInput dProfile model.message
+                    [ viewInput dProfile model.content
                     , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile donateChecked walletUXPhaceInfo model
                     ]
                 , viewPreviewWithPostContext dProfile Nothing model.renderedPreview model.context
@@ -99,10 +99,10 @@ view dProfile donateChecked wallet walletUXPhaceInfo showAddressId model =
                     ]
 
                  else
-                    [ viewInput dProfile model.message
+                    [ viewInput dProfile model.content
                     , viewPreviewButton
                         dProfile
-                        (model.message /= "")
+                        (model.content.body /= "")
                     ]
                 )
 
@@ -133,21 +133,21 @@ viewPreviewButton dProfile enabled =
             "Preview"
 
 
-viewInput : DisplayProfile -> String -> Element Msg
-viewInput dProfile input =
+viewInput : DisplayProfile -> Post.Content -> Element Msg
+viewInput dProfile content =
     EH.scrollbarYEl [] <|
         Element.Input.multiline
             ([ Element.width Element.fill
              , Element.height Element.fill
-             , Element.padding <| responsiveVal dProfile 10 5
+             , Element.padding (responsiveVal dProfile 10 5)
              , Element.Background.color <| Element.rgba 1 1 1 0.5
              ]
                 ++ responsiveVal dProfile
                     []
                     [ Element.Font.size 18 ]
             )
-            { onChange = MessageInputChanged
-            , text = input
+            { onChange = BodyInputChanged
+            , text = content.body
             , placeholder = Just messageInputPlaceholder
             , label = Element.Input.labelHidden "messageInput"
             , spellcheck = True
@@ -155,7 +155,7 @@ viewInput dProfile input =
 
 
 viewPreviewWithPostContext : DisplayProfile -> Maybe ( Address, Bool ) -> Maybe (Element Never) -> Post.Context -> Element Msg
-viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedMessage context =
+viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedContent context =
     EH.scrollbarYEl [] <|
         Element.column
             [ Element.width Element.fill
@@ -187,7 +187,7 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedMessage context =
                     Element.map MsgUp <|
                         viewContext context
                 ]
-            , case renderedMessage of
+            , case renderedContent of
                 Nothing ->
                     appStatusMessage theme.appStatusTextColor "[Preview Box]"
 
@@ -234,7 +234,7 @@ viewReplyInfo postId =
                 MsgUp <|
                     GotoRoute <|
                         Routing.ViewContext <|
-                            Post.ForPost postId
+                            Post.Reply postId
             ]
             (Element.text <|
                 shortenedHash postId.messageHash
@@ -263,7 +263,7 @@ viewTopic topic =
                 MsgUp <|
                     GotoRoute <|
                         Routing.ViewContext <|
-                            Post.ForTopic topic
+                            Post.TopLevel topic
             ]
             (Element.text <| topic)
         ]
@@ -332,7 +332,7 @@ inputsElement dProfile donateChecked userInfo model =
     Element.el
         ([ Element.centerY
          , Element.centerX
-         , Element.Font.size <| responsiveVal dProfile 20 14
+         , Element.Font.size (responsiveVal dProfile 20 14)
          ]
             ++ (case dProfile of
                     Desktop ->
@@ -354,7 +354,7 @@ inputsElement dProfile donateChecked userInfo model =
             Element.column
                 [ Element.spacing 10 ]
                 [ Element.row
-                    [ Element.spacing <| responsiveVal dProfile 10  5
+                    [ Element.spacing (responsiveVal dProfile 10 5)
                     , Element.centerX
                     ]
                     [ Element.text "Burn"
@@ -366,7 +366,7 @@ inputsElement dProfile donateChecked userInfo model =
                     , Element.text "DAI"
                     ]
                 , Element.row
-                    [ Element.Font.size <| responsiveVal dProfile 14 10
+                    [ Element.Font.size (responsiveVal dProfile 14 10)
                     , Element.spacing 5
                     ]
                     [ Element.Input.checkbox [ Element.alignTop ]
@@ -476,8 +476,8 @@ goButtonAndMaybeError dProfile donateChecked userInfo model =
                                             else
                                                 model.renderedPreview
                                     in
-                                    case ( validateResults.message, maybeUpToDateRender ) of
-                                        ( Just message, Just rendered ) ->
+                                    case ( validateResults.content, maybeUpToDateRender ) of
+                                        ( Just content, Just rendered ) ->
                                             ( maybeGoButton dProfile <|
                                                 Just <|
                                                     Post.Draft
@@ -485,7 +485,7 @@ goButtonAndMaybeError dProfile donateChecked userInfo model =
                                                         (Post.Core
                                                             userInfo.address
                                                             burnAmount
-                                                            message
+                                                            content
                                                             (Post.buildMetadataFromContext model.context)
                                                             rendered
                                                         )
@@ -520,10 +520,10 @@ goButtonAndMaybeError dProfile donateChecked userInfo model =
 
 commonActionButtonStyles : DisplayProfile -> List (Attribute Msg)
 commonActionButtonStyles dProfile =
-    [ Element.height <| Element.px <| responsiveVal dProfile 100 70
-    , Element.width <| Element.px <| responsiveVal dProfile 100 70
-    , Element.Font.size <| responsiveVal dProfile 26 20
-    , Element.Border.rounded <| responsiveVal dProfile 10 7
+    [ Element.height <| Element.px (responsiveVal dProfile 100 70)
+    , Element.width <| Element.px (responsiveVal dProfile 100 70)
+    , Element.Font.size (responsiveVal dProfile 26 20)
+    , Element.Border.rounded (responsiveVal dProfile 10 7)
     ]
 
 
