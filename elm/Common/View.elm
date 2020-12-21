@@ -44,8 +44,8 @@ web3ConnectButton dProfile attrs msgMapper =
         (msgMapper ConnectToWeb3)
 
 
-phaceElement : (Int, Int) -> Bool -> Address -> Bool -> msg -> msg -> Element msg
-phaceElement (width, height) addressHangToRight fromAddress showAddress onClick noOpMsg =
+phaceElement : ( Int, Int ) -> Bool -> Address -> Bool -> msg -> msg -> Element msg
+phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClick noOpMsg =
     let
         addressOutputEl () =
             -- delay processing because addressToChecksumString is expensive!
@@ -80,6 +80,7 @@ phaceElement (width, height) addressHangToRight fromAddress showAddress onClick 
             , Element.clip
             , Element.pointer
             , EH.onClickNoPropagation onClick
+
             -- , Element.Border.width 1
             -- , Element.Border.color Theme.blue
             ]
@@ -156,14 +157,6 @@ posixToString t =
         ++ " (UTC)"
 
 
--- subheaderAttributes : DisplayProfile -> List (Attribute msg)
--- subheaderAttributes dProfile =
---     [ Element.paddingXY 0 (responsiveVal dProfile 20 10)
---     , Element.Font.size (responsiveVal dProfile 50 30)
---     , Element.Font.color theme.headerTextColor
---     ]
-
-
 commonFontSize : DisplayProfile -> Int
 commonFontSize dProfile =
     case dProfile of
@@ -222,10 +215,10 @@ viewMetadataDecodeError error =
 viewContext : Post.Context -> Element MsgUp
 viewContext context =
     case context of
-        Post.ForPost postId ->
+        Post.Reply postId ->
             viewReplyInfo postId
 
-        Post.ForTopic topic ->
+        Post.TopLevel topic ->
             viewTopic topic
 
 
@@ -249,7 +242,7 @@ viewTopic topic =
             , Element.Events.onClick <|
                 GotoRoute <|
                     Routing.ViewContext <|
-                        Post.ForTopic topic
+                        Post.TopLevel topic
             ]
             (Element.text topic)
         ]
@@ -275,7 +268,7 @@ viewReplyInfo postId =
                 , Element.Events.onClick <|
                     GotoRoute <|
                         Routing.ViewContext <|
-                            Post.ForPost postId
+                            Post.Reply postId
                 ]
                 (Element.text <|
                     shortenedHash postId.messageHash
@@ -296,7 +289,7 @@ maxContentColWidth =
     1000
 
 
-renderContentOrError : String -> Element msg
+renderContentOrError : Post.Content -> Element msg
 renderContentOrError content =
     let
         renderResult =
@@ -305,7 +298,7 @@ renderContentOrError content =
                 , Element.Font.color theme.postBodyTextColor
                 , Element.width Element.fill
                 ]
-                content
+                content.body
     in
     case renderResult of
         Ok rendered ->
