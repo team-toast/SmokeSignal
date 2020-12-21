@@ -18,7 +18,7 @@ import Element.Lazy
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Helpers.Time as TimeHelpers
@@ -685,7 +685,7 @@ viewPostHeader dProfile publishedPost =
                 Mobile ->
                     Element.none
             , Element.newTabLink
-                [ Element.Font.color defaultTheme.linkTextColorAgainstBackground ]
+                [ Element.Font.color theme.linkTextColorAgainstBackground ]
                 { url = EthHelpers.etherscanTxUrl publishedPost.txHash
                 , label = Element.text "View on etherscan"
                 }
