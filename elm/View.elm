@@ -233,8 +233,8 @@ header dProfile mode walletUXPhaceInfo trackedTxs showExpandedTrackedTxs =
     Element.row
         [ Element.width Element.fill
         , Element.Background.color theme.headerBackground
-        , Element.padding (20 |> changeForMobile 10 dProfile)
-        , Element.spacing (10 |> changeForMobile 5 dProfile)
+        , Element.padding <| responsiveVal dProfile 20 10
+        , Element.spacing <| responsiveVal dProfile 10 5
         , Element.Border.glow
             (EH.black |> EH.withAlpha 0.5)
             5
@@ -274,7 +274,7 @@ getInvolvedButton dProfile =
 logoBlock : EH.DisplayProfile -> Element Msg
 logoBlock dProfile =
     Element.column
-        [ Element.spacing (15 |> changeForMobile 8 dProfile) ]
+        [ Element.spacing <| responsiveVal dProfile 15 8 ]
         [ Element.row
             (case dProfile of
                 Desktop ->
@@ -287,14 +287,14 @@ logoBlock dProfile =
                     ]
             )
             [ coloredAppTitle
-                [ Element.Font.size (50 |> changeForMobile 30 dProfile)
+                [ Element.Font.size <| responsiveVal dProfile 50 30
                 , Element.Font.bold
                 , Element.pointer
                 , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.Home
                 ]
             ]
         , Element.el
-            [ Element.Font.size (20 |> changeForMobile 14 dProfile)
+            [ Element.Font.size <| responsiveVal dProfile 20 14
             , Element.centerX
             , Element.Font.color Theme.softRed
             ]
