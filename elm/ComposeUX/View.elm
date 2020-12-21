@@ -12,7 +12,7 @@ import Element.Font
 import Element.Input
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile, responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile(..),  responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Maybe.Extra
@@ -139,7 +139,7 @@ viewInput dProfile input =
         Element.Input.multiline
             ([ Element.width Element.fill
              , Element.height Element.fill
-             , Element.padding (10 |> changeForMobile 5 dProfile)
+             , Element.padding <| responsiveVal dProfile 10 5
              , Element.Background.color <| Element.rgba 1 1 1 0.5
              ]
                 ++ responsiveVal dProfile
@@ -332,7 +332,7 @@ inputsElement dProfile donateChecked userInfo model =
     Element.el
         ([ Element.centerY
          , Element.centerX
-         , Element.Font.size (20 |> changeForMobile 14 dProfile)
+         , Element.Font.size <| responsiveVal dProfile 20 14
          ]
             ++ (case dProfile of
                     Desktop ->
@@ -354,7 +354,7 @@ inputsElement dProfile donateChecked userInfo model =
             Element.column
                 [ Element.spacing 10 ]
                 [ Element.row
-                    [ Element.spacing (10 |> changeForMobile 5 dProfile)
+                    [ Element.spacing <| responsiveVal dProfile 10  5
                     , Element.centerX
                     ]
                     [ Element.text "Burn"
@@ -366,7 +366,7 @@ inputsElement dProfile donateChecked userInfo model =
                     , Element.text "DAI"
                     ]
                 , Element.row
-                    [ Element.Font.size (14 |> changeForMobile 10 dProfile)
+                    [ Element.Font.size <| responsiveVal dProfile 14 10
                     , Element.spacing 5
                     ]
                     [ Element.Input.checkbox [ Element.alignTop ]
@@ -520,10 +520,10 @@ goButtonAndMaybeError dProfile donateChecked userInfo model =
 
 commonActionButtonStyles : DisplayProfile -> List (Attribute Msg)
 commonActionButtonStyles dProfile =
-    [ Element.height <| Element.px (100 |> changeForMobile 70 dProfile)
-    , Element.width <| Element.px (100 |> changeForMobile 70 dProfile)
-    , Element.Font.size (26 |> changeForMobile 20 dProfile)
-    , Element.Border.rounded (10 |> changeForMobile 7 dProfile)
+    [ Element.height <| Element.px <| responsiveVal dProfile 100 70
+    , Element.width <| Element.px <| responsiveVal dProfile 100 70
+    , Element.Font.size <| responsiveVal dProfile 26 20
+    , Element.Border.rounded <| responsiveVal dProfile 10 7
     ]
 
 

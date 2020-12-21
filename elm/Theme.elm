@@ -66,6 +66,7 @@ theme =
     }
 
 
+
 -- darkTheme : Theme msg
 -- darkTheme =
 --     { basicTheme
@@ -130,6 +131,7 @@ veryDarkGray =
 
 green =
     Element.rgb255 51 183 2
+
 
 darkGreen =
     Element.rgb255 0 120 0
@@ -232,8 +234,10 @@ disabledButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Element 
 disabledButton dProfile attributes text =
     Element.el
         ([ Element.Border.rounded 4
-         , Element.paddingXY 25 17 |> EH.changeForMobile (Element.padding 10) dProfile
-         , Element.Font.size (18 |> EH.changeForMobile 16 dProfile)
+         , EH.responsiveVal dProfile
+            (Element.paddingXY 25 17)
+            (Element.padding 10)
+         , Element.Font.size <| EH.responsiveVal dProfile 18 16
          , Element.Font.semiBold
          , Element.Background.color lightGray
          , Element.Font.center

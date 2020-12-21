@@ -11,7 +11,7 @@ import Element.Input
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), changeForMobile)
+import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Time as TimeHelpers
 import Phace
 import Post
@@ -156,12 +156,12 @@ posixToString t =
         ++ " (UTC)"
 
 
-subheaderAttributes : DisplayProfile -> List (Attribute msg)
-subheaderAttributes dProfile =
-    [ Element.paddingXY 0 (responsiveVal dProfile 20 10)
-    , Element.Font.size (responsiveVal dProfile 50 30)
-    , Element.Font.color theme.headerTextColor
-    ]
+-- subheaderAttributes : DisplayProfile -> List (Attribute msg)
+-- subheaderAttributes dProfile =
+--     [ Element.paddingXY 0 (responsiveVal dProfile 20 10)
+--     , Element.Font.size (responsiveVal dProfile 50 30)
+--     , Element.Font.color theme.headerTextColor
+--     ]
 
 
 commonFontSize : DisplayProfile -> Int
@@ -365,9 +365,9 @@ unlockButton dProfile attrs msgMapper =
 daiAmountInput : DisplayProfile -> List (Attribute msg) -> String -> (String -> msg) -> Element msg
 daiAmountInput dProfile attributes currentInput onChange =
     Element.Input.text
-        [ Element.width <| Element.px (100 |> changeForMobile 60 dProfile)
-        , Element.height <| Element.px (40 |> changeForMobile 35 dProfile)
-        , Element.Font.size (20 |> changeForMobile 14 dProfile)
+        [ Element.width <| Element.px <| responsiveVal dProfile 100 60
+        , Element.height <| Element.px <| responsiveVal dProfile 40 35
+        , Element.Font.size <| responsiveVal dProfile 20 14
         , Element.Background.color <| Element.rgba 1 1 1 0.4
         ]
         { onChange = onChange
