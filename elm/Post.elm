@@ -44,15 +44,27 @@ type alias Draft =
 type alias Core =
     { author : Address
     , authorBurn : TokenValue
-    , message : String
+    , content : Content
     , metadata : Metadata
     , renderedPost : Element Never
     }
 
 
+type alias Content =
+    { title : Maybe String
+    , desc : Maybe String
+    , body : String
+    }
+
+
+justBodyContent : String -> Content
+justBodyContent =
+    Content Nothing Nothing
+
+
 type alias EncodedDraft =
     { author : Address
-    , encodedMessageAndMetadata : String
+    , encodedContentAndMetadata : String
     , burnAmount : TokenValue
     , donateAmount : TokenValue
     }
@@ -66,8 +78,8 @@ type alias Metadata =
 
 
 type Context
-    = ForPost Id
-    | ForTopic String
+    = Reply Id
+    | TopLevel String
 
 
 getCore : Post -> Core
@@ -112,13 +124,13 @@ totalTipped post =
 
 buildMetadataFromContext : Context -> Metadata
 buildMetadataFromContext context =
-    versionedMetadata <| Just context
+    versionedMetadataWithDefault <| Just context
 
 
 contextReplyTo : Context -> Maybe Id
 contextReplyTo context =
     case context of
-        ForPost id ->
+        Reply id ->
             Just id
 
         _ ->
@@ -128,7 +140,7 @@ contextReplyTo context =
 contextTopic : Context -> Maybe String
 contextTopic context =
     case context of
-        ForTopic topic ->
+        TopLevel topic ->
             Just topic
 
         _ ->
@@ -141,6 +153,7 @@ type alias Id =
     }
 
 
+defaultTopic : String
 defaultTopic =
     "misc"
 
@@ -149,69 +162,73 @@ nullMetadata : Metadata
 nullMetadata =
     Metadata
         0
-        (ForTopic defaultTopic)
+        (TopLevel defaultTopic)
         Nothing
 
 
+currentMetadataVersion : Int
 currentMetadataVersion =
-    2
+    3
 
 
-versionedMetadata : Maybe Context -> Metadata
-versionedMetadata maybeContext =
+versionedMetadataWithDefault : Maybe Context -> Metadata
+versionedMetadataWithDefault maybeContext =
     Metadata
         currentMetadataVersion
-        (maybeContext |> Maybe.withDefault (ForTopic defaultTopic))
+        (maybeContext |> Maybe.withDefault (TopLevel defaultTopic))
         Nothing
 
 
 blankVersionedMetadata : Metadata
 blankVersionedMetadata =
-    versionedMetadata Nothing
+    versionedMetadataWithDefault Nothing
 
 
 encodeDraft : Draft -> EncodedDraft
 encodeDraft draft =
     EncodedDraft
         draft.core.author
-        ("!smokesignal" ++ encodeMessageAndMetadataToString ( draft.core.message, draft.core.metadata ))
+        ("!smokesignal" ++ encodeToString ( draft.core.metadata, draft.core.content ))
         draft.core.authorBurn
         draft.donateAmount
 
 
-encodeMessageAndMetadataToString : ( String, Metadata ) -> String
-encodeMessageAndMetadataToString ( message, metadata ) =
+encodeToString : ( Metadata, Content ) -> String
+encodeToString ( metadata, content ) =
     E.encode 0
         (E.object <|
-            [ ( "m", E.string message )
+            [ ( "m", encodeContent content )
             , ( "v", E.int metadata.metadataVersion )
             , ( "c", encodeContext metadata.context )
             ]
         )
 
 
-decodeMessageAndMetadata : String -> ( String, Metadata )
-decodeMessageAndMetadata src =
+decodePostData : String -> ( Metadata, Content )
+decodePostData src =
     src
-        |> D.decodeString messageDecoder
+        |> D.decodeString postDataDecoder
         |> Result.Extra.extract
             (\decodeErr ->
-                ( src
-                , { nullMetadata
+                ( { nullMetadata
                     | maybeDecodeError =
                         Just <|
                             D.errorToString decodeErr
                   }
+                , justBodyContent src
                 )
             )
 
 
-messageDecoder : D.Decoder ( String, Metadata )
-messageDecoder =
-    D.map2
-        Tuple.pair
-        (D.field "m" D.string)
-        metadataDecoder
+postDataDecoder : D.Decoder ( Metadata, Content )
+postDataDecoder =
+    metadataDecoder
+        |> D.andThen
+            (\metadata ->
+                D.map
+                    (Tuple.pair metadata)
+                    (messageDataDecoder metadata.metadataVersion)
+            )
 
 
 metadataDecoder : D.Decoder Metadata
@@ -242,17 +259,27 @@ versionedMetadataDecoder version =
                             Just replyTo ->
                                 Metadata
                                     version
-                                    (ForPost replyTo)
+                                    (Reply replyTo)
                                     Nothing
 
                             Nothing ->
                                 Metadata
                                     version
-                                    (ForTopic defaultTopic)
+                                    (TopLevel <| defaultTopic)
                                     Nothing
                     )
 
         2 ->
+            D.field "c" contextDecoder
+                |> D.map
+                    (\context ->
+                        Metadata
+                            version
+                            context
+                            Nothing
+                    )
+
+        3 ->
             currentMetadataDecoder version
 
         _ ->
@@ -281,11 +308,11 @@ currentMetadataDecoder decodedVersion =
 encodeContext : Context -> E.Value
 encodeContext context =
     case context of
-        ForPost postId ->
+        Reply postId ->
             E.object
                 [ ( "re", encodePostId postId ) ]
 
-        ForTopic topic ->
+        TopLevel topic ->
             E.object
                 [ ( "topic", E.string topic ) ]
 
@@ -293,8 +320,8 @@ encodeContext context =
 contextDecoder : D.Decoder Context
 contextDecoder =
     D.oneOf
-        [ D.map ForPost <| D.field "re" postIdDecoder
-        , D.map ForTopic <| D.field "topic" D.string
+        [ D.map Reply <| D.field "re" postIdDecoder
+        , D.map TopLevel <| D.field "topic" D.string
         ]
 
 
@@ -314,17 +341,27 @@ postIdDecoder =
         (D.index 1 hexDecoder)
 
 
-encodeTopicList : List String -> E.Value
-encodeTopicList topics =
-    E.list
-        (String.Extra.clean >> E.string)
-        topics
+encodeContent : Content -> E.Value
+encodeContent content =
+    E.list identity
+        [ E.string <| Maybe.withDefault "" <| content.title
+        , E.string <| Maybe.withDefault "" <| content.desc
+        , E.string content.body
+        ]
 
 
-topicListDecoder : D.Decoder (List String)
-topicListDecoder =
-    D.list
-        (D.map sanitizeTopic D.string)
+messageDataDecoder : Int -> D.Decoder Content
+messageDataDecoder metadataVersion =
+    D.field "m" <|
+        if metadataVersion < 3 then
+            D.map justBodyContent D.string
+
+        else
+            D.map3
+                Content
+                (D.index 0 <| D.map String.Extra.nonEmpty <| D.string)
+                (D.index 1 <| D.map String.Extra.nonEmpty <| D.string)
+                (D.index 2 D.string)
 
 
 encodeHex : Hex -> E.Value
@@ -350,3 +387,8 @@ hexDecoder =
 sanitizeTopic : String -> String
 sanitizeTopic =
     String.toLower >> String.Extra.clean >> String.replace " " "-"
+
+
+contentIsEmpty : Content -> Bool
+contentIsEmpty content =
+    ((content.title |> Maybe.withDefault "") == "") && content.body == ""
