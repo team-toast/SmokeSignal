@@ -44,8 +44,8 @@ web3ConnectButton dProfile attrs msgMapper =
         (msgMapper ConnectToWeb3)
 
 
-phaceElement : ( Int, Int ) -> Bool -> Address -> Bool -> msg -> msg -> Element msg
-phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClick noOpMsg =
+phaceElement : (Int, Int) -> Bool -> Address -> Bool -> msg -> msg -> Element msg
+phaceElement (width, height) addressHangToRight fromAddress showAddress onClick noOpMsg =
     let
         addressOutputEl () =
             -- delay processing because addressToChecksumString is expensive!
@@ -80,7 +80,6 @@ phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClic
             , Element.clip
             , Element.pointer
             , EH.onClickNoPropagation onClick
-
             -- , Element.Border.width 1
             -- , Element.Border.color Theme.blue
             ]
@@ -155,6 +154,14 @@ posixToString t =
         ++ ":"
         ++ String.padLeft 2 '0' (String.fromInt (Time.toMinute z t))
         ++ " (UTC)"
+
+
+subheaderAttributes : DisplayProfile -> List (Attribute msg)
+subheaderAttributes dProfile =
+    [ Element.paddingXY 0 (responsiveVal dProfile 20 10)
+    , Element.Font.size (responsiveVal dProfile 50 30)
+    , Element.Font.color theme.headerTextColor
+    ]
 
 
 commonFontSize : DisplayProfile -> Int
@@ -358,9 +365,9 @@ unlockButton dProfile attrs msgMapper =
 daiAmountInput : DisplayProfile -> List (Attribute msg) -> String -> (String -> msg) -> Element msg
 daiAmountInput dProfile attributes currentInput onChange =
     Element.Input.text
-        [ Element.width <| Element.px <| responsiveVal dProfile 100 60
-        , Element.height <| Element.px <| responsiveVal dProfile 40 35
-        , Element.Font.size <| responsiveVal dProfile 20 14
+        [ Element.width <| Element.px (responsiveVal dProfile 100 60)
+        , Element.height <| Element.px (responsiveVal dProfile 40 35)
+        , Element.Font.size (responsiveVal dProfile 20 14)
         , Element.Background.color <| Element.rgba 1 1 1 0.4
         ]
         { onChange = onChange
