@@ -19,6 +19,7 @@ import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Time as TimeHelpers
 import Helpers.Tuple as TupleHelpers
 import Home.Types exposing (..)
+import Html.Attributes exposing (list)
 import Post exposing (Post)
 import PostUX.Preview as PostPreview
 import PostUX.Types as PostUX
@@ -64,7 +65,7 @@ view dProfile donateChecked blockTimes now showAddressId walletUXPhaceInfo posts
         Element.column
             [ Element.width (Element.fill |> Element.maximum 1100)
             , Element.centerX
-            , Element.spacing (110 |> changeForMobile 30 dProfile)
+            , Element.spacing (responsiveVal dProfile 50 30)
             ]
         <|
             case dProfile of
@@ -76,14 +77,7 @@ view dProfile donateChecked blockTimes now showAddressId walletUXPhaceInfo posts
                         , Element.clip
                         , Element.htmlAttribute (Html.Attributes.style "flex-shrink" "1")
                         ]
-                        [ Element.row
-                            [ Element.width Element.fill
-                            , Element.spacing 40
-                            ]
-                            [ Element.el [ Element.width Element.fill ] <| topicsBlock dProfile model posts
-                            , Element.el [ Element.width Element.fill ] <| topicsExplainerEl dProfile
-                            ]
-                        , Element.row
+                        [ Element.column
                             [ Element.width Element.fill
                             , Element.height Element.fill
                             , Element.clip
@@ -101,8 +95,8 @@ view dProfile donateChecked blockTimes now showAddressId walletUXPhaceInfo posts
                     ]
 
                 Mobile ->
-                    [ tutorialVideo dProfile
-                    , infoBlock dProfile
+                    [ boldProclamationEl dProfile
+                    , tutorialVideo dProfile
                     , conversationAlreadyStartedEl dProfile
                     , case walletUXPhaceInfo of
                         DemoPhaceInfo _ ->
@@ -269,7 +263,7 @@ tutorialVideo dProfile =
     Element.el
         [ Element.centerX
         , Element.paddingEach
-            { top = 20
+            { top = 0
             , bottom = 0
             , right = 0
             , left = 0
@@ -315,7 +309,7 @@ infoBlock dProfile =
     Element.column
         [ Element.Border.rounded 15
         , Element.Background.color Theme.darkBlue
-        , Element.padding (25 |> changeForMobile 15 dProfile)
+        , Element.padding (responsiveVal dProfile 25 15)
         , Element.Font.color <| EH.white
         , Element.Font.size (responsiveVal dProfile 22 18)
         , Element.Font.color theme.defaultTextColor
@@ -375,7 +369,7 @@ infoBlock dProfile =
 conversationAlreadyStartedEl : DisplayProfile -> Element Msg
 conversationAlreadyStartedEl dProfile =
     Element.paragraph
-        [ Element.Font.size (50 |> changeForMobile 36 dProfile)
+        [ Element.Font.size (responsiveVal dProfile 50 36)
         , Element.Font.center
         ]
         [ Element.text "The conversation has already started." ]
@@ -386,7 +380,7 @@ topicsExplainerEl dProfile =
     Element.column
         [ Element.Border.rounded 15
         , Element.Background.color <| Element.rgb 0.3 0 0
-        , Element.padding (25 |> changeForMobile 15 dProfile)
+        , Element.padding (responsiveVal dProfile 25 15)
         , Element.Font.color <| EH.white
         , Element.Font.size (responsiveVal dProfile 22 18)
         , Element.Font.color theme.defaultTextColor
@@ -426,7 +420,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
                 [ Element.spacing 15 ]
                 (List.map
                     (Element.paragraph
-                        [ Element.Font.size (22 |> changeForMobile 18 dProfile)
+                        [ Element.Font.size (responsiveVal dProfile 22 18)
                         , Element.width Element.fill
                         , Element.Font.color theme.defaultTextColor
                         ]
@@ -446,7 +440,7 @@ composeActionBlock dProfile walletUXPhaceInfo =
             [ homeWalletUX dProfile walletUXPhaceInfo
             , Element.column
                 [ Element.spacing 5
-                , Element.Font.size (40 |> changeForMobile 30 dProfile)
+                , Element.Font.size (responsiveVal dProfile 40 30)
                 , Element.Font.bold
                 , Element.alignBottom
                 ]
@@ -498,11 +492,11 @@ composeActionBlock dProfile walletUXPhaceInfo =
                     , theme.greenActionButton
                         dProfile
                         [ Element.width Element.fill ]
-                        [ "Compose Post" ]
+                        [ "Create a New Post" ]
                         (MsgUp <|
                             GotoRoute <|
                                 Routing.Compose <|
-                                    Post.ForTopic "noob-ramblings-plz-ignore"
+                                    Post.TopLevel "noob-ramblings-plz-ignore"
                         )
                     ]
         ]
@@ -517,7 +511,7 @@ moreInfoButton dProfile =
         (MsgUp <|
             GotoRoute <|
                 Routing.ViewContext <|
-                    Post.ForPost <|
+                    Post.Reply <|
                         Config.moreInfoPostId
         )
 
