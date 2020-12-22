@@ -74,7 +74,7 @@ getTitle model =
         Compose ->
             "Compose | SmokeSignal"
         ViewContext context ->
-            maybeGetContextTitlePart model.publishedPosts context
+            contextToMaybeTitlePart model.publishedPosts context
                 |> Maybe.map (\contextTitle -> contextTitle ++ " | SmokeSignal")
                 |> Maybe.withDefault defaultMain
 

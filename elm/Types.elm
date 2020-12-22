@@ -62,6 +62,7 @@ type alias Model =
     , demoPhaceSrc : String
     , donateChecked : Bool
     , cookieConsentGranted : Bool
+    , maybeSeoDescription : Maybe String
     }
 
 

@@ -39,6 +39,7 @@ function startDapp() {
             });
             
             analyticsGtagPortStuff(app);
+            seoPortStuff(app);
 
             web3PortStuff(app, web3);
         });
@@ -56,14 +57,15 @@ function startDapp() {
         });
 
         analyticsGtagPortStuff(app);
+        seoPortStuff(app);
 
         console.log("Web3 wallet not detected.");
     }
 }
 
-function analyticsGtagPortStuff(elmApp) {
-    console.log(elmApp.ports);
-    elmApp.ports.gTagOut.subscribe(function (data) {
+function analyticsGtagPortStuff(app) {
+    console.log(app.ports);
+    app.ports.gTagOut.subscribe(function (data) {
         gtag('event', data.event, {
             'event_category': data.category,
             'event_label': data.label,
@@ -71,8 +73,15 @@ function analyticsGtagPortStuff(elmApp) {
         });
     });
 
-    elmApp.ports.consentToCookies.subscribe(function() {
+    app.ports.consentToCookies.subscribe(function() {
         setCookieConsent();
+    });
+}
+
+function seoPortStuff(app) {
+    app.ports.setDescription.subscribe(function (newDescription) {
+        console.log("setting")
+        document.querySelector('meta[name="description"]').setAttribute("content", newDescription);
     });
 }
 

@@ -69,8 +69,8 @@ getPublishedPostFromTxHash publishedPosts txHash =
         |> List.head
 
 
-maybeGetContextTitlePart : PublishedPostsDict -> Post.Context -> Maybe String
-maybeGetContextTitlePart posts context =
+contextToMaybeTitlePart : PublishedPostsDict -> Post.Context -> Maybe String
+contextToMaybeTitlePart posts context =
     case context of
         Post.Reply postId ->
             getPublishedPostFromId posts postId
@@ -78,6 +78,22 @@ maybeGetContextTitlePart posts context =
 
         Post.TopLevel topic ->
             Just <| "#" ++ topic
+
+
+contextToMaybeDescription : PublishedPostsDict -> Post.Context -> Maybe String
+contextToMaybeDescription posts context =
+    case context of
+        Post.Reply postId ->
+            getPublishedPostFromId posts postId
+                |> Maybe.andThen (.core >> .content >> .desc)
+
+        Post.TopLevel topic ->
+            Just <| "Discussions related to #" ++ topic ++ " on SmokeSignal"
+
+
+defaultSeoDescription : String
+defaultSeoDescription =
+    "SmokeSignal - Uncensorable, Global, Immutable chat. Burn crypto to cement your writing on the blockchain. Grant your ideas immortality."
 
 
 updatePublishedPost : Post.Id -> (Post.Published -> Post.Published) -> PublishedPostsDict -> PublishedPostsDict

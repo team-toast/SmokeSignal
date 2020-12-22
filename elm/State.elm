@@ -100,6 +100,7 @@ init flags url key =
     , demoPhaceSrc = initDemoPhaceSrc
     , donateChecked = True
     , cookieConsentGranted = flags.cookieConsent
+    , maybeSeoDescription = Nothing
     }
         |> gotoRoute route
         |> Tuple.mapSecond
@@ -600,13 +601,13 @@ update msg prevModel =
               }
             , Cmd.none
             )
-        
+
         CookieConsentGranted ->
             ( { prevModel
                 | cookieConsentGranted = True
-            }
+              }
             , Cmd.batch
-                [consentToCookies ()
+                [ consentToCookies ()
                 , gTagOut <|
                     encodeGTag <|
                         GTagData
@@ -616,6 +617,19 @@ update msg prevModel =
                             0
                 ]
             )
+
+
+withAnotherUpdate : (Model -> ( Model, Cmd Msg )) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+withAnotherUpdate updateFunc ( firstModel, firstCmd ) =
+    updateFunc firstModel
+        |> (\( finalModel, secondCmd ) ->
+                ( finalModel
+                , Cmd.batch
+                    [ firstCmd
+                    , secondCmd
+                    ]
+                )
+           )
 
 
 handleMsgUp : MsgUp -> Model -> ( Model, Cmd Msg )
@@ -903,7 +917,7 @@ updateFromPageRoute route model =
 
 gotoRoute : Route -> Model -> ( Model, Cmd Msg )
 gotoRoute route prevModel =
-    case route of
+    (case route of
         Routing.Home ->
             let
                 ( homeModel, homeCmd ) =
@@ -933,7 +947,10 @@ gotoRoute route prevModel =
                 | route = route
                 , mode = ViewContext context
               }
-            , Cmd.none
+            , Maybe.map
+                setDescription
+                (contextToMaybeDescription prevModel.publishedPosts context)
+                |> Maybe.withDefault Cmd.none
             )
 
         Routing.NotFound err ->
@@ -943,6 +960,8 @@ gotoRoute route prevModel =
                 |> addUserNotice UN.routeNotFound
             , Cmd.none
             )
+    )
+        |> withAnotherUpdate updateSeoDescriptionIfNeededCmd
 
 
 addPost : Int -> Post.Published -> Model -> ( Model, Cmd Msg )
@@ -994,6 +1013,7 @@ addPost blockNumber publishedPost prevModel =
             publishedPost.id.messageHash
             (PostAccountingFetched publishedPost.id)
         )
+            |> withAnotherUpdate updateSeoDescriptionIfNeededCmd
 
 
 getBlockTimeIfNeededCmd : Dict Int Time.Posix -> Int -> Cmd Msg
@@ -1003,6 +1023,34 @@ getBlockTimeIfNeededCmd blockTimes blockNumber =
 
     else
         Cmd.none
+
+
+updateSeoDescriptionIfNeededCmd : Model -> ( Model, Cmd Msg )
+updateSeoDescriptionIfNeededCmd model =
+    let
+        appropriateMaybeDescription =
+            case model.mode of
+                BlankMode ->
+                    Nothing
+
+                Home _ ->
+                    Nothing
+
+                Compose ->
+                    Nothing
+
+                ViewContext context ->
+                    contextToMaybeDescription model.publishedPosts context
+    in
+    if appropriateMaybeDescription /= model.maybeSeoDescription then
+        ( { model
+            | maybeSeoDescription = appropriateMaybeDescription
+          }
+        , setDescription (appropriateMaybeDescription |> Maybe.withDefault defaultSeoDescription)
+        )
+
+    else
+        ( model, Cmd.none )
 
 
 fetchPostsFromBlockrangeCmd : Eth.Types.BlockId -> Eth.Types.BlockId -> EventSentry Msg -> ( EventSentry Msg, Cmd Msg, EventSentry.Ref )
@@ -1061,6 +1109,7 @@ encodeGTag gtag =
         , ( "value", Json.Encode.int gtag.value )
         ]
 
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
@@ -1095,3 +1144,6 @@ port gTagOut : Json.Decode.Value -> Cmd msg
 
 
 port consentToCookies : () -> Cmd msg
+
+
+port setDescription : String -> Cmd msg
