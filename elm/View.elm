@@ -47,7 +47,7 @@ root :
     Model
     -> Browser.Document Msg
 root model =
-    { title = "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
+    { title = getTitle model
     , body =
         [ Element.layout
             ([ Element.width Element.fill
@@ -61,6 +61,22 @@ root model =
             body model
         ]
     }
+
+
+getTitle : Model -> String
+getTitle model =
+    let defaultMain = "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
+    in
+    case model.mode of
+        BlankMode -> defaultMain
+        Home homeModel ->
+            defaultMain
+        Compose ->
+            "Compose | SmokeSignal"
+        ViewContext context ->
+            maybeGetContextTitlePart model.publishedPosts context
+                |> Maybe.map (\contextTitle -> contextTitle ++ " | SmokeSignal")
+                |> Maybe.withDefault defaultMain
 
 
 modals :

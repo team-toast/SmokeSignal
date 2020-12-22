@@ -69,6 +69,17 @@ getPublishedPostFromTxHash publishedPosts txHash =
         |> List.head
 
 
+maybeGetContextTitlePart : PublishedPostsDict -> Post.Context -> Maybe String
+maybeGetContextTitlePart posts context =
+    case context of
+        Post.Reply postId ->
+            getPublishedPostFromId posts postId
+                |> Maybe.andThen (.core >> .content >> .title)
+
+        Post.TopLevel topic ->
+            Just <| "#" ++ topic
+
+
 updatePublishedPost : Post.Id -> (Post.Published -> Post.Published) -> PublishedPostsDict -> PublishedPostsDict
 updatePublishedPost postId updateFunc posts =
     posts
@@ -151,6 +162,7 @@ makeWalletUXPhaceInfo maybeUserInfo maybeShowAddressId demoPhaceSrc =
 
         Nothing ->
             DemoPhaceInfo demoPhaceSrc
+
 
 type alias GTagData =
     { event : String
