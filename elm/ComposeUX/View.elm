@@ -234,7 +234,7 @@ viewReplyInfo postId =
                 MsgUp <|
                     GotoRoute <|
                         Routing.ViewContext <|
-                            Post.Reply postId
+                            Post postId
             ]
             (Element.text <|
                 shortenedHash postId.messageHash
@@ -263,7 +263,7 @@ viewTopic topic =
                 MsgUp <|
                     GotoRoute <|
                         Routing.ViewContext <|
-                            Post.TopLevel topic
+                            Topic topic
             ]
             (Element.text <| topic)
         ]

@@ -101,6 +101,7 @@ init flags url key =
     , donateChecked = True
     , cookieConsentGranted = flags.cookieConsent
     , maybeSeoDescription = Nothing
+    , searchInput = ""
     }
         |> gotoRoute route
         |> Tuple.mapSecond
@@ -515,7 +516,7 @@ update msg prevModel =
                             case txInfo of
                                 PostTx draft ->
                                     Just <|
-                                        ( Routing.ViewContext prevModel.composeUXModel.context
+                                        ( Routing.ViewContext <| postContextToViewContext prevModel.composeUXModel.context
                                         , prevModel.composeUXModel |> ComposeUX.resetModel
                                         )
 
@@ -694,7 +695,7 @@ handleMsgUp msgUp prevModel =
             case prevModel.mode of
                 Compose ->
                     prevModel
-                        |> gotoRoute (Routing.ViewContext prevModel.composeUXModel.context)
+                        |> gotoRoute (Routing.ViewContext <| postContextToViewContext prevModel.composeUXModel.context)
 
                 _ ->
                     ( { prevModel
@@ -949,7 +950,7 @@ gotoRoute route prevModel =
               }
             , Maybe.map
                 setDescription
-                (contextToMaybeDescription prevModel.publishedPosts context)
+                (viewContextToMaybeDescription prevModel.publishedPosts context)
                 |> Maybe.withDefault Cmd.none
             )
 
@@ -1040,7 +1041,7 @@ updateSeoDescriptionIfNeededCmd model =
                     Nothing
 
                 ViewContext context ->
-                    contextToMaybeDescription model.publishedPosts context
+                    viewContextToMaybeDescription model.publishedPosts context
     in
     if appropriateMaybeDescription /= model.maybeSeoDescription then
         ( { model

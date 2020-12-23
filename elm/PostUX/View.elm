@@ -183,7 +183,7 @@ viewPostLinks postId =
     let
         route =
             Routing.ViewContext <|
-                Post.Reply postId
+                Post postId
     in
     Element.row
         [ Element.alignBottom
@@ -216,7 +216,7 @@ viewPostLinks postId =
             { url =
                 Routing.routeToFullDotEthUrlString <|
                     Routing.ViewContext <|
-                        Post.Reply postId
+                        Post postId
             , label = Element.text "(.eth permalink)"
             }
         ]

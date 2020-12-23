@@ -14,7 +14,7 @@ import Url.Parser.Query as Query
 type Route
     = Home
     | Compose Post.Context
-    | ViewContext Post.Context
+    | ViewContext ViewContext
     | NotFound String
 
 
@@ -22,9 +22,9 @@ routeParser : Parser (Route -> a) a
 routeParser =
     Parser.oneOf
         [ Parser.map Home Parser.top
-        , (Parser.s "context" </> contextParser)
+        , (Parser.s "context" </> viewContextParser)
             |> Parser.map (Result.Extra.unpack NotFound ViewContext)
-        , (Parser.s "compose" </> contextParser)
+        , (Parser.s "compose" </> postContextParser)
             |> Parser.map (Result.Extra.unpack NotFound Compose)
         ]
 
@@ -40,13 +40,13 @@ routeToString basePath route =
 
                 Compose context ->
                     Builder.relative
-                        ([ "#!", "compose" ] ++ encodeContextPaths context)
-                        (encodeContextQueryParams context)
+                        ([ "#!", "compose" ] ++ encodePostContextPaths context)
+                        (encodePostContextQueryParams context)
 
                 ViewContext context ->
                     Builder.relative
-                        ([ "#!", "context" ] ++ encodeContextPaths context)
-                        (encodeContextQueryParams context)
+                        ([ "#!", "context" ] ++ encodeViewContextPaths context)
+                        (encodeViewContextQueryParams context)
 
                 NotFound _ ->
                     Builder.relative
@@ -60,8 +60,13 @@ routeToFullDotEthUrlString route =
     routeToString "https://smokesignal.eth/" route
 
 
-contextParser : Parser (Result String Post.Context -> a) a
-contextParser =
+viewContextParser : Parser (Result String ViewContext -> a) a
+viewContextParser =
+    postContextParser |> Parser.map (Result.map postContextToViewContext)
+
+
+postContextParser : Parser (Result String Post.Context -> a) a
+postContextParser =
     Parser.oneOf
         [ (Parser.s "re" <?> postIdQueryParser)
             |> Parser.map (Result.map Post.Reply)
@@ -71,8 +76,15 @@ contextParser =
         ]
 
 
-encodeContextPaths : Post.Context -> List String
-encodeContextPaths context =
+encodeViewContextPaths : ViewContext -> List String
+encodeViewContextPaths context =
+    context
+        |> viewContextToPostContext
+        |> encodePostContextPaths
+
+
+encodePostContextPaths : Post.Context -> List String
+encodePostContextPaths context =
     case context of
         Post.Reply _ ->
             [ "re" ]
@@ -92,14 +104,21 @@ topicParser =
         |> Parser.map Url.percentDecode
 
 
-encodeContextQueryParams : Post.Context -> List Builder.QueryParameter
-encodeContextQueryParams context =
+encodePostContextQueryParams : Post.Context -> List Builder.QueryParameter
+encodePostContextQueryParams context =
     case context of
         Post.Reply postId ->
             encodePostIdQueryParameters postId
 
         Post.TopLevel _ ->
             []
+
+
+encodeViewContextQueryParams : ViewContext -> List Builder.QueryParameter
+encodeViewContextQueryParams context =
+    context
+        |> viewContextToPostContext
+        |> encodePostContextQueryParams
 
 
 postIdQueryParser : Query.Parser (Result String Post.Id)

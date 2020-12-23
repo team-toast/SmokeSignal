@@ -249,7 +249,7 @@ viewTopic topic =
             , Element.Events.onClick <|
                 GotoRoute <|
                     Routing.ViewContext <|
-                        Post.TopLevel topic
+                        Topic topic
             ]
             (Element.text topic)
         ]
@@ -275,7 +275,7 @@ viewReplyInfo postId =
                 , Element.Events.onClick <|
                     GotoRoute <|
                         Routing.ViewContext <|
-                            Post.Reply postId
+                            Post postId
                 ]
                 (Element.text <|
                     shortenedHash postId.messageHash

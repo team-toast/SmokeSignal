@@ -55,7 +55,6 @@ view dProfile donateChecked blockTimes now showAddressId walletUXPhaceInfo posts
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
-        , Element.Background.color theme.appBackground
         , responsiveVal dProfile
             (Element.paddingXY 40 40)
             (Element.paddingXY 10 20)
@@ -511,7 +510,7 @@ moreInfoButton dProfile =
         (MsgUp <|
             GotoRoute <|
                 Routing.ViewContext <|
-                    Post.Reply <|
+                    Post <|
                         Config.moreInfoPostId
         )
 

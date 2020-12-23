@@ -63,6 +63,7 @@ type alias Model =
     , donateChecked : Bool
     , cookieConsentGranted : Bool
     , maybeSeoDescription : Maybe String
+    , searchInput : String
     }
 
 
@@ -107,7 +108,7 @@ type Mode
     = BlankMode
     | Home Home.Model
     | Compose
-    | ViewContext Post.Context
+    | ViewContext ViewContext
 
 
 filterPosts : (Post.Published -> Bool) -> PublishedPostsDict -> PublishedPostsDict
@@ -145,3 +146,25 @@ updateTrackedTxIf test update model =
                     test
                     update
     }
+
+
+getTitle : Model -> String
+getTitle model =
+    let
+        defaultMain =
+            "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
+    in
+    case model.mode of
+        BlankMode ->
+            defaultMain
+
+        Home homeModel ->
+            defaultMain
+
+        Compose ->
+            "Compose | SmokeSignal"
+
+        ViewContext context ->
+            viewContextToMaybeTitlePart model.publishedPosts context
+                |> Maybe.map (\contextTitle -> contextTitle ++ " | SmokeSignal")
+                |> Maybe.withDefault defaultMain

@@ -26,6 +26,11 @@ type UnlockStatus
     | Unlocked
 
 
+type ViewContext
+    = Post Post.Id
+    | Topic String
+
+
 withBalance : TokenValue -> UserInfo -> UserInfo
 withBalance balance userInfo =
     { userInfo
@@ -69,26 +74,46 @@ getPublishedPostFromTxHash publishedPosts txHash =
         |> List.head
 
 
-contextToMaybeTitlePart : PublishedPostsDict -> Post.Context -> Maybe String
-contextToMaybeTitlePart posts context =
+viewContextToMaybeTitlePart : PublishedPostsDict -> ViewContext -> Maybe String
+viewContextToMaybeTitlePart posts context =
     case context of
-        Post.Reply postId ->
+        Post postId ->
             getPublishedPostFromId posts postId
                 |> Maybe.andThen (.core >> .content >> .title)
 
-        Post.TopLevel topic ->
+        Topic topic ->
             Just <| "#" ++ topic
 
 
-contextToMaybeDescription : PublishedPostsDict -> Post.Context -> Maybe String
-contextToMaybeDescription posts context =
+viewContextToMaybeDescription : PublishedPostsDict -> ViewContext -> Maybe String
+viewContextToMaybeDescription posts context =
     case context of
-        Post.Reply postId ->
+        Post postId ->
             getPublishedPostFromId posts postId
                 |> Maybe.andThen (.core >> .content >> .desc)
 
-        Post.TopLevel topic ->
+        Topic topic ->
             Just <| "Discussions related to #" ++ topic ++ " on SmokeSignal"
+
+
+postContextToViewContext : Post.Context -> ViewContext
+postContextToViewContext postContext =
+    case postContext of
+        Post.Reply id ->
+            Post id
+
+        Post.TopLevel topicStr ->
+            Topic topicStr
+
+
+viewContextToPostContext : ViewContext -> Post.Context
+viewContextToPostContext viewContext =
+    case viewContext of
+        Post id ->
+            Post.Reply id
+
+        Topic topicStr ->
+            Post.TopLevel topicStr
 
 
 defaultSeoDescription : String
