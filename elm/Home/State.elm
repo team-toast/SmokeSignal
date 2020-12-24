@@ -9,7 +9,9 @@ import UserNotice as UN
 
 init : ( Model, Cmd Msg )
 init =
-    ( { maybePostUXModel = Nothing }
+    ( { maybePostUXModel = Nothing
+      , topicSearchInput = ""
+      }
     , Cmd.none
     )
 

@@ -6,6 +6,7 @@ import PostUX.Types as PostUX
 
 type alias Model =
     { maybePostUXModel : Maybe PostUX.Model
+    , topicSearchInput : String
     }
 
 

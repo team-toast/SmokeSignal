@@ -375,3 +375,9 @@ daiAmountInput dProfile attributes currentInput onChange =
         , placeholder = Nothing
         , label = Element.Input.labelHidden "dai amount"
         }
+
+whiteGlowAttribute : Element.Attribute msg
+whiteGlowAttribute =
+    Element.Border.glow
+        (Element.rgba 1 1 1 0.4)
+        5

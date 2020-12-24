@@ -82,6 +82,10 @@ theme =
 --     }
 
 
+orange =
+    Element.rgb255 247 155 48
+
+
 softRed =
     Element.rgb255 255 0 110
 

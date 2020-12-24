@@ -80,7 +80,7 @@ header wallet searchInput =
         , Element.height <| Element.px 80
         , Element.Background.color EH.black
         , EH.moveToFront
-        , bodyContainingGlowAttribute
+        , whiteGlowAttribute
         ]
         Element.none
 
@@ -93,15 +93,11 @@ footer =
         , Element.Background.color EH.black
         , Element.alignBottom
         , EH.moveToFront
-        , bodyContainingGlowAttribute
+        , whiteGlowAttribute
         ]
         Element.none
 
-bodyContainingGlowAttribute : Element.Attribute Msg
-bodyContainingGlowAttribute =
-    Element.Border.glow
-        (Element.rgba 1 1 1 0.4)
-        5
+
 
 body :
     Model
@@ -110,7 +106,7 @@ body model =
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
-        , Element.inFront <| bodyContent
+        , Element.inFront <| bodyContent model
         , Element.clipY
         ]
     <|
@@ -123,22 +119,8 @@ body model =
             }
 
 
-bodyContent =
-    Element.el
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Element.scrollbarY
-        ]
-        <| Element.el
-            [ Element.height <| Element.px 3000
-            , Element.width <| Element.px 20
-            , Element.Background.color EH.white
-            , Element.centerX
-            ]
-            Element.none
-
-
-oldBody model =
+bodyContent : Model -> Element Msg
+bodyContent model =
     let
         walletUXPhaceInfo =
             makeWalletUXPhaceInfo
@@ -158,13 +140,17 @@ oldBody model =
             Home homeModel ->
                 Element.map HomeMsg <|
                     Element.Lazy.lazy
-                        (Home.View.view
-                            model.dProfile
-                            model.donateChecked
-                            model.blockTimes
-                            model.now
-                            model.showAddressId
-                            walletUXPhaceInfo
+                        (\publishedPosts ->
+                            (Home.View.view
+                                model.dProfile
+                                model.donateChecked
+                                model.blockTimes
+                                model.now
+                                model.showAddressId
+                                walletUXPhaceInfo
+                                publishedPosts
+                                homeModel
+                            )
                         )
                         model.publishedPosts
 
@@ -233,20 +219,24 @@ oldBody model =
         ]
 
 
-viewPostAndReplies =
-    Debug.todo ""
+dummyElement = Element.none
 
 
-viewTopicHeader =
-    Debug.todo ""
+viewPostAndReplies : DisplayProfile -> Bool -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
+viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies publishedPost postUX =
+    dummyElement
 
 
-viewPostsForTopic =
-    Debug.todo ""
+viewTopicHeader dProfile maybeUserInfo topic=
+    dummyElement
 
 
-viewPostHeader =
-    Debug.todo ""
+viewPostsForTopic dprofile donateChecked wallet allPosts blockTimes replies postUX topic =
+    dummyElement
+
+
+viewPostHeader dProfile post =
+    dummyElement
 
 
 modals :
