@@ -190,50 +190,54 @@ type ButtonAction msg
 
 
 button : DisplayProfile -> List (Attribute msg) -> ( Element.Color, Element.Color, Element.Color ) -> Element.Color -> List String -> ButtonAction msg -> Element msg
-button dProfile attributes ( bgColor, bgHoverColor, bgPressedColor ) textColor lines buttonAction =
+button dProfile extraAttributes ( bgColor, bgHoverColor, bgPressedColor ) textColor lines buttonAction =
     let
-        innerEl =
+        attributes =
+            [ Element.Border.rounded 4
+            , Element.pointer
+            , responsiveVal dProfile
+                (Element.paddingXY 25 17)
+                (Element.padding 10)
+            , Element.Font.color textColor
+            , Element.Font.size (responsiveVal dProfile 18 16)
+            , Element.Font.semiBold
+            , Element.Background.color bgColor
+            , Element.mouseDown [ Element.Background.color bgPressedColor ]
+            , Element.mouseOver [ Element.Background.color bgHoverColor ]
+            , noSelectText
+            ]
+                ++ extraAttributes
+
+        textEl =
             Element.column
-                ([ Element.Border.rounded 4
-                 , Element.spacing (responsiveVal dProfile 8 5)
-                 , Element.pointer
-                 , responsiveVal dProfile
-                    (Element.paddingXY 25 17)
-                    (Element.padding 10)
-                 , Element.Font.color textColor
-                 , Element.Font.size (responsiveVal dProfile 18 16)
-                 , Element.Font.semiBold
-                 , Element.Background.color bgColor
-                 , Element.mouseDown [ Element.Background.color bgPressedColor ]
-                 , Element.mouseOver [ Element.Background.color bgHoverColor ]
-                 , noSelectText
-                 ]
-                    ++ attributes
-                )
+                [ Element.spacing (responsiveVal dProfile 8 5)
+                , Element.centerX
+                , Element.centerY
+                ]
                 (List.map
-                    (Element.el [ Element.centerX, Element.centerY ] << Element.text)
+                    (Element.el [ Element.centerX ] << Element.text)
                     lines
                 )
     in
     case buttonAction of
         Link url ->
             Element.link
-                []
+                attributes
                 { url = url
-                , label = innerEl
+                , label = textEl
                 }
 
         NewTabLink url ->
             Element.newTabLink
-                []
+                attributes
                 { url = url
-                , label = innerEl
+                , label = textEl
                 }
 
         Action msg ->
             Element.el
-                [ Element.Events.onClick msg ]
-                innerEl
+                (attributes ++ [ Element.Events.onClick msg ])
+                textEl
 
 
 
