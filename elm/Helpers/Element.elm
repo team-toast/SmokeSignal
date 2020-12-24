@@ -183,30 +183,57 @@ fakeLink name =
 -- BUTTONS
 
 
-button : DisplayProfile -> List (Attribute msg) -> ( Element.Color, Element.Color, Element.Color ) -> Element.Color -> List String -> msg -> Element msg
-button dProfile attributes ( bgColor, bgHoverColor, bgPressedColor ) textColor lines msg =
-    Element.column
-        ([ Element.Border.rounded 4
-         , Element.spacing (responsiveVal dProfile 8 5)
-         , Element.pointer
-         , Element.Events.onClick msg
-         , responsiveVal dProfile
-            (Element.paddingXY 25 17)
-            (Element.padding 10)
-         , Element.Font.color textColor
-         , Element.Font.size (responsiveVal dProfile 18 16)
-         , Element.Font.semiBold
-         , Element.Background.color bgColor
-         , Element.mouseDown [ Element.Background.color bgPressedColor ]
-         , Element.mouseOver [ Element.Background.color bgHoverColor ]
-         , noSelectText
-         ]
-            ++ attributes
-        )
-        (List.map
-            (Element.el [ Element.centerX, Element.centerY ] << Element.text)
-            lines
-        )
+type ButtonAction msg
+    = Link String
+    | NewTabLink String
+    | Action msg
+
+
+button : DisplayProfile -> List (Attribute msg) -> ( Element.Color, Element.Color, Element.Color ) -> Element.Color -> List String -> ButtonAction msg -> Element msg
+button dProfile attributes ( bgColor, bgHoverColor, bgPressedColor ) textColor lines buttonAction =
+    let
+        innerEl =
+            Element.column
+                ([ Element.Border.rounded 4
+                 , Element.spacing (responsiveVal dProfile 8 5)
+                 , Element.pointer
+                 , responsiveVal dProfile
+                    (Element.paddingXY 25 17)
+                    (Element.padding 10)
+                 , Element.Font.color textColor
+                 , Element.Font.size (responsiveVal dProfile 18 16)
+                 , Element.Font.semiBold
+                 , Element.Background.color bgColor
+                 , Element.mouseDown [ Element.Background.color bgPressedColor ]
+                 , Element.mouseOver [ Element.Background.color bgHoverColor ]
+                 , noSelectText
+                 ]
+                    ++ attributes
+                )
+                (List.map
+                    (Element.el [ Element.centerX, Element.centerY ] << Element.text)
+                    lines
+                )
+    in
+    case buttonAction of
+        Link url ->
+            Element.link
+                []
+                { url = url
+                , label = innerEl
+                }
+
+        NewTabLink url ->
+            Element.newTabLink
+                []
+                { url = url
+                , label = innerEl
+                }
+
+        Action msg ->
+            Element.el
+                [ Element.Events.onClick msg ]
+                innerEl
 
 
 

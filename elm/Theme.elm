@@ -30,10 +30,10 @@ type alias Theme msg =
     , daiBurnedTextIsWhite : Bool
     , daiTippedBackground : Color
     , daiTippedTextIsWhite : Bool
-    , emphasizedActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-    , secondaryActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
+    , emphasizedActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+    , secondaryActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
     , disabledActionButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Element msg
-    , greenActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
+    , greenActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
     }
 
 
@@ -178,8 +178,8 @@ commonShadow =
 --     Element.rgb255 242 243 247
 
 
-blueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-blueButton dProfile attributes text msg =
+blueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+blueButton dProfile attributes text buttonAction =
     EH.button dProfile
         attributes
         ( Element.rgba 0 0 1 1
@@ -188,11 +188,11 @@ blueButton dProfile attributes text msg =
         )
         EH.white
         text
-        msg
+        buttonAction
 
 
-lightBlueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-lightBlueButton dProfile attributes text msg =
+lightBlueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+lightBlueButton dProfile attributes text buttonAction =
     let
         color =
             Element.rgb255 25 169 214
@@ -205,11 +205,11 @@ lightBlueButton dProfile attributes text msg =
         )
         EH.white
         text
-        msg
+        buttonAction
 
 
-inverseBlueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-inverseBlueButton dProfile attributes text msg =
+inverseBlueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+inverseBlueButton dProfile attributes text buttonAction =
     EH.button dProfile
         attributes
         ( Element.rgba 0 0 1 0.05
@@ -218,11 +218,11 @@ inverseBlueButton dProfile attributes text msg =
         )
         blue
         text
-        msg
+        buttonAction
 
 
-redButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-redButton dProfile attributes text msg =
+redButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+redButton dProfile attributes text buttonAction =
     EH.button dProfile
         attributes
         ( Element.rgba 1 0 0 1
@@ -231,11 +231,11 @@ redButton dProfile attributes text msg =
         )
         EH.white
         text
-        msg
+        buttonAction
 
 
-unscaryButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> msg -> Element msg
-unscaryButton dProfile attributes text msg =
+unscaryButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+unscaryButton dProfile attributes text buttonAction =
     EH.button dProfile
         attributes
         ( Element.rgb255 0 153 0
@@ -244,7 +244,7 @@ unscaryButton dProfile attributes text msg =
         )
         EH.white
         text
-        msg
+        buttonAction
 
 
 disabledButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Element msg
