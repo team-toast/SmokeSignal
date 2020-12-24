@@ -208,7 +208,6 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
                             (ShowOrHideAddress DemoPhace)
                             NoOp
 
-
                 Just userInfo ->
                     Element.el
                         [ Element.Border.rounded 10
@@ -225,38 +224,76 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
                             (ShowOrHideAddress UserPhace)
                             NoOp
 
-
-        ( buttonText, buttonAction, maybeExplainerText ) =
+        ( buttonText, maybeButtonAction, maybeExplainerText ) =
             case wallet of
                 Wallet.NoneDetected ->
                     ( "Install Metamask"
-                    , EH.NewTabLink "https://metamask.io/"
-                    , Just "to try on some phaces!"
-                    )
-                
-                Wallet.OnlyNetwork _ ->
-                    ( "Connect Wallet"
-                    , EH.Action ConnectToWeb3
-                    , Just "Each address has its own phace!"
-                    )
-                Wallet.Active userInfo ->
-                    ( "Compose Post"
-                    , EH.Action <| GotoRoute <| Routing.Compose <| Post.TopLevel Post.defaultTopic
-                    , Nothing
+                    , Just <| EH.NewTabLink "https://metamask.io/"
+                    , Just "Then come back to try on some phaces!"
                     )
 
+                Wallet.OnlyNetwork _ ->
+                    ( "Connect Wallet"
+                    , Just <| EH.Action ConnectToWeb3
+                    , Just "Each address has a unique phace!"
+                    )
+
+                Wallet.Active userInfo ->
+                    let
+                        userHasNoEth =
+                            userInfo.balance
+                                |> Maybe.map TokenValue.isZero
+                                |> Maybe.withDefault False
+                    in
+                    if userHasNoEth then
+                        ( "Compose Post"
+                        , Nothing
+                        , Just "That address has no ETH! You need ETH to post on SmokeSignal."
+                        )
+
+                    else
+                        ( "Compose Post"
+                        , Just <| EH.Action <| GotoRoute <| Routing.Compose <| Post.TopLevel Post.defaultTopic
+                        , Nothing
+                        )
+
         button =
-            Theme.unscaryButton
-                dProfile
-                []
-                [ buttonText ]
-                buttonAction
+            let
+                attributes =
+                    ([ Element.paddingXY 10 5
+                    , Element.width Element.fill
+                    ]++
+                    case maybeExplainerText of
+                        Nothing ->
+                            [ Element.centerY
+                            ]
+                        _ ->
+                            []
+                    )
+            in
+            case maybeButtonAction of
+                Just buttonAction ->
+                    Theme.unscaryButton
+                        dProfile
+                        attributes
+                        [ buttonText ]
+                        buttonAction
+
+                Nothing ->
+                    Theme.disabledButton
+                        dProfile
+                        attributes
+                        buttonText
 
         explainerParagraphOrNone =
             maybeExplainerText
                 |> Maybe.map
                     (\text ->
-                        Element.paragraph [] [ Element.text text ]
+                        Element.paragraph
+                            [ Element.Font.color EH.white
+                            , Element.Font.size 16
+                            ]
+                            [ Element.text text ]
                     )
                 |> Maybe.withDefault Element.none
     in
@@ -268,7 +305,8 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
             [ phaceEl
             , Element.column
                 [ Element.width Element.fill
-                , Element.spacing 5
+                , Element.spacing 15
+                , Element.height Element.fill
                 ]
                 [ button
                 , explainerParagraphOrNone
@@ -295,21 +333,21 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
 --                     False
 --                     (ShowOrHideAddress DemoPhace)
 --                     NoOp
-        -- UserPhaceInfo ( accountInfo, showAddress ) ->
-        --     Element.el
-        --         [ Element.Border.rounded 10
-        --         , Element.Border.glow
-        --             (Element.rgba 0 0.5 1 0.4)
-        --             9
-        --         ]
-        --     <|
-        --         phaceElement
-        --             ( 100, 100 )
-        --             True
-        --             accountInfo.address
-        --             showAddress
-        --             (ShowOrHideAddress UserPhace)
-        --             NoOp
+-- UserPhaceInfo ( accountInfo, showAddress ) ->
+--     Element.el
+--         [ Element.Border.rounded 10
+--         , Element.Border.glow
+--             (Element.rgba 0 0.5 1 0.4)
+--             9
+--         ]
+--     <|
+--         phaceElement
+--             ( 100, 100 )
+--             True
+--             accountInfo.address
+--             showAddress
+--             (ShowOrHideAddress UserPhace)
+--             NoOp
 -- Element.el
 --     [ Element.width Element.fill
 --     , Element.height Element.fill
