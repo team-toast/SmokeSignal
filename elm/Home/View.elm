@@ -407,9 +407,6 @@ postFeed dProfile donateChecked blockTimes now maybeShowAddressForId listOfPosts
                 listOfPosts
                 |> List.reverse
                 |> List.take 10
-
-        _ =
-            Debug.log "l" <| List.length listOfPosts
     in
     Element.column
         [ Element.width Element.fill
