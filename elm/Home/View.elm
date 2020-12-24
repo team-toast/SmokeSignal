@@ -121,8 +121,10 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
             ]
         , Element.column
             [ Element.width <| Element.fillPortion 1
+            , Element.alignTop
+            , Element.padding 10
             ]
-            [
+            [ walletUXPane dProfile showAddressId demoPhaceSrc wallet
             ]
         ]
 
@@ -185,6 +187,129 @@ mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId pos
         ]
 
 
+walletUXPane : DisplayProfile -> Maybe PhaceIconId -> String -> Wallet -> Element Msg
+walletUXPane dProfile showAddressId demoPhaceSrc wallet =
+    let
+        phaceEl =
+            case Wallet.userInfo wallet of
+                Nothing ->
+                    Element.el
+                        [ Element.Border.rounded 10
+                        , Element.Border.glow
+                            (Element.rgba 1 0 1 0.3)
+                            9
+                        ]
+                    <|
+                        phaceElement
+                            ( 100, 100 )
+                            True
+                            (Eth.Utils.unsafeToAddress demoPhaceSrc)
+                            (showAddressId == Just DemoPhace)
+                            (ShowOrHideAddress DemoPhace)
+                            NoOp
+
+
+                Just userInfo ->
+                    Element.el
+                        [ Element.Border.rounded 10
+                        , Element.Border.glow
+                            (Element.rgba 0 0.5 1 0.4)
+                            9
+                        ]
+                    <|
+                        phaceElement
+                            ( 100, 100 )
+                            True
+                            userInfo.address
+                            (showAddressId == Just UserPhace)
+                            (ShowOrHideAddress UserPhace)
+                            NoOp
+
+
+        ( buttonText, buttonAction, maybeExplainerText ) =
+            case wallet of
+                Wallet.NoneDetected ->
+                    ( "Install Metamask"
+                    , EH.NewTabLink "https://metamask.io/"
+                    , Just "to try on some phaces!"
+                    )
+                
+                Wallet.OnlyNetwork _ ->
+                    ( "Connect Wallet"
+                    , EH.Action ConnectToWeb3
+                    , Just "Each address has its own phace!"
+                    )
+                Wallet.Active userInfo ->
+                    ( "Compose Post"
+                    , EH.Action <| GotoRoute <| Routing.Compose <| Post.TopLevel Post.defaultTopic
+                    , Nothing
+                    )
+
+        button =
+            Theme.unscaryButton
+                dProfile
+                []
+                [ buttonText ]
+                buttonAction
+
+        explainerParagraphOrNone =
+            maybeExplainerText
+                |> Maybe.map
+                    (\text ->
+                        Element.paragraph [] [ Element.text text ]
+                    )
+                |> Maybe.withDefault Element.none
+    in
+    Element.map MsgUp <|
+        Element.row
+            [ Element.width Element.fill
+            , Element.spacing 10
+            ]
+            [ phaceEl
+            , Element.column
+                [ Element.width Element.fill
+                , Element.spacing 5
+                ]
+                [ button
+                , explainerParagraphOrNone
+                ]
+            ]
+
+
+
+-- stuff =
+--     case walletUXPhaceInfo of
+--         DemoPhaceInfo demoAddress ->
+--             Element.el
+--                 [ Element.pointer
+--                 , Element.Border.rounded 10
+--                 , Element.Border.glow
+--                     (Element.rgba 1 0 1 0.3)
+--                     9
+--                 ]
+--             <|
+--                 phaceElement
+--                     ( 100, 100 )
+--                     True
+--                     (Eth.Utils.unsafeToAddress demoAddress)
+--                     False
+--                     (ShowOrHideAddress DemoPhace)
+--                     NoOp
+        -- UserPhaceInfo ( accountInfo, showAddress ) ->
+        --     Element.el
+        --         [ Element.Border.rounded 10
+        --         , Element.Border.glow
+        --             (Element.rgba 0 0.5 1 0.4)
+        --             9
+        --         ]
+        --     <|
+        --         phaceElement
+        --             ( 100, 100 )
+        --             True
+        --             accountInfo.address
+        --             showAddress
+        --             (ShowOrHideAddress UserPhace)
+        --             NoOp
 -- Element.el
 --     [ Element.width Element.fill
 --     , Element.height Element.fill
