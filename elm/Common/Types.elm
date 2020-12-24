@@ -148,7 +148,7 @@ type PhaceIconId
     | PhaceForDraft
     | PhaceForPreview
     | UserPhace
-    | MorphingPhace
+    | DemoPhace
 
 
 type alias TrackedTx =
@@ -188,21 +188,6 @@ txInfoToNameStr txInfo =
 
         BurnTx postId amount ->
             "Burn"
-
-
-type WalletUXPhaceInfo
-    = UserPhaceInfo ( UserInfo, Bool )
-    | DemoPhaceInfo String
-
-
-makeWalletUXPhaceInfo : Maybe UserInfo -> Maybe PhaceIconId -> String -> WalletUXPhaceInfo
-makeWalletUXPhaceInfo maybeUserInfo maybeShowAddressId demoPhaceSrc =
-    case maybeUserInfo of
-        Just userInfo ->
-            UserPhaceInfo ( userInfo, maybeShowAddressId == Just UserPhace )
-
-        Nothing ->
-            DemoPhaceInfo demoPhaceSrc
 
 
 type alias GTagData =

@@ -121,13 +121,6 @@ body model =
 
 bodyContent : Model -> Element Msg
 bodyContent model =
-    let
-        walletUXPhaceInfo =
-            makeWalletUXPhaceInfo
-                (Wallet.userInfo model.wallet)
-                model.showAddressId
-                model.demoPhaceSrc
-    in
     Element.column
         [ Element.width Element.fill
         , Element.height Element.fill
@@ -147,7 +140,8 @@ bodyContent model =
                                 model.blockTimes
                                 model.now
                                 model.showAddressId
-                                walletUXPhaceInfo
+                                model.demoPhaceSrc
+                                model.wallet
                                 publishedPosts
                                 homeModel
                             )
@@ -160,7 +154,7 @@ bodyContent model =
                         model.dProfile
                         model.donateChecked
                         model.wallet
-                        walletUXPhaceInfo
+                        
                         model.showAddressId
                         model.composeUXModel
 
@@ -287,7 +281,7 @@ modals model =
                         5
                     ]
                     [ "Draft in Progress" ]
-                    (MsgUp <| StartInlineCompose model.composeUXModel.context)
+                    (EH.Action <| MsgUp <| StartInlineCompose model.composeUXModel.context)
 
            else
             Nothing

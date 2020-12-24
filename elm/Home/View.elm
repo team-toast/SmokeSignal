@@ -36,20 +36,12 @@ view :
     -> Dict Int Time.Posix
     -> Time.Posix
     -> Maybe PhaceIconId
-    -> WalletUXPhaceInfo
+    -> String
+    -> Wallet
     -> PublishedPostsDict
     -> Model
     -> Element Msg
-view dProfile donateChecked blockTimes now showAddressId walletUXPhaceInfo posts model =
-    let
-        maybeShowAddressForPostId =
-            case showAddressId of
-                Just (PhaceForPublishedPost id) ->
-                    Just id
-
-                _ ->
-                    Nothing
-    in
+view dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts model =
     case dProfile of
         Desktop ->
             Element.column
@@ -62,7 +54,7 @@ view dProfile donateChecked blockTimes now showAddressId walletUXPhaceInfo posts
                     , Element.paddingXY 10 0
                     ]
                     banner
-                , body dProfile donateChecked blockTimes now maybeShowAddressForPostId walletUXPhaceInfo posts model
+                , body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts model
                 ]
 
         Mobile ->
@@ -89,18 +81,20 @@ body :
     -> Bool
     -> Dict Int Time.Posix
     -> Time.Posix
-    -> Maybe Post.Id
-    -> WalletUXPhaceInfo
+    -> Maybe PhaceIconId
+    -> String
+    -> Wallet
     -> PublishedPostsDict
     -> Model
     -> Element Msg
-body dProfile donateChecked blockTimes now maybeShowAddressForPostId walletUXPhaceInfo posts model =
+body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts model =
     Element.row
         [ Element.width Element.fill
         , Element.spacing majorSpacing
         ]
         [ Element.column
             [ Element.spacing majorSpacing
+            , Element.alignTop
             , Element.htmlAttribute (Html.Attributes.style "flex-shrink" "1")
             , Element.clip
             , Element.width <| Element.fillPortion 2
@@ -113,7 +107,16 @@ body dProfile donateChecked blockTimes now maybeShowAddressForPostId walletUXPha
                 , Element.clipX
                 ]
                 [ topicsUX dProfile model.topicSearchInput
-                , mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId posts
+                , let
+                    maybeShowAddressForPostId =
+                        case showAddressId of
+                            Just (PhaceForPublishedPost id) ->
+                                Just id
+
+                            _ ->
+                                Nothing
+                  in
+                  mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId posts
                 ]
             ]
         , Element.column

@@ -41,7 +41,7 @@ web3ConnectButton dProfile attrs msgMapper =
         dProfile
         attrs
         [ "Connect to Wallet" ]
-        (msgMapper ConnectToWeb3)
+        (EH.Action <| msgMapper ConnectToWeb3)
 
 
 phaceElement : (Int, Int) -> Bool -> Address -> Bool -> msg -> msg -> Element msg
@@ -359,7 +359,7 @@ unlockButton dProfile attrs msgMapper =
         dProfile
         attrs
         [ "Unlock Dai" ]
-        (msgMapper UnlockDai)
+        (EH.Action <| msgMapper UnlockDai)
 
 
 daiAmountInput : DisplayProfile -> List (Attribute msg) -> String -> (String -> msg) -> Element msg

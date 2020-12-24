@@ -23,8 +23,8 @@ import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
 
 
-viewFull : DisplayProfile -> Bool -> Wallet -> WalletUXPhaceInfo -> Maybe PhaceIconId -> Model -> Element Msg
-viewFull dProfile donateChecked wallet walletUXPhaceInfo showAddressId model =
+viewFull : DisplayProfile -> Bool -> Wallet -> Maybe PhaceIconId -> Model -> Element Msg
+viewFull dProfile donateChecked wallet showAddressId model =
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
@@ -32,11 +32,11 @@ viewFull dProfile donateChecked wallet walletUXPhaceInfo showAddressId model =
         , Element.Background.color theme.appBackground
         ]
     <|
-        view dProfile donateChecked wallet walletUXPhaceInfo showAddressId model
+        view dProfile donateChecked wallet showAddressId model
 
 
-view : EH.DisplayProfile -> Bool -> Wallet -> WalletUXPhaceInfo -> Maybe PhaceIconId -> Model -> Element Msg
-view dProfile donateChecked wallet walletUXPhaceInfo showAddressId model =
+view : EH.DisplayProfile -> Bool -> Wallet ->  Maybe PhaceIconId -> Model -> Element Msg
+view dProfile donateChecked wallet  showAddressId model =
     let
         commonAttributes =
             [ Element.width Element.fill
@@ -67,7 +67,7 @@ view dProfile donateChecked wallet walletUXPhaceInfo showAddressId model =
                     , Element.spacing 10
                     ]
                     [ viewInput dProfile model.content
-                    , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile donateChecked walletUXPhaceInfo model
+                    , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model
                     ]
                 , viewPreviewWithPostContext dProfile Nothing model.renderedPreview model.context
                 ]
@@ -95,7 +95,7 @@ view dProfile donateChecked wallet walletUXPhaceInfo showAddressId model =
                         )
                         model.renderedPreview
                         model.context
-                    , actionFormAndMaybeErrorEl dProfile donateChecked walletUXPhaceInfo model
+                    , actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model
                     ]
 
                  else
@@ -124,7 +124,7 @@ viewPreviewButton dProfile enabled =
             dProfile
             []
             [ "Preview" ]
-            MobilePreviewToggle
+            (EH.Action MobilePreviewToggle)
 
     else
         theme.disabledActionButton
@@ -269,10 +269,10 @@ viewTopic topic =
         ]
 
 
-actionFormAndMaybeErrorEl : DisplayProfile -> Bool -> WalletUXPhaceInfo -> Model -> Element Msg
-actionFormAndMaybeErrorEl dProfile donateChecked walletUXPhaceInfo model =
-    case walletUXPhaceInfo of
-        UserPhaceInfo ( userInfo, showAddress ) ->
+actionFormAndMaybeErrorEl : DisplayProfile -> Bool -> Wallet -> Maybe PhaceIconId -> Model -> Element Msg
+actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model =
+    case Wallet.userInfo wallet of
+        Just userInfo ->
             let
                 ( goButtonEl, maybeErrorEls ) =
                     goButtonAndMaybeError dProfile donateChecked userInfo model
@@ -291,7 +291,7 @@ actionFormAndMaybeErrorEl dProfile donateChecked walletUXPhaceInfo model =
                                         (100,100)
                                         True
                                         userInfo.address
-                                        showAddress
+                                        (showAddressId == Just UserPhace)
                                         (Common.Msg.ShowOrHideAddress UserPhace)
                                         NoOp
 
@@ -320,7 +320,7 @@ actionFormAndMaybeErrorEl dProfile donateChecked walletUXPhaceInfo model =
                         , actionRow
                         ]
 
-        _ ->
+        Nothing ->
             web3ConnectButton
                 dProfile
                 [ Element.centerX, Element.centerY ]
@@ -535,7 +535,7 @@ maybeGoButton dProfile maybeDraft =
                 dProfile
                 (commonActionButtonStyles dProfile)
                 [ "GO" ]
-                (MsgUp <| SubmitPost draft)
+                (EH.Action <| MsgUp <| SubmitPost draft)
 
         Nothing ->
             theme.disabledActionButton
@@ -550,4 +550,4 @@ goBackButton dProfile =
         dProfile
         (commonActionButtonStyles dProfile)
         [ "Edit" ]
-        MobilePreviewToggle
+        (EH.Action <| MobilePreviewToggle)

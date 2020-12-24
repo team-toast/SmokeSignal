@@ -460,7 +460,7 @@ maybeSubmitButton dProfile label maybeAmount onSubmit =
                 Mobile
                 []
                 [ label ]
-                (onSubmit amount)
+                (EH.Action <| onSubmit amount)
 
         Nothing ->
             Theme.disabledButton
