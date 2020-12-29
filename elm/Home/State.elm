@@ -48,3 +48,11 @@ update msg prevModel =
                 prevModel
                 Cmd.none
                 [ msgUp ]
+
+        SearchInputChanged text ->
+            UpdateResult
+                { prevModel
+                    | topicSearchInput = text
+                }
+                Cmd.none
+                []

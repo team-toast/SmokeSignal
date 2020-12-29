@@ -152,7 +152,22 @@ topicsUX :
     -> String
     -> Element Msg
 topicsUX dProfile topicsSearchInput =
-    Element.none
+    Element.Input.text
+        [ Element.width Element.fill
+        , Element.Background.color <| Element.rgba 1 1 1 0.2
+        , Element.Border.color <| Element.rgba 1 1 1 0.6
+        ]
+        { onChange = SearchInputChanged
+        , text = topicsSearchInput
+        , placeholder =
+            Just <|
+                Element.Input.placeholder
+                    [ Element.Font.color <| Element.rgba 1 1 1 0.4
+                    , Element.Font.italic
+                    ]
+                    (Element.text "Find or Create Topic")
+        , label = Element.Input.labelHidden "topic"
+        }
 
 
 mainPostFeed :
@@ -260,16 +275,17 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
         button =
             let
                 attributes =
-                    ([ Element.paddingXY 10 5
+                    [ Element.paddingXY 10 5
                     , Element.width Element.fill
-                    ]++
-                    case maybeExplainerText of
-                        Nothing ->
-                            [ Element.centerY
-                            ]
-                        _ ->
-                            []
-                    )
+                    ]
+                        ++ (case maybeExplainerText of
+                                Nothing ->
+                                    [ Element.centerY
+                                    ]
+
+                                _ ->
+                                    []
+                           )
             in
             case maybeButtonAction of
                 Just buttonAction ->
