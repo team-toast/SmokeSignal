@@ -8,7 +8,7 @@ import Element exposing (Element)
 import Element.Background
 import Element.Border
 import Element.Font
-import Helpers.Element as EH exposing (DisplayProfile, responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile, limitedString, responsiveVal)
 import Helpers.Time as TimeHelpers
 import Html.Attributes
 import Post
@@ -216,9 +216,11 @@ viewTitleOrTextPreview dProfile content =
         , Element.Font.size (responsiveVal dProfile 14 8)
         ]
     <|
-        case content.title of
-            Just title ->
-                Element.text title
+        Element.text <|
+            limitedString <|
+                case content.title of
+                    Just title ->
+                        title
 
-            Nothing ->
-                Element.text content.body
+                    Nothing ->
+                        content.body

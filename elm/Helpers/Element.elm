@@ -537,3 +537,17 @@ visibility flag =
 
             else
                 "hidden"
+
+
+previewMaxTextLength : Int
+previewMaxTextLength =
+    150
+
+
+limitedString : String -> String
+limitedString text =
+    if String.length text > previewMaxTextLength then
+        String.slice 0 previewMaxTextLength text ++ "..."
+
+    else
+        text
