@@ -1,6 +1,6 @@
 module App exposing (main)
 
-import Browser.Hashbang as Hashbang
+import Browser.Hash as Hashbang
 import State
 import Types exposing (..)
 import View
