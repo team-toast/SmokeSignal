@@ -541,7 +541,7 @@ visibility flag =
 
 previewMaxTextLength : Int
 previewMaxTextLength =
-    150
+    250
 
 
 limitedString : String -> String
