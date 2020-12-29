@@ -194,7 +194,6 @@ previewBody dProfile showAddress post =
         , Element.height Element.fill
         , Element.spacing 5
         , Element.clip
-        , Element.Font.color almostWhite
         ]
         [ Common.View.phaceElement
             ( 60, 60 )
@@ -212,9 +211,14 @@ viewTitleOrTextPreview :
     -> Post.Content
     -> Element Msg
 viewTitleOrTextPreview dProfile content =
-    case content.title of
-        Just title ->
-            Element.text title
+    Element.el
+        [ Element.Font.color almostWhite
+        , Element.Font.size (responsiveVal dProfile 14 8)
+        ]
+    <|
+        case content.title of
+            Just title ->
+                Element.text title
 
-        Nothing ->
-            Element.text content.body
+            Nothing ->
+                Element.text content.body
