@@ -14,7 +14,7 @@ import Html.Attributes
 import Post
 import PostUX.Types exposing (..)
 import PostUX.View
-import Theme exposing (theme)
+import Theme exposing (almostWhite, lightGray, theme)
 import Time
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
@@ -138,12 +138,17 @@ viewContext :
     -> Post.Context
     -> Element Msg
 viewContext dProfile context =
-    case context of
-        Post.Reply id ->
-            Element.text "reply"
+    Element.el
+        [ Element.width Element.fill
+        , Element.Font.color almostWhite
+        ]
+    <|
+        case context of
+            Post.Reply id ->
+                Element.text "reply"
 
-        Post.TopLevel topic ->
-            Element.text <| "#" ++ topic
+            Post.TopLevel topic ->
+                Element.text <| "#" ++ topic
 
 
 viewTiming :
@@ -166,9 +171,10 @@ viewTiming dProfile blockTimes now id =
                     )
     in
     Element.el
-        [ Element.width <| Element.px 100 
+        [ Element.width <| Element.px 100
         , Element.Font.color theme.subtleTextColor
-        ] <|
+        ]
+    <|
         Element.text
             (maybeTimePassed
                 |> Maybe.map TimeHelpers.roundToSingleUnit
@@ -188,9 +194,10 @@ previewBody dProfile showAddress post =
         , Element.height Element.fill
         , Element.spacing 5
         , Element.clip
+        , Element.Font.color almostWhite
         ]
         [ Common.View.phaceElement
-            (60,60)
+            ( 60, 60 )
             True
             post.core.author
             showAddress
