@@ -115,7 +115,13 @@ viewDaiBurned dProfile post =
             ++ [ Element.Background.color theme.daiBurnedBackground ]
         )
         [ daiSymbol True [ Element.height <| Element.px 14 ]
-        , Element.text <| TokenValue.toConciseString <| Post.totalBurned <| Post.PublishedPost post
+        , Element.el
+            [ Element.Font.color EH.white ]
+          <|
+            Element.text <|
+                TokenValue.toConciseString <|
+                    Post.totalBurned <|
+                        Post.PublishedPost post
         ]
 
 
@@ -129,7 +135,11 @@ viewDaiTipped dProfile amount =
             ++ [ Element.Background.color theme.daiTippedBackground ]
         )
         [ daiSymbol True [ Element.height <| Element.px 14 ]
-        , Element.text <| TokenValue.toConciseString amount
+        , Element.el
+            [ Element.Font.color EH.white ]
+          <|
+            Element.text <|
+                TokenValue.toConciseString amount
         ]
 
 
