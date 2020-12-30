@@ -2,7 +2,7 @@
     "type": "application",
     "source-directories": [
         "elm",
-        "elm-hash-routing/src"
+        "elm-submodules/hashbang-routing/src"
     ],
     "elm-version": "0.19.1",
     "dependencies": {
