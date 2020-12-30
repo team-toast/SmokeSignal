@@ -24,7 +24,7 @@ import Post exposing (Post)
 import PostUX.Preview as PostPreview
 import PostUX.Types as PostUX
 import Routing exposing (Route)
-import Theme exposing (theme)
+import Theme exposing (almostWhite, theme)
 import Time
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
@@ -156,13 +156,14 @@ topicsUX dProfile topicsSearchInput =
         [ Element.width Element.fill
         , Element.Background.color <| Element.rgba 1 1 1 0.2
         , Element.Border.color <| Element.rgba 1 1 1 0.6
+        , Element.Font.color almostWhite
         ]
         { onChange = SearchInputChanged
         , text = topicsSearchInput
         , placeholder =
             Just <|
                 Element.Input.placeholder
-                    [ Element.Font.color <| Element.rgba 1 1 1 0.4
+                    [ Element.Font.color EH.white
                     , Element.Font.italic
                     ]
                     (Element.text "Find or Create Topic")
