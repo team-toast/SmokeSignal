@@ -58,14 +58,15 @@ theme =
     , errorTextColor = softRed
     , appStatusTextColor = darkGray
     , daiBurnedBackground = darkRed
-    , daiBurnedTextIsWhite = False
+    , daiBurnedTextIsWhite = True
     , daiTippedBackground = darkGreen
-    , daiTippedTextIsWhite = False
+    , daiTippedTextIsWhite = True
     , emphasizedActionButton = redButton
     , secondaryActionButton = blueButton
     , disabledActionButton = disabledButton
     , greenActionButton = unscaryButton
     }
+
 
 
 -- darkTheme : Theme msg
@@ -136,6 +137,7 @@ veryDarkGray =
 
 green =
     Element.rgb255 51 183 2
+
 
 darkGreen =
     Element.rgb255 0 120 0

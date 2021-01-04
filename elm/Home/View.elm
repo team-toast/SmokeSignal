@@ -102,12 +102,11 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
             ]
             [ newToSmokeSignalEl dProfile
             , Element.column
-                [ Element.spacing 15
+                [ Element.spacing 5
                 , Element.width Element.fill
                 , Element.clipX
                 ]
-                [ topicsUX dProfile model.topicSearchInput
-                , let
+                [ let
                     maybeShowAddressForPostId =
                         case showAddressId of
                             Just (PhaceForPublishedPost id) ->
@@ -123,8 +122,10 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
             [ Element.width <| Element.fillPortion 1
             , Element.alignTop
             , Element.padding 10
+            , Element.spacing 20
             ]
             [ walletUXPane dProfile showAddressId demoPhaceSrc wallet
+            , topicsUX dProfile model.topicSearchInput posts
             ]
         ]
 
@@ -150,25 +151,241 @@ newToSmokeSignalEl dProfile =
 topicsUX :
     DisplayProfile
     -> String
+    -> PublishedPostsDict
     -> Element Msg
-topicsUX dProfile topicsSearchInput =
-    Element.Input.text
-        [ Element.width Element.fill
-        , Element.Background.color <| Element.rgba 1 1 1 0.2
-        , Element.Border.color <| Element.rgba 1 1 1 0.6
-        , Element.Font.color almostWhite
+topicsUX dProfile topicsSearchInput posts =
+    Element.column
+        [ Element.spacing 25
+        , Element.centerX
+        , Element.width (Element.fill |> Element.minimum 400)
+        , Element.Background.color EH.black
         ]
-        { onChange = SearchInputChanged
-        , text = topicsSearchInput
-        , placeholder =
-            Just <|
-                Element.Input.placeholder
-                    [ Element.Font.color EH.white
-                    , Element.Font.italic
-                    ]
-                    (Element.text "Find or Create Topic")
-        , label = Element.Input.labelHidden "topic"
-        }
+        [ Element.column
+            [ Element.width Element.fill
+            , Element.alignTop
+            , Element.spacing 1
+            ]
+            [ Element.el
+                [ Element.width Element.fill
+                , Element.padding 15
+                , Element.Font.size 30
+                , Element.Background.color Theme.orange
+                , Element.Font.semiBold
+                , Element.Font.color EH.white
+                , whiteGlowAttribute
+                ]
+              <|
+                Element.text "TOPICS"
+            , Element.Input.text
+                [ Element.width Element.fill
+                , Element.Background.color EH.black
+                , Element.Border.color Theme.almostWhite
+                , whiteGlowAttribute
+                , Element.Font.color EH.white
+                ]
+                { onChange = SearchInputChanged
+                , text = topicsSearchInput
+                , placeholder =
+                    Just <|
+                        Element.Input.placeholder
+                            [ Element.Font.color EH.white
+                            , Element.Font.italic
+                            ]
+                            (Element.text "Find or Create Topic...")
+                , label = Element.Input.labelHidden "topic"
+                }
+            , topicsColumn
+                dProfile
+                (Post.sanitizeTopic topicsSearchInput)
+                posts
+            ]
+        ]
+
+
+topicsColumn :
+    EH.DisplayProfile
+    -> String
+    -> PublishedPostsDict
+    -> Element Msg
+topicsColumn dProfile topicSearchStr allPosts =
+    let
+        talliedTopics : List ( String, ( ( TokenValue, TokenValue ), Int ) )
+        talliedTopics =
+            let
+                findTopic : Post.Published -> Maybe String
+                findTopic publishedPost =
+                    case publishedPost.core.metadata.context of
+                        Post.TopLevel topic ->
+                            Just topic
+
+                        Post.Reply postId ->
+                            getPublishedPostFromId allPosts postId
+                                |> Maybe.andThen findTopic
+            in
+            allPosts
+                |> Dict.values
+                |> List.concat
+                |> Dict.Extra.filterGroupBy findTopic
+                -- This ignores any replies that lead eventually to a postId not in 'posts'
+                |> Dict.map
+                    (\topic posts ->
+                        ( List.foldl
+                            (\thisPost ( accBurn, accTip ) ->
+                                case thisPost.maybeAccounting of
+                                    Just accounting ->
+                                        ( TokenValue.add
+                                            accounting.totalBurned
+                                            accBurn
+                                        , TokenValue.add
+                                            accounting.totalTipped
+                                            accTip
+                                        )
+
+                                    Nothing ->
+                                        ( TokenValue.add
+                                            thisPost.core.authorBurn
+                                            accBurn
+                                        , accTip
+                                        )
+                            )
+                            ( TokenValue.zero, TokenValue.zero )
+                            posts
+                        , List.length posts
+                        )
+                    )
+                |> Dict.toList
+                |> List.sortBy (Tuple.second >> Tuple.first >> Tuple.first >> TokenValue.toFloatWithWarning >> negate)
+
+        filteredTalliedTopics =
+            talliedTopics
+                |> List.filter
+                    (\( topic, _ ) ->
+                        String.contains topicSearchStr topic
+                    )
+
+        commonElStyles =
+            [ Element.spacing 5
+            , Element.padding 5
+            , Element.Border.width 1
+            , Element.Border.color Theme.almostWhite
+            , Element.width Element.fill
+            , Element.pointer
+            , Element.height <| Element.px 40
+            , whiteGlowAttribute
+            , Element.Font.color EH.white
+            , Element.Background.color EH.black
+            ]
+
+        topicEls =
+            filteredTalliedTopics
+                |> List.map
+                    (\( topic, ( ( totalBurned, totalTipped ), count ) ) ->
+                        Element.row
+                            (commonElStyles
+                                ++ [ Element.Events.onClick <|
+                                        GotoRoute <|
+                                            Routing.ViewContext <|
+                                                Topic topic
+                                   ]
+                            )
+                            [ Element.el
+                                [ Element.width <| Element.px 100 ]
+                              <|
+                                Element.row
+                                    [ Element.padding 5
+                                    , Element.spacing 3
+                                    , Element.Border.rounded 5
+                                    , Element.Background.color theme.daiBurnedBackground
+                                    , Element.Font.color
+                                        (if theme.daiBurnedTextIsWhite then
+                                            EH.white
+
+                                         else
+                                            EH.black
+                                        )
+                                    ]
+                                    [ daiSymbol theme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
+                                    , Element.text <|
+                                        (TokenValue.toConciseString totalBurned
+                                            |> (if TokenValue.compare totalBurned (TokenValue.fromIntTokenValue 1) == LT then
+                                                    String.left 5
+
+                                                else
+                                                    identity
+                                               )
+                                        )
+                                    ]
+                            , Element.el
+                                [ Element.width Element.fill
+                                , Element.height Element.fill
+                                , Element.clip
+                                ]
+                              <|
+                                Element.el
+                                    [ Element.centerY
+                                    , Element.Font.color EH.white
+                                    ]
+                                <|
+                                    Element.text topic
+                            , Element.el
+                                [ Element.alignRight
+                                , Element.Font.color EH.white
+                                ]
+                              <|
+                                Element.text <|
+                                    String.fromInt count
+                            ]
+                    )
+
+        exactTopicFound =
+            talliedTopics
+                |> List.any (Tuple.first >> (==) topicSearchStr)
+
+        maybeCreateTopicEl =
+            if topicSearchStr /= "" && not exactTopicFound then
+                Just <|
+                    Element.el
+                        (commonElStyles
+                            ++ [ Element.clipX
+                               , Element.Events.onClick <|
+                                    GotoRoute <|
+                                        Routing.Compose <|
+                                            Post.TopLevel topicSearchStr
+                               ]
+                        )
+                    <|
+                        Element.row
+                            [ Element.centerY
+                            ]
+                            [ Element.text "Start new topic "
+                            , Element.el
+                                [ Element.Font.italic
+                                , Element.Font.bold
+                                ]
+                              <|
+                                Element.text topicSearchStr
+                            ]
+
+            else
+                Nothing
+    in
+    Element.map MsgUp <|
+        Element.column
+            [ Element.Border.roundEach
+                { topRight = 0
+                , topLeft = 0
+                , bottomRight = 5
+                , bottomLeft = 5
+                }
+            , Element.width (Element.fill |> Element.maximum 530)
+            , Element.padding 5
+            , Element.spacing 5
+            ]
+            ((Maybe.map List.singleton maybeCreateTopicEl
+                |> Maybe.withDefault []
+             )
+                ++ topicEls
+            )
 
 
 mainPostFeed :
