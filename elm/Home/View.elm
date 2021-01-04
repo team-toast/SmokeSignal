@@ -127,7 +127,7 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
                                 _ ->
                                     Nothing
                       in
-                      mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId posts
+                      mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet posts
                     ]
                 ]
             ]
@@ -405,9 +405,10 @@ mainPostFeed :
     -> Dict Int Time.Posix
     -> Time.Posix
     -> Maybe Post.Id
+    -> Wallet
     -> PublishedPostsDict
     -> Element Msg
-mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId posts =
+mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet posts =
     Element.row
         [ Element.width Element.fill
         , Element.spacing majorSpacing
@@ -426,6 +427,7 @@ mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId pos
                 blockTimes
                 now
                 maybeShowAddressForPostId
+                wallet
                 (Dict.values posts |> List.concat)
             ]
         ]
@@ -686,9 +688,10 @@ postFeed :
     -> Dict Int Time.Posix
     -> Time.Posix
     -> Maybe Post.Id
+    -> Wallet
     -> List Post.Published
     -> Element Msg
-postFeed dProfile donateChecked blockTimes now maybeShowAddressForId listOfPosts =
+postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet listOfPosts =
     let
         posts =
             List.sortBy (feedSortByFunc blockTimes now)
@@ -709,6 +712,7 @@ postFeed dProfile donateChecked blockTimes now maybeShowAddressForId listOfPosts
                 blockTimes
                 now
                 maybeShowAddressForId
+                wallet
                 Nothing
             )
             posts
@@ -755,10 +759,11 @@ previewPost :
     -> Dict Int Time.Posix
     -> Time.Posix
     -> Maybe Post.Id
+    -> Wallet
     -> Maybe PostUX.Model
     -> Post.Published
     -> Element Msg
-previewPost dProfile donateChecked blockTimes now maybeShowAddressForId maybePostUXModel post =
+previewPost dProfile donateChecked blockTimes now maybeShowAddressForId wallet maybePostUXModel post =
     Element.map PostUXMsg <|
         PostPreview.view
             dProfile
@@ -766,6 +771,7 @@ previewPost dProfile donateChecked blockTimes now maybeShowAddressForId maybePos
             (maybeShowAddressForId == Just post.id)
             blockTimes
             now
+            wallet
             maybePostUXModel
             post
 
