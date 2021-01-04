@@ -105,25 +105,30 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
                 40
                 20
                 "NEW TO SMOKESIGNAL?"
-            , orangeBannerEl
-                dProfile
-                20
-                10
-                "MOST RECENT POSTS..."
             , Element.column
                 [ Element.width Element.fill
-                , Element.clipX
+                , Element.spacing 3
                 ]
-                [ let
-                    maybeShowAddressForPostId =
-                        case showAddressId of
-                            Just (PhaceForPublishedPost id) ->
-                                Just id
+                [ orangeBannerEl
+                    dProfile
+                    20
+                    10
+                    "RECENT POSTS..."
+                , Element.column
+                    [ Element.width Element.fill
+                    , Element.clipX
+                    ]
+                    [ let
+                        maybeShowAddressForPostId =
+                            case showAddressId of
+                                Just (PhaceForPublishedPost id) ->
+                                    Just id
 
-                            _ ->
-                                Nothing
-                  in
-                  mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId posts
+                                _ ->
+                                    Nothing
+                      in
+                      mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId posts
+                    ]
                 ]
             ]
         , Element.column
