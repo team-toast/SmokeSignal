@@ -143,6 +143,7 @@ newToSmokeSignalEl dProfile =
         , Element.Font.color EH.white
         , whiteGlowAttribute
         , Element.pointer
+        , Element.Border.rounded 10
         ]
     <|
         Element.text "NEW TO SMOKESIGNAL?"
@@ -155,32 +156,32 @@ topicsUX :
     -> Element Msg
 topicsUX dProfile topicsSearchInput posts =
     Element.column
-        [ Element.spacing 25
+        [ Element.spacing 10
         , Element.centerX
         , Element.width (Element.fill |> Element.minimum 400)
-        , Element.Background.color EH.black
         ]
-        [ Element.column
+        [ Element.el
+            [ Element.width Element.fill
+            , Element.padding 15
+            , Element.Font.size 30
+            , Element.Background.color Theme.orange
+            , Element.Font.semiBold
+            , Element.Font.color EH.white
+            , whiteGlowAttributeSmall
+            , Element.Border.rounded 10
+            ]
+          <|
+            Element.text "TOPICS"
+        , Element.column
             [ Element.width Element.fill
             , Element.alignTop
             , Element.spacing 1
             ]
-            [ Element.el
-                [ Element.width Element.fill
-                , Element.padding 15
-                , Element.Font.size 30
-                , Element.Background.color Theme.orange
-                , Element.Font.semiBold
-                , Element.Font.color EH.white
-                , whiteGlowAttribute
-                ]
-              <|
-                Element.text "TOPICS"
-            , Element.Input.text
+            [ Element.Input.text
                 [ Element.width Element.fill
                 , Element.Background.color EH.black
                 , Element.Border.color Theme.almostWhite
-                , whiteGlowAttribute
+                , whiteGlowAttributeSmall
                 , Element.Font.color EH.white
                 ]
                 { onChange = SearchInputChanged
@@ -271,7 +272,7 @@ topicsColumn dProfile topicSearchStr allPosts =
             , Element.width Element.fill
             , Element.pointer
             , Element.height <| Element.px 40
-            , whiteGlowAttribute
+            , whiteGlowAttributeSmall
             , Element.Font.color EH.white
             , Element.Background.color EH.black
             ]
@@ -380,6 +381,7 @@ topicsColumn dProfile topicSearchStr allPosts =
             , Element.width (Element.fill |> Element.maximum 530)
             , Element.padding 5
             , Element.spacing 5
+            , Element.Background.color EH.black
             ]
             ((Maybe.map List.singleton maybeCreateTopicEl
                 |> Maybe.withDefault []
@@ -420,7 +422,12 @@ mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId pos
         ]
 
 
-walletUXPane : DisplayProfile -> Maybe PhaceIconId -> String -> Wallet -> Element Msg
+walletUXPane :
+    DisplayProfile
+    -> Maybe PhaceIconId
+    -> String
+    -> Wallet
+    -> Element Msg
 walletUXPane dProfile showAddressId demoPhaceSrc wallet =
     let
         phaceEl =
@@ -698,7 +705,10 @@ postFeed dProfile donateChecked blockTimes now maybeShowAddressForId listOfPosts
             posts
 
 
-feedSortByFunc : Dict Int Time.Posix -> Time.Posix -> (Post.Published -> Float)
+feedSortByFunc :
+    Dict Int Time.Posix
+    -> Time.Posix
+    -> (Post.Published -> Float)
 feedSortByFunc blockTimes now =
     \post ->
         let

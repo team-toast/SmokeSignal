@@ -180,7 +180,12 @@ commonShadow =
 --     Element.rgb255 242 243 247
 
 
-blueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+blueButton :
+    EH.DisplayProfile
+    -> List (Attribute msg)
+    -> List String
+    -> EH.ButtonAction msg
+    -> Element msg
 blueButton dProfile attributes text buttonAction =
     EH.button dProfile
         attributes
@@ -193,7 +198,12 @@ blueButton dProfile attributes text buttonAction =
         buttonAction
 
 
-lightBlueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+lightBlueButton :
+    EH.DisplayProfile
+    -> List (Attribute msg)
+    -> List String
+    -> EH.ButtonAction msg
+    -> Element msg
 lightBlueButton dProfile attributes text buttonAction =
     let
         color =
@@ -210,7 +220,12 @@ lightBlueButton dProfile attributes text buttonAction =
         buttonAction
 
 
-inverseBlueButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+inverseBlueButton :
+    EH.DisplayProfile
+    -> List (Attribute msg)
+    -> List String
+    -> EH.ButtonAction msg
+    -> Element msg
 inverseBlueButton dProfile attributes text buttonAction =
     EH.button dProfile
         attributes
@@ -223,7 +238,12 @@ inverseBlueButton dProfile attributes text buttonAction =
         buttonAction
 
 
-redButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+redButton :
+    EH.DisplayProfile
+    -> List (Attribute msg)
+    -> List String
+    -> EH.ButtonAction msg
+    -> Element msg
 redButton dProfile attributes text buttonAction =
     EH.button dProfile
         attributes
@@ -236,7 +256,12 @@ redButton dProfile attributes text buttonAction =
         buttonAction
 
 
-unscaryButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
+unscaryButton :
+    EH.DisplayProfile
+    -> List (Attribute msg)
+    -> List String
+    -> EH.ButtonAction msg
+    -> Element msg
 unscaryButton dProfile attributes text buttonAction =
     EH.button dProfile
         attributes
@@ -249,7 +274,11 @@ unscaryButton dProfile attributes text buttonAction =
         buttonAction
 
 
-disabledButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Element msg
+disabledButton :
+    EH.DisplayProfile
+    -> List (Attribute msg)
+    -> String
+    -> Element msg
 disabledButton dProfile attributes text =
     Element.el
         ([ Element.Border.rounded 4
