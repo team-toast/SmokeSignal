@@ -100,10 +100,18 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
             , Element.width <| Element.fillPortion 2
             , Element.padding 10
             ]
-            [ newToSmokeSignalEl dProfile
+            [ orangeBannerEl
+                dProfile
+                40
+                20
+                "NEW TO SMOKESIGNAL?"
+            , orangeBannerEl
+                dProfile
+                20
+                10
+                "MOST RECENT POSTS..."
             , Element.column
-                [ Element.spacing 5
-                , Element.width Element.fill
+                [ Element.width Element.fill
                 , Element.clipX
                 ]
                 [ let
@@ -130,14 +138,17 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
         ]
 
 
-newToSmokeSignalEl :
+orangeBannerEl :
     DisplayProfile
+    -> Int
+    -> Int
+    -> String
     -> Element Msg
-newToSmokeSignalEl dProfile =
+orangeBannerEl dProfile fontSize padding bannerText =
     Element.el
         [ Element.width Element.fill
-        , Element.padding 20
-        , Element.Font.size 40
+        , Element.padding padding
+        , Element.Font.size fontSize
         , Element.Background.color Theme.orange
         , Element.Font.semiBold
         , Element.Font.color EH.white
@@ -146,7 +157,7 @@ newToSmokeSignalEl dProfile =
         , Element.Border.rounded 10
         ]
     <|
-        Element.text "NEW TO SMOKESIGNAL?"
+        Element.text bannerText
 
 
 topicsUX :
@@ -160,18 +171,11 @@ topicsUX dProfile topicsSearchInput posts =
         , Element.centerX
         , Element.width (Element.fill |> Element.minimum 400)
         ]
-        [ Element.el
-            [ Element.width Element.fill
-            , Element.padding 15
-            , Element.Font.size 30
-            , Element.Background.color Theme.orange
-            , Element.Font.semiBold
-            , Element.Font.color EH.white
-            , whiteGlowAttributeSmall
-            , Element.Border.rounded 10
-            ]
-          <|
-            Element.text "TOPICS"
+        [ orangeBannerEl
+            dProfile
+            26
+            12
+            "TOPICS"
         , Element.column
             [ Element.width Element.fill
             , Element.alignTop
@@ -401,7 +405,7 @@ mainPostFeed :
 mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId posts =
     Element.row
         [ Element.width Element.fill
-        , Element.spacing 40
+        , Element.spacing majorSpacing
         , Element.clip
         , Element.htmlAttribute (Html.Attributes.style "flex-shrink" "1")
         ]
@@ -689,8 +693,8 @@ postFeed dProfile donateChecked blockTimes now maybeShowAddressForId listOfPosts
     in
     Element.column
         [ Element.width Element.fill
-        , Element.spacingXY 0 20
-        , Element.paddingXY 0 20
+        , Element.spacingXY 0 5
+        , Element.paddingXY 0 5
         ]
     <|
         List.map
