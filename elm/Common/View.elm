@@ -44,8 +44,8 @@ web3ConnectButton dProfile attrs msgMapper =
         (EH.Action <| msgMapper ConnectToWeb3)
 
 
-phaceElement : (Int, Int) -> Bool -> Address -> Bool -> msg -> msg -> Element msg
-phaceElement (width, height) addressHangToRight fromAddress showAddress onClick noOpMsg =
+phaceElement : ( Int, Int ) -> Bool -> Address -> Bool -> msg -> msg -> Element msg
+phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClick noOpMsg =
     let
         addressOutputEl () =
             -- delay processing because addressToChecksumString is expensive!
@@ -80,6 +80,7 @@ phaceElement (width, height) addressHangToRight fromAddress showAddress onClick 
             , Element.clip
             , Element.pointer
             , EH.onClickNoPropagation onClick
+
             -- , Element.Border.width 1
             -- , Element.Border.color Theme.blue
             ]
@@ -376,8 +377,16 @@ daiAmountInput dProfile attributes currentInput onChange =
         , label = Element.Input.labelHidden "dai amount"
         }
 
+
 whiteGlowAttribute : Element.Attribute msg
 whiteGlowAttribute =
     Element.Border.glow
         (Element.rgba 1 1 1 0.4)
         5
+
+
+whiteGlowAttributeSmall : Element.Attribute msg
+whiteGlowAttributeSmall =
+    Element.Border.glow
+        (Element.rgba 1 1 1 0.4)
+        2

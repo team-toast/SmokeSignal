@@ -24,7 +24,7 @@ import Post exposing (Post)
 import PostUX.Preview as PostPreview
 import PostUX.Types as PostUX
 import Routing exposing (Route)
-import Theme exposing (theme)
+import Theme exposing (almostWhite, theme)
 import Time
 import TokenValue exposing (TokenValue)
 import Wallet exposing (Wallet)
@@ -100,59 +100,303 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
             , Element.width <| Element.fillPortion 2
             , Element.padding 10
             ]
-            [ newToSmokeSignalEl dProfile
+            [ orangeBannerEl
+                dProfile
+                40
+                20
+                "NEW TO SMOKESIGNAL?"
             , Element.column
-                [ Element.spacing 15
-                , Element.width Element.fill
-                , Element.clipX
+                [ Element.width Element.fill
+                , Element.spacing 3
                 ]
-                [ topicsUX dProfile model.topicSearchInput
-                , let
-                    maybeShowAddressForPostId =
-                        case showAddressId of
-                            Just (PhaceForPublishedPost id) ->
-                                Just id
+                [ orangeBannerEl
+                    dProfile
+                    20
+                    10
+                    "RECENT POSTS..."
+                , Element.column
+                    [ Element.width Element.fill
+                    , Element.clipX
+                    ]
+                    [ let
+                        maybeShowAddressForPostId =
+                            case showAddressId of
+                                Just (PhaceForPublishedPost id) ->
+                                    Just id
 
-                            _ ->
-                                Nothing
-                  in
-                  mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId posts
+                                _ ->
+                                    Nothing
+                      in
+                      mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet posts
+                    ]
                 ]
             ]
         , Element.column
             [ Element.width <| Element.fillPortion 1
             , Element.alignTop
             , Element.padding 10
+            , Element.spacing 20
             ]
             [ walletUXPane dProfile showAddressId demoPhaceSrc wallet
+            , topicsUX dProfile model.topicSearchInput posts
             ]
         ]
 
 
-newToSmokeSignalEl :
+orangeBannerEl :
     DisplayProfile
+    -> Int
+    -> Int
+    -> String
     -> Element Msg
-newToSmokeSignalEl dProfile =
+orangeBannerEl dProfile fontSize padding bannerText =
     Element.el
         [ Element.width Element.fill
-        , Element.padding 20
-        , Element.Font.size 40
+        , Element.padding padding
+        , Element.Font.size fontSize
         , Element.Background.color Theme.orange
         , Element.Font.semiBold
         , Element.Font.color EH.white
         , whiteGlowAttribute
         , Element.pointer
+        , Element.Border.rounded 10
         ]
     <|
-        Element.text "NEW TO SMOKESIGNAL?"
+        Element.text bannerText
 
 
 topicsUX :
     DisplayProfile
     -> String
+    -> PublishedPostsDict
     -> Element Msg
-topicsUX dProfile topicsSearchInput =
-    Element.none
+topicsUX dProfile topicsSearchInput posts =
+    Element.column
+        [ Element.spacing 10
+        , Element.centerX
+        , Element.width (Element.fill |> Element.minimum 400)
+        ]
+        [ orangeBannerEl
+            dProfile
+            26
+            12
+            "TOPICS"
+        , Element.column
+            [ Element.width Element.fill
+            , Element.alignTop
+            , Element.spacing 1
+            ]
+            [ Element.Input.text
+                [ Element.width Element.fill
+                , Element.Background.color EH.black
+                , Element.Border.color Theme.almostWhite
+                , whiteGlowAttributeSmall
+                , Element.Font.color EH.white
+                ]
+                { onChange = SearchInputChanged
+                , text = topicsSearchInput
+                , placeholder =
+                    Just <|
+                        Element.Input.placeholder
+                            [ Element.Font.color EH.white
+                            , Element.Font.italic
+                            ]
+                            (Element.text "Find or Create Topic...")
+                , label = Element.Input.labelHidden "topic"
+                }
+            , topicsColumn
+                dProfile
+                (Post.sanitizeTopic topicsSearchInput)
+                posts
+            ]
+        ]
+
+
+topicsColumn :
+    EH.DisplayProfile
+    -> String
+    -> PublishedPostsDict
+    -> Element Msg
+topicsColumn dProfile topicSearchStr allPosts =
+    let
+        talliedTopics : List ( String, ( ( TokenValue, TokenValue ), Int ) )
+        talliedTopics =
+            let
+                findTopic : Post.Published -> Maybe String
+                findTopic publishedPost =
+                    case publishedPost.core.metadata.context of
+                        Post.TopLevel topic ->
+                            Just topic
+
+                        Post.Reply postId ->
+                            getPublishedPostFromId allPosts postId
+                                |> Maybe.andThen findTopic
+            in
+            allPosts
+                |> Dict.values
+                |> List.concat
+                |> Dict.Extra.filterGroupBy findTopic
+                -- This ignores any replies that lead eventually to a postId not in 'posts'
+                |> Dict.map
+                    (\topic posts ->
+                        ( List.foldl
+                            (\thisPost ( accBurn, accTip ) ->
+                                case thisPost.maybeAccounting of
+                                    Just accounting ->
+                                        ( TokenValue.add
+                                            accounting.totalBurned
+                                            accBurn
+                                        , TokenValue.add
+                                            accounting.totalTipped
+                                            accTip
+                                        )
+
+                                    Nothing ->
+                                        ( TokenValue.add
+                                            thisPost.core.authorBurn
+                                            accBurn
+                                        , accTip
+                                        )
+                            )
+                            ( TokenValue.zero, TokenValue.zero )
+                            posts
+                        , List.length posts
+                        )
+                    )
+                |> Dict.toList
+                |> List.sortBy (Tuple.second >> Tuple.first >> Tuple.first >> TokenValue.toFloatWithWarning >> negate)
+
+        filteredTalliedTopics =
+            talliedTopics
+                |> List.filter
+                    (\( topic, _ ) ->
+                        String.contains topicSearchStr topic
+                    )
+
+        commonElStyles =
+            [ Element.spacing 5
+            , Element.padding 5
+            , Element.Border.width 1
+            , Element.Border.color Theme.almostWhite
+            , Element.width Element.fill
+            , Element.pointer
+            , Element.height <| Element.px 40
+            , whiteGlowAttributeSmall
+            , Element.Font.color EH.white
+            , Element.Background.color EH.black
+            ]
+
+        topicEls =
+            filteredTalliedTopics
+                |> List.map
+                    (\( topic, ( ( totalBurned, totalTipped ), count ) ) ->
+                        Element.row
+                            (commonElStyles
+                                ++ [ Element.Events.onClick <|
+                                        GotoRoute <|
+                                            Routing.ViewContext <|
+                                                Topic topic
+                                   ]
+                            )
+                            [ Element.el
+                                [ Element.width <| Element.px 100 ]
+                              <|
+                                Element.row
+                                    [ Element.padding 5
+                                    , Element.spacing 3
+                                    , Element.Border.rounded 5
+                                    , Element.Background.color theme.daiBurnedBackground
+                                    , Element.Font.color
+                                        (if theme.daiBurnedTextIsWhite then
+                                            EH.white
+
+                                         else
+                                            EH.black
+                                        )
+                                    ]
+                                    [ daiSymbol theme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
+                                    , Element.text <|
+                                        (TokenValue.toConciseString totalBurned
+                                            |> (if TokenValue.compare totalBurned (TokenValue.fromIntTokenValue 1) == LT then
+                                                    String.left 5
+
+                                                else
+                                                    identity
+                                               )
+                                        )
+                                    ]
+                            , Element.el
+                                [ Element.width Element.fill
+                                , Element.height Element.fill
+                                , Element.clip
+                                ]
+                              <|
+                                Element.el
+                                    [ Element.centerY
+                                    , Element.Font.color EH.white
+                                    ]
+                                <|
+                                    Element.text topic
+                            , Element.el
+                                [ Element.alignRight
+                                , Element.Font.color EH.white
+                                ]
+                              <|
+                                Element.text <|
+                                    String.fromInt count
+                            ]
+                    )
+
+        exactTopicFound =
+            talliedTopics
+                |> List.any (Tuple.first >> (==) topicSearchStr)
+
+        maybeCreateTopicEl =
+            if topicSearchStr /= "" && not exactTopicFound then
+                Just <|
+                    Element.el
+                        (commonElStyles
+                            ++ [ Element.clipX
+                               , Element.Events.onClick <|
+                                    GotoRoute <|
+                                        Routing.Compose <|
+                                            Post.TopLevel topicSearchStr
+                               ]
+                        )
+                    <|
+                        Element.row
+                            [ Element.centerY
+                            ]
+                            [ Element.text "Start new topic "
+                            , Element.el
+                                [ Element.Font.italic
+                                , Element.Font.bold
+                                ]
+                              <|
+                                Element.text topicSearchStr
+                            ]
+
+            else
+                Nothing
+    in
+    Element.map MsgUp <|
+        Element.column
+            [ Element.Border.roundEach
+                { topRight = 0
+                , topLeft = 0
+                , bottomRight = 5
+                , bottomLeft = 5
+                }
+            , Element.width (Element.fill |> Element.maximum 530)
+            , Element.padding 5
+            , Element.spacing 5
+            , Element.Background.color EH.black
+            ]
+            ((Maybe.map List.singleton maybeCreateTopicEl
+                |> Maybe.withDefault []
+             )
+                ++ topicEls
+            )
 
 
 mainPostFeed :
@@ -161,12 +405,13 @@ mainPostFeed :
     -> Dict Int Time.Posix
     -> Time.Posix
     -> Maybe Post.Id
+    -> Wallet
     -> PublishedPostsDict
     -> Element Msg
-mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId posts =
+mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet posts =
     Element.row
         [ Element.width Element.fill
-        , Element.spacing 40
+        , Element.spacing majorSpacing
         , Element.clip
         , Element.htmlAttribute (Html.Attributes.style "flex-shrink" "1")
         ]
@@ -182,12 +427,18 @@ mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId pos
                 blockTimes
                 now
                 maybeShowAddressForPostId
+                wallet
                 (Dict.values posts |> List.concat)
             ]
         ]
 
 
-walletUXPane : DisplayProfile -> Maybe PhaceIconId -> String -> Wallet -> Element Msg
+walletUXPane :
+    DisplayProfile
+    -> Maybe PhaceIconId
+    -> String
+    -> Wallet
+    -> Element Msg
 walletUXPane dProfile showAddressId demoPhaceSrc wallet =
     let
         phaceEl =
@@ -260,16 +511,17 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
         button =
             let
                 attributes =
-                    ([ Element.paddingXY 10 5
+                    [ Element.paddingXY 10 5
                     , Element.width Element.fill
-                    ]++
-                    case maybeExplainerText of
-                        Nothing ->
-                            [ Element.centerY
-                            ]
-                        _ ->
-                            []
-                    )
+                    ]
+                        ++ (case maybeExplainerText of
+                                Nothing ->
+                                    [ Element.centerY
+                                    ]
+
+                                _ ->
+                                    []
+                           )
             in
             case maybeButtonAction of
                 Just buttonAction ->
@@ -436,9 +688,10 @@ postFeed :
     -> Dict Int Time.Posix
     -> Time.Posix
     -> Maybe Post.Id
+    -> Wallet
     -> List Post.Published
     -> Element Msg
-postFeed dProfile donateChecked blockTimes now maybeShowAddressForId listOfPosts =
+postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet listOfPosts =
     let
         posts =
             List.sortBy (feedSortByFunc blockTimes now)
@@ -448,8 +701,8 @@ postFeed dProfile donateChecked blockTimes now maybeShowAddressForId listOfPosts
     in
     Element.column
         [ Element.width Element.fill
-        , Element.spacingXY 0 20
-        , Element.paddingXY 0 20
+        , Element.spacingXY 0 5
+        , Element.paddingXY 0 5
         ]
     <|
         List.map
@@ -459,12 +712,16 @@ postFeed dProfile donateChecked blockTimes now maybeShowAddressForId listOfPosts
                 blockTimes
                 now
                 maybeShowAddressForId
+                wallet
                 Nothing
             )
             posts
 
 
-feedSortByFunc : Dict Int Time.Posix -> Time.Posix -> (Post.Published -> Float)
+feedSortByFunc :
+    Dict Int Time.Posix
+    -> Time.Posix
+    -> (Post.Published -> Float)
 feedSortByFunc blockTimes now =
     \post ->
         let
@@ -502,10 +759,11 @@ previewPost :
     -> Dict Int Time.Posix
     -> Time.Posix
     -> Maybe Post.Id
+    -> Wallet
     -> Maybe PostUX.Model
     -> Post.Published
     -> Element Msg
-previewPost dProfile donateChecked blockTimes now maybeShowAddressForId maybePostUXModel post =
+previewPost dProfile donateChecked blockTimes now maybeShowAddressForId wallet maybePostUXModel post =
     Element.map PostUXMsg <|
         PostPreview.view
             dProfile
@@ -513,6 +771,7 @@ previewPost dProfile donateChecked blockTimes now maybeShowAddressForId maybePos
             (maybeShowAddressForId == Just post.id)
             blockTimes
             now
+            wallet
             maybePostUXModel
             post
 

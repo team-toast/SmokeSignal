@@ -31,14 +31,20 @@ type ViewContext
     | Topic String
 
 
-withBalance : TokenValue -> UserInfo -> UserInfo
+withBalance :
+    TokenValue
+    -> UserInfo
+    -> UserInfo
 withBalance balance userInfo =
     { userInfo
         | balance = Just balance
     }
 
 
-withUnlockStatus : UnlockStatus -> UserInfo -> UserInfo
+withUnlockStatus :
+    UnlockStatus
+    -> UserInfo
+    -> UserInfo
 withUnlockStatus unlockStatus userInfo =
     { userInfo
         | unlockStatus = unlockStatus
@@ -49,7 +55,10 @@ type alias PublishedPostsDict =
     Dict Int (List Post.Published)
 
 
-getPublishedPostFromId : PublishedPostsDict -> Post.Id -> Maybe Post.Published
+getPublishedPostFromId :
+    PublishedPostsDict
+    -> Post.Id
+    -> Maybe Post.Published
 getPublishedPostFromId publishedPosts postId =
     publishedPosts
         |> Dict.get postId.block
@@ -62,7 +71,10 @@ getPublishedPostFromId publishedPosts postId =
         |> Maybe.andThen List.head
 
 
-getPublishedPostFromTxHash : PublishedPostsDict -> TxHash -> Maybe Post.Published
+getPublishedPostFromTxHash :
+    PublishedPostsDict
+    -> TxHash
+    -> Maybe Post.Published
 getPublishedPostFromTxHash publishedPosts txHash =
     publishedPosts
         |> Dict.values
@@ -74,7 +86,10 @@ getPublishedPostFromTxHash publishedPosts txHash =
         |> List.head
 
 
-viewContextToMaybeTitlePart : PublishedPostsDict -> ViewContext -> Maybe String
+viewContextToMaybeTitlePart :
+    PublishedPostsDict
+    -> ViewContext
+    -> Maybe String
 viewContextToMaybeTitlePart posts context =
     case context of
         Post postId ->
@@ -85,7 +100,10 @@ viewContextToMaybeTitlePart posts context =
             Just <| "#" ++ topic
 
 
-viewContextToMaybeDescription : PublishedPostsDict -> ViewContext -> Maybe String
+viewContextToMaybeDescription :
+    PublishedPostsDict
+    -> ViewContext
+    -> Maybe String
 viewContextToMaybeDescription posts context =
     case context of
         Post postId ->
@@ -96,7 +114,9 @@ viewContextToMaybeDescription posts context =
             Just <| "Discussions related to #" ++ topic ++ " on SmokeSignal"
 
 
-postContextToViewContext : Post.Context -> ViewContext
+postContextToViewContext :
+    Post.Context
+    -> ViewContext
 postContextToViewContext postContext =
     case postContext of
         Post.Reply id ->
@@ -106,7 +126,9 @@ postContextToViewContext postContext =
             Topic topicStr
 
 
-viewContextToPostContext : ViewContext -> Post.Context
+viewContextToPostContext :
+    ViewContext
+    -> Post.Context
 viewContextToPostContext viewContext =
     case viewContext of
         Post id ->
@@ -121,7 +143,11 @@ defaultSeoDescription =
     "SmokeSignal - Uncensorable, Global, Immutable chat. Burn crypto to cement your writing on the blockchain. Grant your ideas immortality."
 
 
-updatePublishedPost : Post.Id -> (Post.Published -> Post.Published) -> PublishedPostsDict -> PublishedPostsDict
+updatePublishedPost :
+    Post.Id
+    -> (Post.Published -> Post.Published)
+    -> PublishedPostsDict
+    -> PublishedPostsDict
 updatePublishedPost postId updateFunc posts =
     posts
         |> Dict.update postId.block

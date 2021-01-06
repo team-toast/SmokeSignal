@@ -13,6 +13,7 @@ type alias Model =
 type Msg
     = PostUXMsg PostUX.Msg
     | MsgUp MsgUp
+    | SearchInputChanged String
 
 
 type alias UpdateResult =
