@@ -1,5 +1,6 @@
 module PostUX.Preview exposing (..)
 
+import Color
 import Common.Msg
 import Common.Types exposing (..)
 import Common.View exposing (daiAmountInput, daiSymbol, unlockUXOr)
@@ -36,12 +37,11 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet maybeUXMode
     Element.row
         [ Element.width Element.fill
         , Element.height <| Element.px <| 120
-        , Element.spacing 20
         , Element.Background.color theme.blockBackground
         , Element.Border.width 1
         , Element.Border.color theme.blockBorderColor
         , Element.Border.rounded 5
-        , Element.padding 10
+        , Element.padding 1
         ]
         [ mainPreviewPane
             dProfile
@@ -52,6 +52,15 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet maybeUXMode
             (Wallet.unlockStatus wallet)
             maybeUXModel
             post
+        , publishedPostActionForm
+            dProfile
+            donateChecked
+            post
+            (maybeUXModel
+                |> Maybe.map .showInput
+                |> Maybe.withDefault None
+            )
+            (Wallet.unlockStatus wallet)
         ]
 
 
@@ -67,21 +76,12 @@ mainPreviewPane :
     -> Element Msg
 mainPreviewPane dProfile showAddress donateChecked blockTimes now unlockStatus maybeUXModel post =
     Element.column
-        [ Element.width Element.fill
+        [ Element.width <| Element.fillPortion 11
         , Element.height Element.fill
         , Element.spacing 10
         ]
         [ previewMetadata dProfile blockTimes now post
         , previewBody dProfile showAddress post
-        , publishedPostActionForm
-            dProfile
-            donateChecked
-            post
-            (maybeUXModel
-                |> Maybe.map .showInput
-                |> Maybe.withDefault None
-            )
-            unlockStatus
         ]
 
 
@@ -226,7 +226,6 @@ previewBody dProfile showAddress post =
         [ Element.width Element.fill
         , Element.height Element.fill
         , Element.spacing 5
-        , Element.clip
         ]
         [ Common.View.phaceElement
             ( 60, 60 )
@@ -244,12 +243,13 @@ viewTitleOrTextPreview :
     -> Post.Content
     -> Element Msg
 viewTitleOrTextPreview dProfile content =
-    Element.el
+    Element.row
         [ Element.Font.color almostWhite
         , Element.Font.size (responsiveVal dProfile 14 8)
+        , Element.height Element.fill
+        , Element.width Element.fill
         ]
-    <|
-        Element.text <|
+        [ Element.text <|
             limitedString <|
                 case content.title of
                     Just title ->
@@ -257,6 +257,7 @@ viewTitleOrTextPreview dProfile content =
 
                     Nothing ->
                         content.body
+        ]
 
 
 publishedPostActionForm :
@@ -267,55 +268,61 @@ publishedPostActionForm :
     -> UnlockStatus
     -> Element Msg
 publishedPostActionForm dProfile donateChecked publishedPost showInput unlockStatus =
-    Element.el
-        [ Element.alignRight ]
-    <|
-        case showInput of
-            None ->
-                Element.row
-                    [ Element.spacing 5
-                    ]
-                    [ supportTipButton publishedPost.id
-                    , supportBurnButton publishedPost.id
-                    , replyButton publishedPost.id
-                    ]
+    case showInput of
+        None ->
+            Element.column
+                [ Element.spacing 5
+                , Element.width <| Element.fillPortion 1
+                , Element.alignRight
+                ]
+                [ supportTipButton publishedPost.id
+                , supportBurnButton publishedPost.id
+                , replyButton publishedPost.id
+                ]
 
-            Tip input ->
-                unlockOrInputForm
-                    dProfile
-                    donateChecked
-                    (Element.rgba 0 1 0 0.1)
-                    input
-                    "Tip"
-                    (SupportTipSubmitClicked publishedPost.id)
-                    unlockStatus
+        Tip input ->
+            unlockOrInputForm
+                dProfile
+                donateChecked
+                (Element.rgba 0 1 0 0.1)
+                input
+                "Tip"
+                (SupportTipSubmitClicked publishedPost.id)
+                unlockStatus
 
-            Burn input ->
-                unlockOrInputForm
-                    dProfile
-                    donateChecked
-                    (Element.rgba 1 0 0 0.1)
-                    input
-                    "Burn"
-                    (SupportBurnSubmitClicked publishedPost.id)
-                    unlockStatus
+        Burn input ->
+            unlockOrInputForm
+                dProfile
+                donateChecked
+                (Element.rgba 1 0 0 0.1)
+                input
+                "Burn"
+                (SupportBurnSubmitClicked publishedPost.id)
+                unlockStatus
 
 
 supportTipButton :
     Post.Id
     -> Element Msg
 supportTipButton postId =
-    publishedPostActionButton
-        [ EH.withTitle "Tip DAI for this post, rewarding the author" ]
-        SupportTipClicked
-    <|
-        Element.image
-            [ Element.height <| Element.px 10
-            , Element.centerX
+    Element.row
+        [ Element.width Element.fill
+        , Element.height Element.fill
+        ]
+        [ publishedPostActionButton
+            [ EH.withTitle "Tip DAI for this post, rewarding the author"
+            , Element.Background.color theme.daiTippedBackground
             ]
-            { src = "img/dai-unit-char-green.svg"
-            , description = "support green"
-            }
+            SupportTipClicked
+          <|
+            Element.image
+                [ Element.height <| Element.px 14
+                , Element.centerX
+                ]
+                { src = "img/dai-unit-char-white.svg"
+                , description = "support tip"
+                }
+        ]
 
 
 supportBurnButton :
@@ -323,14 +330,16 @@ supportBurnButton :
     -> Element Msg
 supportBurnButton postId =
     publishedPostActionButton
-        [ EH.withTitle "Burn DAI to increase this post's visibility" ]
+        [ EH.withTitle "Burn DAI to increase this post's visibility"
+        , Element.Background.color theme.daiBurnedBackground
+        ]
         SupportBurnClicked
     <|
         Element.image
-            [ Element.height <| Element.px 10
+            [ Element.height <| Element.px 14
             , Element.centerX
             ]
-            { src = "img/dai-unit-char-red.svg"
+            { src = "img/dai-unit-char-white.svg"
             , description = "support burn"
             }
 
@@ -340,14 +349,16 @@ replyButton :
     -> Element Msg
 replyButton postId =
     publishedPostActionButton
-        [ EH.withTitle "Reply" ]
+        [ EH.withTitle "Reply"
+        , Element.Background.color Theme.blue
+        ]
         (MsgUp <| Common.Msg.StartInlineCompose <| Post.Reply postId)
     <|
         Element.image
             [ Element.width Element.fill
-            , Element.height <| Element.px 10
+            , Element.height <| Element.px 14
             ]
-            { src = "img/reply-arrow.svg"
+            { src = "img/reply-arrow-white.svg"
             , description = "reply"
             }
 
@@ -363,7 +374,6 @@ publishedPostActionButton attributes onClick innerEl =
             ++ [ Element.padding 3
                , Element.pointer
                , Element.Border.rounded 1
-               , Element.Background.color <| Element.rgba 1 1 1 0.3
                , Element.Border.shadow
                     { offset = ( 0, 0 )
                     , size = 0
@@ -371,8 +381,8 @@ publishedPostActionButton attributes onClick innerEl =
                     , color = Element.rgba 0 0 0 0.1
                     }
                , Element.Events.onClick onClick
-               , Element.width <| Element.px 15
-               , Element.height <| Element.px 15
+               , Element.width <| Element.px 20
+               , Element.height <| Element.px 20
                ]
         )
         innerEl
@@ -396,6 +406,7 @@ unlockOrInputForm dProfile donateChecked bgColor currentString buttonLabel onSub
         , Element.Border.glow
             (Element.rgba 0 0 0 0.1)
             5
+        , Element.width <| Element.fillPortion 1
         ]
         [ unlockUXOr
             dProfile
