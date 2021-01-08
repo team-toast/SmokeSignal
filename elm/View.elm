@@ -81,8 +81,29 @@ header wallet searchInput =
         , Element.Background.color EH.black
         , EH.moveToFront
         , whiteGlowAttribute
+        , Element.paddingXY 0 15
         ]
-        Element.none
+    <|
+        Element.row
+            [ Element.paddingXY 100 0
+            , Element.Font.color Theme.orange
+            ]
+            [ Element.image
+                [ Element.height <| Element.px 50
+                ]
+                { src = "img/smokesignal-logo-horizontal.svg"
+                , description = "smokesignal logo"
+                }
+            , Element.row
+                [ Element.height Element.fill
+                , Element.width <| Element.px 0
+                , Element.Border.glow
+                    (Element.rgba 1 1 1 0.4)
+                    40
+                , Element.moveLeft 50
+                ]
+                []
+            ]
 
 
 footer : Element Msg

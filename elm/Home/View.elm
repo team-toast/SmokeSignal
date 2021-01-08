@@ -99,7 +99,7 @@ viewNewToSmokeSignalModal dProfile =
         , Element.Font.color EH.white
         , Element.width Element.fill
         , Element.Background.color <| Element.rgba 0 0 0 0.85
-        , Element.padding 15
+        , Element.padding 50
         , Element.spacing 30
         ]
         [ Element.text "Welcome to" |> rowElement dProfile []
