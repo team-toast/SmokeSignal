@@ -1,11 +1,11 @@
 module Common.Msg exposing (..)
 
-import TokenValue exposing (TokenValue)
 import Common.Types exposing (..)
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address, TxHash)
 import Post
 import Routing exposing (Route)
+import TokenValue exposing (TokenValue)
 import UserNotice as UN
 import Wallet exposing (Wallet)
 

@@ -8,12 +8,15 @@ import UserNotice as UN exposing (UserNotice)
 
 init : Model
 init =
-    { showAddress = False
-    , showInput = None
+    { showInput = None
+    , showAddress = False
     }
 
 
-update : Msg -> Model -> UpdateResult
+update :
+    Msg
+    -> Model
+    -> UpdateResult
 update msg prevModel =
     case msg of
         NoOp ->

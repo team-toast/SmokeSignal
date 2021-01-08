@@ -43,10 +43,12 @@ type alias UpdateResult =
     , msgUps : List MsgUp
     }
 
+
 type ShowInputState
     = None
     | Burn String
     | Tip String
+
 
 justModelUpdate : Model -> UpdateResult
 justModelUpdate model =

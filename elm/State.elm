@@ -42,7 +42,11 @@ import UserNotice as UN exposing (UserNotice)
 import Wallet
 
 
-init : Flags -> Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
+init :
+    Flags
+    -> Url
+    -> Browser.Navigation.Key
+    -> ( Model, Cmd Msg )
 init flags url key =
     let
         route =
@@ -119,7 +123,10 @@ initDemoPhaceSrc =
     "2222222222222222222222222228083888c8f222"
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update :
+    Msg
+    -> Model
+    -> ( Model, Cmd Msg )
 update msg prevModel =
     case msg of
         LinkClicked urlRequest ->
@@ -806,7 +813,9 @@ handleMsgUp msgUp prevModel =
             ( prevModel, Cmd.none )
 
 
-handleTxReceipt : Eth.Types.TxReceipt -> ( TxStatus, Maybe Post.Published, Maybe UserNotice )
+handleTxReceipt :
+    Eth.Types.TxReceipt
+    -> ( TxStatus, Maybe Post.Published, Maybe UserNotice )
 handleTxReceipt txReceipt =
     case txReceipt.status of
         Just True ->
@@ -851,7 +860,11 @@ handleTxReceipt txReceipt =
             )
 
 
-addTrackedTx : TxHash -> TxInfo -> Model -> Model
+addTrackedTx :
+    TxHash
+    -> TxInfo
+    -> Model
+    -> Model
 addTrackedTx txHash txInfo prevModel =
     { prevModel
         | trackedTxs =
@@ -865,7 +878,11 @@ addTrackedTx txHash txInfo prevModel =
     }
 
 
-updateTrackedTxStatusIfMining : TxHash -> TxStatus -> Model -> Model
+updateTrackedTxStatusIfMining :
+    TxHash
+    -> TxStatus
+    -> Model
+    -> Model
 updateTrackedTxStatusIfMining txHash newStatus =
     updateTrackedTxIf
         (\trackedTx ->
@@ -879,7 +896,10 @@ updateTrackedTxStatusIfMining txHash newStatus =
         )
 
 
-withMsgUp : MsgUp -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+withMsgUp :
+    MsgUp
+    -> ( Model, Cmd Msg )
+    -> ( Model, Cmd Msg )
 withMsgUp msgUp ( prevModel, prevCmd ) =
     handleMsgUp msgUp prevModel
         |> Tuple.mapSecond
@@ -888,7 +908,10 @@ withMsgUp msgUp ( prevModel, prevCmd ) =
             )
 
 
-handleMsgUps : List MsgUp -> Model -> ( Model, Cmd Msg )
+handleMsgUps :
+    List MsgUp
+    -> Model
+    -> ( Model, Cmd Msg )
 handleMsgUps msgUps prevModel =
     List.foldl
         withMsgUp
@@ -896,7 +919,10 @@ handleMsgUps msgUps prevModel =
         msgUps
 
 
-withMsgUps : List MsgUp -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+withMsgUps :
+    List MsgUp
+    -> ( Model, Cmd Msg )
+    -> ( Model, Cmd Msg )
 withMsgUps msgUps ( prevModel, prevCmd ) =
     handleMsgUps msgUps prevModel
         |> Tuple.mapSecond
@@ -905,7 +931,10 @@ withMsgUps msgUps ( prevModel, prevCmd ) =
             )
 
 
-updateFromPageRoute : Route -> Model -> ( Model, Cmd Msg )
+updateFromPageRoute :
+    Route
+    -> Model
+    -> ( Model, Cmd Msg )
 updateFromPageRoute route model =
     if model.route == route then
         ( model
@@ -916,7 +945,10 @@ updateFromPageRoute route model =
         gotoRoute route model
 
 
-gotoRoute : Route -> Model -> ( Model, Cmd Msg )
+gotoRoute :
+    Route
+    -> Model
+    -> ( Model, Cmd Msg )
 gotoRoute route prevModel =
     (case route of
         Routing.Home ->
@@ -965,7 +997,11 @@ gotoRoute route prevModel =
         |> withAnotherUpdate updateSeoDescriptionIfNeededCmd
 
 
-addPost : Int -> Post.Published -> Model -> ( Model, Cmd Msg )
+addPost :
+    Int
+    -> Post.Published
+    -> Model
+    -> ( Model, Cmd Msg )
 addPost blockNumber publishedPost prevModel =
     let
         alreadyHavePost =
@@ -1017,7 +1053,10 @@ addPost blockNumber publishedPost prevModel =
             |> withAnotherUpdate updateSeoDescriptionIfNeededCmd
 
 
-getBlockTimeIfNeededCmd : Dict Int Time.Posix -> Int -> Cmd Msg
+getBlockTimeIfNeededCmd :
+    Dict Int Time.Posix
+    -> Int
+    -> Cmd Msg
 getBlockTimeIfNeededCmd blockTimes blockNumber =
     if Dict.get blockNumber blockTimes == Nothing then
         getBlockTimeCmd blockNumber
@@ -1026,7 +1065,9 @@ getBlockTimeIfNeededCmd blockTimes blockNumber =
         Cmd.none
 
 
-updateSeoDescriptionIfNeededCmd : Model -> ( Model, Cmd Msg )
+updateSeoDescriptionIfNeededCmd :
+    Model
+    -> ( Model, Cmd Msg )
 updateSeoDescriptionIfNeededCmd model =
     let
         appropriateMaybeDescription =
@@ -1054,7 +1095,11 @@ updateSeoDescriptionIfNeededCmd model =
         ( model, Cmd.none )
 
 
-fetchPostsFromBlockrangeCmd : Eth.Types.BlockId -> Eth.Types.BlockId -> EventSentry Msg -> ( EventSentry Msg, Cmd Msg, EventSentry.Ref )
+fetchPostsFromBlockrangeCmd :
+    Eth.Types.BlockId
+    -> Eth.Types.BlockId
+    -> EventSentry Msg
+    -> ( EventSentry Msg, Cmd Msg, EventSentry.Ref )
 fetchPostsFromBlockrangeCmd from to sentry =
     EventSentry.watch
         PostLogReceived
@@ -1067,7 +1112,9 @@ fetchPostsFromBlockrangeCmd from to sentry =
             Nothing
 
 
-fetchDaiBalanceAndAllowanceCmd : Address -> Cmd Msg
+fetchDaiBalanceAndAllowanceCmd :
+    Address
+    -> Cmd Msg
 fetchDaiBalanceAndAllowanceCmd address =
     Cmd.batch
         [ Dai.getAllowanceCmd address (AllowanceFetched address)
@@ -1075,7 +1122,9 @@ fetchDaiBalanceAndAllowanceCmd address =
         ]
 
 
-getBlockTimeCmd : Int -> Cmd Msg
+getBlockTimeCmd :
+    Int
+    -> Cmd Msg
 getBlockTimeCmd blocknum =
     Eth.getBlock
         Config.httpProviderUrl
@@ -1084,13 +1133,19 @@ getBlockTimeCmd blocknum =
         |> Task.attempt (BlockTimeFetched blocknum)
 
 
-addUserNotice : UserNotice -> Model -> Model
+addUserNotice :
+    UserNotice
+    -> Model
+    -> Model
 addUserNotice notice model =
     model
         |> addUserNotices [ notice ]
 
 
-addUserNotices : List UserNotice -> Model -> Model
+addUserNotices :
+    List UserNotice
+    -> Model
+    -> Model
 addUserNotices notices model =
     { model
         | userNotices =
@@ -1101,7 +1156,9 @@ addUserNotices notices model =
     }
 
 
-encodeGTag : GTagData -> Json.Decode.Value
+encodeGTag :
+    GTagData
+    -> Json.Decode.Value
 encodeGTag gtag =
     Json.Encode.object
         [ ( "event", Json.Encode.string gtag.event )
@@ -1111,7 +1168,9 @@ encodeGTag gtag =
         ]
 
 
-subscriptions : Model -> Sub Msg
+subscriptions :
+    Model
+    -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Time.every 200 Tick

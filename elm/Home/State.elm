@@ -4,6 +4,7 @@ import Common.Msg
 import Home.Types exposing (..)
 import Post
 import PostUX.State as PostUX
+import PostUX.Types
 import UserNotice as UN
 
 
@@ -11,37 +12,37 @@ init : ( Model, Cmd Msg )
 init =
     ( { maybePostUXModel = Nothing
       , topicSearchInput = ""
+      , showNewToSmokeSignalModal = False
       }
     , Cmd.none
     )
 
 
-update : Msg -> Model -> UpdateResult
+update :
+    Msg
+    -> Model
+    -> UpdateResult
 update msg prevModel =
     case msg of
         PostUXMsg postUXMsg ->
-            case prevModel.maybePostUXModel of
-                Nothing ->
-                    UpdateResult
-                        prevModel
-                        Cmd.none
-                        [ Common.Msg.AddUserNotice <|
-                            UN.unexpectedError
-                                "PostUX msg received, but there is no postUXModel!"
-                                postUXMsg
-                        ]
+            let
+                postUXUpdateResult =
+                    case prevModel.maybePostUXModel of
+                        Nothing ->
+                            PostUX.Types.UpdateResult
+                                PostUX.init
+                                Cmd.none
+                                []
 
-                Just postUXModel ->
-                    let
-                        postUXUpdateResult =
+                        Just postUXModel ->
                             PostUX.update postUXMsg postUXModel
-                    in
-                    UpdateResult
-                        { prevModel
-                            | maybePostUXModel = Just <| postUXUpdateResult.newModel
-                        }
-                        (Cmd.map PostUXMsg postUXUpdateResult.cmd)
-                        postUXUpdateResult.msgUps
+            in
+            UpdateResult
+                { prevModel
+                    | maybePostUXModel = Just <| postUXUpdateResult.newModel
+                }
+                (Cmd.map PostUXMsg postUXUpdateResult.cmd)
+                postUXUpdateResult.msgUps
 
         MsgUp msgUp ->
             UpdateResult
@@ -53,6 +54,22 @@ update msg prevModel =
             UpdateResult
                 { prevModel
                     | topicSearchInput = text
+                }
+                Cmd.none
+                []
+
+        CloseNewToSmokeSignalModal ->
+            UpdateResult
+                { prevModel
+                    | showNewToSmokeSignalModal = False
+                }
+                Cmd.none
+                []
+
+        ShowNewToSmokeSignalModal ->
+            UpdateResult
+                { prevModel
+                    | showNewToSmokeSignalModal = True
                 }
                 Cmd.none
                 []

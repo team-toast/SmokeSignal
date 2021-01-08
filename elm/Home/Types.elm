@@ -7,6 +7,7 @@ import PostUX.Types as PostUX
 type alias Model =
     { maybePostUXModel : Maybe PostUX.Model
     , topicSearchInput : String
+    , showNewToSmokeSignalModal : Bool
     }
 
 
@@ -14,6 +15,8 @@ type Msg
     = PostUXMsg PostUX.Msg
     | MsgUp MsgUp
     | SearchInputChanged String
+    | CloseNewToSmokeSignalModal
+    | ShowNewToSmokeSignalModal
 
 
 type alias UpdateResult =
@@ -23,7 +26,9 @@ type alias UpdateResult =
     }
 
 
-justModelUpdate : Model -> UpdateResult
+justModelUpdate :
+    Model
+    -> UpdateResult
 justModelUpdate model =
     { newModel = model
     , cmd = Cmd.none

@@ -6,7 +6,7 @@ import Common.View exposing (..)
 import Config
 import Dict exposing (Dict)
 import Dict.Extra
-import Element exposing (Element)
+import Element exposing (Attribute, Element)
 import Element.Background
 import Element.Border
 import Element.Events
@@ -20,6 +20,7 @@ import Helpers.Time as TimeHelpers
 import Helpers.Tuple as TupleHelpers
 import Home.Types exposing (..)
 import Html.Attributes exposing (list)
+import Maybe.Extra
 import Post exposing (Post)
 import PostUX.Preview as PostPreview
 import PostUX.Types as PostUX
@@ -45,10 +46,16 @@ view dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
     case dProfile of
         Desktop ->
             Element.column
-                [ Element.centerX
-                , Element.width <| Element.px 1000
-                , Element.spacing majorSpacing
-                ]
+                ([ Element.centerX
+                 , Element.width <| Element.px 1000
+                 , Element.spacing majorSpacing
+                 ]
+                    ++ (List.map Element.inFront <|
+                            viewModals
+                                dProfile
+                                model.showNewToSmokeSignalModal
+                       )
+                )
                 [ Element.el
                     [ Element.width Element.fill
                     , Element.paddingXY 10 0
@@ -59,6 +66,52 @@ view dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
 
         Mobile ->
             Debug.todo ""
+
+
+viewModals :
+    DisplayProfile
+    -> Bool
+    -> List (Element Msg)
+viewModals dProfile showNewToSmokeSignalModal =
+    Maybe.Extra.values
+        [ if showNewToSmokeSignalModal == True then
+            Just <|
+                EH.modal
+                    (Element.rgba 0 0 0 0.25)
+                    False
+                    CloseNewToSmokeSignalModal
+                    CloseNewToSmokeSignalModal
+                <|
+                    viewNewToSmokeSignalModal dProfile
+
+          else
+            Nothing
+        ]
+
+
+viewNewToSmokeSignalModal :
+    DisplayProfile
+    -> Element Msg
+viewNewToSmokeSignalModal dProfile =
+    Element.column
+        [ whiteGlowAttribute
+        , Element.Font.color EH.white
+        , Element.width Element.fill
+        , Element.height <| Element.px 600
+        ]
+        [ Element.text "Welcome to"
+        , Element.image []
+            { src = ""
+            , description =
+                "smokesignal logo"
+            }
+        , Element.text "SmokeSignal uses the Ethereum blockchain to facilitate uncensorable, global chat."
+        , Element.text "No Usernames. No Moderators. No censorship. No Deplatforming."
+        , Element.text "All you need is ETH for gas and DAI to burn."
+        , Element.text "All SmokeSignal posts are permanent and impossible to delete, and can be accessed with any browser via an IPFS Gateway (example) or the smokesignal.eth.link mirror (example)."
+        , Element.text "If the above two methods prove unreliable, some browsers also support direct smokesignal.eth links (example) or direct IPFS links (example)."
+        , Element.text "Go to introductory video -->"
+        ]
 
 
 banner : Element Msg
@@ -102,6 +155,9 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
             ]
             [ orangeBannerEl
                 dProfile
+                [ Element.pointer
+                , Element.Events.onClick ShowNewToSmokeSignalModal
+                ]
                 40
                 20
                 "NEW TO SMOKESIGNAL?"
@@ -111,6 +167,7 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
                 ]
                 [ orangeBannerEl
                     dProfile
+                    []
                     20
                     10
                     "RECENT POSTS..."
@@ -145,22 +202,24 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
 
 orangeBannerEl :
     DisplayProfile
+    -> List (Attribute Msg)
     -> Int
     -> Int
     -> String
     -> Element Msg
-orangeBannerEl dProfile fontSize padding bannerText =
+orangeBannerEl dProfile attributes fontSize padding bannerText =
     Element.el
-        [ Element.width Element.fill
-        , Element.padding padding
-        , Element.Font.size fontSize
-        , Element.Background.color Theme.orange
-        , Element.Font.semiBold
-        , Element.Font.color EH.white
-        , whiteGlowAttribute
-        , Element.pointer
-        , Element.Border.rounded 10
-        ]
+        ([ Element.width Element.fill
+         , Element.padding padding
+         , Element.Font.size fontSize
+         , Element.Background.color Theme.orange
+         , Element.Font.semiBold
+         , Element.Font.color EH.white
+         , whiteGlowAttribute
+         , Element.Border.rounded 10
+         ]
+            ++ attributes
+        )
     <|
         Element.text bannerText
 
@@ -178,6 +237,7 @@ topicsUX dProfile topicsSearchInput posts =
         ]
         [ orangeBannerEl
             dProfile
+            []
             26
             12
             "TOPICS"

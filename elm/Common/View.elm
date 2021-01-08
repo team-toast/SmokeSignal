@@ -20,7 +20,9 @@ import Theme exposing (theme)
 import Time
 
 
-shortenedHash : Hex -> String
+shortenedHash :
+    Hex
+    -> String
 shortenedHash hash =
     let
         hashStr =
@@ -35,7 +37,11 @@ shortenedHash hash =
             ++ String.right 4 hashStr
 
 
-web3ConnectButton : EH.DisplayProfile -> List (Attribute msg) -> (MsgUp -> msg) -> Element msg
+web3ConnectButton :
+    EH.DisplayProfile
+    -> List (Attribute msg)
+    -> (MsgUp -> msg)
+    -> Element msg
 web3ConnectButton dProfile attrs msgMapper =
     theme.emphasizedActionButton
         dProfile
@@ -44,7 +50,14 @@ web3ConnectButton dProfile attrs msgMapper =
         (EH.Action <| msgMapper ConnectToWeb3)
 
 
-phaceElement : ( Int, Int ) -> Bool -> Address -> Bool -> msg -> msg -> Element msg
+phaceElement :
+    ( Int, Int )
+    -> Bool
+    -> Address
+    -> Bool
+    -> msg
+    -> msg
+    -> Element msg
 phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClick noOpMsg =
     let
         addressOutputEl () =
@@ -89,7 +102,10 @@ phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClic
                 (Phace.fromEthAddress fromAddress width height)
 
 
-loadingElement : List (Attribute msg) -> Maybe String -> Element msg
+loadingElement :
+    List (Attribute msg)
+    -> Maybe String
+    -> Element msg
 loadingElement attrs maybeString =
     Element.el
         ([ Element.Font.italic
@@ -110,7 +126,10 @@ emphasizedText =
         << Element.text
 
 
-daiSymbol : Bool -> List (Attribute msg) -> Element msg
+daiSymbol :
+    Bool
+    -> List (Attribute msg)
+    -> Element msg
 daiSymbol isWhite attributes =
     Element.image attributes
         { src =
@@ -123,7 +142,10 @@ daiSymbol isWhite attributes =
         }
 
 
-appStatusMessage : Element.Color -> String -> Element msg
+appStatusMessage :
+    Element.Color
+    -> String
+    -> Element msg
 appStatusMessage color errStr =
     Element.el [ Element.width Element.fill, Element.height Element.fill ] <|
         Element.paragraph
@@ -139,7 +161,9 @@ appStatusMessage color errStr =
             [ Element.text errStr ]
 
 
-posixToString : Time.Posix -> String
+posixToString :
+    Time.Posix
+    -> String
 posixToString t =
     let
         z =
@@ -165,7 +189,9 @@ subheaderAttributes dProfile =
     ]
 
 
-commonFontSize : DisplayProfile -> Int
+commonFontSize :
+    DisplayProfile
+    -> Int
 commonFontSize dProfile =
     case dProfile of
         Desktop ->
@@ -175,7 +201,10 @@ commonFontSize dProfile =
             18
 
 
-viewMetadata : Bool -> Post.Metadata -> Element MsgUp
+viewMetadata :
+    Bool
+    -> Post.Metadata
+    -> Element MsgUp
 viewMetadata showContext metadata =
     Element.column
         [ Element.width Element.fill
@@ -196,7 +225,9 @@ viewMetadata showContext metadata =
         ]
 
 
-viewMetadataDecodeError : String -> Element msg
+viewMetadataDecodeError :
+    String
+    -> Element msg
 viewMetadataDecodeError error =
     Element.el
         [ Element.Border.rounded 5
@@ -220,7 +251,9 @@ viewMetadataDecodeError error =
             )
 
 
-viewContext : Post.Context -> Element MsgUp
+viewContext :
+    Post.Context
+    -> Element MsgUp
 viewContext context =
     case context of
         Post.Reply postId ->
@@ -230,7 +263,9 @@ viewContext context =
             viewTopic topic
 
 
-viewTopic : String -> Element MsgUp
+viewTopic :
+    String
+    -> Element MsgUp
 viewTopic topic =
     Element.column
         [ Element.padding 10
@@ -256,7 +291,9 @@ viewTopic topic =
         ]
 
 
-viewReplyInfo : Post.Id -> Element MsgUp
+viewReplyInfo :
+    Post.Id
+    -> Element MsgUp
 viewReplyInfo postId =
     Element.row
         [ Element.padding 10
@@ -285,7 +322,9 @@ viewReplyInfo postId =
         ]
 
 
-coloredAppTitle : List (Attribute msg) -> Element msg
+coloredAppTitle :
+    List (Attribute msg)
+    -> Element msg
 coloredAppTitle attributes =
     Element.row attributes
         [ Element.el [ Element.Font.color Theme.darkGray ] <| Element.text "Smoke"
@@ -297,7 +336,9 @@ maxContentColWidth =
     1000
 
 
-renderContentOrError : Post.Content -> Element msg
+renderContentOrError :
+    Post.Content
+    -> Element msg
 renderContentOrError content =
     let
         renderResult =
@@ -323,7 +364,13 @@ renderContentOrError content =
                         ++ errStr
 
 
-unlockUXOr : DisplayProfile -> List (Attribute msg) -> UnlockStatus -> (MsgUp -> msg) -> Element msg -> Element msg
+unlockUXOr :
+    DisplayProfile
+    -> List (Attribute msg)
+    -> UnlockStatus
+    -> (MsgUp -> msg)
+    -> Element msg
+    -> Element msg
 unlockUXOr dProfile attributes unlockStatus msgMapper el =
     case unlockStatus of
         NotConnected ->
@@ -354,7 +401,11 @@ unlockUXOr dProfile attributes unlockStatus msgMapper el =
             Element.el attributes el
 
 
-unlockButton : EH.DisplayProfile -> List (Attribute msg) -> (MsgUp -> msg) -> Element msg
+unlockButton :
+    EH.DisplayProfile
+    -> List (Attribute msg)
+    -> (MsgUp -> msg)
+    -> Element msg
 unlockButton dProfile attrs msgMapper =
     theme.emphasizedActionButton
         dProfile
@@ -363,7 +414,12 @@ unlockButton dProfile attrs msgMapper =
         (EH.Action <| msgMapper UnlockDai)
 
 
-daiAmountInput : DisplayProfile -> List (Attribute msg) -> String -> (String -> msg) -> Element msg
+daiAmountInput :
+    DisplayProfile
+    -> List (Attribute msg)
+    -> String
+    -> (String -> msg)
+    -> Element msg
 daiAmountInput dProfile attributes currentInput onChange =
     Element.Input.text
         [ Element.width <| Element.px (responsiveVal dProfile 100 60)
