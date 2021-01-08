@@ -94,9 +94,30 @@ footer =
         , Element.alignBottom
         , EH.moveToFront
         , whiteGlowAttribute
+        , Element.paddingXY 0 15
         ]
-        Element.none
-
+    <|
+        Element.row
+            [ Element.spacingXY 150 0
+            , Element.Font.color Theme.orange
+            , Element.centerX
+            ]
+            [ Element.image
+                [ Element.height <| Element.px 50 ]
+                { src = "img/forged-by-foundry-white.svg"
+                , description =
+                    "forged by foundry"
+                }
+            , Element.el [] <| Element.text "ABOUT"
+            , Element.text "NEWS"
+            , Element.text "STATS"
+            , Element.image
+                [ Element.height <| Element.px 50
+                ]
+                { src = "img/smokesignal-logo-horizontal.svg"
+                , description = "smokesignal logo"
+                }
+            ]
 
 
 body :
@@ -134,7 +155,7 @@ bodyContent model =
                 Element.map HomeMsg <|
                     Element.Lazy.lazy
                         (\publishedPosts ->
-                            (Home.View.view
+                            Home.View.view
                                 model.dProfile
                                 model.donateChecked
                                 model.blockTimes
@@ -144,7 +165,6 @@ bodyContent model =
                                 model.wallet
                                 publishedPosts
                                 homeModel
-                            )
                         )
                         model.publishedPosts
 
@@ -154,7 +174,6 @@ bodyContent model =
                         model.dProfile
                         model.donateChecked
                         model.wallet
-                        
                         model.showAddressId
                         model.composeUXModel
 
@@ -213,7 +232,8 @@ bodyContent model =
         ]
 
 
-dummyElement = Element.none
+dummyElement =
+    Element.none
 
 
 viewPostAndReplies : DisplayProfile -> Bool -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
@@ -221,7 +241,7 @@ viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies pub
     dummyElement
 
 
-viewTopicHeader dProfile maybeUserInfo topic=
+viewTopicHeader dProfile maybeUserInfo topic =
     dummyElement
 
 
