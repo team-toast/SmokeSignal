@@ -101,7 +101,7 @@ viewNewToSmokeSignalModal dProfile =
         ]
         [ Element.text "Welcome to"
         , Element.image []
-            { src = ""
+            { src = "img/smokesignal-logo-vertical.svg"
             , description =
                 "smokesignal logo"
             }
