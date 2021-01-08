@@ -95,23 +95,41 @@ viewNewToSmokeSignalModal :
 viewNewToSmokeSignalModal dProfile =
     Element.column
         [ whiteGlowAttribute
+        , Element.Border.rounded 10
         , Element.Font.color EH.white
         , Element.width Element.fill
         , Element.height <| Element.px 600
+        , Element.Background.color <| Element.rgba 0 0 0 0.85
         ]
-        [ Element.text "Welcome to"
-        , Element.image []
+        [ Element.text "Welcome to" |> rowElement dProfile [ Element.centerX ]
+        , Element.image
+            [ Element.width <| Element.px 150
+            , Element.centerX
+            ]
             { src = "img/smokesignal-logo-vertical.svg"
             , description =
                 "smokesignal logo"
             }
-        , Element.text "SmokeSignal uses the Ethereum blockchain to facilitate uncensorable, global chat."
-        , Element.text "No Usernames. No Moderators. No censorship. No Deplatforming."
-        , Element.text "All you need is ETH for gas and DAI to burn."
-        , Element.text "All SmokeSignal posts are permanent and impossible to delete, and can be accessed with any browser via an IPFS Gateway (example) or the smokesignal.eth.link mirror (example)."
-        , Element.text "If the above two methods prove unreliable, some browsers also support direct smokesignal.eth links (example) or direct IPFS links (example)."
-        , Element.text "Go to introductory video -->"
+            |> rowElement dProfile []
+        , Element.paragraph [ Element.centerX ] [ Element.text "SmokeSignal uses the Ethereum blockchain to facilitate uncensorable, global chat." ] |> rowElement dProfile []
+        , Element.paragraph [] [ Element.text "No Usernames. No Moderators. No censorship. No Deplatforming." ] |> rowElement dProfile []
+        , Element.paragraph [] [ Element.text "All you need is ETH for gas and DAI to burn." ] |> rowElement dProfile []
+        , Element.paragraph [] [ Element.text "All SmokeSignal posts are permanent and impossible to delete, and can be accessed with any browser via an IPFS Gateway (example) or the smokesignal.eth.link mirror (example)." ] |> rowElement dProfile []
+        , Element.paragraph [] [ Element.text "If the above two methods prove unreliable, some browsers also support direct smokesignal.eth links (example) or direct IPFS links (example)." ] |> rowElement dProfile []
+        , Element.paragraph [] [ Element.text "Go to introductory video -->" ] |> rowElement dProfile []
         ]
+
+
+rowElement : DisplayProfile -> List (Attribute Msg) -> Element Msg -> Element Msg
+rowElement dProfile attributes element =
+    Element.row
+        ([ Element.width Element.fill
+         , Element.height Element.fill
+         , Element.centerX
+         ]
+            ++ attributes
+        )
+        [ element ]
 
 
 banner : Element Msg
