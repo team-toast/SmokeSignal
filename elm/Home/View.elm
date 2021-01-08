@@ -97,44 +97,71 @@ viewNewToSmokeSignalModal dProfile =
         [ whiteGlowAttribute
         , Element.Border.rounded 10
         , Element.Font.color EH.white
-        , Element.height <| Element.px 800
+        , Element.width Element.fill
         , Element.Background.color <| Element.rgba 0 0 0 0.85
-        , Element.alignTop
         , Element.padding 15
+        , Element.spacing 30
         ]
         [ Element.text "Welcome to" |> rowElement dProfile []
-        , Element.image
-            [ Element.width <| Element.px 200
-            ]
-            { src = "img/smokesignal-logo-vertical.svg"
-            , description =
-                "smokesignal logo"
-            }
-            |> rowElement dProfile []
-        , Element.paragraph
+        , rowElement
+            dProfile
             []
-            [ Element.text "SmokeSignal uses the Ethereum blockchain to facilitate uncensorable, global chat." ]
-            |> rowElement dProfile []
-        , Element.paragraph
-            [ Element.Font.color Theme.orange ]
-            [ Element.text "No Usernames. No Moderators. No censorship. No Deplatforming." ]
-            |> rowElement dProfile []
-        , Element.paragraph
+          <|
+            Element.image
+                [ Element.width <| Element.px 200
+                ]
+                { src = "img/smokesignal-logo-vertical.svg"
+                , description =
+                    "smokesignal logo"
+                }
+        , rowElement
+            dProfile
             []
-            [ Element.text "All you need is ETH for gas and DAI to burn." ]
-            |> rowElement dProfile []
-        , Element.paragraph
+          <|
+            Element.text "SmokeSignal uses the Ethereum blockchain to facilitate uncensorable, global chat."
+        , rowElement
+            dProfile
             []
-            [ Element.text "All SmokeSignal posts are permanent and impossible to delete, and can be accessed with any browser via an IPFS Gateway (example) or the smokesignal.eth.link mirror (example)." ]
-            |> rowElement dProfile []
-        , Element.paragraph
+          <|
+            Element.el
+                [ Element.Font.color Theme.orange, Element.Font.size 28, Element.Font.bold ]
+            <|
+                Element.text "No Usernames. No Moderators. No censorship. No Deplatforming."
+        , rowElement
+            dProfile
             []
-            [ Element.text "If the above two methods prove unreliable, some browsers also support direct smokesignal.eth links (example) or direct IPFS links (example)." ]
-            |> rowElement dProfile []
-        , Element.paragraph
+          <|
+            Element.text "All you need is ETH for gas and DAI to burn."
+        , rowElement
+            dProfile
             []
-            [ Element.text "Go to introductory video -->" ]
-            |> rowElement dProfile []
+          <|
+            Element.column
+                [ Element.spacing 5 ]
+                [ rowElement dProfile [] <| Element.text "All SmokeSignal posts are permanent and impossible to delete, and can be"
+                , rowElement dProfile [] <| Element.text "accessed with any browser via an IPFS Gateway (example)"
+                , rowElement dProfile [] <| Element.text "or the smokesignal.eth.link mirror (example)."
+                ]
+        , rowElement
+            dProfile
+            []
+          <|
+            Element.column
+                [ Element.spacing 5 ]
+                [ rowElement dProfile [] <| Element.text "If the above two methods prove unreliable, some browsers also support direct"
+                , rowElement dProfile [] <| Element.text "smokesignal.eth links (example) or direct IPFS links (example)."
+                ]
+        , rowElement
+            dProfile
+            []
+          <|
+            Element.el
+                [ Element.Font.color Theme.orange
+                , Element.Font.semiBold
+                ]
+            <|
+                Element.text
+                    "Go to introductory video →"
         ]
 
 
