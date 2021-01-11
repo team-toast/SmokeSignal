@@ -5,7 +5,7 @@ import Common.Msg
 import Common.Types exposing (..)
 import Common.View exposing (daiAmountInput, daiSymbol, unlockUXOr)
 import Dict exposing (Dict)
-import Element exposing (Attribute, Element)
+import Element exposing (Attribute, Element, el, text)
 import Element.Background
 import Element.Border
 import Element.Events
@@ -234,29 +234,17 @@ previewBody dProfile showAddress post =
             showAddress
             (MsgUp <| Common.Msg.ShowOrHideAddress <| PhaceForPublishedPost post.id)
             NoOp
-        , viewTitleOrTextPreview dProfile post.core.content
-        ]
-
-
-viewTitleOrTextPreview :
-    DisplayProfile
-    -> Post.Content
-    -> Element Msg
-viewTitleOrTextPreview dProfile content =
-    Element.row
-        [ Element.Font.color almostWhite
-        , Element.Font.size (responsiveVal dProfile 14 8)
-        , Element.height Element.fill
-        , Element.width Element.fill
-        ]
-        [ Element.text <|
-            limitedString <|
-                case content.title of
-                    Just title ->
-                        title
-
-                    Nothing ->
-                        content.body
+        , post.core.content.title
+            |> Maybe.withDefault post.core.content.body
+            |> limitedString
+            |> text
+            |> List.singleton
+            |> Element.paragraph
+                [ Element.Font.color almostWhite
+                , Element.Font.size (responsiveVal dProfile 14 8)
+                , Element.height Element.fill
+                , Element.width Element.fill
+                ]
         ]
 
 
@@ -502,13 +490,16 @@ maybeSubmitButton dProfile label maybeAmount onSubmit =
 
 previewMaxTextLength : Int
 previewMaxTextLength =
-    250
+    150
 
 
 limitedString : String -> String
 limitedString text =
     if String.length text > previewMaxTextLength then
-        String.slice 0 previewMaxTextLength text ++ "..."
+        text
+            ++ "..."
+            |> String.replace "\n" " "
+            |> String.slice 0 previewMaxTextLength
 
     else
         text
