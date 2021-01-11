@@ -35,8 +35,8 @@ viewFull dProfile donateChecked wallet showAddressId model =
         view dProfile donateChecked wallet showAddressId model
 
 
-view : EH.DisplayProfile -> Bool -> Wallet ->  Maybe PhaceIconId -> Model -> Element Msg
-view dProfile donateChecked wallet  showAddressId model =
+view : EH.DisplayProfile -> Bool -> Wallet -> Maybe PhaceIconId -> Model -> Element Msg
+view dProfile donateChecked wallet showAddressId model =
     let
         commonAttributes =
             [ Element.width Element.fill
@@ -174,7 +174,7 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedContent context =
                 [ case maybeShowPhaceInfo of
                     Just ( fromAddress, showAddress ) ->
                         phaceElement
-                            (100,100)
+                            ( 100, 100 )
                             True
                             fromAddress
                             showAddress
@@ -288,7 +288,7 @@ actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model =
                             Desktop ->
                                 Element.map MsgUp <|
                                     phaceElement
-                                        (100,100)
+                                        ( 100, 100 )
                                         True
                                         userInfo.address
                                         (showAddressId == Just UserPhace)

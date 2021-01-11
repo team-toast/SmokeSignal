@@ -18,9 +18,9 @@ module Contracts.Generated.SmokeSignal exposing
     , token
     )
 
+import BigInt exposing (BigInt)
 import Eth.Abi.Decode as D exposing (abiDecode, andMap, data, toElmDecoder, topic)
 import Eth.Abi.Encode as E exposing (Encoding(..), abiEncode)
-import BigInt exposing (BigInt)
 import Eth.Types exposing (..)
 import Eth.Utils as U
 import Json.Decode as Decode exposing (Decoder, succeed)
@@ -44,10 +44,11 @@ burnHash contractAddress hash_ burnAmount_ donateAmount_ =
     , gas = Nothing
     , gasPrice = Nothing
     , value = Nothing
-    , data = Just <| E.functionCall "0d5fac77" [ (E.staticBytes 32) hash_, E.uint burnAmount_, E.uint donateAmount_ ]
+    , data = Just <| E.functionCall "0d5fac77" [ E.staticBytes 32 hash_, E.uint burnAmount_, E.uint donateAmount_ ]
     , nonce = Nothing
     , decoder = Decode.succeed ()
     }
+
 
 
 -- burnMessage(string,uint256,uint256) function
@@ -66,6 +67,7 @@ burnMessage contractAddress message_ burnAmount_ donateAmount_ =
     }
 
 
+
 -- donationAddress() function
 
 
@@ -80,6 +82,7 @@ donationAddress contractAddress =
     , nonce = Nothing
     , decoder = toElmDecoder D.address
     }
+
 
 
 -- storedMessageData(bytes32) function
@@ -99,7 +102,7 @@ storedMessageData contractAddress a_ =
     , gas = Nothing
     , gasPrice = Nothing
     , value = Nothing
-    , data = Just <| E.functionCall "056a2dd6" [ (E.staticBytes 32) a_ ]
+    , data = Just <| E.functionCall "056a2dd6" [ E.staticBytes 32 a_ ]
     , nonce = Nothing
     , decoder = storedMessageDataDecoder
     }
@@ -114,6 +117,7 @@ storedMessageDataDecoder =
         |> toElmDecoder
 
 
+
 -- tipHashOrBurnIfNoAuthor(bytes32,uint256,uint256) function
 
 
@@ -124,10 +128,11 @@ tipHashOrBurnIfNoAuthor contractAddress hash_ amount_ donateAmount_ =
     , gas = Nothing
     , gasPrice = Nothing
     , value = Nothing
-    , data = Just <| E.functionCall "dbd9deba" [ (E.staticBytes 32) hash_, E.uint amount_, E.uint donateAmount_ ]
+    , data = Just <| E.functionCall "dbd9deba" [ E.staticBytes 32 hash_, E.uint amount_, E.uint donateAmount_ ]
     , nonce = Nothing
     , decoder = Decode.succeed ()
     }
+
 
 
 -- token() function
@@ -146,6 +151,7 @@ token contractAddress =
     }
 
 
+
 -- HashBurn(bytes32,address,uint256) event
 
 
@@ -157,24 +163,25 @@ type alias HashBurn =
 
 
 hashBurnEvent : Address -> Maybe Hex -> Maybe Address -> LogFilter
-hashBurnEvent contractAddress hash_ from_ = 
+hashBurnEvent contractAddress hash_ from_ =
     { fromBlock = LatestBlock
     , toBlock = LatestBlock
     , address = contractAddress
-    , topics = 
+    , topics =
         [ Just <| U.unsafeToHex "343b147c051e2ac50523eb3bbd7bda256fe20f64f8c4c1c7e6f7b9b8c162755d"
-        , Maybe.map (abiEncode << (E.staticBytes 32)) hash_
+        , Maybe.map (abiEncode << E.staticBytes 32) hash_
         , Maybe.map (abiEncode << E.address) from_
         ]
     }
 
 
 hashBurnDecoder : Decoder HashBurn
-hashBurnDecoder = 
+hashBurnDecoder =
     Decode.succeed HashBurn
         |> custom (topic 1 (D.staticBytes 32))
         |> custom (topic 2 D.address)
         |> custom (data 0 D.uint)
+
 
 
 -- HashTip(bytes32,address,uint256) event
@@ -188,24 +195,25 @@ type alias HashTip =
 
 
 hashTipEvent : Address -> Maybe Hex -> Maybe Address -> LogFilter
-hashTipEvent contractAddress hash_ from_ = 
+hashTipEvent contractAddress hash_ from_ =
     { fromBlock = LatestBlock
     , toBlock = LatestBlock
     , address = contractAddress
-    , topics = 
+    , topics =
         [ Just <| U.unsafeToHex "910c02b7cc5590261f1f076989f1570151cd8401f2f9db863cc260c170576c4f"
-        , Maybe.map (abiEncode << (E.staticBytes 32)) hash_
+        , Maybe.map (abiEncode << E.staticBytes 32) hash_
         , Maybe.map (abiEncode << E.address) from_
         ]
     }
 
 
 hashTipDecoder : Decoder HashTip
-hashTipDecoder = 
+hashTipDecoder =
     Decode.succeed HashTip
         |> custom (topic 1 (D.staticBytes 32))
         |> custom (topic 2 D.address)
         |> custom (data 0 D.uint)
+
 
 
 -- MessageBurn(bytes32,address,uint256,string) event
@@ -220,24 +228,22 @@ type alias MessageBurn =
 
 
 messageBurnEvent : Address -> Maybe Hex -> Maybe Address -> LogFilter
-messageBurnEvent contractAddress hash_ from_ = 
+messageBurnEvent contractAddress hash_ from_ =
     { fromBlock = LatestBlock
     , toBlock = LatestBlock
     , address = contractAddress
-    , topics = 
+    , topics =
         [ Just <| U.unsafeToHex "555288072588ecd9d95a72f03f4bf18f419c7edad2c7a56d3f0c56ec313857fe"
-        , Maybe.map (abiEncode << (E.staticBytes 32)) hash_
+        , Maybe.map (abiEncode << E.staticBytes 32) hash_
         , Maybe.map (abiEncode << E.address) from_
         ]
     }
 
 
 messageBurnDecoder : Decoder MessageBurn
-messageBurnDecoder = 
+messageBurnDecoder =
     Decode.succeed MessageBurn
         |> custom (topic 1 (D.staticBytes 32))
         |> custom (topic 2 D.address)
         |> custom (data 0 D.uint)
         |> custom (data 1 D.string)
-
-
