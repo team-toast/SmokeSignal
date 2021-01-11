@@ -36,6 +36,8 @@ import Routing exposing (Route)
 import Task
 import Time
 import TokenValue exposing (TokenValue)
+import TopicUX.State as TopicUX
+import TopicUX.Types as TopicUX
 import Types exposing (..)
 import Url exposing (Url)
 import UserNotice as UN exposing (UserNotice)
@@ -106,6 +108,7 @@ init flags url key =
     , cookieConsentGranted = flags.cookieConsent
     , maybeSeoDescription = Nothing
     , searchInput = ""
+    , topicUXModel = Nothing
     }
         |> gotoRoute route
         |> Tuple.mapSecond
@@ -493,6 +496,29 @@ update msg prevModel =
                     updateResult.newModel
               }
             , Cmd.map ComposeUXMsg updateResult.cmd
+            )
+                |> withMsgUps updateResult.msgUps
+
+        TopicUXMsg topicUXMsg ->
+            let
+                topicUXModelBeforeMsg =
+                    case prevModel.topicUXModel of
+                        Just prevTopicUXModel ->
+                            prevTopicUXModel
+
+                        Nothing ->
+                            TopicUX.init
+
+                updateResult =
+                    topicUXModelBeforeMsg
+                        |> TopicUX.update topicUXMsg
+            in
+            ( { prevModel
+                | topicUXModel =
+                    Just <|
+                        updateResult.newModel
+              }
+            , Cmd.map TopicUXMsg updateResult.cmd
             )
                 |> withMsgUps updateResult.msgUps
 

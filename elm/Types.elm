@@ -23,6 +23,7 @@ import PostUX.Types as PostUX
 import Routing exposing (Route)
 import Time
 import TokenValue exposing (TokenValue)
+import TopicUX.Types as TopicUX
 import Url exposing (Url)
 import UserNotice as UN exposing (UserNotice)
 import Wallet exposing (Wallet)
@@ -64,6 +65,7 @@ type alias Model =
     , cookieConsentGranted : Bool
     , maybeSeoDescription : Maybe String
     , searchInput : String
+    , topicUXModel : Maybe TopicUX.Model
     }
 
 
@@ -97,6 +99,7 @@ type Msg
     | ClickHappened
     | PostUXMsg PostUXId PostUX.Msg
     | ComposeUXMsg ComposeUX.Msg
+    | TopicUXMsg TopicUX.Msg
     | HomeMsg Home.Msg
     | AllowanceFetched Address (Result Http.Error TokenValue)
     | BalanceFetched Address (Result Http.Error TokenValue)

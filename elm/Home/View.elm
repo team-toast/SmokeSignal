@@ -1,4 +1,4 @@
-module Home.View exposing (view)
+module Home.View exposing (banner, view)
 
 import Common.Msg exposing (..)
 import Common.Types exposing (..)
@@ -32,7 +32,7 @@ import Wallet exposing (Wallet)
 
 
 view :
-    EH.DisplayProfile
+    DisplayProfile
     -> Bool
     -> Dict Int Time.Posix
     -> Time.Posix
@@ -60,7 +60,9 @@ view dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
                     [ Element.width Element.fill
                     , Element.paddingXY 10 0
                     ]
+                  <|
                     banner
+                        dProfile
                 , body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts model
                 ]
 
@@ -165,7 +167,11 @@ viewNewToSmokeSignalModal dProfile =
         ]
 
 
-rowElement : DisplayProfile -> List (Attribute Msg) -> Element Msg -> Element Msg
+rowElement :
+    DisplayProfile
+    -> List (Attribute Msg)
+    -> Element Msg
+    -> Element Msg
 rowElement dProfile attributes element =
     Element.row
         ([ Element.height Element.fill
@@ -176,8 +182,10 @@ rowElement dProfile attributes element =
         [ element ]
 
 
-banner : Element Msg
-banner =
+banner :
+    DisplayProfile
+    -> Element Msg
+banner dProfile =
     Element.el
         [ Element.width Element.fill
         , Element.height <| Element.px 200
@@ -187,8 +195,9 @@ banner =
     <|
         Element.el
             [ Element.centerX
+            , Element.Font.color EH.white
             ]
-            (Element.text "hi")
+            (Element.text "banner here")
 
 
 body :

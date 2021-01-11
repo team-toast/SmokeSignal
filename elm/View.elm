@@ -37,6 +37,7 @@ import Routing exposing (Route)
 import Theme exposing (theme)
 import Time
 import TokenValue exposing (TokenValue)
+import TopicUX.View as TopicUX
 import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
@@ -241,13 +242,13 @@ bodyContent model =
                                 , left = 0
                                 }
                             ]
-                            [ viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
-                            , Element.Lazy.lazy5
+                            [ Element.map HomeMsg <|
+                                Home.View.banner model.dProfile
+                            , viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
+                            , Element.Lazy.lazy3
                                 (viewPostsForTopic model.dProfile model.donateChecked model.wallet)
                                 model.publishedPosts
                                 model.blockTimes
-                                model.replies
-                                model.postUX
                                 topic
                             ]
         ]
@@ -257,16 +258,39 @@ dummyElement =
     Element.none
 
 
-viewPostAndReplies : DisplayProfile -> Bool -> Wallet -> PublishedPostsDict -> Dict Int Time.Posix -> List Reply -> Post.Published -> Maybe ( PostUXId, PostUX.Model ) -> Element Msg
+viewPostAndReplies :
+    DisplayProfile
+    -> Bool
+    -> Wallet
+    -> PublishedPostsDict
+    -> Dict Int Time.Posix
+    -> List Reply
+    -> Post.Published
+    -> Maybe ( PostUXId, PostUX.Model )
+    -> Element Msg
 viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies publishedPost postUX =
     dummyElement
 
 
+viewTopicHeader :
+    DisplayProfile
+    -> Maybe UserInfo
+    -> String
+    -> Element Msg
 viewTopicHeader dProfile maybeUserInfo topic =
-    dummyElement
+    Element.map TopicUXMsg <|
+        TopicUX.topicHeader dProfile topic
 
 
-viewPostsForTopic dprofile donateChecked wallet allPosts blockTimes replies postUX topic =
+viewPostsForTopic :
+    DisplayProfile
+    -> Bool
+    -> Wallet
+    -> PublishedPostsDict
+    -> Dict Int Time.Posix
+    -> String
+    -> Element Msg
+viewPostsForTopic dprofile donateChecked wallet allPosts blockTimes topic =
     dummyElement
 
 
