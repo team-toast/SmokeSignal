@@ -1,4 +1,4 @@
-port module State exposing (init, subscriptions, update)
+module State exposing (init, subscriptions, update)
 
 import Array exposing (Array)
 import Browser
@@ -28,7 +28,7 @@ import Json.Decode
 import Json.Encode
 import List.Extra
 import Maybe.Extra
-import MaybeDebugLog exposing (maybeDebugLog)
+import Ports exposing (connectToWeb3, consentToCookies, gTagOut, setDescription, txIn, txOut, walletSentryPort)
 import Post exposing (Post)
 import PostUX.State as PostUX
 import Random
@@ -1212,24 +1212,3 @@ subscriptions model =
         , Browser.Events.onResize Resize
         , Sub.map ComposeUXMsg ComposeUX.subscriptions
         ]
-
-
-port walletSentryPort : (Json.Decode.Value -> msg) -> Sub msg
-
-
-port connectToWeb3 : () -> Cmd msg
-
-
-port txOut : Json.Decode.Value -> Cmd msg
-
-
-port txIn : (Json.Decode.Value -> msg) -> Sub msg
-
-
-port gTagOut : Json.Decode.Value -> Cmd msg
-
-
-port consentToCookies : () -> Cmd msg
-
-
-port setDescription : String -> Cmd msg
