@@ -44,10 +44,28 @@ view :
     -> Time.Posix
     -> Wallet
     -> Maybe Model
-    -> Post.Published
+    -> PublishedPostsDict
     -> Element Msg
-view dProfile donateChecked showAddressOnPhace blockTimes now wallet maybeUXModel post =
-    Element.row
+view dProfile donateChecked showAddressOnPhace blockTimes now wallet maybeUXModel posts =
+    let
+        listOfPosts =
+            let
+                findTopic : Post.Published -> Maybe String
+                findTopic publishedPost =
+                    case publishedPost.core.metadata.context of
+                        Post.TopLevel topic ->
+                            Just topic
+
+                        Post.Reply postId ->
+                            getPublishedPostFromId posts postId
+                                |> Maybe.andThen findTopic
+            in
+            posts
+                |> Dict.values
+                |> List.concat
+                |> Dict.filter findTopic
+    in
+    Element.column
         [ Element.width Element.fill
         , Element.height <| Element.px <| 120
         , Element.Background.color theme.blockBackground
@@ -56,25 +74,20 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet maybeUXMode
         , Element.Border.rounded 5
         , Element.padding 1
         ]
-        [ mainPreviewPane
-            dProfile
-            showAddressOnPhace
-            donateChecked
-            blockTimes
-            now
-            (Wallet.unlockStatus wallet)
-            maybeUXModel
-            post
-        , publishedPostActionForm
-            dProfile
-            donateChecked
-            post
-            (maybeUXModel
-                |> Maybe.map .showInput
-                |> Maybe.withDefault None
+    <|
+        List.map
+            (\post ->
+                mainPreviewPane
+                    dProfile
+                    showAddressOnPhace
+                    donateChecked
+                    blockTimes
+                    now
+                    (Wallet.unlockStatus wallet)
+                    maybeUXModel
+                    post
             )
-            (Wallet.unlockStatus wallet)
-        ]
+            listOfPosts
 
 
 mainPreviewPane :
@@ -88,13 +101,24 @@ mainPreviewPane :
     -> Post.Published
     -> Element Msg
 mainPreviewPane dProfile showAddress donateChecked blockTimes now unlockStatus maybeUXModel post =
-    Element.column
-        [ Element.width <| Element.fillPortion 11
-        , Element.height Element.fill
-        , Element.spacing 10
-        ]
-        [ previewMetadata dProfile blockTimes now post
-        , previewBody dProfile showAddress post
+    Element.row []
+        [ Element.column
+            [ Element.width <| Element.fillPortion 11
+            , Element.height Element.fill
+            , Element.spacing 10
+            ]
+            [ previewMetadata dProfile blockTimes now post
+            , previewBody dProfile showAddress post
+            ]
+        , publishedPostActionForm
+            dProfile
+            donateChecked
+            post
+            (maybeUXModel
+                |> Maybe.map .showInput
+                |> Maybe.withDefault None
+            )
+            unlockStatus
         ]
 
 

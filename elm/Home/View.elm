@@ -361,7 +361,7 @@ topicsColumn dProfile topicSearchStr allPosts =
             in
             allPosts
                 |> Dict.values
-                |> List.concat
+                |> List.concat 
                 |> Dict.Extra.filterGroupBy findTopic
                 -- This ignores any replies that lead eventually to a postId not in 'posts'
                 |> Dict.map
