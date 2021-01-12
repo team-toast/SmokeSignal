@@ -1,71 +1,124 @@
-pragma solidity 0.6.8;
+pragma solidity ^0.6.0;
 
-// this doubles as a wrapper for the Maker medianizer contract
-abstract contract EthPriceOracle
-{
-    function read()
-        public 
-        virtual
-        view 
-        returns(bytes32);
+/**
+ * @dev Interface of the ERC20 standard as defined in the EIP. Does not include
+ * the optional functions; to access them see {ERC20Detailed}.
+ */
+interface IERC20 {
+    /**
+     * @dev Returns the amount of tokens in existence.
+     */
+    function totalSupply() external view returns (uint256);
+
+    /**
+     * @dev Returns the amount of tokens owned by `account`.
+     */
+    function balanceOf(address account) external view returns (uint256);
+
+    /**
+     * @dev Moves `amount` tokens from the caller's account to `recipient`.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transfer(address recipient, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Returns the remaining number of tokens that `spender` will be
+     * allowed to spend on behalf of `owner` through {transferFrom}. This is
+     * zero by default.
+     *
+     * This value changes when {approve} or {transferFrom} are called.
+     */
+    function allowance(address owner, address spender) external view returns (uint256);
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * IMPORTANT: Beware that changing an allowance with this method brings the risk
+     * that someone may use both the old and the new allowance by unfortunate
+     * transaction ordering. One possible solution to mitigate this race
+     * condition is to first reduce the spender's allowance to 0 and set the
+     * desired value afterwards:
+     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+     *
+     * Emits an {Approval} event.
+     */
+    function approve(address spender, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Moves `amount` tokens from `sender` to `recipient` using the
+     * allowance mechanism. `amount` is then deducted from the caller's
+     * allowance.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
+     *
+     * Note that `value` may be zero.
+     */
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    /**
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to {approve}. `value` is the new allowance.
+     */
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-struct StoredMessageData 
-{
+struct StoredMessageData {
     address firstAuthor;
-    uint nativeBurned;
-    uint dollarsBurned;
-    uint nativeTipped;
-    uint dollarsTipped;
+    uint totalBurned;
+    uint totalTipped;
 }
 
-contract SmokeSignal 
-{
-    address public fryBurner;
-    EthPriceOracle public oracle;
+contract SmokeSignal {
+    IERC20 public token;
+    address public donationAddress;
+
+    constructor(IERC20 _token, address _donationAddress) public {
+        token = _token;
+        donationAddress = _donationAddress;
+    }
+
     mapping (bytes32 => StoredMessageData) public storedMessageData;
-
-    constructor(address _fryBurner, EthPriceOracle _oracle) 
-        public 
-    {
-        fryBurner = _fryBurner;
-        oracle = _oracle;
-    }
-
-    function EthPrice() 
-        public
-        view
-        returns (uint _price)
-    {
-        return address(oracle) == address(0) ? 1 : uint(oracle.read());
-    }
 
     event MessageBurn(
         bytes32 indexed _hash,
         address indexed _from,
         uint _burnAmount,
-        string _message);
+        string _message
+    );
 
-    function burnMessage(string calldata _message, bool _burnFry)
+    function burnMessage(string calldata _message, uint _burnAmount, uint _donateAmount)
         external
-        payable
         returns(bytes32)
     {
+        internalDonateIfNonzero(_donateAmount);
+
         bytes32 hash = keccak256(abi.encode(_message));
 
-        uint burnValue = EthPrice() * msg.value;
-        internalBurnForMessageHash(hash, msg.value, burnValue, _burnFry);
+        internalBurnForMessageHash(hash, _burnAmount);
 
-        if (storedMessageData[hash].firstAuthor == address(0))
-        {
+        if (storedMessageData[hash].firstAuthor == address(0)) {
             storedMessageData[hash].firstAuthor = msg.sender;
         }
 
         emit MessageBurn(
             hash,
             msg.sender,
-            burnValue,
-            _message);
+            _burnAmount,
+            _message
+        );
 
         return hash;
     }
@@ -76,84 +129,85 @@ contract SmokeSignal
         uint _burnAmount
     );
 
-    function burnHash(bytes32 _hash, bool _burnFry)
+    function burnHash(bytes32 _hash, uint _burnAmount, uint _donateAmount)
         external
-        payable
     {
-        uint burnValue = EthPrice() * msg.value;
-        internalBurnForMessageHash(_hash, msg.value, burnValue, _burnFry);
+        internalDonateIfNonzero(_donateAmount);
+
+        internalBurnForMessageHash(_hash, _burnAmount);
 
         emit HashBurn(
             _hash,
             msg.sender,
-            burnValue);
+            _burnAmount
+        );
     }
 
     event HashTip(
         bytes32 indexed _hash,
         address indexed _from,
-        uint _tipAmount);
+        uint _tipAmount
+    );
 
-    function tipHashOrBurnIfNoAuthor(bytes32 _hash, bool _burnFry)
+    function tipHashOrBurnIfNoAuthor(bytes32 _hash, uint _amount, uint _donateAmount)
         external
-        payable
     {
-        uint burnValue = EthPrice() * msg.value;
-        
+        internalDonateIfNonzero(_donateAmount);
+
         address author = storedMessageData[_hash].firstAuthor;
-        if (author == address(0))
-        {
-            internalBurnForMessageHash(_hash, msg.value, burnValue, _burnFry);
+        if (author == address(0)) {
+            internalBurnForMessageHash(_hash, _amount);
 
             emit HashBurn(
                 _hash,
                 msg.sender,
-                burnValue);
+                _amount
+            );
         }
-        else 
-        {
-            internalTipForMessageHash(_hash, author, msg.value, burnValue);
+        else {
+            internalTipForMessageHash(_hash, author, _amount);
 
             emit HashTip(
                 _hash,
                 msg.sender,
-                burnValue);
+                _amount
+            );
         }
     }
 
-    function internalBurnForMessageHash(bytes32 _hash, uint _burnAmount, uint _burnValue, bool _burnFry)
+    function internalBurnForMessageHash(bytes32 _hash, uint _burnAmount)
         internal
     {
-        internalSend(_burnFry ? fryBurner : address(0), _burnAmount);
-        storedMessageData[_hash].nativeBurned += _burnAmount;
-        storedMessageData[_hash].dollarsBurned += _burnValue;
+        require(_burnAmount > 0, "burnAmount must be greater than 0");
+        bool burnSuccess = burnFrom(msg.sender, _burnAmount);
+        require(burnSuccess, "Burn failed");
+
+        storedMessageData[_hash].totalBurned += _burnAmount;
     }
 
-    function internalTipForMessageHash(bytes32 _hash, address author, uint _tipAmount, uint _tipValue)
+    function burnFrom(address _who, uint _burnAmount)
+        internal
+        returns(bool)
+    {
+        return token.transferFrom(_who, address(0), _burnAmount);
+    }
+
+    function internalTipForMessageHash(bytes32 _hash, address author, uint _tipAmount)
         internal
     {
-        internalSend(author, _tipAmount);
-        storedMessageData[_hash].nativeTipped += _tipAmount;
-        storedMessageData[_hash].dollarsTipped += _tipValue;
+        require(_tipAmount > 0, "tipAmount must be greater than 0");
+        bool transferSuccess = token.transferFrom(msg.sender, author, _tipAmount);
+        require(transferSuccess, "Tip transfer failed");
+
+        storedMessageData[_hash].totalTipped += _tipAmount;
     }
 
-    function internalSend(address _to, uint _wei)
+    function internalDonateIfNonzero(uint _donateAmount)
         internal
     {
-        _to.call{ value: _wei }("");
+        if (_donateAmount > 0) {
+            bool transferSuccess = token.transferFrom(msg.sender, donationAddress, _donateAmount);
+            require(transferSuccess, "Donation transfer failed");
+        }
     }
-}
-
-contract SmokeSignal_Ethereum is SmokeSignal
-{
-    constructor(address _fryBurner) SmokeSignal(_fryBurner, EthPriceOracle(0x729D19f657BD0614b4985Cf1D82531c67569197B))
-        public 
-    { }
-}
-
-contract SmokeSignal_xDai is SmokeSignal
-{
-    constructor(address _fryBurner) SmokeSignal(_fryBurner, EthPriceOracle(address(0)))
-        public 
-    { }
 }
