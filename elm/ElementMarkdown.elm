@@ -134,7 +134,7 @@ renderer =
     , tableHeaderCell =
         \maybeAlignment children ->
             Element.paragraph [] children
-    , tableCell = Element.paragraph []
+    , tableCell = \maybeAlignment -> Element.paragraph []
     }
 
 

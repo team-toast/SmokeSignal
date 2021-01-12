@@ -1,30 +1,26 @@
 module Home.View exposing (banner, view)
 
-import Common.Msg exposing (..)
-import Common.Types exposing (..)
-import Common.View exposing (..)
-import Config
+import Common.Msg exposing (MsgUp(..))
+import Common.Types exposing (PhaceIconId(..), PublishedPostsDict, ViewContext(..), getPublishedPostFromId)
+import Common.View exposing (daiSymbol, phaceElement, whiteGlowAttribute, whiteGlowAttributeSmall)
 import Dict exposing (Dict)
 import Dict.Extra
-import Element exposing (Attribute, Element)
+import Element exposing (Attribute, Element, column, el, fill, fillPortion, padding, paddingXY, row, text, width)
 import Element.Background
 import Element.Border
 import Element.Events
 import Element.Font
 import Element.Input
-import Embed.Youtube
-import Embed.Youtube.Attributes
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile(..))
 import Helpers.Time as TimeHelpers
-import Helpers.Tuple as TupleHelpers
-import Home.Types exposing (..)
-import Html.Attributes exposing (list)
+import Home.Types exposing (Model, Msg(..))
+import Html.Attributes
 import Maybe.Extra
-import Post exposing (Post)
+import Post
 import PostUX.Preview as PostPreview
 import PostUX.Types as PostUX
-import Routing exposing (Route)
+import Routing
 import Theme exposing (almostWhite, theme)
 import Time
 import TokenValue exposing (TokenValue)
@@ -45,9 +41,9 @@ view :
 view dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts model =
     case dProfile of
         Desktop ->
-            Element.column
+            column
                 ([ Element.centerX
-                 , Element.width <| Element.px 1000
+                 , width <| Element.px 1000
                  , Element.spacing majorSpacing
                  ]
                     ++ (List.map Element.inFront <|
@@ -56,9 +52,9 @@ view dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
                                 model.showNewToSmokeSignalModal
                        )
                 )
-                [ Element.el
-                    [ Element.width Element.fill
-                    , Element.paddingXY 10 0
+                [ el
+                    [ width fill
+                    , paddingXY 10 0
                     ]
                   <|
                     banner
@@ -67,7 +63,7 @@ view dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
                 ]
 
         Mobile ->
-            Debug.todo ""
+            text "mobile view"
 
 
 viewModals :
@@ -95,13 +91,13 @@ viewNewToSmokeSignalModal :
     DisplayProfile
     -> Element Msg
 viewNewToSmokeSignalModal dProfile =
-    Element.column
+    column
         [ whiteGlowAttribute
         , Element.Border.rounded 10
         , Element.Font.color EH.white
-        , Element.width Element.fill
+        , width fill
         , Element.Background.color <| Element.rgba 0 0 0 0.85
-        , Element.padding 50
+        , padding 50
         , Element.spacing 30
         ]
         [ Element.text "Welcome to" |> rowElement dProfile []
@@ -110,7 +106,7 @@ viewNewToSmokeSignalModal dProfile =
             []
           <|
             Element.image
-                [ Element.width <| Element.px 200
+                [ width <| Element.px 200
                 ]
                 { src = "img/smokesignal-logo-vertical.svg"
                 , description =
@@ -125,7 +121,7 @@ viewNewToSmokeSignalModal dProfile =
             dProfile
             []
           <|
-            Element.el
+            el
                 [ Element.Font.color Theme.orange, Element.Font.size 28, Element.Font.bold ]
             <|
                 Element.text "No Usernames. No Moderators. No censorship. No Deplatforming."
@@ -138,7 +134,7 @@ viewNewToSmokeSignalModal dProfile =
             dProfile
             []
           <|
-            Element.column
+            column
                 [ Element.spacing 5 ]
                 [ rowElement dProfile [] <| Element.text "All SmokeSignal posts are permanent and impossible to delete, and can be"
                 , rowElement dProfile [] <| Element.text "accessed with any browser via an IPFS Gateway (example)"
@@ -148,7 +144,7 @@ viewNewToSmokeSignalModal dProfile =
             dProfile
             []
           <|
-            Element.column
+            column
                 [ Element.spacing 5 ]
                 [ rowElement dProfile [] <| Element.text "If the above two methods prove unreliable, some browsers also support direct"
                 , rowElement dProfile [] <| Element.text "smokesignal.eth links (example) or direct IPFS links (example)."
@@ -157,7 +153,7 @@ viewNewToSmokeSignalModal dProfile =
             dProfile
             []
           <|
-            Element.el
+            el
                 [ Element.Font.color Theme.orange
                 , Element.Font.semiBold
                 ]
@@ -173,8 +169,8 @@ rowElement :
     -> Element Msg
     -> Element Msg
 rowElement dProfile attributes element =
-    Element.row
-        ([ Element.height Element.fill
+    row
+        ([ Element.height fill
          , Element.centerX
          ]
             ++ attributes
@@ -186,18 +182,17 @@ banner :
     DisplayProfile
     -> Element Msg
 banner dProfile =
-    Element.el
-        [ Element.width Element.fill
-        , Element.height <| Element.px 200
-        , Element.Background.color EH.black
-        , whiteGlowAttribute
+    el
+        [ Element.centerX
+        , Element.Font.color EH.white
         ]
-    <|
-        Element.el
-            [ Element.centerX
-            , Element.Font.color EH.white
+        (Element.text "banner here")
+        |> el
+            [ width fill
+            , Element.height <| Element.px 200
+            , Element.Background.color EH.black
+            , whiteGlowAttribute
             ]
-            (Element.text "banner here")
 
 
 body :
@@ -212,63 +207,64 @@ body :
     -> Model
     -> Element Msg
 body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts model =
-    Element.row
-        [ Element.width Element.fill
-        , Element.spacing majorSpacing
+    let
+        xs =
+            Dict.values posts
+                |> List.concat
+                |> List.take 3
+
+        maybeShowAddressForPostId =
+            case showAddressId of
+                Just (PhaceForPublishedPost id) ->
+                    Just id
+
+                _ ->
+                    Nothing
+    in
+    [ column
+        [ Element.spacing majorSpacing
+        , Element.alignTop
+        , Element.htmlAttribute (Html.Attributes.style "flex-shrink" "1")
+        , width <| fillPortion 2
+        , padding 10
         ]
-        [ Element.column
-            [ Element.spacing majorSpacing
-            , Element.alignTop
-            , Element.htmlAttribute (Html.Attributes.style "flex-shrink" "1")
-            , Element.clip
-            , Element.width <| Element.fillPortion 2
-            , Element.padding 10
+        [ orangeBannerEl
+            dProfile
+            [ Element.pointer
+            , Element.Events.onClick ShowNewToSmokeSignalModal
+            ]
+            40
+            20
+            "NEW TO SMOKESIGNAL?"
+        , column
+            [ width fill
+            , Element.spacing 3
             ]
             [ orangeBannerEl
                 dProfile
-                [ Element.pointer
-                , Element.Events.onClick ShowNewToSmokeSignalModal
-                ]
-                40
+                []
                 20
-                "NEW TO SMOKESIGNAL?"
-            , Element.column
-                [ Element.width Element.fill
-                , Element.spacing 3
-                ]
-                [ orangeBannerEl
-                    dProfile
-                    []
-                    20
-                    10
-                    "RECENT POSTS..."
-                , Element.column
-                    [ Element.width Element.fill
-                    , Element.clipX
-                    ]
-                    [ let
-                        maybeShowAddressForPostId =
-                            case showAddressId of
-                                Just (PhaceForPublishedPost id) ->
-                                    Just id
-
-                                _ ->
-                                    Nothing
-                      in
-                      mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet posts
-                    ]
-                ]
-            ]
-        , Element.column
-            [ Element.width <| Element.fillPortion 1
-            , Element.alignTop
-            , Element.padding 10
-            , Element.spacing 20
-            ]
-            [ walletUXPane dProfile showAddressId demoPhaceSrc wallet
-            , topicsUX dProfile model.topicSearchInput posts
+                10
+                "RECENT POSTS..."
+            , postFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet xs
             ]
         ]
+    , column
+        [ width <| fillPortion 1
+        , Element.alignTop
+        , padding 10
+        , Element.spacing 20
+        ]
+        [ walletUXPane dProfile showAddressId demoPhaceSrc wallet
+        , topicsUX dProfile model.topicSearchInput posts
+        ]
+    ]
+        |> row
+            [ fill
+                |> Element.maximum 1000
+                |> width
+            , Element.spacing majorSpacing
+            ]
 
 
 orangeBannerEl :
@@ -278,10 +274,10 @@ orangeBannerEl :
     -> Int
     -> String
     -> Element Msg
-orangeBannerEl dProfile attributes fontSize padding bannerText =
-    Element.el
-        ([ Element.width Element.fill
-         , Element.padding padding
+orangeBannerEl dProfile attributes fontSize paddingVal bannerText =
+    el
+        ([ width fill
+         , padding paddingVal
          , Element.Font.size fontSize
          , Element.Background.color Theme.orange
          , Element.Font.semiBold
@@ -301,10 +297,10 @@ topicsUX :
     -> PublishedPostsDict
     -> Element Msg
 topicsUX dProfile topicsSearchInput posts =
-    Element.column
+    column
         [ Element.spacing 10
         , Element.centerX
-        , Element.width (Element.fill |> Element.minimum 400)
+        , width (fill |> Element.minimum 400)
         ]
         [ orangeBannerEl
             dProfile
@@ -312,13 +308,13 @@ topicsUX dProfile topicsSearchInput posts =
             26
             12
             "TOPICS"
-        , Element.column
-            [ Element.width Element.fill
+        , column
+            [ width fill
             , Element.alignTop
             , Element.spacing 1
             ]
             [ Element.Input.text
-                [ Element.width Element.fill
+                [ width fill
                 , Element.Background.color EH.black
                 , Element.Border.color Theme.almostWhite
                 , whiteGlowAttributeSmall
@@ -369,7 +365,7 @@ topicsColumn dProfile topicSearchStr allPosts =
                 |> Dict.Extra.filterGroupBy findTopic
                 -- This ignores any replies that lead eventually to a postId not in 'posts'
                 |> Dict.map
-                    (\topic posts ->
+                    (\_ posts ->
                         ( List.foldl
                             (\thisPost ( accBurn, accTip ) ->
                                 case thisPost.maybeAccounting of
@@ -406,10 +402,10 @@ topicsColumn dProfile topicSearchStr allPosts =
 
         commonElStyles =
             [ Element.spacing 5
-            , Element.padding 5
+            , padding 5
             , Element.Border.width 1
             , Element.Border.color Theme.almostWhite
-            , Element.width Element.fill
+            , width fill
             , Element.pointer
             , Element.height <| Element.px 40
             , whiteGlowAttributeSmall
@@ -421,7 +417,7 @@ topicsColumn dProfile topicSearchStr allPosts =
             filteredTalliedTopics
                 |> List.map
                     (\( topic, ( ( totalBurned, totalTipped ), count ) ) ->
-                        Element.row
+                        row
                             (commonElStyles
                                 ++ [ Element.Events.onClick <|
                                         GotoRoute <|
@@ -429,11 +425,11 @@ topicsColumn dProfile topicSearchStr allPosts =
                                                 Topic topic
                                    ]
                             )
-                            [ Element.el
-                                [ Element.width <| Element.px 100 ]
+                            [ el
+                                [ width <| Element.px 100 ]
                               <|
-                                Element.row
-                                    [ Element.padding 5
+                                row
+                                    [ padding 5
                                     , Element.spacing 3
                                     , Element.Border.rounded 5
                                     , Element.Background.color theme.daiBurnedBackground
@@ -456,19 +452,18 @@ topicsColumn dProfile topicSearchStr allPosts =
                                                )
                                         )
                                     ]
-                            , Element.el
-                                [ Element.width Element.fill
-                                , Element.height Element.fill
-                                , Element.clip
+                            , el
+                                [ width fill
+                                , Element.height fill
                                 ]
                               <|
-                                Element.el
+                                el
                                     [ Element.centerY
                                     , Element.Font.color EH.white
                                     ]
                                 <|
                                     Element.text topic
-                            , Element.el
+                            , el
                                 [ Element.alignRight
                                 , Element.Font.color EH.white
                                 ]
@@ -485,21 +480,20 @@ topicsColumn dProfile topicSearchStr allPosts =
         maybeCreateTopicEl =
             if topicSearchStr /= "" && not exactTopicFound then
                 Just <|
-                    Element.el
+                    el
                         (commonElStyles
-                            ++ [ Element.clipX
-                               , Element.Events.onClick <|
+                            ++ [ Element.Events.onClick <|
                                     GotoRoute <|
                                         Routing.Compose <|
                                             Post.TopLevel topicSearchStr
                                ]
                         )
                     <|
-                        Element.row
+                        row
                             [ Element.centerY
                             ]
                             [ Element.text "Start new topic "
-                            , Element.el
+                            , el
                                 [ Element.Font.italic
                                 , Element.Font.bold
                                 ]
@@ -511,15 +505,15 @@ topicsColumn dProfile topicSearchStr allPosts =
                 Nothing
     in
     Element.map MsgUp <|
-        Element.column
+        column
             [ Element.Border.roundEach
                 { topRight = 0
                 , topLeft = 0
                 , bottomRight = 5
                 , bottomLeft = 5
                 }
-            , Element.width (Element.fill |> Element.maximum 530)
-            , Element.padding 5
+            , width (fill |> Element.maximum 530)
+            , padding 5
             , Element.spacing 5
             , Element.Background.color EH.black
             ]
@@ -528,40 +522,6 @@ topicsColumn dProfile topicSearchStr allPosts =
              )
                 ++ topicEls
             )
-
-
-mainPostFeed :
-    DisplayProfile
-    -> Bool
-    -> Dict Int Time.Posix
-    -> Time.Posix
-    -> Maybe Post.Id
-    -> Wallet
-    -> PublishedPostsDict
-    -> Element Msg
-mainPostFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet posts =
-    Element.row
-        [ Element.width Element.fill
-        , Element.spacing majorSpacing
-        , Element.clip
-        , Element.htmlAttribute (Html.Attributes.style "flex-shrink" "1")
-        ]
-        [ Element.column
-            [ Element.width Element.fill
-            , Element.height Element.fill
-            , Element.clip
-            ]
-          <|
-            [ postFeed
-                dProfile
-                donateChecked
-                blockTimes
-                now
-                maybeShowAddressForPostId
-                wallet
-                (Dict.values posts |> List.concat)
-            ]
-        ]
 
 
 walletUXPane :
@@ -575,7 +535,7 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
         phaceEl =
             case Wallet.userInfo wallet of
                 Nothing ->
-                    Element.el
+                    el
                         [ Element.Border.rounded 10
                         , Element.Border.glow
                             (Element.rgba 1 0 1 0.3)
@@ -591,20 +551,19 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
                             NoOp
 
                 Just userInfo ->
-                    Element.el
-                        [ Element.Border.rounded 10
-                        , Element.Border.glow
-                            (Element.rgba 0 0.5 1 0.4)
-                            9
-                        ]
-                    <|
-                        phaceElement
-                            ( 100, 100 )
-                            True
-                            userInfo.address
-                            (showAddressId == Just UserPhace)
-                            (ShowOrHideAddress UserPhace)
-                            NoOp
+                    phaceElement
+                        ( 100, 100 )
+                        True
+                        userInfo.address
+                        (showAddressId == Just UserPhace)
+                        (ShowOrHideAddress UserPhace)
+                        NoOp
+                        |> el
+                            [ Element.Border.rounded 10
+                            , Element.Border.glow
+                                (Element.rgba 0 0.5 1 0.4)
+                                9
+                            ]
 
         ( buttonText, maybeButtonAction, maybeExplainerText ) =
             case wallet of
@@ -642,8 +601,8 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
         button =
             let
                 attributes =
-                    [ Element.paddingXY 10 5
-                    , Element.width Element.fill
+                    [ paddingXY 10 5
+                    , width fill
                     ]
                         ++ (case maybeExplainerText of
                                 Nothing ->
@@ -681,15 +640,15 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
                 |> Maybe.withDefault Element.none
     in
     Element.map MsgUp <|
-        Element.row
-            [ Element.width Element.fill
+        row
+            [ width fill
             , Element.spacing 10
             ]
             [ phaceEl
-            , Element.column
-                [ Element.width Element.fill
+            , column
+                [ width fill
                 , Element.spacing 15
-                , Element.height Element.fill
+                , Element.height fill
                 ]
                 [ button
                 , explainerParagraphOrNone
@@ -697,120 +656,9 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
             ]
 
 
-
--- stuff =
---     case walletUXPhaceInfo of
---         DemoPhaceInfo demoAddress ->
---             Element.el
---                 [ Element.pointer
---                 , Element.Border.rounded 10
---                 , Element.Border.glow
---                     (Element.rgba 1 0 1 0.3)
---                     9
---                 ]
---             <|
---                 phaceElement
---                     ( 100, 100 )
---                     True
---                     (Eth.Utils.unsafeToAddress demoAddress)
---                     False
---                     (ShowOrHideAddress DemoPhace)
---                     NoOp
--- UserPhaceInfo ( accountInfo, showAddress ) ->
---     Element.el
---         [ Element.Border.rounded 10
---         , Element.Border.glow
---             (Element.rgba 0 0.5 1 0.4)
---             9
---         ]
---     <|
---         phaceElement
---             ( 100, 100 )
---             True
---             accountInfo.address
---             showAddress
---             (ShowOrHideAddress UserPhace)
---             NoOp
--- Element.el
---     [ Element.width Element.fill
---     , Element.height Element.fill
---     , responsiveVal dProfile
---         (Element.paddingXY 40 40)
---         (Element.paddingXY 10 20)
---     , Element.Font.color theme.emphasizedTextColor
---     ]
--- <|
---     Element.column
---         [ Element.width (Element.fill |> Element.maximum 1100)
---         , Element.centerX
---         , Element.spacing (responsiveVal dProfile 50 30)
---         ]
---     <|
---         case dProfile of
---             Desktop ->
---                 [ boldProclamationEl dProfile
---                 , Element.row
---                     [ Element.width Element.fill
---                     , Element.spacing 40
---                     , Element.clip
---                     , Element.htmlAttribute (Html.Attributes.style "flex-shrink" "1")
---                     ]
---                     [ Element.column
---                         [ Element.width Element.fill
---                         , Element.height Element.fill
---                         , Element.clip
---                         ]
---                       <|
---                         [ postFeed
---                             dProfile
---                             donateChecked
---                             blockTimes
---                             now
---                             maybeShowAddressForPostId
---                             (Dict.values posts |> List.concat)
---                         ]
---                     ]
---                 ]
---             Mobile ->
---                 Debug.todo ""
-
-
 majorSpacing : Int
 majorSpacing =
     20
-
-
-
--- [ boldProclamationEl dProfile
--- , tutorialVideo dProfile
--- , conversationAlreadyStartedEl dProfile
--- , case walletUXPhaceInfo of
---     DemoPhaceInfo _ ->
---         web3ConnectButton
---             dProfile
---             [ Element.width Element.fill ]
---             MsgUp
---     _ ->
---         Element.column
---             [ Element.width Element.fill
---             , Element.spacing 10
---             ]
---             [ theme.greenActionButton
---                 dProfile
---                 [ Element.width Element.fill ]
---                 [ "Create a New Post" ]
---                 (MsgUp <|
---                     GotoRoute <|
---                         Routing.Compose <|
---                             Post.TopLevel Post.defaultTopic
---                 )
---             ]
---, infoBlock dProfile
---, conversationAlreadyStartedEl dProfile
--- , topicsBlock dProfile posts
--- , topicsExplainerEl dProfile
---, composeActionBlock dProfile walletUXPhaceInfo
--- ]
 
 
 postFeed :
@@ -823,20 +671,11 @@ postFeed :
     -> List Post.Published
     -> Element Msg
 postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet listOfPosts =
-    let
-        posts =
-            List.sortBy (feedSortByFunc blockTimes now)
-                listOfPosts
-                |> List.reverse
-                |> List.take 10
-    in
-    Element.column
-        [ Element.width Element.fill
-        , Element.spacingXY 0 5
-        , Element.paddingXY 0 5
-        ]
-    <|
-        List.map
+    listOfPosts
+        |> List.sortBy (feedSortByFunc blockTimes now)
+        |> List.reverse
+        |> List.take 10
+        |> List.map
             (previewPost
                 dProfile
                 donateChecked
@@ -846,7 +685,11 @@ postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet list
                 wallet
                 Nothing
             )
-            posts
+        |> column
+            [ width fill
+            , Element.spacingXY 0 5
+            , paddingXY 0 5
+            ]
 
 
 feedSortByFunc :
@@ -864,7 +707,8 @@ feedSortByFunc blockTimes now =
             age =
                 TimeHelpers.sub now postTimeDefaultZero
 
-            ageFactor =
+            --ageFactor =
+            _ =
                 -- 1 at age zero, falls to 0 when 3 days old
                 TimeHelpers.getRatio
                     age
@@ -905,42 +749,3 @@ previewPost dProfile donateChecked blockTimes now maybeShowAddressForId wallet m
             wallet
             maybePostUXModel
             post
-
-
-
--- homeWalletUX : EH.DisplayProfile -> WalletUXPhaceInfo -> Element Msg
--- homeWalletUX dProfile walletUXPhaceInfo =
---     Element.map MsgUp <|
---         case walletUXPhaceInfo of
---             DemoPhaceInfo demoAddress ->
---                 Element.el
---                     [ Element.pointer
---                     , Element.Events.onClick <| ConnectToWeb3
---                     , Element.Border.rounded 10
---                     , Element.Border.glow
---                         (Element.rgba 1 0 1 0.3)
---                         9
---                     ]
---                 <|
---                     phaceElement
---                         ( 100, 100 )
---                         True
---                         (Eth.Utils.unsafeToAddress demoAddress)
---                         False
---                         (ShowOrHideAddress MorphingPhace)
---                         NoOp
---             UserPhaceInfo ( accountInfo, showAddress ) ->
---                 Element.el
---                     [ Element.Border.rounded 10
---                     , Element.Border.glow
---                         (Element.rgba 0 0.5 1 0.4)
---                         9
---                     ]
---                 <|
---                     phaceElement
---                         ( 100, 100 )
---                         True
---                         accountInfo.address
---                         showAddress
---                         (ShowOrHideAddress UserPhace)
---                         NoOp

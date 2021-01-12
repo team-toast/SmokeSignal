@@ -13,9 +13,9 @@ module Contracts.Generated.ERC20 exposing
     , transferFrom
     )
 
+import BigInt exposing (BigInt)
 import Eth.Abi.Decode as D exposing (abiDecode, andMap, data, toElmDecoder, topic)
 import Eth.Abi.Encode as E exposing (Encoding(..), abiEncode)
-import BigInt exposing (BigInt)
 import Eth.Types exposing (..)
 import Eth.Utils as U
 import Json.Decode as Decode exposing (Decoder, succeed)
@@ -45,6 +45,7 @@ allowance contractAddress owner_ spender_ =
     }
 
 
+
 -- approve(address,uint256) function
 
 
@@ -59,6 +60,7 @@ approve contractAddress spender_ amount_ =
     , nonce = Nothing
     , decoder = toElmDecoder D.bool
     }
+
 
 
 -- balanceOf(address) function
@@ -77,6 +79,7 @@ balanceOf contractAddress account_ =
     }
 
 
+
 -- totalSupply() function
 
 
@@ -91,6 +94,7 @@ totalSupply contractAddress =
     , nonce = Nothing
     , decoder = toElmDecoder D.uint
     }
+
 
 
 -- transfer(address,uint256) function
@@ -109,6 +113,7 @@ transfer contractAddress recipient_ amount_ =
     }
 
 
+
 -- transferFrom(address,address,uint256) function
 
 
@@ -125,6 +130,7 @@ transferFrom contractAddress sender_ recipient_ amount_ =
     }
 
 
+
 -- Approval(address,address,uint256) event
 
 
@@ -136,11 +142,11 @@ type alias Approval =
 
 
 approvalEvent : Address -> Maybe Address -> Maybe Address -> LogFilter
-approvalEvent contractAddress owner_ spender_ = 
+approvalEvent contractAddress owner_ spender_ =
     { fromBlock = LatestBlock
     , toBlock = LatestBlock
     , address = contractAddress
-    , topics = 
+    , topics =
         [ Just <| U.unsafeToHex "8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925"
         , Maybe.map (abiEncode << E.address) owner_
         , Maybe.map (abiEncode << E.address) spender_
@@ -149,11 +155,12 @@ approvalEvent contractAddress owner_ spender_ =
 
 
 approvalDecoder : Decoder Approval
-approvalDecoder = 
+approvalDecoder =
     Decode.succeed Approval
         |> custom (topic 1 D.address)
         |> custom (topic 2 D.address)
         |> custom (data 0 D.uint)
+
 
 
 -- Transfer(address,address,uint256) event
@@ -167,11 +174,11 @@ type alias Transfer =
 
 
 transferEvent : Address -> Maybe Address -> Maybe Address -> LogFilter
-transferEvent contractAddress from_ to_ = 
+transferEvent contractAddress from_ to_ =
     { fromBlock = LatestBlock
     , toBlock = LatestBlock
     , address = contractAddress
-    , topics = 
+    , topics =
         [ Just <| U.unsafeToHex "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
         , Maybe.map (abiEncode << E.address) from_
         , Maybe.map (abiEncode << E.address) to_
@@ -180,10 +187,8 @@ transferEvent contractAddress from_ to_ =
 
 
 transferDecoder : Decoder Transfer
-transferDecoder = 
+transferDecoder =
     Decode.succeed Transfer
         |> custom (topic 1 D.address)
         |> custom (topic 2 D.address)
         |> custom (data 0 D.uint)
-
-

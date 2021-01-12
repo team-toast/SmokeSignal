@@ -58,10 +58,12 @@ withUnlockStatus status wallet =
         _ ->
             wallet
 
+
 unlockStatus : Wallet -> UnlockStatus
 unlockStatus wallet =
     case wallet of
         Active uInfo ->
             uInfo.unlockStatus
+
         _ ->
             NotConnected
