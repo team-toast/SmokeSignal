@@ -8,17 +8,17 @@ import ComposeUX.Types as ComposeUX
 import ComposeUX.View as ComposeUX
 import Dict exposing (Dict)
 import Dict.Extra
-import Element exposing (Attribute, Element)
-import Element.Background
+import Element exposing (Attribute, Element, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
+import Element.Background as Background
 import Element.Border
 import Element.Events
-import Element.Font
-import Element.Input
+import Element.Font as Font
+import Element.Input as Input
 import Element.Lazy
 import ElementMarkdown
 import Eth.Types exposing (Address, Hex, TxHash)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Helpers.Time as TimeHelpers
@@ -28,7 +28,6 @@ import Html.Attributes
 import Json.Decode
 import List.Extra
 import Maybe.Extra
-import MaybeDebugLog exposing (maybeDebugLog)
 import Phace
 import Post exposing (Post)
 import PostUX.Types as PostUX
@@ -71,39 +70,67 @@ root model =
     }
 
 
-header :
-    Wallet
-    -> String
-    -> Element Msg
+header : Wallet -> String -> Element Msg
 header wallet searchInput =
-    Element.el
-        [ Element.width Element.fill
-        , Element.height <| Element.px 80
-        , Element.Background.color EH.black
-        , EH.moveToFront
-        , whiteGlowAttribute
-        , Element.paddingXY 0 15
+    [ Element.image
+        [ height <| px 50
         ]
-    <|
-        Element.row
-            [ Element.paddingXY 100 0
-            , Element.Font.color Theme.orange
+        { src = "img/smokesignal-logo-horizontal.svg"
+        , description = "smokesignal logo"
+        }
+    , Input.text
+        [ fill |> Element.maximum 350 |> width
+        , Background.color black
+        ]
+        { onChange = always ClickHappened
+        , label = Input.labelHidden ""
+        , placeholder =
+            "Search . . ."
+                |> text
+                |> Input.placeholder []
+                |> Just
+        , text = searchInput
+        }
+    , [ Element.image
+            [ height <| px 50
             ]
-            [ Element.image
-                [ Element.height <| Element.px 50
-                ]
-                { src = "img/smokesignal-logo-horizontal.svg"
-                , description = "smokesignal logo"
-                }
-            , Element.row
-                [ Element.height Element.fill
-                , Element.width <| Element.px 0
-                , Element.Border.glow
-                    (Element.rgba 1 1 1 0.4)
-                    40
-                , Element.moveLeft 50
-                ]
-                []
+            { src = "/img/share.svg"
+            , description = ""
+            }
+      , Element.image
+            [ height <| px 50
+            ]
+            { src = "/img/info.svg"
+            , description = ""
+            }
+      , Element.image
+            [ height <| px 50
+            ]
+            { src = "/img/foundry-icon.svg"
+            , description = ""
+            }
+      , "Login"
+            |> text
+            |> el []
+      , "Sign Up"
+            |> text
+            |> el []
+      ]
+        |> row [ width fill, spaceEvenly ]
+    ]
+        |> row
+            [ Font.color Theme.orange
+            , width fill
+            , Element.centerY
+            , spacing 50
+            ]
+        |> el
+            [ width fill
+            , paddingXY 100 0
+            , height <| px 80
+            , Background.color EH.black
+            , whiteGlowAttribute
+            , EH.moveToFront
             ]
 
 
@@ -112,7 +139,7 @@ footer =
     Element.el
         [ Element.width Element.fill
         , Element.height <| Element.px 80
-        , Element.Background.color EH.black
+        , Background.color EH.black
         , Element.alignBottom
         , EH.moveToFront
         , whiteGlowAttribute
@@ -121,7 +148,7 @@ footer =
     <|
         Element.row
             [ Element.spacingXY 150 0
-            , Element.Font.color Theme.orange
+            , Font.color Theme.orange
             , Element.centerX
             ]
             [ Element.image
@@ -304,8 +331,9 @@ modals :
 modals model =
     Maybe.Extra.values
         ([ if model.mode /= Compose && model.showHalfComposeUX then
-            Just <|
-                viewHalfComposeUX model
+            --Just <|
+            --viewHalfComposeUX model
+            Nothing
 
            else
             Nothing
@@ -350,9 +378,11 @@ modals model =
 
            else
             Nothing
-         , maybeViewDraftModal model
+
+         --, maybeViewDraftModal model
          , if not model.cookieConsentGranted then
-            Just <| viewCookieConsentModal model.dProfile
+            --Just <| viewCookieConsentModal model.dProfile
+            Nothing
 
            else
             Nothing
@@ -363,18 +393,6 @@ modals model =
                     model.userNotices
                 )
         )
-
-
-viewHalfComposeUX =
-    Debug.todo ""
-
-
-maybeViewDraftModal =
-    Debug.todo ""
-
-
-viewCookieConsentModal =
-    Debug.todo ""
 
 
 maybeTxTracker : DisplayProfile -> Bool -> List TrackedTx -> Maybe (Element Msg)
@@ -414,7 +432,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                         (Maybe.map
                             (\n ->
                                 Element.el
-                                    [ Element.Font.color <| trackedTxStatusToColor Mining ]
+                                    [ Font.color <| trackedTxStatusToColor Mining ]
                                 <|
                                     Element.text <|
                                         String.fromInt n
@@ -424,7 +442,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                         (Maybe.map
                             (\n ->
                                 Element.el
-                                    [ Element.Font.color <| trackedTxStatusToColor <| Mined Nothing ]
+                                    [ Font.color <| trackedTxStatusToColor <| Mined Nothing ]
                                 <|
                                     Element.text <|
                                         String.fromInt n
@@ -434,7 +452,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                         (Maybe.map
                             (\n ->
                                 Element.el
-                                    [ Element.Font.color <| trackedTxStatusToColor (Failed MinedButExecutionFailed) ]
+                                    [ Font.color <| trackedTxStatusToColor (Failed MinedButExecutionFailed) ]
                                 <|
                                     Element.text <|
                                         String.fromInt n
@@ -464,10 +482,10 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                 <|
                     Element.column
                         [ Element.Border.rounded 5
-                        , Element.Background.color <| Element.rgb 0.2 0.2 0.2
+                        , Background.color <| Element.rgb 0.2 0.2 0.2
                         , Element.padding (responsiveVal dProfile 10 5)
                         , Element.spacing (responsiveVal dProfile 10 5)
-                        , Element.Font.size (responsiveVal dProfile 20 12)
+                        , Font.size (responsiveVal dProfile 20 12)
                         , Element.pointer
                         , EH.onClickNoPropagation <|
                             if showExpanded then
@@ -486,7 +504,7 @@ trackedTxsColumn :
     -> Element Msg
 trackedTxsColumn trackedTxs =
     Element.column
-        [ Element.Background.color <| Theme.lightBlue
+        [ Background.color <| Theme.lightBlue
         , Element.Border.rounded 3
         , Element.Border.glow
             (Element.rgba 0 0 0 0.2)
@@ -508,8 +526,8 @@ viewTrackedTxRow trackedTx =
     let
         etherscanLink label =
             Element.newTabLink
-                [ Element.Font.italic
-                , Element.Font.color theme.linkTextColor
+                [ Font.italic
+                , Font.color theme.linkTextColor
                 ]
                 { url = EthHelpers.etherscanTxUrl trackedTx.txHash
                 , label = Element.text label
@@ -525,7 +543,7 @@ viewTrackedTxRow trackedTx =
                         []
                         [ Element.text "Tip "
                         , Element.el
-                            [ Element.Font.color theme.linkTextColor
+                            [ Font.color theme.linkTextColor
                             , Element.pointer
                             , Element.Events.onClick <|
                                 MsgUp <|
@@ -541,7 +559,7 @@ viewTrackedTxRow trackedTx =
                         []
                         [ Element.text "Burn for "
                         , Element.el
-                            [ Element.Font.color theme.linkTextColor
+                            [ Font.color theme.linkTextColor
                             , Element.pointer
                             , Element.Events.onClick <|
                                 MsgUp <|
@@ -561,7 +579,7 @@ viewTrackedTxRow trackedTx =
                         ]
                         [ Element.text "Post"
                         , Element.el
-                            [ Element.Font.color theme.linkTextColor
+                            [ Font.color theme.linkTextColor
                             , Element.pointer
                             , Element.Events.onClick <| ViewDraft <| Just draft
                             ]
@@ -584,7 +602,7 @@ viewTrackedTxRow trackedTx =
                             case maybePostId of
                                 Just postId ->
                                     Element.el
-                                        [ Element.Font.color theme.linkTextColor
+                                        [ Font.color theme.linkTextColor
                                         , Element.pointer
                                         , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.ViewContext <| Post postId
                                         ]
@@ -598,7 +616,7 @@ viewTrackedTxRow trackedTx =
     in
     Element.row
         [ Element.width <| Element.px 250
-        , Element.Background.color
+        , Background.color
             (trackedTxStatusToColor trackedTx.status
                 |> EH.withAlpha 0.3
             )
@@ -607,7 +625,7 @@ viewTrackedTxRow trackedTx =
         , Element.Border.color <| Element.rgba 0 0 0 0.3
         , Element.padding 4
         , Element.spacing 4
-        , Element.Font.size 20
+        , Font.size 20
         ]
         [ titleEl
         , Element.el [ Element.alignRight ] <| statusEl
@@ -645,7 +663,7 @@ userNoticeEls dProfile notices =
             , Element.alignRight
             , Element.alignBottom
             , Element.width <| Element.px (EH.responsiveVal dProfile 300 150)
-            , Element.Font.size (EH.responsiveVal dProfile 15 10)
+            , Font.size (EH.responsiveVal dProfile 15 10)
             ]
             (notices
                 |> List.indexedMap (\id notice -> ( id, notice ))
@@ -659,7 +677,7 @@ userNoticeEls dProfile notices =
             , Element.alignLeft
             , Element.alignTop
             , Element.width <| Element.px (EH.responsiveVal dProfile 300 150)
-            , Element.Font.size (EH.responsiveVal dProfile 15 10)
+            , Font.size (EH.responsiveVal dProfile 15 10)
             ]
             (notices
                 |> List.indexedMap (\id notice -> ( id, notice ))
@@ -707,7 +725,7 @@ userNotice dProfile ( id, notice ) =
                 (DismissNotice id)
     in
     Element.el
-        [ Element.Background.color color
+        [ Background.color color
         , Element.Border.rounded (EH.responsiveVal dProfile 10 5)
         , Element.padding (EH.responsiveVal dProfile 8 3)
         , Element.width Element.fill
@@ -722,7 +740,7 @@ userNotice dProfile ( id, notice ) =
                 (\pNum paragraphLines ->
                     Element.paragraph
                         [ Element.width Element.fill
-                        , Element.Font.color textColor
+                        , Font.color textColor
                         , Element.spacing 1
                         ]
                         (if pNum == 0 then
