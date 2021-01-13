@@ -6,7 +6,7 @@ import Common.Types exposing (..)
 import Common.View exposing (daiAmountInput, daiSymbol, unlockUXOr, whiteGlowAttribute)
 import Dict exposing (Dict)
 import Dict.Extra
-import Element exposing (Attribute, Element, column, el, fill, height, padding, px, row, spacing, text, width)
+import Element exposing (Attribute, Element, alignRight, alignTop, column, el, fill, fillPortion, height, padding, px, row, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Events
@@ -104,7 +104,7 @@ mainPreviewPane :
 mainPreviewPane dProfile showAddress donateChecked blockTimes now unlockStatus inputState post =
     row []
         [ column
-            [ width <| Element.fillPortion 11
+            [ width <| fillPortion 11
             , height fill
             , spacing 10
             ]
@@ -206,17 +206,17 @@ viewContext :
     -> Post.Context
     -> Element Msg
 viewContext dProfile context =
-    el
-        [ width fill
-        , Element.Font.color almostWhite
-        ]
-    <|
-        case context of
-            Post.Reply id ->
-                text "reply"
+    (case context of
+        Post.Reply id ->
+            text "reply"
 
-            Post.TopLevel topic ->
-                text <| "#" ++ topic
+        Post.TopLevel topic ->
+            text <| "#" ++ topic
+    )
+        |> el
+            [ width fill
+            , Element.Font.color almostWhite
+            ]
 
 
 viewTiming :
@@ -238,17 +238,16 @@ viewTiming dProfile blockTimes now id =
                         TimeHelpers.sub now postTime
                     )
     in
-    el
-        [ width <| px 100
-        , Element.Font.color theme.subtleTextColor
-        ]
-    <|
-        text
-            (maybeTimePassed
-                |> Maybe.map TimeHelpers.roundToSingleUnit
-                |> Maybe.map (\s -> s ++ " ago")
-                |> Maybe.withDefault "..."
-            )
+    text
+        (maybeTimePassed
+            |> Maybe.map TimeHelpers.roundToSingleUnit
+            |> Maybe.map (\s -> s ++ " ago")
+            |> Maybe.withDefault "..."
+        )
+        |> el
+            [ width <| px 100
+            , Element.Font.color theme.subtleTextColor
+            ]
 
 
 previewBody :
@@ -257,20 +256,20 @@ previewBody :
     -> Post.Published
     -> Element Msg
 previewBody dProfile showAddress post =
-    row
-        [ width fill
-        , height fill
-        , spacing 5
-        ]
-        [ Common.View.phaceElement
-            ( 60, 60 )
-            True
-            post.core.author
-            showAddress
-            (MsgUp <| Common.Msg.ShowOrHideAddress <| PhaceForPublishedPost post.id)
-            NoOp
-        , viewTitleOrTextPreview dProfile post.core.content
-        ]
+    [ Common.View.phaceElement
+        ( 60, 60 )
+        True
+        post.core.author
+        showAddress
+        (MsgUp <| Common.Msg.ShowOrHideAddress <| PhaceForPublishedPost post.id)
+        NoOp
+    , viewTitleOrTextPreview dProfile post.core.content
+    ]
+        |> row
+            [ width fill
+            , height fill
+            , spacing 5
+            ]
 
 
 viewTitleOrTextPreview :
@@ -278,21 +277,21 @@ viewTitleOrTextPreview :
     -> Post.Content
     -> Element Msg
 viewTitleOrTextPreview dProfile content =
-    row
-        [ Element.Font.color almostWhite
-        , Element.Font.size (responsiveVal dProfile 14 8)
-        , height fill
-        , width fill
-        ]
-        [ text <|
-            limitedString <|
-                case content.title of
-                    Just title ->
-                        title
+    [ text <|
+        limitedString <|
+            case content.title of
+                Just title ->
+                    title
 
-                    Nothing ->
-                        content.body
-        ]
+                Nothing ->
+                    content.body
+    ]
+        |> row
+            [ Element.Font.color almostWhite
+            , Element.Font.size (responsiveVal dProfile 14 8)
+            , height fill
+            , width fill
+            ]
 
 
 publishedPostActionForm :
@@ -305,15 +304,15 @@ publishedPostActionForm :
 publishedPostActionForm dProfile donateChecked publishedPost showInput unlockStatus =
     case showInput of
         None ->
-            column
-                [ spacing 5
-                , width <| Element.fillPortion 1
-                , Element.alignRight
-                ]
-                [ supportTipButton publishedPost.id
-                , supportBurnButton publishedPost.id
-                , replyButton publishedPost.id
-                ]
+            [ supportTipButton publishedPost.id
+            , supportBurnButton publishedPost.id
+            , replyButton publishedPost.id
+            ]
+                |> column
+                    [ spacing 5
+                    , width <| fillPortion 1
+                    , alignRight
+                    ]
 
         Tip input ->
             unlockOrInputForm
@@ -340,24 +339,24 @@ supportTipButton :
     Post.Id
     -> Element Msg
 supportTipButton postId =
-    row
-        [ width fill
-        , height fill
+    [ publishedPostActionButton
+        [ EH.withTitle "Tip DAI for this post, rewarding the author"
+        , Element.Background.color theme.daiTippedBackground
         ]
-        [ publishedPostActionButton
-            [ EH.withTitle "Tip DAI for this post, rewarding the author"
-            , Element.Background.color theme.daiTippedBackground
+        SupportTipClicked
+      <|
+        Element.image
+            [ height <| px 14
+            , Element.centerX
             ]
-            SupportTipClicked
-          <|
-            Element.image
-                [ height <| px 14
-                , Element.centerX
-                ]
-                { src = "img/dai-unit-char-white.svg"
-                , description = "support tip"
-                }
-        ]
+            { src = "img/dai-unit-char-white.svg"
+            , description = "support tip"
+            }
+    ]
+        |> row
+            [ width fill
+            , height fill
+            ]
 
 
 supportBurnButton :
@@ -433,30 +432,30 @@ unlockOrInputForm :
     -> UnlockStatus
     -> Element Msg
 unlockOrInputForm dProfile donateChecked bgColor currentString buttonLabel onSubmit unlockStatus =
-    row
-        [ padding 10
-        , Element.Border.rounded 6
-        , Element.Background.color bgColor
-        , spacing 10
-        , Element.Border.glow
-            (Element.rgba 0 0 0 0.1)
-            5
-        , width <| Element.fillPortion 1
+    [ unlockUXOr
+        dProfile
+        []
+        unlockStatus
+        MsgUp
+        (inputForm dProfile donateChecked currentString buttonLabel onSubmit)
+    , EH.closeButton
+        [ alignTop
+        , Element.moveUp 5
+        , Element.moveRight 5
         ]
-        [ unlockUXOr
-            dProfile
-            []
-            unlockStatus
-            MsgUp
-            (inputForm dProfile donateChecked currentString buttonLabel onSubmit)
-        , EH.closeButton
-            [ Element.alignTop
-            , Element.moveUp 5
-            , Element.moveRight 5
+        EH.black
+        ResetActionForm
+    ]
+        |> row
+            [ padding 10
+            , Element.Border.rounded 6
+            , Element.Background.color bgColor
+            , spacing 10
+            , Element.Border.glow
+                (Element.rgba 0 0 0 0.1)
+                5
+            , width <| fillPortion 1
             ]
-            EH.black
-            ResetActionForm
-        ]
 
 
 inputForm :
@@ -467,50 +466,50 @@ inputForm :
     -> (TokenValue -> Msg)
     -> Element Msg
 inputForm dProfile donateChecked currentString buttonLabel onSubmit =
-    column
-        [ spacing 10 ]
-        [ row
+    [ [ daiSymbol False
+            [ height <| px 22 ]
+      , daiAmountInput
+            dProfile
+            []
+            currentString
+            AmountInputChanged
+      , maybeSubmitButton
+            dProfile
+            buttonLabel
+            (TokenValue.fromString currentString)
+            onSubmit
+      ]
+        |> row
             [ spacing 10
             , Element.centerX
             ]
-            [ daiSymbol False
-                [ height <| px 22 ]
-            , daiAmountInput
-                dProfile
-                []
-                currentString
-                AmountInputChanged
-            , maybeSubmitButton
-                dProfile
-                buttonLabel
-                (TokenValue.fromString currentString)
-                onSubmit
+    , [ Element.Input.checkbox
+            []
+            { onChange = MsgUp << Common.Msg.DonationCheckboxSet
+            , icon = Element.Input.defaultCheckbox
+            , checked = donateChecked
+            , label =
+                Element.Input.labelRight
+                    [ Element.centerY
+                    ]
+                <|
+                    text "Donate an extra 1% to "
+            }
+      , Element.newTabLink
+            [ Element.Font.color theme.linkTextColor
+            , Element.centerY
             ]
-        , row
+            { url = "https://foundrydao.com/"
+            , label = text "Foundry"
+            }
+      ]
+        |> row
             [ Element.centerX
             , Element.Font.size 12
             ]
-            [ Element.Input.checkbox
-                []
-                { onChange = MsgUp << Common.Msg.DonationCheckboxSet
-                , icon = Element.Input.defaultCheckbox
-                , checked = donateChecked
-                , label =
-                    Element.Input.labelRight
-                        [ Element.centerY
-                        ]
-                    <|
-                        text "Donate an extra 1% to "
-                }
-            , Element.newTabLink
-                [ Element.Font.color theme.linkTextColor
-                , Element.centerY
-                ]
-                { url = "https://foundrydao.com/"
-                , label = text "Foundry"
-                }
-            ]
-        ]
+    ]
+        |> column
+            [ spacing 10 ]
 
 
 maybeSubmitButton :
