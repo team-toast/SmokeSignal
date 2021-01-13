@@ -1,9 +1,0 @@
-[submodule "elm-hash-routing"]
-	path = elm-submodules/hashbang-routing
-	url = https://github.com/team-toast/elm-hashbang-routing
-[submodule "elm-submodules/helpers"]
-	path = elm-submodules/helpers
-	url = https://github.com/team-toast/elm-helpers
-[submodule "elm-submodules/tokenvalue"]
-	path = elm-submodules/tokenvalue
-	url = https://github.com/team-toast/elm-tokenvalue18
