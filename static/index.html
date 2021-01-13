@@ -1,50 +1,47 @@
 <!DOCTYPE html>
 <html lang="en-us">
-
-<head>
-    <meta charSet="utf-8" />
+  <head>
+    <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="SmokeSignal"
-    <!-- <script type="text/javascript" src="//script.crazyegg.com/pages/scripts/0094/2740.js" async="async"></script> -->
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-143211145-4"></script>
+    <meta name="description" content="SmokeSignal" />
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=UA-143211145-4"
+    ></script>
     <script>
-        window.dataLayer = window.dataLayer || [];
-        window.gtag = function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function gtag() {
+        dataLayer.push(arguments);
+      };
+      gtag("js", new Date());
 
-        gtag('config', 'UA-143211145-4', {
-            'linker': {
-                'domains':
-                    [
-                        'sale.foundrydao.com',
-                        'dashboard.foundrydao.com',
-                        'foundrydao.com',
-                        'foundrydao.eth.link',
-                        'smokesignal.eth.link',
-                        'daihard.exchange'
-                    ],
-                'linker': {
-                    'accept_incoming': true
-                }
-            }
-        }
-        );
+      gtag("config", "UA-143211145-4", {
+        linker: {
+          domains: [
+            "sale.foundrydao.com",
+            "dashboard.foundrydao.com",
+            "foundrydao.com",
+            "foundrydao.eth.link",
+            "smokesignal.eth.link",
+            "daihard.exchange",
+          ],
+          linker: {
+            accept_incoming: true,
+          },
+        },
+      });
     </script>
     <title>SmokeSignal</title>
     <style>
-        body {
-            background-color: #ffffff;
-        }
+      body {
+        background-color: #ffffff;
+      }
     </style>
     <meta name="description" content="SmokeSignal" />
     <meta name="author" content="OG Log" />
+  </head>
+  <body>
     <script type="application/javascript" src="./js/index.js"></script>
-
-</head>
-
-<body>
-    <div id='elm'></div>
-</body>
-
+    <div id="elm"></div>
+  </body>
 </html>
