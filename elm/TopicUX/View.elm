@@ -5,6 +5,7 @@ import Common.Msg
 import Common.Types exposing (..)
 import Common.View exposing (daiAmountInput, daiSymbol, unlockUXOr, whiteGlowAttribute)
 import Dict exposing (Dict)
+import Dict.Extra
 import Element exposing (Attribute, Element)
 import Element.Background
 import Element.Border
@@ -40,30 +41,35 @@ view :
     DisplayProfile
     -> Bool
     -> Bool
+    -> String
     -> Dict Int Time.Posix
     -> Time.Posix
     -> Wallet
-    -> Maybe Model
+    -> Maybe ShowInputState
     -> PublishedPostsDict
     -> Element Msg
-view dProfile donateChecked showAddressOnPhace blockTimes now wallet maybeUXModel posts =
+view dProfile donateChecked showAddressOnPhace topic blockTimes now wallet inputState posts =
     let
         listOfPosts =
             let
-                findTopic : Post.Published -> Maybe String
-                findTopic publishedPost =
-                    case publishedPost.core.metadata.context of
-                        Post.TopLevel topic ->
-                            Just topic
+                isTopicMatch : String -> Post.Published -> Bool
+                isTopicMatch topicToFind post =
+                    case post.core.metadata.context of
+                        Post.TopLevel postTopic ->
+                            postTopic == topicToFind
 
                         Post.Reply postId ->
-                            getPublishedPostFromId posts postId
-                                |> Maybe.andThen findTopic
+                            case getPublishedPostFromId posts postId of
+                                Just thePost ->
+                                    isTopicMatch topicToFind thePost
+
+                                _ ->
+                                    False
             in
             posts
                 |> Dict.values
                 |> List.concat
-                |> Dict.filter findTopic
+                |> List.filter (isTopicMatch topic)
     in
     Element.column
         [ Element.width Element.fill
@@ -84,7 +90,7 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet maybeUXMode
                     blockTimes
                     now
                     (Wallet.unlockStatus wallet)
-                    maybeUXModel
+                    (Maybe.withDefault None inputState)
                     post
             )
             listOfPosts
@@ -97,10 +103,10 @@ mainPreviewPane :
     -> Dict Int Time.Posix
     -> Time.Posix
     -> UnlockStatus
-    -> Maybe Model
+    -> ShowInputState
     -> Post.Published
     -> Element Msg
-mainPreviewPane dProfile showAddress donateChecked blockTimes now unlockStatus maybeUXModel post =
+mainPreviewPane dProfile showAddress donateChecked blockTimes now unlockStatus inputState post =
     Element.row []
         [ Element.column
             [ Element.width <| Element.fillPortion 11
@@ -114,10 +120,7 @@ mainPreviewPane dProfile showAddress donateChecked blockTimes now unlockStatus m
             dProfile
             donateChecked
             post
-            (maybeUXModel
-                |> Maybe.map .showInput
-                |> Maybe.withDefault None
-            )
+            inputState
             unlockStatus
         ]
 
