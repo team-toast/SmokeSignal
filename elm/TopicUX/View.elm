@@ -6,7 +6,7 @@ import Common.Types exposing (..)
 import Common.View exposing (daiAmountInput, daiSymbol, unlockUXOr, whiteGlowAttribute)
 import Dict exposing (Dict)
 import Dict.Extra
-import Element exposing (Attribute, Element)
+import Element exposing (Attribute, Element, column, el, fill, height, padding, px, row, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Events
@@ -28,13 +28,13 @@ topicHeader :
     -> String
     -> Element Msg
 topicHeader dProfile topic =
-    Element.column
+    column
         [ whiteGlowAttribute
         , Element.Font.color EH.white
-        , Element.width Element.fill
-        , Element.padding 10
+        , width fill
+        , padding 10
         ]
-        [ Element.text topic ]
+        [ text topic ]
 
 
 view :
@@ -66,14 +66,14 @@ view dProfile donateChecked showAddressOnPhace topic blockTimes now wallet input
                 |> List.concat
                 |> List.filter (isTopicMatch topic)
     in
-    Element.column
-        [ Element.width Element.fill
-        , Element.height <| Element.px <| 120
+    column
+        [ width fill
+        , height <| px <| 120
         , Element.Background.color theme.blockBackground
         , Element.Border.width 1
         , Element.Border.color theme.blockBorderColor
         , Element.Border.rounded 5
-        , Element.padding 1
+        , padding 1
         ]
     <|
         List.map
@@ -102,11 +102,11 @@ mainPreviewPane :
     -> Post.Published
     -> Element Msg
 mainPreviewPane dProfile showAddress donateChecked blockTimes now unlockStatus inputState post =
-    Element.row []
-        [ Element.column
-            [ Element.width <| Element.fillPortion 11
-            , Element.height Element.fill
-            , Element.spacing 10
+    row []
+        [ column
+            [ width <| Element.fillPortion 11
+            , height fill
+            , spacing 10
             ]
             [ previewMetadata dProfile blockTimes now post
             , previewBody dProfile showAddress post
@@ -127,10 +127,10 @@ previewMetadata :
     -> Post.Published
     -> Element Msg
 previewMetadata dProfile blockTimes now post =
-    Element.row
+    row
         [ Element.Font.size <| responsiveVal dProfile 16 10
-        , Element.width <| Element.px 300
-        , Element.spacing 40
+        , width <| px 300
+        , spacing 40
         ]
         [ viewAccounting dProfile post
         , viewTiming dProfile blockTimes now post.id
@@ -143,9 +143,9 @@ viewAccounting :
     -> Post.Published
     -> Element Msg
 viewAccounting dProfile post =
-    Element.row
-        [ Element.width <| Element.px 100
-        , Element.spacing 5
+    row
+        [ width <| px 100
+        , spacing 5
         ]
         [ viewDaiBurned dProfile post
         , Maybe.map (viewDaiTipped dProfile)
@@ -156,8 +156,8 @@ viewAccounting dProfile post =
 
 commonDaiElStyles : List (Element.Attribute Msg)
 commonDaiElStyles =
-    [ Element.spacing 3
-    , Element.padding 3
+    [ spacing 3
+    , padding 3
     , Element.Border.rounded 3
     , Element.Font.size 14
     ]
@@ -168,15 +168,15 @@ viewDaiBurned :
     -> Post.Published
     -> Element Msg
 viewDaiBurned dProfile post =
-    Element.row
+    row
         (commonDaiElStyles
             ++ [ Element.Background.color theme.daiBurnedBackground ]
         )
-        [ daiSymbol True [ Element.height <| Element.px 14 ]
-        , Element.el
+        [ daiSymbol True [ height <| px 14 ]
+        , el
             [ Element.Font.color EH.white ]
           <|
-            Element.text <|
+            text <|
                 TokenValue.toConciseString <|
                     Post.totalBurned <|
                         Post.PublishedPost post
@@ -188,15 +188,15 @@ viewDaiTipped :
     -> TokenValue
     -> Element Msg
 viewDaiTipped dProfile amount =
-    Element.row
+    row
         (commonDaiElStyles
             ++ [ Element.Background.color theme.daiTippedBackground ]
         )
-        [ daiSymbol True [ Element.height <| Element.px 14 ]
-        , Element.el
+        [ daiSymbol True [ height <| px 14 ]
+        , el
             [ Element.Font.color EH.white ]
           <|
-            Element.text <|
+            text <|
                 TokenValue.toConciseString amount
         ]
 
@@ -206,17 +206,17 @@ viewContext :
     -> Post.Context
     -> Element Msg
 viewContext dProfile context =
-    Element.el
-        [ Element.width Element.fill
+    el
+        [ width fill
         , Element.Font.color almostWhite
         ]
     <|
         case context of
             Post.Reply id ->
-                Element.text "reply"
+                text "reply"
 
             Post.TopLevel topic ->
-                Element.text <| "#" ++ topic
+                text <| "#" ++ topic
 
 
 viewTiming :
@@ -238,12 +238,12 @@ viewTiming dProfile blockTimes now id =
                         TimeHelpers.sub now postTime
                     )
     in
-    Element.el
-        [ Element.width <| Element.px 100
+    el
+        [ width <| px 100
         , Element.Font.color theme.subtleTextColor
         ]
     <|
-        Element.text
+        text
             (maybeTimePassed
                 |> Maybe.map TimeHelpers.roundToSingleUnit
                 |> Maybe.map (\s -> s ++ " ago")
@@ -257,10 +257,10 @@ previewBody :
     -> Post.Published
     -> Element Msg
 previewBody dProfile showAddress post =
-    Element.row
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Element.spacing 5
+    row
+        [ width fill
+        , height fill
+        , spacing 5
         ]
         [ Common.View.phaceElement
             ( 60, 60 )
@@ -278,13 +278,13 @@ viewTitleOrTextPreview :
     -> Post.Content
     -> Element Msg
 viewTitleOrTextPreview dProfile content =
-    Element.row
+    row
         [ Element.Font.color almostWhite
         , Element.Font.size (responsiveVal dProfile 14 8)
-        , Element.height Element.fill
-        , Element.width Element.fill
+        , height fill
+        , width fill
         ]
-        [ Element.text <|
+        [ text <|
             limitedString <|
                 case content.title of
                     Just title ->
@@ -305,9 +305,9 @@ publishedPostActionForm :
 publishedPostActionForm dProfile donateChecked publishedPost showInput unlockStatus =
     case showInput of
         None ->
-            Element.column
-                [ Element.spacing 5
-                , Element.width <| Element.fillPortion 1
+            column
+                [ spacing 5
+                , width <| Element.fillPortion 1
                 , Element.alignRight
                 ]
                 [ supportTipButton publishedPost.id
@@ -340,9 +340,9 @@ supportTipButton :
     Post.Id
     -> Element Msg
 supportTipButton postId =
-    Element.row
-        [ Element.width Element.fill
-        , Element.height Element.fill
+    row
+        [ width fill
+        , height fill
         ]
         [ publishedPostActionButton
             [ EH.withTitle "Tip DAI for this post, rewarding the author"
@@ -351,7 +351,7 @@ supportTipButton postId =
             SupportTipClicked
           <|
             Element.image
-                [ Element.height <| Element.px 14
+                [ height <| px 14
                 , Element.centerX
                 ]
                 { src = "img/dai-unit-char-white.svg"
@@ -371,7 +371,7 @@ supportBurnButton postId =
         SupportBurnClicked
     <|
         Element.image
-            [ Element.height <| Element.px 14
+            [ height <| px 14
             , Element.centerX
             ]
             { src = "img/dai-unit-char-white.svg"
@@ -390,8 +390,8 @@ replyButton postId =
         (MsgUp <| Common.Msg.StartInlineCompose <| Post.Reply postId)
     <|
         Element.image
-            [ Element.width Element.fill
-            , Element.height <| Element.px 14
+            [ width fill
+            , height <| px 14
             ]
             { src = "img/reply-arrow-white.svg"
             , description = "reply"
@@ -404,9 +404,9 @@ publishedPostActionButton :
     -> Element Msg
     -> Element Msg
 publishedPostActionButton attributes onClick innerEl =
-    Element.el
+    el
         (attributes
-            ++ [ Element.padding 3
+            ++ [ padding 3
                , Element.pointer
                , Element.Border.rounded 1
                , Element.Border.shadow
@@ -416,8 +416,8 @@ publishedPostActionButton attributes onClick innerEl =
                     , color = Element.rgba 0 0 0 0.1
                     }
                , Element.Events.onClick onClick
-               , Element.width <| Element.px 20
-               , Element.height <| Element.px 20
+               , width <| px 20
+               , height <| px 20
                ]
         )
         innerEl
@@ -433,15 +433,15 @@ unlockOrInputForm :
     -> UnlockStatus
     -> Element Msg
 unlockOrInputForm dProfile donateChecked bgColor currentString buttonLabel onSubmit unlockStatus =
-    Element.row
-        [ Element.padding 10
+    row
+        [ padding 10
         , Element.Border.rounded 6
         , Element.Background.color bgColor
-        , Element.spacing 10
+        , spacing 10
         , Element.Border.glow
             (Element.rgba 0 0 0 0.1)
             5
-        , Element.width <| Element.fillPortion 1
+        , width <| Element.fillPortion 1
         ]
         [ unlockUXOr
             dProfile
@@ -467,14 +467,14 @@ inputForm :
     -> (TokenValue -> Msg)
     -> Element Msg
 inputForm dProfile donateChecked currentString buttonLabel onSubmit =
-    Element.column
-        [ Element.spacing 10 ]
-        [ Element.row
-            [ Element.spacing 10
+    column
+        [ spacing 10 ]
+        [ row
+            [ spacing 10
             , Element.centerX
             ]
             [ daiSymbol False
-                [ Element.height <| Element.px 22 ]
+                [ height <| px 22 ]
             , daiAmountInput
                 dProfile
                 []
@@ -486,7 +486,7 @@ inputForm dProfile donateChecked currentString buttonLabel onSubmit =
                 (TokenValue.fromString currentString)
                 onSubmit
             ]
-        , Element.row
+        , row
             [ Element.centerX
             , Element.Font.size 12
             ]
@@ -500,14 +500,14 @@ inputForm dProfile donateChecked currentString buttonLabel onSubmit =
                         [ Element.centerY
                         ]
                     <|
-                        Element.text "Donate an extra 1% to "
+                        text "Donate an extra 1% to "
                 }
             , Element.newTabLink
                 [ Element.Font.color theme.linkTextColor
                 , Element.centerY
                 ]
                 { url = "https://foundrydao.com/"
-                , label = Element.text "Foundry"
+                , label = text "Foundry"
                 }
             ]
         ]
