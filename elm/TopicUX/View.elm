@@ -59,12 +59,7 @@ view dProfile donateChecked showAddressOnPhace topic blockTimes now wallet input
                             postTopic == topicToFind
 
                         Post.Reply postId ->
-                            case getPublishedPostFromId posts postId of
-                                Just thePost ->
-                                    isTopicMatch topicToFind thePost
-
-                                _ ->
-                                    False
+                            False
             in
             posts
                 |> Dict.values
