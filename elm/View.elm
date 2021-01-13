@@ -272,11 +272,12 @@ bodyContent model =
                             [ Element.map HomeMsg <|
                                 Home.View.banner model.dProfile
                             , viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
-                            , Element.Lazy.lazy3
-                                (viewPostsForTopic model.dProfile model.donateChecked model.wallet)
-                                model.publishedPosts
+                            , Element.Lazy.lazy4
+                                (viewPostsForTopic model.dProfile model.donateChecked False model.wallet)
                                 model.blockTimes
+                                model.now
                                 topic
+                                model.publishedPosts
                             ]
         ]
 
@@ -306,19 +307,33 @@ viewTopicHeader :
     -> Element Msg
 viewTopicHeader dProfile maybeUserInfo topic =
     Element.map TopicUXMsg <|
-        TopicUX.topicHeader dProfile topic
+        TopicUX.topicHeader
+            dProfile
+            topic
 
 
 viewPostsForTopic :
     DisplayProfile
     -> Bool
+    -> Bool
     -> Wallet
-    -> PublishedPostsDict
     -> Dict Int Time.Posix
+    -> Time.Posix
     -> String
+    -> PublishedPostsDict
     -> Element Msg
-viewPostsForTopic dprofile donateChecked wallet allPosts blockTimes topic =
-    dummyElement
+viewPostsForTopic dProfile donateChecked showAddressOnPhace wallet blockTimes now topic allPosts =
+    Element.map TopicUXMsg <|
+        TopicUX.view
+            dProfile
+            donateChecked
+            showAddressOnPhace
+            topic
+            blockTimes
+            now
+            wallet
+            Nothing
+            allPosts
 
 
 viewPostHeader dProfile post =
