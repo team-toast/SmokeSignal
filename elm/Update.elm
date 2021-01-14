@@ -526,8 +526,174 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-        MsgUp msgUp ->
-            prevModel |> handleMsgUp msgUp
+        GotoRoute route ->
+            prevModel
+                |> gotoRoute route
+                |> Tuple.mapSecond
+                    (\cmd ->
+                        Cmd.batch
+                            [ cmd
+                            , Browser.Navigation.pushUrl
+                                prevModel.navKey
+                                (Routing.routeToString prevModel.basePath route)
+                            ]
+                    )
+
+        ConnectToWeb3 ->
+            case prevModel.wallet of
+                Types.NoneDetected ->
+                    ( prevModel |> addUserNotice UN.cantConnectNoWeb3
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( prevModel
+                    , connectToWeb3 ()
+                    )
+
+        ShowOrHideAddress phaceId ->
+            ( { prevModel
+                | showAddressId =
+                    if prevModel.showAddressId == Just phaceId then
+                        Nothing
+
+                    else
+                        Just phaceId
+              }
+            , Cmd.none
+            )
+
+        StartInlineCompose composeContext ->
+            case prevModel.dProfile of
+                Desktop ->
+                    ( { prevModel
+                        | showHalfComposeUX = True
+
+                        --, composeUXModel =
+                        --prevModel.composeUXModel
+                        -- TODO
+                        --|> ComposeUX.updateContext composeContext
+                      }
+                    , Cmd.none
+                    )
+
+                Mobile ->
+                    prevModel
+                        |> (gotoRoute <|
+                                Compose composeContext
+                           )
+
+        ExitCompose ->
+            case prevModel.mode of
+                ModeCompose ->
+                    -- TODO
+                    ( prevModel, Cmd.none )
+
+                --|> gotoRoute (Routing.ViewContext <| postContextToViewContext prevModel.composeUXModel.context)
+                _ ->
+                    ( { prevModel
+                        | showHalfComposeUX = False
+                      }
+                    , Cmd.none
+                    )
+
+        AddUserNotice userNotice ->
+            ( prevModel |> addUserNotice userNotice
+            , Cmd.none
+            )
+
+        UnlockDai ->
+            let
+                txParams =
+                    Dai.unlockDaiCall
+                        |> Eth.toSend
+
+                listeners =
+                    { onMined = Nothing
+                    , onSign = Just <| TxSigned UnlockTx
+                    , onBroadcast = Nothing
+                    }
+
+                ( txSentry, cmd ) =
+                    TxSentry.customSend prevModel.txSentry listeners txParams
+            in
+            ( { prevModel
+                | txSentry = txSentry
+              }
+            , cmd
+            )
+
+        SubmitPost postDraft ->
+            let
+                txParams =
+                    postDraft
+                        |> Post.encodeDraft
+                        |> SSContract.burnEncodedPost
+                        |> Eth.toSend
+
+                listeners =
+                    { onMined = Nothing
+                    , onSign = Just <| TxSigned <| PostTx postDraft
+                    , onBroadcast = Nothing
+                    }
+
+                ( txSentry, cmd ) =
+                    TxSentry.customSend prevModel.txSentry listeners txParams
+            in
+            ( { prevModel
+                | txSentry = txSentry
+              }
+            , cmd
+            )
+
+        SubmitBurn postId amount ->
+            let
+                txParams =
+                    SSContract.burnForPost postId.messageHash amount prevModel.donateChecked
+                        |> Eth.toSend
+
+                listeners =
+                    { onMined = Nothing
+                    , onSign = Just <| TxSigned <| BurnTx postId amount
+                    , onBroadcast = Nothing
+                    }
+
+                ( txSentry, cmd ) =
+                    TxSentry.customSend prevModel.txSentry listeners txParams
+            in
+            ( { prevModel
+                | txSentry = txSentry
+              }
+            , cmd
+            )
+
+        SubmitTip postId amount ->
+            let
+                txParams =
+                    SSContract.tipForPost postId.messageHash amount prevModel.donateChecked
+                        |> Eth.toSend
+
+                listeners =
+                    { onMined = Nothing
+                    , onSign = Just <| TxSigned <| TipTx postId amount
+                    , onBroadcast = Nothing
+                    }
+
+                ( txSentry, cmd ) =
+                    TxSentry.customSend prevModel.txSentry listeners txParams
+            in
+            ( { prevModel
+                | txSentry = txSentry
+              }
+            , cmd
+            )
+
+        DonationCheckboxSet flag ->
+            ( { prevModel
+                | donateChecked = flag
+              }
+            , Cmd.none
+            )
 
         ViewDraft maybeDraft ->
             ( { prevModel
@@ -583,41 +749,6 @@ encodeGTag gtag =
         , ( "label", Json.Encode.string gtag.label )
         , ( "value", Json.Encode.int gtag.value )
         ]
-
-
-withMsgUp :
-    MsgUp
-    -> ( Model, Cmd Msg )
-    -> ( Model, Cmd Msg )
-withMsgUp msgUp ( prevModel, prevCmd ) =
-    handleMsgUp msgUp prevModel
-        |> Tuple.mapSecond
-            (\newCmd ->
-                Cmd.batch [ prevCmd, newCmd ]
-            )
-
-
-handleMsgUps :
-    List MsgUp
-    -> Model
-    -> ( Model, Cmd Msg )
-handleMsgUps msgUps prevModel =
-    List.foldl
-        withMsgUp
-        ( prevModel, Cmd.none )
-        msgUps
-
-
-withMsgUps :
-    List MsgUp
-    -> ( Model, Cmd Msg )
-    -> ( Model, Cmd Msg )
-withMsgUps msgUps ( prevModel, prevCmd ) =
-    handleMsgUps msgUps prevModel
-        |> Tuple.mapSecond
-            (\newCmd ->
-                Cmd.batch [ prevCmd, newCmd ]
-            )
 
 
 gotoRoute :
@@ -926,176 +1057,3 @@ withAnotherUpdate updateFunc ( firstModel, firstCmd ) =
                     ]
                 )
            )
-
-
-handleMsgUp : MsgUp -> Model -> ( Model, Cmd Msg )
-handleMsgUp msgUp prevModel =
-    case msgUp of
-        GotoRoute route ->
-            prevModel
-                |> gotoRoute route
-                |> Tuple.mapSecond
-                    (\cmd ->
-                        Cmd.batch
-                            [ cmd
-                            , Browser.Navigation.pushUrl
-                                prevModel.navKey
-                                (Routing.routeToString prevModel.basePath route)
-                            ]
-                    )
-
-        ConnectToWeb3 ->
-            case prevModel.wallet of
-                Types.NoneDetected ->
-                    ( prevModel |> addUserNotice UN.cantConnectNoWeb3
-                    , Cmd.none
-                    )
-
-                _ ->
-                    ( prevModel
-                    , connectToWeb3 ()
-                    )
-
-        ShowOrHideAddress phaceId ->
-            ( { prevModel
-                | showAddressId =
-                    if prevModel.showAddressId == Just phaceId then
-                        Nothing
-
-                    else
-                        Just phaceId
-              }
-            , Cmd.none
-            )
-
-        StartInlineCompose composeContext ->
-            case prevModel.dProfile of
-                Desktop ->
-                    ( { prevModel
-                        | showHalfComposeUX = True
-
-                        --, composeUXModel =
-                        --prevModel.composeUXModel
-                        -- TODO
-                        --|> ComposeUX.updateContext composeContext
-                      }
-                    , Cmd.none
-                    )
-
-                Mobile ->
-                    prevModel
-                        |> (gotoRoute <|
-                                Compose composeContext
-                           )
-
-        ExitCompose ->
-            case prevModel.mode of
-                ModeCompose ->
-                    -- TODO
-                    ( prevModel, Cmd.none )
-
-                --|> gotoRoute (Routing.ViewContext <| postContextToViewContext prevModel.composeUXModel.context)
-                _ ->
-                    ( { prevModel
-                        | showHalfComposeUX = False
-                      }
-                    , Cmd.none
-                    )
-
-        AddUserNotice userNotice ->
-            ( prevModel |> addUserNotice userNotice
-            , Cmd.none
-            )
-
-        UnlockDai ->
-            let
-                txParams =
-                    Dai.unlockDaiCall
-                        |> Eth.toSend
-
-                listeners =
-                    { onMined = Nothing
-                    , onSign = Just <| TxSigned UnlockTx
-                    , onBroadcast = Nothing
-                    }
-
-                ( txSentry, cmd ) =
-                    TxSentry.customSend prevModel.txSentry listeners txParams
-            in
-            ( { prevModel
-                | txSentry = txSentry
-              }
-            , cmd
-            )
-
-        SubmitPost postDraft ->
-            let
-                txParams =
-                    postDraft
-                        |> Post.encodeDraft
-                        |> SSContract.burnEncodedPost
-                        |> Eth.toSend
-
-                listeners =
-                    { onMined = Nothing
-                    , onSign = Just <| TxSigned <| PostTx postDraft
-                    , onBroadcast = Nothing
-                    }
-
-                ( txSentry, cmd ) =
-                    TxSentry.customSend prevModel.txSentry listeners txParams
-            in
-            ( { prevModel
-                | txSentry = txSentry
-              }
-            , cmd
-            )
-
-        SubmitBurn postId amount ->
-            let
-                txParams =
-                    SSContract.burnForPost postId.messageHash amount prevModel.donateChecked
-                        |> Eth.toSend
-
-                listeners =
-                    { onMined = Nothing
-                    , onSign = Just <| TxSigned <| BurnTx postId amount
-                    , onBroadcast = Nothing
-                    }
-
-                ( txSentry, cmd ) =
-                    TxSentry.customSend prevModel.txSentry listeners txParams
-            in
-            ( { prevModel
-                | txSentry = txSentry
-              }
-            , cmd
-            )
-
-        SubmitTip postId amount ->
-            let
-                txParams =
-                    SSContract.tipForPost postId.messageHash amount prevModel.donateChecked
-                        |> Eth.toSend
-
-                listeners =
-                    { onMined = Nothing
-                    , onSign = Just <| TxSigned <| TipTx postId amount
-                    , onBroadcast = Nothing
-                    }
-
-                ( txSentry, cmd ) =
-                    TxSentry.customSend prevModel.txSentry listeners txParams
-            in
-            ( { prevModel
-                | txSentry = txSentry
-              }
-            , cmd
-            )
-
-        DonationCheckboxSet flag ->
-            ( { prevModel
-                | donateChecked = flag
-              }
-            , Cmd.none
-            )

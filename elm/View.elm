@@ -1,7 +1,6 @@
 module View exposing (..)
 
 import Browser
-import Types exposing (..)
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
@@ -31,6 +30,7 @@ import Theme exposing (theme)
 import Time
 import TokenValue exposing (TokenValue)
 import Tuple3
+import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import Wallet
 
@@ -388,7 +388,7 @@ modals model =
             --5
             --]
             --[ "Draft in Progress" ]
-            --(EH.Action <| MsgUp <| StartInlineCompose model.composeUXModel.context)
+            --(EH.Action <| StartInlineCompose model.composeUXModel.context)
             -- TODO
             Nothing
 
@@ -528,7 +528,7 @@ trackedTxsColumn trackedTxs =
         , Element.padding 10
         , Element.spacing 5
 
-        --, EH.onClickNoPropagation <| MsgUp NoOp
+        --, EH.onClickNoPropagation  NoOp
         , Element.height (Element.shrink |> Element.maximum 400)
         , Element.scrollbarY
         , Element.alignRight
@@ -563,10 +563,9 @@ viewTrackedTxRow trackedTx =
                             [ Font.color theme.linkTextColor
                             , Element.pointer
                             , Element.Events.onClick <|
-                                MsgUp <|
-                                    GotoRoute <|
-                                        RouteViewContext <|
-                                            Types.ViewPost postId
+                                GotoRoute <|
+                                    RouteViewContext <|
+                                        Types.ViewPost postId
                             ]
                             (Element.text "Post")
                         ]
@@ -579,10 +578,9 @@ viewTrackedTxRow trackedTx =
                             [ Font.color theme.linkTextColor
                             , Element.pointer
                             , Element.Events.onClick <|
-                                MsgUp <|
-                                    GotoRoute <|
-                                        RouteViewContext <|
-                                            ViewPost postId
+                                GotoRoute <|
+                                    RouteViewContext <|
+                                        ViewPost postId
                             ]
                             (Element.text "Post")
                         ]
@@ -621,7 +619,7 @@ viewTrackedTxRow trackedTx =
                                     Element.el
                                         [ Font.color theme.linkTextColor
                                         , Element.pointer
-                                        , Element.Events.onClick <| MsgUp <| GotoRoute <| RouteViewContext <| ViewPost postId
+                                        , Element.Events.onClick <| GotoRoute <| RouteViewContext <| ViewPost postId
                                         ]
                                         (Element.text "Published")
 
@@ -794,15 +792,14 @@ shortenedHash hash =
 
 web3ConnectButton :
     EH.DisplayProfile
-    -> List (Attribute msg)
-    -> (MsgUp -> msg)
-    -> Element msg
-web3ConnectButton dProfile attrs msgMapper =
+    -> List (Attribute Msg)
+    -> Element Msg
+web3ConnectButton dProfile attrs =
     theme.emphasizedActionButton
         dProfile
         attrs
         [ "Connect to Wallet" ]
-        (EH.Action <| msgMapper ConnectToWeb3)
+        (EH.Action ConnectToWeb3)
 
 
 phaceElement :
@@ -810,9 +807,9 @@ phaceElement :
     -> Bool
     -> Address
     -> Bool
-    -> msg
-    -> msg
-    -> Element msg
+    -> Msg
+    -> Msg
+    -> Element Msg
 phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClick noOpMsg =
     let
         addressOutputEl () =
@@ -858,9 +855,9 @@ phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClic
 
 
 loadingElement :
-    List (Attribute msg)
+    List (Attribute Msg)
     -> Maybe String
-    -> Element msg
+    -> Element Msg
 loadingElement attrs maybeString =
     Element.el
         ([ Font.italic
@@ -872,7 +869,7 @@ loadingElement attrs maybeString =
         (Element.text <| Maybe.withDefault "loading..." maybeString)
 
 
-emphasizedText : String -> Element msg
+emphasizedText : String -> Element Msg
 emphasizedText =
     Element.el
         [ Font.bold
@@ -883,8 +880,8 @@ emphasizedText =
 
 daiSymbol :
     Bool
-    -> List (Attribute msg)
-    -> Element msg
+    -> List (Attribute Msg)
+    -> Element Msg
 daiSymbol isWhite attributes =
     Element.image attributes
         { src =
@@ -900,7 +897,7 @@ daiSymbol isWhite attributes =
 appStatusMessage :
     Element.Color
     -> String
-    -> Element msg
+    -> Element Msg
 appStatusMessage color errStr =
     Element.el [ Element.width Element.fill, Element.height Element.fill ] <|
         Element.paragraph
@@ -936,7 +933,7 @@ posixToString t =
         ++ " (UTC)"
 
 
-subheaderAttributes : DisplayProfile -> List (Attribute msg)
+subheaderAttributes : DisplayProfile -> List (Attribute Msg)
 subheaderAttributes dProfile =
     [ Element.paddingXY 0 (responsiveVal dProfile 20 10)
     , Font.size (responsiveVal dProfile 50 30)
@@ -959,7 +956,7 @@ commonFontSize dProfile =
 viewMetadata :
     Bool
     -> Metadata
-    -> Element MsgUp
+    -> Element Msg
 viewMetadata showContext metadata =
     Element.column
         [ Element.width Element.fill
@@ -982,7 +979,7 @@ viewMetadata showContext metadata =
 
 viewMetadataDecodeError :
     String
-    -> Element msg
+    -> Element Msg
 viewMetadataDecodeError error =
     Element.el
         [ Border.rounded 5
@@ -1008,7 +1005,7 @@ viewMetadataDecodeError error =
 
 viewContext :
     Context
-    -> Element MsgUp
+    -> Element Msg
 viewContext context =
     case context of
         Reply postId ->
@@ -1020,7 +1017,7 @@ viewContext context =
 
 viewTopic :
     String
-    -> Element MsgUp
+    -> Element Msg
 viewTopic topic =
     Element.column
         [ Element.padding 10
@@ -1049,7 +1046,7 @@ viewTopic topic =
 
 viewReplyInfo :
     Id
-    -> Element MsgUp
+    -> Element Msg
 viewReplyInfo postId =
     Element.row
         [ Element.padding 10
@@ -1080,8 +1077,8 @@ viewReplyInfo postId =
 
 
 coloredAppTitle :
-    List (Attribute msg)
-    -> Element msg
+    List (Attribute Msg)
+    -> Element Msg
 coloredAppTitle attributes =
     Element.row attributes
         [ Element.el [ Font.color Theme.darkGray ] <| Element.text "Smoke"
@@ -1095,7 +1092,7 @@ maxContentColWidth =
 
 renderContentOrError :
     Content
-    -> Element msg
+    -> Element Msg
 renderContentOrError content =
     let
         renderResult =
@@ -1123,18 +1120,16 @@ renderContentOrError content =
 
 unlockUXOr :
     DisplayProfile
-    -> List (Attribute msg)
+    -> List (Attribute Msg)
     -> UnlockStatus
-    -> (MsgUp -> msg)
-    -> Element msg
-    -> Element msg
-unlockUXOr dProfile attributes unlockStatus msgMapper el =
+    -> Element Msg
+    -> Element Msg
+unlockUXOr dProfile attributes unlockStatus el =
     case unlockStatus of
         NotConnected ->
             web3ConnectButton
                 dProfile
                 attributes
-                msgMapper
 
         Checking ->
             loadingElement
@@ -1146,7 +1141,6 @@ unlockUXOr dProfile attributes unlockStatus msgMapper el =
             unlockButton
                 dProfile
                 attributes
-                msgMapper
 
         Unlocking ->
             loadingElement
@@ -1160,23 +1154,22 @@ unlockUXOr dProfile attributes unlockStatus msgMapper el =
 
 unlockButton :
     EH.DisplayProfile
-    -> List (Attribute msg)
-    -> (MsgUp -> msg)
-    -> Element msg
-unlockButton dProfile attrs msgMapper =
+    -> List (Attribute Msg)
+    -> Element Msg
+unlockButton dProfile attrs =
     theme.emphasizedActionButton
         dProfile
         attrs
         [ "Unlock Dai" ]
-        (EH.Action <| msgMapper UnlockDai)
+        (EH.Action UnlockDai)
 
 
 daiAmountInput :
     DisplayProfile
-    -> List (Attribute msg)
+    -> List (Attribute Msg)
     -> String
-    -> (String -> msg)
-    -> Element msg
+    -> (String -> Msg)
+    -> Element Msg
 daiAmountInput dProfile attributes currentInput onChange =
     Input.text
         [ Element.width <| Element.px (responsiveVal dProfile 100 60)
@@ -1191,14 +1184,14 @@ daiAmountInput dProfile attributes currentInput onChange =
         }
 
 
-whiteGlowAttribute : Element.Attribute msg
+whiteGlowAttribute : Element.Attribute Msg
 whiteGlowAttribute =
     Border.glow
         (Element.rgba 1 1 1 0.4)
         5
 
 
-whiteGlowAttributeSmall : Element.Attribute msg
+whiteGlowAttributeSmall : Element.Attribute Msg
 whiteGlowAttributeSmall =
     Border.glow
         (Element.rgba 1 1 1 0.4)

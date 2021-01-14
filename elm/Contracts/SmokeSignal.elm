@@ -61,7 +61,7 @@ burnEncodedPost encodedPost =
         (TokenValue.getEvmValue encodedPost.donateAmount)
 
 
-fromMessageBurn : TxHash -> Int -> (Content -> Element.Element Never) -> MessageBurn -> Published
+fromMessageBurn : TxHash -> Int -> (Content -> Element.Element msg) -> MessageBurn -> Published
 fromMessageBurn txHash block renderFunc messageEvent =
     let
         ( extractedMetadata, extractedMessage ) =
@@ -85,7 +85,7 @@ fromMessageBurn txHash block renderFunc messageEvent =
             messageEvent.burnAmount
             extractedMessage
             extractedMetadata
-            (renderFunc extractedMessage)
+         --(renderFunc extractedMessage)
         )
         Nothing
 

@@ -62,11 +62,6 @@ type alias Model =
     }
 
 
-type PostUXId
-    = PublishedPostId Id
-    | DraftPreview
-
-
 type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url
@@ -97,7 +92,22 @@ type Msg
     | AllowanceFetched Address (Result Http.Error TokenValue)
     | BalanceFetched Address (Result Http.Error TokenValue)
     | CookieConsentGranted
-    | MsgUp MsgUp
+    | StartInlineCompose Context
+    | ExitCompose
+    | GotoRoute Route
+    | ConnectToWeb3
+    | ShowOrHideAddress PhaceIconId
+    | AddUserNotice UN.UserNotice
+    | UnlockDai
+    | SubmitPost Draft
+    | SubmitTip Id TokenValue
+    | SubmitBurn Id TokenValue
+    | DonationCheckboxSet Bool
+
+
+type PostUXId
+    = PublishedPostId Id
+    | DraftPreview
 
 
 type Mode
@@ -142,24 +152,6 @@ type alias ReplyIds =
     { from : Id
     , to : Id
     }
-
-
-type MsgUp
-    = StartInlineCompose Context
-    | ExitCompose
-    | GotoRoute Route
-    | ConnectToWeb3
-    | ShowOrHideAddress PhaceIconId
-    | AddUserNotice UN.UserNotice
-    | UnlockDai
-    | SubmitPost Draft
-    | SubmitTip Id TokenValue
-    | SubmitBurn Id TokenValue
-    | DonationCheckboxSet Bool
-
-
-type MsgDown
-    = UpdateWallet Wallet
 
 
 type Route
@@ -240,7 +232,8 @@ type alias Core =
     , authorBurn : TokenValue
     , content : Content
     , metadata : Metadata
-    , renderedPost : Element Never
+
+    --, renderedPost : Element Never
     }
 
 
