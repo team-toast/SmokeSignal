@@ -11,7 +11,7 @@ import Array exposing (Array)
 import Browser
 import Browser.Events
 import Browser.Navigation
-import Common.Types exposing (..)
+import Types exposing (..)
 import View
 import Config
 import Contracts.Dai as Dai
@@ -56,12 +56,12 @@ init flags url key =
 
         ( wallet, walletNotices ) =
             if flags.networkId == 0 then
-                ( Common.Types.NoneDetected
+                ( Types.NoneDetected
                 , [ UN.noWeb3Provider ]
                 )
 
             else
-                ( Common.Types.OnlyNetwork <| Eth.Net.toNetworkId flags.networkId
+                ( Types.OnlyNetwork <| Eth.Net.toNetworkId flags.networkId
                 , []
                 )
 
@@ -230,7 +230,7 @@ update msg prevModel =
                                         )
 
                                     else
-                                        ( Common.Types.Active <|
+                                        ( Types.Active <|
                                             UserInfo
                                                 walletSentry.networkId
                                                 newAddress
@@ -240,7 +240,7 @@ update msg prevModel =
                                         )
 
                                 Nothing ->
-                                    ( Common.Types.OnlyNetwork walletSentry.networkId
+                                    ( Types.OnlyNetwork walletSentry.networkId
                                     , Cmd.none
                                     )
                     in
@@ -692,7 +692,7 @@ handleMsgUp msgUp prevModel =
 
         ConnectToWeb3 ->
             case prevModel.wallet of
-                Common.Types.NoneDetected ->
+                Types.NoneDetected ->
                     ( prevModel |> addUserNotice UN.cantConnectNoWeb3
                     , Cmd.none
                     )

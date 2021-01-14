@@ -1,6 +1,6 @@
 module Wallet exposing (..)
 
-import Common.Types exposing (UnlockStatus(..), UserInfo, Wallet(..))
+import Types exposing (UnlockStatus(..), UserInfo, Wallet(..))
 import Config
 import Eth.Net
 import Eth.Types exposing (Address, HttpProvider, TxHash, WebsocketProvider)

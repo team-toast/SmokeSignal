@@ -2,7 +2,6 @@ module PostUX.View exposing (view)
 
 --import PostUX.Types exposing (Msg(..))
 
-import Common.Types exposing (..)
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element)
@@ -23,6 +22,7 @@ import Routing
 import Theme exposing (theme)
 import Time
 import TokenValue exposing (TokenValue)
+import Types exposing (..)
 import View exposing (..)
 import Wallet
 
@@ -206,7 +206,7 @@ viewPostLinks postId =
             , Element.Font.bold
             , Element.Events.onClick <|
                 MsgUp <|
-                    Common.Types.GotoRoute <|
+                    Types.GotoRoute <|
                         route
             ]
             (Element.text (shortenedHash postId.messageHash))
@@ -348,7 +348,7 @@ replyButton : Id -> Element Msg
 replyButton postId =
     publishedPostActionButton
         [ EH.withTitle "Reply" ]
-        (MsgUp <| Common.Types.StartInlineCompose <| Reply postId)
+        (MsgUp <| Types.StartInlineCompose <| Reply postId)
     <|
         Element.image
             [ Element.width Element.fill ]
@@ -433,7 +433,7 @@ inputForm dProfile donateChecked currentString buttonLabel onSubmit =
             ]
             [ Element.Input.checkbox
                 []
-                { onChange = MsgUp << Common.Types.DonationCheckboxSet
+                { onChange = MsgUp << Types.DonationCheckboxSet
                 , icon = Element.Input.defaultCheckbox
                 , checked = donateChecked
                 , label =

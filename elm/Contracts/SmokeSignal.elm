@@ -1,6 +1,5 @@
 module Contracts.SmokeSignal exposing (..)
 
-import Common.Types exposing (Accounting, Content, Core, EncodedDraft, Id, Published)
 import Config
 import Contracts.Generated.SmokeSignal as G
 import Element
@@ -13,6 +12,7 @@ import Json.Decode.Pipeline exposing (custom)
 import Post
 import Task
 import TokenValue exposing (TokenValue)
+import Types exposing (Accounting, Content, Core, EncodedDraft, Id, Published)
 
 
 type alias MessageBurn =

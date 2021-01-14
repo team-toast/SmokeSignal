@@ -1,6 +1,6 @@
 module Misc exposing (..)
 
-import Common.Types exposing (..)
+import Types exposing (..)
 import Dict
 import Eth.Types exposing (Address, Hex, TxHash)
 import List.Extra

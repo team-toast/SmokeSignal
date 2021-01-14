@@ -1,6 +1,5 @@
 module Home.View exposing (banner, view)
 
-import Common.Types exposing (Context(..), Id, MsgUp(..), PhaceIconId(..), Post(..), Published, PublishedPostsDict, Route(..), ViewContext(..))
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element, column, el, fill, fillPortion, padding, paddingXY, row, text, width)
@@ -23,6 +22,7 @@ import Routing
 import Theme exposing (almostWhite, theme)
 import Time
 import TokenValue exposing (TokenValue)
+import Types exposing (Context(..), Id, MsgUp(..), PhaceIconId(..), Post(..), Published, PublishedPostsDict, Route(..), ViewContext(..))
 import View exposing (daiSymbol, phaceElement, whiteGlowAttribute, whiteGlowAttributeSmall)
 import Wallet
 
@@ -34,7 +34,7 @@ view :
     -> Time.Posix
     -> Maybe PhaceIconId
     -> String
-    -> Common.Types.Wallet
+    -> Types.Wallet
     -> PublishedPostsDict
     -> Model
     -> Element Msg
@@ -202,7 +202,7 @@ body :
     -> Time.Posix
     -> Maybe PhaceIconId
     -> String
-    -> Common.Types.Wallet
+    -> Types.Wallet
     -> PublishedPostsDict
     -> Model
     -> Element Msg
@@ -528,7 +528,7 @@ walletUXPane :
     DisplayProfile
     -> Maybe PhaceIconId
     -> String
-    -> Common.Types.Wallet
+    -> Types.Wallet
     -> Element Msg
 walletUXPane dProfile showAddressId demoPhaceSrc wallet =
     let
@@ -569,19 +569,19 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
 
         ( buttonText, maybeButtonAction, maybeExplainerText ) =
             case wallet of
-                Common.Types.NoneDetected ->
+                Types.NoneDetected ->
                     ( "Install Metamask"
                     , Just <| EH.NewTabLink "https://metamask.io/"
                     , Just "Then come back to try on some phaces!"
                     )
 
-                Common.Types.OnlyNetwork _ ->
+                Types.OnlyNetwork _ ->
                     ( "Connect Wallet"
                     , Just <| EH.Action ConnectToWeb3
                     , Just "Each address has a unique phace!"
                     )
 
-                Common.Types.Active userInfo ->
+                Types.Active userInfo ->
                     let
                         userHasNoEth =
                             userInfo.balance
@@ -669,7 +669,7 @@ postFeed :
     -> Dict Int Time.Posix
     -> Time.Posix
     -> Maybe Id
-    -> Common.Types.Wallet
+    -> Types.Wallet
     -> List Published
     -> Element Msg
 postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet listOfPosts =
@@ -736,7 +736,7 @@ previewPost :
     -> Dict Int Time.Posix
     -> Time.Posix
     -> Maybe Id
-    -> Common.Types.Wallet
+    -> Types.Wallet
     -> Maybe PostUX.Model
     -> Published
     -> Element Msg

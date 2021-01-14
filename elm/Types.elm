@@ -1,4 +1,4 @@
-module Common.Types exposing (..)
+module Types exposing (..)
 
 import Browser
 import Browser.Navigation

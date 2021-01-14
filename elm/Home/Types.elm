@@ -1,7 +1,7 @@
 module Home.Types exposing (..)
 
-import Common.Types exposing (..)
 import PostUX.Types as PostUX
+import Types exposing (..)
 
 
 type alias Model =

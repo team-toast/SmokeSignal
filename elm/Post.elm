@@ -1,6 +1,6 @@
 module Post exposing (..)
 
-import Common.Types exposing (Content, Context(..), Core, Draft, EncodedDraft, Id, Metadata, Post(..))
+import Types exposing (Content, Context(..), Core, Draft, EncodedDraft, Id, Metadata, Post(..))
 import Element exposing (Element)
 import Element.Font
 import ElementMarkdown

@@ -1,12 +1,12 @@
 module ComposeUX.Types exposing (..)
 
-import Common.Types exposing (..)
 import Element exposing (Element)
 import Eth.Types exposing (Address, TxHash)
 import Http
 import Post
 import Time
 import TokenValue exposing (TokenValue)
+import Types exposing (..)
 
 
 type alias Model =

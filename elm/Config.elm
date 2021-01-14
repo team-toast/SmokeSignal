@@ -1,7 +1,7 @@
 module Config exposing (..)
 
 import BigInt exposing (BigInt)
-import Common.Types exposing (Id)
+import Types exposing (Id)
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Post

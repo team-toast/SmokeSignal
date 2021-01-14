@@ -1,6 +1,5 @@
 module PostUX.Types exposing (..)
 
-import Common.Types exposing (..)
 import Dict exposing (Dict)
 import Element exposing (Element)
 import Element.Font
@@ -16,6 +15,7 @@ import Result.Extra
 import String.Extra
 import Theme exposing (Theme)
 import TokenValue exposing (TokenValue)
+import Types exposing (..)
 
 
 type alias Model =

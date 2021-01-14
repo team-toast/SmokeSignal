@@ -1,6 +1,5 @@
 module ComposeUX.State exposing (..)
 
-import Common.Types exposing (..)
 import ComposeUX.Types exposing (..)
 import Contracts.Dai as Dai
 import Contracts.SmokeSignal as SSContract
@@ -12,6 +11,7 @@ import Eth.Utils
 import Helpers.Time as TimeHelpers
 import Post
 import Time
+import Types exposing (..)
 import UserNotice as UN
 import View
 

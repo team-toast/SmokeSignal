@@ -1,7 +1,7 @@
 module View exposing (..)
 
 import Browser
-import Common.Types exposing (..)
+import Types exposing (..)
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
@@ -566,7 +566,7 @@ viewTrackedTxRow trackedTx =
                                 MsgUp <|
                                     GotoRoute <|
                                         RouteViewContext <|
-                                            Common.Types.ViewPost postId
+                                            Types.ViewPost postId
                             ]
                             (Element.text "Post")
                         ]
@@ -1070,7 +1070,7 @@ viewReplyInfo postId =
                 --, Element.Events.onClick <|
                 --GotoRoute <|
                 --RouteViewContext <|
-                --Common.Types.ViewPost postId
+                --Types.ViewPost postId
                 ]
                 (Element.text <|
                     shortenedHash postId.messageHash

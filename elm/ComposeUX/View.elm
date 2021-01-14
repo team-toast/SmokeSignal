@@ -1,6 +1,5 @@
 module ComposeUX.View exposing (..)
 
-import Common.Types exposing (..)
 import ComposeUX.Types exposing (..)
 import Element exposing (Attribute, Element)
 import Element.Background
@@ -17,6 +16,7 @@ import Maybe.Extra
 import Post
 import Theme exposing (theme)
 import TokenValue exposing (TokenValue)
+import Types exposing (..)
 import View exposing (..)
 import Wallet
 
@@ -291,7 +291,7 @@ actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model =
                                 --True
                                 --userInfo.address
                                 --(showAddressId == Just UserPhace)
-                                --(Common.Types.ShowOrHideAddress UserPhace)
+                                --(Types.ShowOrHideAddress UserPhace)
                                 --NoOp
                                 goBackButton dProfile
 
@@ -370,7 +370,7 @@ inputsElement dProfile donateChecked userInfo model =
                     , Element.spacing 5
                     ]
                     [ Element.Input.checkbox [ Element.alignTop ]
-                        { onChange = MsgUp << Common.Types.DonationCheckboxSet
+                        { onChange = MsgUp << Types.DonationCheckboxSet
                         , icon = Element.Input.defaultCheckbox
                         , checked = donateChecked
                         , label = Element.Input.labelHidden "Donate an extra 1% to Foundry"

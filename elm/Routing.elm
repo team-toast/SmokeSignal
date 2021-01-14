@@ -1,6 +1,6 @@
 module Routing exposing (..)
 
-import Common.Types exposing (..)
+import Types exposing (..)
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Misc exposing (..)
