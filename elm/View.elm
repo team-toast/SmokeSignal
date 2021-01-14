@@ -1,5 +1,7 @@
 module View exposing (view)
 
+--import View.Post
+
 import Browser
 import Dict exposing (Dict)
 import Element exposing (Attribute, Element, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
@@ -23,8 +25,11 @@ import Phace
 import Theme exposing (theme)
 import Time
 import Tuple3
-import Types exposing (..)
+import Types exposing (Context(..), FailReason(..), Id, Metadata, Mode(..), Model, Msg(..), PublishedPostsDict, Route(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), UserInfo, ViewContext(..), Wallet)
 import UserNotice as UN exposing (UserNotice)
+import View.Common exposing (daiSymbol, phaceElement, whiteGlowAttribute, whiteGlowAttributeSmall)
+import View.Home
+import View.Post
 import Wallet
 
 
@@ -785,85 +790,6 @@ shortenedHash hash =
             ++ String.right 4 hashStr
 
 
-web3ConnectButton :
-    EH.DisplayProfile
-    -> List (Attribute Msg)
-    -> Element Msg
-web3ConnectButton dProfile attrs =
-    theme.emphasizedActionButton
-        dProfile
-        attrs
-        [ "Connect to Wallet" ]
-        (EH.Action ConnectToWeb3)
-
-
-phaceElement :
-    ( Int, Int )
-    -> Bool
-    -> Address
-    -> Bool
-    -> Msg
-    -> Msg
-    -> Element Msg
-phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClick noOpMsg =
-    let
-        addressOutputEl () =
-            -- delay processing because addressToChecksumString is expensive!
-            Element.el
-                [ Element.alignBottom
-                , if addressHangToRight then
-                    Element.alignLeft
-
-                  else
-                    Element.alignRight
-                , Background.color EH.white
-                , Font.size 12
-                , EH.moveToFront
-                , Border.width 2
-                , Border.color EH.black
-                , EH.onClickNoPropagation noOpMsg
-                ]
-                (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
-    in
-    Element.el
-        (if showAddress then
-            [ Element.inFront <| addressOutputEl ()
-            , Element.alignTop
-            ]
-
-         else
-            [ Element.alignTop ]
-        )
-    <|
-        Element.el
-            [ Border.rounded 5
-            , Element.clip
-            , Element.pointer
-            , EH.onClickNoPropagation onClick
-
-            -- , Border.width 1
-            -- , Border.color Theme.blue
-            ]
-        <|
-            Element.html
-                (Phace.fromEthAddress fromAddress width height)
-
-
-loadingElement :
-    List (Attribute Msg)
-    -> Maybe String
-    -> Element Msg
-loadingElement attrs maybeString =
-    Element.el
-        ([ Font.italic
-         , Font.color theme.loadingTextColor
-         , Font.size 20
-         ]
-            ++ attrs
-        )
-        (Element.text <| Maybe.withDefault "loading..." maybeString)
-
-
 emphasizedText : String -> Element Msg
 emphasizedText =
     Element.el
@@ -873,26 +799,7 @@ emphasizedText =
         << Element.text
 
 
-daiSymbol :
-    Bool
-    -> List (Attribute Msg)
-    -> Element Msg
-daiSymbol isWhite attributes =
-    Element.image attributes
-        { src =
-            if isWhite then
-                "img/dai-unit-char-white.svg"
-
-            else
-                "img/dai-unit-char-black.svg"
-        , description = ""
-        }
-
-
-appStatusMessage :
-    Element.Color
-    -> String
-    -> Element Msg
+appStatusMessage : Element.Color -> String -> Element Msg
 appStatusMessage color errStr =
     Element.el [ Element.width Element.fill, Element.height Element.fill ] <|
         Element.paragraph
@@ -908,9 +815,7 @@ appStatusMessage color errStr =
             [ Element.text errStr ]
 
 
-posixToString :
-    Time.Posix
-    -> String
+posixToString : Time.Posix -> String
 posixToString t =
     let
         z =
@@ -936,9 +841,7 @@ subheaderAttributes dProfile =
     ]
 
 
-commonFontSize :
-    DisplayProfile
-    -> Int
+commonFontSize : DisplayProfile -> Int
 commonFontSize dProfile =
     case dProfile of
         Desktop ->
@@ -948,10 +851,7 @@ commonFontSize dProfile =
             18
 
 
-viewMetadata :
-    Bool
-    -> Metadata
-    -> Element Msg
+viewMetadata : Bool -> Metadata -> Element Msg
 viewMetadata showContext metadata =
     Element.column
         [ Element.width Element.fill
@@ -972,9 +872,7 @@ viewMetadata showContext metadata =
         ]
 
 
-viewMetadataDecodeError :
-    String
-    -> Element Msg
+viewMetadataDecodeError : String -> Element Msg
 viewMetadataDecodeError error =
     Element.el
         [ Border.rounded 5
@@ -998,9 +896,7 @@ viewMetadataDecodeError error =
             )
 
 
-viewContext :
-    Context
-    -> Element Msg
+viewContext : Context -> Element Msg
 viewContext context =
     case context of
         Reply postId ->
@@ -1010,9 +906,7 @@ viewContext context =
             viewTopic topic
 
 
-viewTopic :
-    String
-    -> Element Msg
+viewTopic : String -> Element Msg
 viewTopic topic =
     Element.column
         [ Element.padding 10
@@ -1039,9 +933,7 @@ viewTopic topic =
         ]
 
 
-viewReplyInfo :
-    Id
-    -> Element Msg
+viewReplyInfo : Id -> Element Msg
 viewReplyInfo postId =
     Element.row
         [ Element.padding 10
@@ -1071,9 +963,7 @@ viewReplyInfo postId =
         ]
 
 
-coloredAppTitle :
-    List (Attribute Msg)
-    -> Element Msg
+coloredAppTitle : List (Attribute Msg) -> Element Msg
 coloredAppTitle attributes =
     Element.row attributes
         [ Element.el [ Font.color Theme.darkGray ] <| Element.text "Smoke"
@@ -1083,83 +973,3 @@ coloredAppTitle attributes =
 
 maxContentColWidth =
     1000
-
-
-unlockUXOr :
-    DisplayProfile
-    -> List (Attribute Msg)
-    -> UnlockStatus
-    -> Element Msg
-    -> Element Msg
-unlockUXOr dProfile attributes unlockStatus el =
-    case unlockStatus of
-        NotConnected ->
-            web3ConnectButton
-                dProfile
-                attributes
-
-        Checking ->
-            loadingElement
-                attributes
-            <|
-                Just "Checking DAI lock..."
-
-        Locked ->
-            unlockButton
-                dProfile
-                attributes
-
-        Unlocking ->
-            loadingElement
-                attributes
-            <|
-                Just "Unlocking DAI..."
-
-        Unlocked ->
-            Element.el attributes el
-
-
-unlockButton :
-    EH.DisplayProfile
-    -> List (Attribute Msg)
-    -> Element Msg
-unlockButton dProfile attrs =
-    theme.emphasizedActionButton
-        dProfile
-        attrs
-        [ "Unlock Dai" ]
-        (EH.Action UnlockDai)
-
-
-daiAmountInput :
-    DisplayProfile
-    -> List (Attribute Msg)
-    -> String
-    -> (String -> Msg)
-    -> Element Msg
-daiAmountInput dProfile attributes currentInput onChange =
-    Input.text
-        [ Element.width <| Element.px (responsiveVal dProfile 100 60)
-        , Element.height <| Element.px (responsiveVal dProfile 40 35)
-        , Font.size (responsiveVal dProfile 20 14)
-        , Background.color <| Element.rgba 1 1 1 0.4
-        ]
-        { onChange = onChange
-        , text = currentInput
-        , placeholder = Nothing
-        , label = Input.labelHidden "dai amount"
-        }
-
-
-whiteGlowAttribute : Element.Attribute Msg
-whiteGlowAttribute =
-    Border.glow
-        (Element.rgba 1 1 1 0.4)
-        5
-
-
-whiteGlowAttributeSmall : Element.Attribute Msg
-whiteGlowAttributeSmall =
-    Border.glow
-        (Element.rgba 1 1 1 0.4)
-        2

@@ -1,4 +1,4 @@
-module Types exposing (Accounting, Content, Context(..), Core, Draft, EncodedDraft, FailReason(..), Flags, GTagData, Id, Metadata, Mode(..), Model, Msg(..), PhaceIconId(..), Post(..), PostUXId(..), Published, PublishedPostsDict, ReplyIds, Route(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), UserInfo, ViewContext(..), Wallet(..))
+module Types exposing (Accounting, Content, Context(..), Core, Draft, EncodedDraft, FailReason(..), Flags, GTagData, Id, Metadata, Mode(..), Model, Msg(..), PhaceIconId(..), Post(..), PostState, PostUXId(..), Published, PublishedPostsDict, ReplyIds, Route(..), ShowInputState(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), UserInfo, ViewContext(..), Wallet(..))
 
 import Browser
 import Browser.Navigation
@@ -105,9 +105,21 @@ type Msg
     | DonationCheckboxSet Bool
 
 
+type alias PostState =
+    { showAddress : Bool
+    , showInput : ShowInputState
+    }
+
+
 type PostUXId
     = PublishedPostId Id
     | DraftPreview
+
+
+type ShowInputState
+    = None
+    | Burn String
+    | Tip String
 
 
 type Mode
