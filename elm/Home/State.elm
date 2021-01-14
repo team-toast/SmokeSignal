@@ -1,6 +1,5 @@
 module Home.State exposing (..)
 
-import Common.Msg
 import Home.Types exposing (..)
 import Post
 import PostUX.State as PostUX

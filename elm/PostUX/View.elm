@@ -1,8 +1,7 @@
-module PostUX.View exposing (..)
+module PostUX.View exposing (view)
 
-import Common.Msg
-import Common.Types exposing (..)
-import Common.View exposing (..)
+--import PostUX.Types exposing (Msg(..))
+
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element)
@@ -18,13 +17,14 @@ import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Eth as EthHelpers
 import List.Extra
 import Maybe.Extra
-import Post exposing (Post)
-import PostUX.Types exposing (..)
-import Routing exposing (Route)
+import Post
+import Routing
 import Theme exposing (theme)
 import Time
 import TokenValue exposing (TokenValue)
-import Wallet exposing (Wallet)
+import Types exposing (..)
+import View exposing (..)
+import Wallet
 
 
 view : DisplayProfile -> Bool -> Bool -> Post -> Wallet -> Maybe Model -> Element Msg
@@ -35,7 +35,7 @@ view dProfile donateChecked showContext post wallet maybeUXModel =
 
         maybePostId =
             case post of
-                Post.PublishedPost publishedPost ->
+                PublishedPost publishedPost ->
                     Just publishedPost.id
 
                 _ ->
@@ -90,16 +90,17 @@ view dProfile donateChecked showContext post wallet maybeUXModel =
 
 makePhaceElement : ( Int, Int ) -> Address -> Maybe Model -> Element Msg
 makePhaceElement ( width, height ) author maybeUXModel =
-    phaceElement
-        ( width, height )
-        True
-        author
-        (maybeUXModel
-            |> Maybe.map .showAddress
-            |> Maybe.withDefault False
-        )
-        PhaceIconClicked
-        NoOp
+    --phaceElement
+    --( width, height )
+    --True
+    --author
+    --(maybeUXModel
+    --|> Maybe.map .showAddress
+    --|> Maybe.withDefault False
+    --)
+    --PhaceIconClicked
+    --NoOp
+    Element.none
 
 
 viewDaiBurned : Post -> Element Msg
@@ -178,12 +179,12 @@ tipSummaryString post =
         ++ " in tips"
 
 
-viewPostLinks : Post.Id -> Element Msg
+viewPostLinks : Id -> Element Msg
 viewPostLinks postId =
     let
         route =
-            Routing.ViewContext <|
-                Post postId
+            RouteViewContext <|
+                ViewPost postId
     in
     Element.row
         [ Element.alignBottom
@@ -205,7 +206,7 @@ viewPostLinks postId =
             , Element.Font.bold
             , Element.Events.onClick <|
                 MsgUp <|
-                    Common.Msg.GotoRoute <|
+                    Types.GotoRoute <|
                         route
             ]
             (Element.text (shortenedHash postId.messageHash))
@@ -215,8 +216,8 @@ viewPostLinks postId =
             ]
             { url =
                 Routing.routeToFullDotEthUrlString <|
-                    Routing.ViewContext <|
-                        Post postId
+                    RouteViewContext <|
+                        ViewPost postId
             , label = Element.text "(.eth permalink)"
             }
         ]
@@ -260,23 +261,24 @@ viewMainPostBlock dProfile donateChecked showContext post unlockStatus maybeUXMo
             ]
         , Element.map never postCore.renderedPost
         , case post of
-            Post.PublishedPost published ->
-                publishedPostActionForm
-                    dProfile
-                    donateChecked
-                    published
-                    (maybeUXModel
-                        |> Maybe.map .showInput
-                        |> Maybe.withDefault None
-                    )
-                    unlockStatus
+            PublishedPost published ->
+                --publishedPostActionForm
+                --dProfile
+                --donateChecked
+                --published
+                --(maybeUXModel
+                --|> Maybe.map .showInput
+                --|> Maybe.withDefault None
+                --)
+                --unlockStatus
+                Element.none
 
             _ ->
                 Element.none
         ]
 
 
-publishedPostActionForm : DisplayProfile -> Bool -> Post.Published -> ShowInputState -> UnlockStatus -> Element Msg
+publishedPostActionForm : DisplayProfile -> Bool -> Published -> ShowInputState -> UnlockStatus -> Element Msg
 publishedPostActionForm dProfile donateChecked publishedPost showInput unlockStatus =
     Element.el
         [ Element.alignRight ]
@@ -312,7 +314,7 @@ publishedPostActionForm dProfile donateChecked publishedPost showInput unlockSta
                     unlockStatus
 
 
-supportTipButton : Post.Id -> Element Msg
+supportTipButton : Id -> Element Msg
 supportTipButton postId =
     publishedPostActionButton
         [ EH.withTitle "Tip DAI for this post, rewarding the author" ]
@@ -327,7 +329,7 @@ supportTipButton postId =
             }
 
 
-supportBurnButton : Post.Id -> Element Msg
+supportBurnButton : Id -> Element Msg
 supportBurnButton postId =
     publishedPostActionButton
         [ EH.withTitle "Burn DAI to increase this post's visibility" ]
@@ -342,11 +344,11 @@ supportBurnButton postId =
             }
 
 
-replyButton : Post.Id -> Element Msg
+replyButton : Id -> Element Msg
 replyButton postId =
     publishedPostActionButton
         [ EH.withTitle "Reply" ]
-        (MsgUp <| Common.Msg.StartInlineCompose <| Post.Reply postId)
+        (MsgUp <| Types.StartInlineCompose <| Reply postId)
     <|
         Element.image
             [ Element.width Element.fill ]
@@ -431,7 +433,7 @@ inputForm dProfile donateChecked currentString buttonLabel onSubmit =
             ]
             [ Element.Input.checkbox
                 []
-                { onChange = MsgUp << Common.Msg.DonationCheckboxSet
+                { onChange = MsgUp << Types.DonationCheckboxSet
                 , icon = Element.Input.defaultCheckbox
                 , checked = donateChecked
                 , label =

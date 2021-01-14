@@ -1,14 +1,16 @@
-module State exposing (init, subscriptions, update)
+module Update exposing (update)
+
+--import PostUX.State as PostUX
+--import TopicUX.State as TopicUX
+--import TopicUX.Types as TopicUX
+--import Home.State as Home
+--import ComposeUX.State as ComposeUX
+--import ComposeUX.Types as ComposeUX
 
 import Array exposing (Array)
 import Browser
 import Browser.Events
 import Browser.Navigation
-import Common.Msg exposing (..)
-import Common.Types exposing (..)
-import Common.View
-import ComposeUX.State as ComposeUX
-import ComposeUX.Types as ComposeUX
 import Config
 import Contracts.Dai as Dai
 import Contracts.SmokeSignal as SSContract
@@ -23,113 +25,27 @@ import Eth.Sentry.Wallet as WalletSentry
 import Eth.Types exposing (Address, TxHash)
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..))
-import Home.State as Home
 import Json.Decode
 import Json.Encode
 import List.Extra
 import Maybe.Extra
+import Misc exposing (defaultSeoDescription, txInfoToNameStr, updatePublishedPost, viewContextToMaybeDescription)
 import Ports exposing (connectToWeb3, consentToCookies, gTagOut, setDescription, txIn, txOut, walletSentryPort)
-import Post exposing (Post)
-import PostUX.State as PostUX
+import Post
 import Random
-import Routing exposing (Route)
+import Routing
 import Task
 import Time
 import TokenValue exposing (TokenValue)
-import TopicUX.State as TopicUX
-import TopicUX.Types as TopicUX
 import Types exposing (..)
 import Url exposing (Url)
 import UserNotice as UN exposing (UserNotice)
+import View
+import View.Common
 import Wallet
 
 
-init :
-    Flags
-    -> Url
-    -> Browser.Navigation.Key
-    -> ( Model, Cmd Msg )
-init flags url key =
-    let
-        route =
-            Routing.urlToRoute url
-
-        ( wallet, walletNotices ) =
-            if flags.networkId == 0 then
-                ( Wallet.NoneDetected
-                , [ UN.noWeb3Provider ]
-                )
-
-            else
-                ( Wallet.OnlyNetwork <| Eth.Net.toNetworkId flags.networkId
-                , []
-                )
-
-        txSentry =
-            TxSentry.init
-                ( txOut, txIn )
-                TxSentryMsg
-                Config.httpProviderUrl
-
-        ( initEventSentry, initEventSentryCmd ) =
-            EventSentry.init EventSentryMsg Config.httpProviderUrl
-
-        ( eventSentry, secondEventSentryCmd, _ ) =
-            fetchPostsFromBlockrangeCmd
-                (Eth.Types.BlockNum Config.startScanBlock)
-                Eth.Types.LatestBlock
-                initEventSentry
-
-        now =
-            Time.millisToPosix flags.nowInMillis
-    in
-    { navKey = key
-    , basePath = flags.basePath
-    , route = route
-    , wallet = wallet
-    , now = now
-    , dProfile = EH.screenWidthToDisplayProfile flags.width
-    , txSentry = txSentry
-    , eventSentry = eventSentry
-    , publishedPosts = Dict.empty
-    , postUX = Nothing
-    , replies = []
-    , mode = BlankMode
-    , showHalfComposeUX = False
-    , composeUXModel = ComposeUX.init now (Post.TopLevel Post.defaultTopic)
-    , blockTimes = Dict.empty
-    , showAddressId = Nothing
-    , userNotices = walletNotices
-    , trackedTxs = []
-    , showExpandedTrackedTxs = False
-    , draftModal = Nothing
-    , demoPhaceSrc = initDemoPhaceSrc
-    , donateChecked = True
-    , cookieConsentGranted = flags.cookieConsent
-    , maybeSeoDescription = Nothing
-    , searchInput = ""
-    , topicUXModel = Nothing
-    }
-        |> gotoRoute route
-        |> Tuple.mapSecond
-            (\routeCmd ->
-                Cmd.batch
-                    [ initEventSentryCmd
-                    , secondEventSentryCmd
-                    , routeCmd
-                    ]
-            )
-
-
-initDemoPhaceSrc : String
-initDemoPhaceSrc =
-    "2222222222222222222222222228083888c8f222"
-
-
-update :
-    Msg
-    -> Model
-    -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg prevModel =
     case msg of
         LinkClicked urlRequest ->
@@ -227,7 +143,7 @@ update msg prevModel =
                                         )
 
                                     else
-                                        ( Wallet.Active <|
+                                        ( Types.Active <|
                                             UserInfo
                                                 walletSentry.networkId
                                                 newAddress
@@ -237,7 +153,7 @@ update msg prevModel =
                                         )
 
                                 Nothing ->
-                                    ( Wallet.OnlyNetwork walletSentry.networkId
+                                    ( Types.OnlyNetwork walletSentry.networkId
                                     , Cmd.none
                                     )
                     in
@@ -292,23 +208,23 @@ update msg prevModel =
                                     (SSContract.fromMessageBurn
                                         log.transactionHash
                                         log.blockNumber
-                                        Common.View.renderContentOrError
+                                        View.Common.renderContentOrError
                                         ssPost
                                     )
                     in
                     ( interimModel
-                        |> updateTrackedTxByTxHash
-                            log.transactionHash
-                            (\trackedTx ->
-                                { trackedTx
-                                    | status =
-                                        Mined <|
-                                            Just <|
-                                                Post.Id
-                                                    log.blockNumber
-                                                    ssPost.hash
-                                }
-                            )
+                      --|> updateTrackedTxByTxHash
+                      --log.transactionHash
+                      --(\trackedTx ->
+                      --{ trackedTx
+                      --| status =
+                      --Mined <|
+                      --Just <|
+                      --Id
+                      --log.blockNumber
+                      --ssPost.hash
+                      --}
+                      --)
                     , Cmd.batch
                         [ newPostCmd
                         , getBlockTimeIfNeededCmd prevModel.blockTimes log.blockNumber
@@ -435,18 +351,21 @@ update msg prevModel =
         RestoreDraft draft ->
             { prevModel
                 | draftModal = Nothing
-                , composeUXModel =
-                    prevModel.composeUXModel
-                        |> (\composeUXModel ->
-                                { composeUXModel
-                                    | content = draft.core.content
-                                    , daiInput =
-                                        draft.core.authorBurn
-                                            |> TokenValue.toFloatString Nothing
-                                }
-                           )
+
+                --, composeUXModel =
+                --prevModel.composeUXModel
+                --|> (\composeUXModel ->
+                --{ composeUXModel
+                --| content = draft.core.content
+                --, daiInput =
+                --draft.core.authorBurn
+                --|> TokenValue.toFloatString Nothing
+                --}
+                --)
+                -- TODO
+                --|> identity
             }
-                |> (gotoRoute <| Routing.Compose draft.core.metadata.context)
+                |> (gotoRoute <| Compose draft.core.metadata.context)
 
         DismissNotice id ->
             ( { prevModel
@@ -456,91 +375,88 @@ update msg prevModel =
             , Cmd.none
             )
 
-        PostUXMsg postUXId postUXMsg ->
-            let
-                postUXModelBeforeMsg =
-                    case prevModel.postUX of
-                        Just ( prevPostUXId, prevPostUXModel ) ->
-                            if prevPostUXId == postUXId then
-                                prevPostUXModel
-
-                            else
-                                PostUX.init
-
-                        Nothing ->
-                            PostUX.init
-
-                updateResult =
-                    postUXModelBeforeMsg
-                        |> PostUX.update postUXMsg
-            in
-            ( { prevModel
-                | postUX =
-                    Just <|
-                        ( postUXId
-                        , updateResult.newModel
-                        )
-              }
-            , Cmd.map (PostUXMsg postUXId) updateResult.cmd
-            )
-                |> withMsgUps updateResult.msgUps
-
-        ComposeUXMsg composeUXMsg ->
-            let
-                updateResult =
-                    prevModel.composeUXModel
-                        |> ComposeUX.update composeUXMsg
-            in
-            ( { prevModel
-                | composeUXModel =
-                    updateResult.newModel
-              }
-            , Cmd.map ComposeUXMsg updateResult.cmd
-            )
-                |> withMsgUps updateResult.msgUps
-
-        TopicUXMsg topicUXMsg ->
-            let
-                topicUXModelBeforeMsg =
-                    case prevModel.topicUXModel of
-                        Just prevTopicUXModel ->
-                            prevTopicUXModel
-
-                        Nothing ->
-                            TopicUX.init
-
-                updateResult =
-                    topicUXModelBeforeMsg
-                        |> TopicUX.update topicUXMsg
-            in
-            ( { prevModel
-                | topicUXModel =
-                    Just <|
-                        updateResult.newModel
-              }
-            , Cmd.map TopicUXMsg updateResult.cmd
-            )
-                |> withMsgUps updateResult.msgUps
-
-        HomeMsg homeMsg ->
-            case prevModel.mode of
-                Home homeModel ->
-                    let
-                        updateResult =
-                            homeModel
-                                |> Home.update homeMsg
-                    in
-                    ( { prevModel
-                        | mode =
-                            Home updateResult.newModel
-                      }
-                    , Cmd.map HomeMsg updateResult.cmd
-                    )
-                        |> withMsgUps updateResult.msgUps
-
-                _ ->
-                    ( prevModel, Cmd.none )
-
+        --PostUXMsg postUXId postUXMsg ->
+        --let
+        --postUXModelBeforeMsg =
+        ---- TODO
+        --case Nothing of
+        --Just ( prevPostUXId, prevPostUXModel ) ->
+        --if prevPostUXId == postUXId then
+        --prevPostUXModel
+        --else
+        --PostUX.init
+        --Nothing ->
+        --PostUX.init
+        --updateResult =
+        --postUXModelBeforeMsg
+        --|> PostUX.update postUXMsg
+        --in
+        --( prevModel
+        -- TODO
+        --| postUX =
+        --Just <|
+        --( postUXId
+        --, updateResult.newModel
+        --)
+        --, Cmd.map (PostUXMsg postUXId) updateResult.cmd
+        --)
+        --|> withMsgUps updateResult.msgUps
+        --ComposeUXMsg composeUXMsg ->
+        --let
+        --updateResult =
+        --prevModel.composeUXModel
+        --Nothing
+        --TODO
+        --|> ComposeUX.update composeUXMsg
+        --in
+        --( prevModel
+        --| composeUXModel =
+        --updateResult.newModel
+        -- TODO
+        --prevModel.composeUXModel
+        --}
+        --, Cmd.map ComposeUXMsg updateResult.cmd
+        --, Cmd.none
+        --)
+        --|> withMsgUps updateResult.msgUps
+        --TopicUXMsg topicUXMsg ->
+        --let
+        --topicUXModelBeforeMsg =
+        --case prevModel.topicUXModel of
+        --Just prevTopicUXModel ->
+        --prevTopicUXModel
+        --Nothing ->
+        --TopicUX.init
+        --updateResult =
+        --topicUXModelBeforeMsg
+        --|> TopicUX.update topicUXMsg
+        --in
+        --( { prevModel
+        --| topicUXModel =
+        --Just <|
+        --updateResult.newModel
+        --}
+        --, Cmd.map TopicUXMsg updateResult.cmd
+        --)
+        --|> withMsgUps updateResult.msgUps
+        --( prevModel, Cmd.none )
+        --HomeMsg homeMsg ->
+        --case prevModel.mode of
+        --ModeHome homeModel ->
+        --let
+        --updateResult =
+        --homeModel
+        --|> Home.update homeMsg
+        --in
+        --( { prevModel
+        --| mode =
+        --ModeHome updateResult.newModel
+        --}
+        --, Cmd.map HomeMsg updateResult.cmd
+        --)
+        --|> withMsgUps updateResult.msgUps
+        --_ ->
+        --( prevModel, Cmd.none )
         TxSigned txInfo txHashResult ->
             case txHashResult of
                 Ok txHash ->
@@ -548,10 +464,12 @@ update msg prevModel =
                         maybeNewRouteAndComposeModel =
                             case txInfo of
                                 PostTx draft ->
-                                    Just <|
-                                        ( Routing.ViewContext <| postContextToViewContext prevModel.composeUXModel.context
-                                        , prevModel.composeUXModel |> ComposeUX.resetModel
-                                        )
+                                    -- TODO
+                                    --Just <|
+                                    --( Routing.ViewContext <| postContextToViewContext prevModel.composeUXModel.context
+                                    --, prevModel.composeUXModel |> ComposeUX.resetModel
+                                    --)
+                                    Nothing
 
                                 _ ->
                                     Nothing
@@ -565,7 +483,8 @@ update msg prevModel =
                                     Nothing
 
                                 _ ->
-                                    prevModel.postUX
+                                    --prevModel.postUX
+                                    Nothing
 
                         newWallet =
                             case txInfo of
@@ -579,17 +498,19 @@ update msg prevModel =
                         interimModel =
                             { prevModel
                                 | showExpandedTrackedTxs = True
-                                , postUX = newPostUX
+
+                                --, postUX = newPostUX
                                 , wallet = newWallet
                             }
                                 |> addTrackedTx txHash txInfo
                     in
                     case maybeNewRouteAndComposeModel of
                         Just ( route, composeUXModel ) ->
-                            { interimModel
-                                | composeUXModel = composeUXModel
-                            }
-                                |> gotoRoute route
+                            --{ interimModel
+                            --| composeUXModel = composeUXModel
+                            --}
+                            --|> gotoRoute route
+                            ( interimModel, Cmd.none )
 
                         Nothing ->
                             ( interimModel
@@ -606,69 +527,6 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-        MsgUp msgUp ->
-            prevModel |> handleMsgUp msgUp
-
-        ViewDraft maybeDraft ->
-            ( { prevModel
-                | draftModal = maybeDraft
-              }
-            , Cmd.none
-            )
-
-        ChangeDemoPhaceSrc ->
-            ( prevModel
-              --, Random.generate MutateDemoSrcWith mutateInfoGenerator
-            , Random.generate NewDemoSrc DemoPhaceSrcMutator.addressSrcGenerator
-            )
-
-        NewDemoSrc src ->
-            ( { prevModel | demoPhaceSrc = src }
-            , Cmd.none
-            )
-
-        ClickHappened ->
-            ( { prevModel
-                | showAddressId = Nothing
-                , showExpandedTrackedTxs = False
-                , draftModal = Nothing
-              }
-            , Cmd.none
-            )
-
-        CookieConsentGranted ->
-            ( { prevModel
-                | cookieConsentGranted = True
-              }
-            , Cmd.batch
-                [ consentToCookies ()
-                , gTagOut <|
-                    encodeGTag <|
-                        GTagData
-                            "accept cookies"
-                            ""
-                            ""
-                            0
-                ]
-            )
-
-
-withAnotherUpdate : (Model -> ( Model, Cmd Msg )) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-withAnotherUpdate updateFunc ( firstModel, firstCmd ) =
-    updateFunc firstModel
-        |> (\( finalModel, secondCmd ) ->
-                ( finalModel
-                , Cmd.batch
-                    [ firstCmd
-                    , secondCmd
-                    ]
-                )
-           )
-
-
-handleMsgUp : MsgUp -> Model -> ( Model, Cmd Msg )
-handleMsgUp msgUp prevModel =
-    case msgUp of
         GotoRoute route ->
             prevModel
                 |> gotoRoute route
@@ -684,7 +542,7 @@ handleMsgUp msgUp prevModel =
 
         ConnectToWeb3 ->
             case prevModel.wallet of
-                Wallet.NoneDetected ->
+                Types.NoneDetected ->
                     ( prevModel |> addUserNotice UN.cantConnectNoWeb3
                     , Cmd.none
                     )
@@ -711,9 +569,11 @@ handleMsgUp msgUp prevModel =
                 Desktop ->
                     ( { prevModel
                         | showHalfComposeUX = True
-                        , composeUXModel =
-                            prevModel.composeUXModel
-                                |> ComposeUX.updateContext composeContext
+
+                        --, composeUXModel =
+                        --prevModel.composeUXModel
+                        -- TODO
+                        --|> ComposeUX.updateContext composeContext
                       }
                     , Cmd.none
                     )
@@ -721,15 +581,16 @@ handleMsgUp msgUp prevModel =
                 Mobile ->
                     prevModel
                         |> (gotoRoute <|
-                                Routing.Compose composeContext
+                                Compose composeContext
                            )
 
         ExitCompose ->
             case prevModel.mode of
-                Compose ->
-                    prevModel
-                        |> gotoRoute (Routing.ViewContext <| postContextToViewContext prevModel.composeUXModel.context)
+                ModeCompose ->
+                    -- TODO
+                    ( prevModel, Cmd.none )
 
+                --|> gotoRoute (Routing.ViewContext <| postContextToViewContext prevModel.composeUXModel.context)
                 _ ->
                     ( { prevModel
                         | showHalfComposeUX = False
@@ -835,140 +696,60 @@ handleMsgUp msgUp prevModel =
             , Cmd.none
             )
 
-        NoOp ->
-            ( prevModel, Cmd.none )
-
-
-handleTxReceipt :
-    Eth.Types.TxReceipt
-    -> ( TxStatus, Maybe Post.Published, Maybe UserNotice )
-handleTxReceipt txReceipt =
-    case txReceipt.status of
-        Just True ->
-            let
-                maybePostEvent =
-                    txReceipt.logs
-                        |> List.map (Eth.Decode.event SSContract.messageBurnDecoder)
-                        |> List.map .returnData
-                        |> List.map Result.toMaybe
-                        |> Maybe.Extra.values
-                        |> List.head
-            in
-            ( Mined <|
-                Maybe.map
-                    (\ssEvent ->
-                        Post.Id
-                            txReceipt.blockNumber
-                            ssEvent.hash
-                    )
-                    maybePostEvent
-            , Maybe.map
-                (SSContract.fromMessageBurn
-                    txReceipt.hash
-                    txReceipt.blockNumber
-                    Common.View.renderContentOrError
-                )
-                maybePostEvent
-            , Nothing
+        ViewDraft maybeDraft ->
+            ( { prevModel
+                | draftModal = maybeDraft
+              }
+            , Cmd.none
             )
 
-        Just False ->
-            ( Failed MinedButExecutionFailed
-            , Nothing
-            , Nothing
+        ChangeDemoPhaceSrc ->
+            ( prevModel
+              --, Random.generate MutateDemoSrcWith mutateInfoGenerator
+            , Random.generate NewDemoSrc DemoPhaceSrcMutator.addressSrcGenerator
             )
 
-        Nothing ->
-            ( Mining
-            , Nothing
-            , Just <|
-                UN.unexpectedError "Weird. I Got a transaction receipt with a success value of 'Nothing'. Depending on why this happened I might be a little confused about any mining transactions." txReceipt
+        NewDemoSrc src ->
+            ( { prevModel | demoPhaceSrc = src }
+            , Cmd.none
+            )
+
+        ClickHappened ->
+            ( { prevModel
+                | showAddressId = Nothing
+                , showExpandedTrackedTxs = False
+                , draftModal = Nothing
+              }
+            , Cmd.none
+            )
+
+        CookieConsentGranted ->
+            ( { prevModel
+                | cookieConsentGranted = True
+              }
+            , Cmd.batch
+                [ consentToCookies ()
+                , gTagOut <|
+                    encodeGTag <|
+                        GTagData
+                            "accept cookies"
+                            ""
+                            ""
+                            0
+                ]
             )
 
 
-addTrackedTx :
-    TxHash
-    -> TxInfo
-    -> Model
-    -> Model
-addTrackedTx txHash txInfo prevModel =
-    { prevModel
-        | trackedTxs =
-            prevModel.trackedTxs
-                |> List.append
-                    [ TrackedTx
-                        txHash
-                        txInfo
-                        Mining
-                    ]
-    }
-
-
-updateTrackedTxStatusIfMining :
-    TxHash
-    -> TxStatus
-    -> Model
-    -> Model
-updateTrackedTxStatusIfMining txHash newStatus =
-    updateTrackedTxIf
-        (\trackedTx ->
-            (trackedTx.txHash == txHash)
-                && (trackedTx.status == Mining)
-        )
-        (\trackedTx ->
-            { trackedTx
-                | status = newStatus
-            }
-        )
-
-
-withMsgUp :
-    MsgUp
-    -> ( Model, Cmd Msg )
-    -> ( Model, Cmd Msg )
-withMsgUp msgUp ( prevModel, prevCmd ) =
-    handleMsgUp msgUp prevModel
-        |> Tuple.mapSecond
-            (\newCmd ->
-                Cmd.batch [ prevCmd, newCmd ]
-            )
-
-
-handleMsgUps :
-    List MsgUp
-    -> Model
-    -> ( Model, Cmd Msg )
-handleMsgUps msgUps prevModel =
-    List.foldl
-        withMsgUp
-        ( prevModel, Cmd.none )
-        msgUps
-
-
-withMsgUps :
-    List MsgUp
-    -> ( Model, Cmd Msg )
-    -> ( Model, Cmd Msg )
-withMsgUps msgUps ( prevModel, prevCmd ) =
-    handleMsgUps msgUps prevModel
-        |> Tuple.mapSecond
-            (\newCmd ->
-                Cmd.batch [ prevCmd, newCmd ]
-            )
-
-
-updateFromPageRoute :
-    Route
-    -> Model
-    -> ( Model, Cmd Msg )
-updateFromPageRoute route model =
-    if model.route == route then
-        ( model
-        , Cmd.none
-        )
-
-    else
-        gotoRoute route model
+encodeGTag :
+    GTagData
+    -> Json.Decode.Value
+encodeGTag gtag =
+    Json.Encode.object
+        [ ( "event", Json.Encode.string gtag.event )
+        , ( "category", Json.Encode.string gtag.category )
+        , ( "label", Json.Encode.string gtag.label )
+        , ( "value", Json.Encode.int gtag.value )
+        ]
 
 
 gotoRoute :
@@ -977,31 +758,35 @@ gotoRoute :
     -> ( Model, Cmd Msg )
 gotoRoute route prevModel =
     (case route of
-        Routing.Home ->
-            let
-                ( homeModel, homeCmd ) =
-                    Home.init
-            in
-            ( { prevModel
-                | route = route
-                , mode = Home homeModel
-                , showHalfComposeUX = False
-              }
-            , Cmd.map HomeMsg homeCmd
-            )
+        Home ->
+            --let
+            --( homeModel, homeCmd ) =
+            --Home.init
+            --in
+            --( { prevModel
+            --| route = route
+            --, mode = ModeHome homeModel
+            --, showHalfComposeUX = False
+            --}
+            --, Cmd.map HomeMsg homeCmd
+            --)
+            ( prevModel, Cmd.none )
 
-        Routing.Compose context ->
+        Compose context ->
             ( { prevModel
                 | route = route
-                , mode = Compose
+                , mode = ModeCompose
                 , showHalfComposeUX = False
-                , composeUXModel =
-                    prevModel.composeUXModel |> ComposeUX.updateContext context
+
+                --, composeUXModel =
+                --prevModel.composeUXModel
+                --|> ComposeUX.updateContext context
+                -- TODO
               }
             , Cmd.none
             )
 
-        Routing.ViewContext context ->
+        RouteViewContext context ->
             ( { prevModel
                 | route = route
                 , mode = ViewContext context
@@ -1012,7 +797,7 @@ gotoRoute route prevModel =
                 |> Maybe.withDefault Cmd.none
             )
 
-        Routing.NotFound err ->
+        NotFound err ->
             ( { prevModel
                 | route = route
               }
@@ -1025,7 +810,7 @@ gotoRoute route prevModel =
 
 addPost :
     Int
-    -> Post.Published
+    -> Published
     -> Model
     -> ( Model, Cmd Msg )
 addPost blockNumber publishedPost prevModel =
@@ -1079,6 +864,104 @@ addPost blockNumber publishedPost prevModel =
             |> withAnotherUpdate updateSeoDescriptionIfNeededCmd
 
 
+handleTxReceipt :
+    Eth.Types.TxReceipt
+    -> ( TxStatus, Maybe Published, Maybe UserNotice )
+handleTxReceipt txReceipt =
+    case txReceipt.status of
+        Just True ->
+            let
+                maybePostEvent =
+                    txReceipt.logs
+                        |> List.map (Eth.Decode.event SSContract.messageBurnDecoder)
+                        |> List.map .returnData
+                        |> List.map Result.toMaybe
+                        |> Maybe.Extra.values
+                        |> List.head
+            in
+            ( Mined <|
+                Maybe.map
+                    (\ssEvent ->
+                        Id
+                            txReceipt.blockNumber
+                            ssEvent.hash
+                    )
+                    maybePostEvent
+            , Maybe.map
+                (SSContract.fromMessageBurn
+                    txReceipt.hash
+                    txReceipt.blockNumber
+                    View.Common.renderContentOrError
+                )
+                maybePostEvent
+            , Nothing
+            )
+
+        Just False ->
+            ( Failed MinedButExecutionFailed
+            , Nothing
+            , Nothing
+            )
+
+        Nothing ->
+            ( Mining
+            , Nothing
+            , Just <|
+                UN.unexpectedError "Weird. I Got a transaction receipt with a success value of 'Nothing'. Depending on why this happened I might be a little confused about any mining transactions." txReceipt
+            )
+
+
+addTrackedTx :
+    TxHash
+    -> TxInfo
+    -> Model
+    -> Model
+addTrackedTx txHash txInfo prevModel =
+    { prevModel
+        | trackedTxs =
+            prevModel.trackedTxs
+                |> List.append
+                    [ TrackedTx
+                        txHash
+                        txInfo
+                        Mining
+                    ]
+    }
+
+
+updateTrackedTxStatusIfMining :
+    TxHash
+    -> TxStatus
+    -> Model
+    -> Model
+updateTrackedTxStatusIfMining txHash newStatus =
+    --updateTrackedTxIf
+    --(\trackedTx ->
+    --(trackedTx.txHash == txHash)
+    --&& (trackedTx.status == Mining)
+    --)
+    --(\trackedTx ->
+    --{ trackedTx
+    --| status = newStatus
+    --}
+    --)
+    identity
+
+
+updateFromPageRoute :
+    Route
+    -> Model
+    -> ( Model, Cmd Msg )
+updateFromPageRoute route model =
+    if model.route == route then
+        ( model
+        , Cmd.none
+        )
+
+    else
+        gotoRoute route model
+
+
 getBlockTimeIfNeededCmd :
     Dict Int Time.Posix
     -> Int
@@ -1101,10 +984,10 @@ updateSeoDescriptionIfNeededCmd model =
                 BlankMode ->
                     Nothing
 
-                Home _ ->
+                ModeHome ->
                     Nothing
 
-                Compose ->
+                ModeCompose ->
                     Nothing
 
                 ViewContext context ->
@@ -1119,23 +1002,6 @@ updateSeoDescriptionIfNeededCmd model =
 
     else
         ( model, Cmd.none )
-
-
-fetchPostsFromBlockrangeCmd :
-    Eth.Types.BlockId
-    -> Eth.Types.BlockId
-    -> EventSentry Msg
-    -> ( EventSentry Msg, Cmd Msg, EventSentry.Ref )
-fetchPostsFromBlockrangeCmd from to sentry =
-    EventSentry.watch
-        PostLogReceived
-        sentry
-    <|
-        SSContract.messageBurnEventFilter
-            from
-            to
-            Nothing
-            Nothing
 
 
 fetchDaiBalanceAndAllowanceCmd :
@@ -1182,33 +1048,14 @@ addUserNotices notices model =
     }
 
 
-encodeGTag :
-    GTagData
-    -> Json.Decode.Value
-encodeGTag gtag =
-    Json.Encode.object
-        [ ( "event", Json.Encode.string gtag.event )
-        , ( "category", Json.Encode.string gtag.category )
-        , ( "label", Json.Encode.string gtag.label )
-        , ( "value", Json.Encode.int gtag.value )
-        ]
-
-
-subscriptions :
-    Model
-    -> Sub Msg
-subscriptions model =
-    Sub.batch
-        [ Time.every 200 Tick
-        , Time.every 2000 (always ChangeDemoPhaceSrc)
-        , Time.every 2500 (always EveryFewSeconds)
-        , Time.every 5000 (always CheckTrackedTxsStatus)
-        , walletSentryPort
-            (WalletSentry.decodeToMsg
-                (WalletStatus << Err)
-                (WalletStatus << Ok)
-            )
-        , TxSentry.listen model.txSentry
-        , Browser.Events.onResize Resize
-        , Sub.map ComposeUXMsg ComposeUX.subscriptions
-        ]
+withAnotherUpdate : (Model -> ( Model, Cmd Msg )) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
+withAnotherUpdate updateFunc ( firstModel, firstCmd ) =
+    updateFunc firstModel
+        |> (\( finalModel, secondCmd ) ->
+                ( finalModel
+                , Cmd.batch
+                    [ firstCmd
+                    , secondCmd
+                    ]
+                )
+           )

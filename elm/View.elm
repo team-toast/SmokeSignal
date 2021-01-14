@@ -1,73 +1,79 @@
-module View exposing (..)
+module View exposing (view)
+
+--import View.Post
 
 import Browser
-import Common.Msg exposing (..)
-import Common.Types exposing (..)
-import Common.View exposing (..)
-import ComposeUX.Types as ComposeUX
-import ComposeUX.View as ComposeUX
 import Dict exposing (Dict)
-import Dict.Extra
 import Element exposing (Attribute, Element, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
-import Element.Border
+import Element.Border as Border
 import Element.Events
 import Element.Font as Font
 import Element.Input as Input
 import Element.Lazy
-import ElementMarkdown
-import Eth.Types exposing (Address, Hex, TxHash)
+import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal)
 import Helpers.Eth as EthHelpers
-import Helpers.List as ListHelpers
 import Helpers.Time as TimeHelpers
 import Helpers.Tuple as TupleHelpers
-import Home.View
+import Html exposing (Html)
 import Html.Attributes
-import Json.Decode
-import List.Extra
 import Maybe.Extra
+import Misc exposing (getPublishedPostFromId, getTitle)
 import Phace
-import Post exposing (Post)
-import PostUX.Types as PostUX
-import PostUX.View as PostUX
-import Routing exposing (Route)
 import Theme exposing (theme)
 import Time
-import TokenValue exposing (TokenValue)
-import TopicUX.View as TopicUX
 import Tuple3
-import Types exposing (..)
+import Types exposing (Context(..), FailReason(..), Id, Metadata, Mode(..), Model, Msg(..), PublishedPostsDict, Route(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), UserInfo, ViewContext(..), Wallet)
 import UserNotice as UN exposing (UserNotice)
-import Wallet exposing (Wallet)
+import View.Common exposing (daiSymbol, phaceElement, whiteGlowAttribute, whiteGlowAttributeSmall)
+import View.Home
+import View.Post
+import Wallet
 
 
-root :
-    Model
-    -> Browser.Document Msg
-root model =
+view : Model -> Browser.Document Msg
+view model =
     { title = getTitle model
     , body =
-        [ Element.layout
-            ([ Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
-             , Element.Events.onClick ClickHappened
-             , Element.height Element.fill
-             ]
-             -- ++ List.map Element.inFront (modals model)
-            )
-          <|
-            Element.column
-                [ Element.width Element.fill
-                , Element.height Element.fill
-                , Element.clip
-                ]
-                [ header model.wallet model.searchInput
-                , body model
-                , footer
-                ]
-        ]
+        viewPage model
+            |> render model
+            |> List.singleton
     }
+
+
+render : Model -> Element Msg -> Html Msg
+render model =
+    modals model
+        |> List.map Element.inFront
+        |> (++)
+            [ Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
+            , Element.Events.onClick ClickHappened
+            , Element.height Element.fill
+            ]
+        |> Element.layoutWith
+            { options =
+                [ Element.focusStyle
+                    { borderColor = Nothing
+                    , backgroundColor = Nothing
+                    , shadow = Nothing
+                    }
+                ]
+            }
+
+
+viewPage : Model -> Element Msg
+viewPage model =
+    [ header model.wallet model.searchInput
+    , body model
+    , footer
+    ]
+        |> Element.column
+            [ Element.width Element.fill
+            , Element.height Element.fill
+            , Element.clip
+            ]
 
 
 header : Wallet -> String -> Element Msg
@@ -169,9 +175,7 @@ footer =
             ]
 
 
-body :
-    Model
-    -> Element Msg
+body : Model -> Element Msg
 body model =
     Element.el
         [ Element.width Element.fill
@@ -200,35 +204,23 @@ bodyContent model =
             BlankMode ->
                 Element.none
 
-            Home homeModel ->
-                Element.map HomeMsg <|
-                    Element.Lazy.lazy
-                        (\publishedPosts ->
-                            Home.View.view
-                                model.dProfile
-                                model.donateChecked
-                                model.blockTimes
-                                model.now
-                                model.showAddressId
-                                model.demoPhaceSrc
-                                model.wallet
-                                publishedPosts
-                                homeModel
-                        )
-                        model.publishedPosts
+            ModeHome ->
+                View.Home.view model
 
-            Compose ->
-                Element.map ComposeUXMsg <|
-                    ComposeUX.viewFull
-                        model.dProfile
-                        model.donateChecked
-                        model.wallet
-                        model.showAddressId
-                        model.composeUXModel
+            ModeCompose ->
+                --Element.map ComposeUXMsg <|
+                --ComposeUX.viewFull
+                --model.dProfile
+                --model.donateChecked
+                --model.wallet
+                --model.showAddressId
+                --model.composeUXModel
+                -- TODO
+                text "compose"
 
             ViewContext context ->
                 case context of
-                    Post postId ->
+                    ViewPost postId ->
                         case getPublishedPostFromId model.publishedPosts postId of
                             Just post ->
                                 Element.column
@@ -242,14 +234,13 @@ bodyContent model =
                                         , left = 0
                                         }
                                     ]
-                                    [ viewPostHeader model.dProfile post
-                                    , Element.Lazy.lazy5
-                                        (viewPostAndReplies model.dProfile model.donateChecked model.wallet)
-                                        model.publishedPosts
-                                        model.blockTimes
-                                        model.replies
-                                        post
-                                        model.postUX
+                                    [--, Element.Lazy.lazy5
+                                     --(viewPostAndReplies model.dProfile model.donateChecked model.wallet)
+                                     --model.publishedPosts
+                                     --model.blockTimes
+                                     --model.replies
+                                     --post
+                                     --model.postUX
                                     ]
 
                             Nothing ->
@@ -269,9 +260,9 @@ bodyContent model =
                                 , left = 0
                                 }
                             ]
-                            [ Element.map HomeMsg <|
-                                Home.View.banner model.dProfile
-                            , viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
+                            --[ Element.map HomeMsg <|
+                            --Home.View.banner model.dProfile
+                            [ viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
                             , Element.Lazy.lazy4
                                 (viewPostsForTopic model.dProfile model.donateChecked False model.wallet)
                                 model.blockTimes
@@ -282,22 +273,19 @@ bodyContent model =
         ]
 
 
-dummyElement =
-    Element.none
 
-
-viewPostAndReplies :
-    DisplayProfile
-    -> Bool
-    -> Wallet
-    -> PublishedPostsDict
-    -> Dict Int Time.Posix
-    -> List Reply
-    -> Post.Published
-    -> Maybe ( PostUXId, PostUX.Model )
-    -> Element Msg
-viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies publishedPost postUX =
-    dummyElement
+--viewPostAndReplies :
+--DisplayProfile
+---> Bool
+---> Wallet
+---> PublishedPostsDict
+---> Dict Int Time.Posix
+---> List ReplyIds
+---> Published
+---> Maybe ( PostUXId, PostUX.Model )
+---> Element Msg
+--viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies publishedPost postUX =
+--dummyElement
 
 
 viewTopicHeader :
@@ -306,10 +294,11 @@ viewTopicHeader :
     -> String
     -> Element Msg
 viewTopicHeader dProfile maybeUserInfo topic =
-    Element.map TopicUXMsg <|
-        TopicUX.topicHeader
-            dProfile
-            topic
+    --Element.map TopicUXMsg <|
+    --TopicUX.topicHeader
+    --dProfile
+    --topic
+    Element.none
 
 
 viewPostsForTopic :
@@ -323,29 +312,24 @@ viewPostsForTopic :
     -> PublishedPostsDict
     -> Element Msg
 viewPostsForTopic dProfile donateChecked showAddressOnPhace wallet blockTimes now topic allPosts =
-    Element.map TopicUXMsg <|
-        TopicUX.view
-            dProfile
-            donateChecked
-            showAddressOnPhace
-            topic
-            blockTimes
-            now
-            wallet
-            Nothing
-            allPosts
+    --Element.map TopicUXMsg <|
+    --TopicUX.view
+    --dProfile
+    --donateChecked
+    --showAddressOnPhace
+    --topic
+    --blockTimes
+    --now
+    --wallet
+    --Nothing
+    --allPosts
+    Element.none
 
 
-viewPostHeader dProfile post =
-    dummyElement
-
-
-modals :
-    Model
-    -> List (Element Msg)
+modals : Model -> List (Element Msg)
 modals model =
     Maybe.Extra.values
-        ([ if model.mode /= Compose && model.showHalfComposeUX then
+        ([ if model.mode /= ModeCompose && model.showHalfComposeUX then
             --Just <|
             --viewHalfComposeUX model
             Nothing
@@ -370,26 +354,30 @@ modals model =
          , let
             showDraftInProgressButton =
                 case model.mode of
-                    Compose ->
+                    ModeCompose ->
                         False
 
                     _ ->
-                        (model.showHalfComposeUX == False)
-                            && (not <| Post.contentIsEmpty model.composeUXModel.content)
+                        --(model.showHalfComposeUX == False)
+                        --&& (not <| Post.contentIsEmpty model.composeUXModel.content)
+                        -- TODO
+                        False
            in
            if showDraftInProgressButton then
-            Just <|
-                theme.secondaryActionButton
-                    model.dProfile
-                    [ Element.alignBottom
-                    , Element.alignLeft
-                    , Element.paddingXY 20 10
-                    , Element.Border.glow
-                        (Element.rgba 0 0 0 0.5)
-                        5
-                    ]
-                    [ "Draft in Progress" ]
-                    (EH.Action <| MsgUp <| StartInlineCompose model.composeUXModel.context)
+            --Just <|
+            --theme.secondaryActionButton
+            --model.dProfile
+            --[ Element.alignBottom
+            --, Element.alignLeft
+            --, Element.paddingXY 20 10
+            --, Border.glow
+            --(Element.rgba 0 0 0 0.5)
+            --5
+            --]
+            --[ "Draft in Progress" ]
+            --(EH.Action <| StartInlineCompose model.composeUXModel.context)
+            -- TODO
+            Nothing
 
            else
             Nothing
@@ -496,7 +484,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                     ]
                 <|
                     Element.column
-                        [ Element.Border.rounded 5
+                        [ Border.rounded 5
                         , Background.color <| Element.rgb 0.2 0.2 0.2
                         , Element.padding (responsiveVal dProfile 10 5)
                         , Element.spacing (responsiveVal dProfile 10 5)
@@ -520,13 +508,14 @@ trackedTxsColumn :
 trackedTxsColumn trackedTxs =
     Element.column
         [ Background.color <| Theme.lightBlue
-        , Element.Border.rounded 3
-        , Element.Border.glow
+        , Border.rounded 3
+        , Border.glow
             (Element.rgba 0 0 0 0.2)
             4
         , Element.padding 10
         , Element.spacing 5
-        , EH.onClickNoPropagation <| MsgUp NoOp
+
+        --, EH.onClickNoPropagation  NoOp
         , Element.height (Element.shrink |> Element.maximum 400)
         , Element.scrollbarY
         , Element.alignRight
@@ -561,10 +550,9 @@ viewTrackedTxRow trackedTx =
                             [ Font.color theme.linkTextColor
                             , Element.pointer
                             , Element.Events.onClick <|
-                                MsgUp <|
-                                    GotoRoute <|
-                                        Routing.ViewContext <|
-                                            Post postId
+                                GotoRoute <|
+                                    RouteViewContext <|
+                                        Types.ViewPost postId
                             ]
                             (Element.text "Post")
                         ]
@@ -577,10 +565,9 @@ viewTrackedTxRow trackedTx =
                             [ Font.color theme.linkTextColor
                             , Element.pointer
                             , Element.Events.onClick <|
-                                MsgUp <|
-                                    GotoRoute <|
-                                        Routing.ViewContext <|
-                                            Post postId
+                                GotoRoute <|
+                                    RouteViewContext <|
+                                        ViewPost postId
                             ]
                             (Element.text "Post")
                         ]
@@ -619,7 +606,7 @@ viewTrackedTxRow trackedTx =
                                     Element.el
                                         [ Font.color theme.linkTextColor
                                         , Element.pointer
-                                        , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.ViewContext <| Post postId
+                                        , Element.Events.onClick <| GotoRoute <| RouteViewContext <| ViewPost postId
                                         ]
                                         (Element.text "Published")
 
@@ -635,9 +622,9 @@ viewTrackedTxRow trackedTx =
             (trackedTxStatusToColor trackedTx.status
                 |> EH.withAlpha 0.3
             )
-        , Element.Border.rounded 2
-        , Element.Border.width 1
-        , Element.Border.color <| Element.rgba 0 0 0 0.3
+        , Border.rounded 2
+        , Border.width 1
+        , Border.color <| Element.rgba 0 0 0 0.3
         , Element.padding 4
         , Element.spacing 4
         , Font.size 20
@@ -741,13 +728,14 @@ userNotice dProfile ( id, notice ) =
     in
     Element.el
         [ Background.color color
-        , Element.Border.rounded (EH.responsiveVal dProfile 10 5)
+        , Border.rounded (EH.responsiveVal dProfile 10 5)
         , Element.padding (EH.responsiveVal dProfile 8 3)
         , Element.width Element.fill
-        , Element.Border.width 1
-        , Element.Border.color <| Element.rgba 0 0 0 0.15
+        , Border.width 1
+        , Border.color <| Element.rgba 0 0 0 0.15
         , EH.subtleShadow
-        , EH.onClickNoPropagation <| MsgUp NoOp
+
+        --, EH.onClickNoPropagation <| MsgUp NoOp
         ]
         (notice.mainParagraphs
             |> List.map (List.map (Element.map never))
@@ -770,3 +758,205 @@ userNotice dProfile ( id, notice ) =
                 , Element.width Element.fill
                 ]
         )
+
+
+shortenedHash :
+    Hex
+    -> String
+shortenedHash hash =
+    let
+        hashStr =
+            Eth.Utils.hexToString hash
+    in
+    if String.length hashStr <= 10 then
+        hashStr
+
+    else
+        String.left 6 hashStr
+            ++ "..."
+            ++ String.right 4 hashStr
+
+
+emphasizedText : String -> Element Msg
+emphasizedText =
+    Element.el
+        [ Font.bold
+        , Font.color EH.white
+        ]
+        << Element.text
+
+
+appStatusMessage : Element.Color -> String -> Element Msg
+appStatusMessage color errStr =
+    Element.el [ Element.width Element.fill, Element.height Element.fill ] <|
+        Element.paragraph
+            [ Element.centerX
+            , Element.centerY
+            , Font.center
+            , Font.italic
+            , Font.color color
+            , Font.size 36
+            , Element.width (Element.fill |> Element.maximum 800)
+            , Element.padding 40
+            ]
+            [ Element.text errStr ]
+
+
+posixToString : Time.Posix -> String
+posixToString t =
+    let
+        z =
+            Time.utc
+    in
+    String.fromInt (Time.toYear z t)
+        ++ "-"
+        ++ String.padLeft 2 '0' (String.fromInt <| TimeHelpers.monthToInt <| Time.toMonth z t)
+        ++ "-"
+        ++ String.padLeft 2 '0' (String.fromInt (Time.toDay z t))
+        ++ " "
+        ++ String.padLeft 2 '0' (String.fromInt (Time.toHour z t))
+        ++ ":"
+        ++ String.padLeft 2 '0' (String.fromInt (Time.toMinute z t))
+        ++ " (UTC)"
+
+
+subheaderAttributes : DisplayProfile -> List (Attribute Msg)
+subheaderAttributes dProfile =
+    [ Element.paddingXY 0 (responsiveVal dProfile 20 10)
+    , Font.size (responsiveVal dProfile 50 30)
+    , Font.color theme.headerTextColor
+    ]
+
+
+commonFontSize : DisplayProfile -> Int
+commonFontSize dProfile =
+    case dProfile of
+        Desktop ->
+            24
+
+        Mobile ->
+            18
+
+
+viewMetadata : Bool -> Metadata -> Element Msg
+viewMetadata showContext metadata =
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing 10
+        ]
+        [ case metadata.maybeDecodeError of
+            Just jsonDecodeErr ->
+                viewMetadataDecodeError jsonDecodeErr
+
+            Nothing ->
+                Element.none
+        , if showContext then
+            Element.el [ Element.alignLeft ] <|
+                viewContext metadata.context
+
+          else
+            Element.none
+        ]
+
+
+viewMetadataDecodeError : String -> Element Msg
+viewMetadataDecodeError error =
+    Element.el
+        [ Border.rounded 5
+        , Border.width 1
+        , Border.color <| Element.rgba 0 0 0 0.3
+        , Element.clip
+        ]
+    <|
+        Element.el
+            [ Font.color theme.errorTextColor
+            , Font.italic
+            , Font.size 18
+            , Element.height (Element.shrink |> Element.maximum 80)
+            , Element.width (Element.shrink |> Element.maximum 400)
+            , Element.scrollbars
+            , Background.color <| Element.rgba 1 0 0 0.1
+            ]
+            (Element.text <|
+                "Metadata decode error:\n\n"
+                    ++ error
+            )
+
+
+viewContext : Context -> Element Msg
+viewContext context =
+    case context of
+        Reply postId ->
+            viewReplyInfo postId
+
+        TopLevel topic ->
+            viewTopic topic
+
+
+viewTopic : String -> Element Msg
+viewTopic topic =
+    Element.column
+        [ Element.padding 10
+        , Border.rounded 5
+        , Font.size 20
+        , Font.italic
+        , Background.color <| Element.rgba 1 1 1 0.5
+        , Element.spacing 5
+        , Element.clipX
+        , Element.scrollbarX
+        , Element.width (Element.shrink |> Element.maximum 400)
+        ]
+        [ Element.text "Topic:"
+        , Element.el
+            [ Font.color theme.linkTextColor
+            , Element.pointer
+
+            --, Element.Events.onClick <|
+            --GotoRoute <|
+            --RouteViewContext <|
+            --Topic topic
+            ]
+            (Element.text topic)
+        ]
+
+
+viewReplyInfo : Id -> Element Msg
+viewReplyInfo postId =
+    Element.row
+        [ Element.padding 10
+        , Border.rounded 5
+        , Font.size 20
+        , Font.italic
+        , Background.color <| Element.rgba 1 1 1 0.5
+        , Element.spacing 5
+        ]
+        [ Element.column
+            [ Element.spacing 3
+            ]
+            [ Element.text "Replying to:"
+            , Element.el
+                [ Font.color theme.linkTextColor
+                , Element.pointer
+
+                --, Element.Events.onClick <|
+                --GotoRoute <|
+                --RouteViewContext <|
+                --Types.ViewPost postId
+                ]
+                (Element.text <|
+                    shortenedHash postId.messageHash
+                )
+            ]
+        ]
+
+
+coloredAppTitle : List (Attribute Msg) -> Element Msg
+coloredAppTitle attributes =
+    Element.row attributes
+        [ Element.el [ Font.color Theme.darkGray ] <| Element.text "Smoke"
+        , Element.el [ Font.color <| Element.rgb 1 0.5 0 ] <| Element.text "Signal"
+        ]
+
+
+maxContentColWidth =
+    1000

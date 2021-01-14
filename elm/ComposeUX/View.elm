@@ -1,8 +1,5 @@
 module ComposeUX.View exposing (..)
 
-import Common.Msg exposing (..)
-import Common.Types exposing (..)
-import Common.View exposing (..)
 import ComposeUX.Types exposing (..)
 import Element exposing (Attribute, Element)
 import Element.Background
@@ -16,11 +13,12 @@ import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Maybe.Extra
-import Post exposing (Post)
-import Routing exposing (Route)
+import Post
 import Theme exposing (theme)
 import TokenValue exposing (TokenValue)
-import Wallet exposing (Wallet)
+import Types exposing (..)
+import View exposing (..)
+import Wallet
 
 
 viewFull : DisplayProfile -> Bool -> Wallet -> Maybe PhaceIconId -> Model -> Element Msg
@@ -133,7 +131,7 @@ viewPreviewButton dProfile enabled =
             "Preview"
 
 
-viewInput : DisplayProfile -> Post.Content -> Element Msg
+viewInput : DisplayProfile -> Content -> Element Msg
 viewInput dProfile content =
     EH.scrollbarYEl [] <|
         Element.Input.multiline
@@ -154,7 +152,7 @@ viewInput dProfile content =
             }
 
 
-viewPreviewWithPostContext : DisplayProfile -> Maybe ( Address, Bool ) -> Maybe (Element Never) -> Post.Context -> Element Msg
+viewPreviewWithPostContext : DisplayProfile -> Maybe ( Address, Bool ) -> Maybe (Element Never) -> Context -> Element Msg
 viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedContent context =
     EH.scrollbarYEl [] <|
         Element.column
@@ -173,13 +171,14 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedContent context =
                 ]
                 [ case maybeShowPhaceInfo of
                     Just ( fromAddress, showAddress ) ->
-                        phaceElement
-                            ( 100, 100 )
-                            True
-                            fromAddress
-                            showAddress
-                            (MsgUp <| ShowOrHideAddress PhaceForPreview)
-                            (MsgUp NoOp)
+                        --phaceElement
+                        --( 100, 100 )
+                        --True
+                        --fromAddress
+                        --showAddress
+                        --(MsgUp <| ShowOrHideAddress PhaceForPreview)
+                        --(MsgUp NoOp)
+                        Element.none
 
                     Nothing ->
                         Element.none
@@ -216,7 +215,7 @@ messageInputPlaceholder =
                 ]
 
 
-viewReplyInfo : Post.Id -> Element Msg
+viewReplyInfo : Id -> Element Msg
 viewReplyInfo postId =
     Element.column
         [ Element.padding 10
@@ -233,8 +232,8 @@ viewReplyInfo postId =
             , Element.Events.onClick <|
                 MsgUp <|
                     GotoRoute <|
-                        Routing.ViewContext <|
-                            Post postId
+                        RouteViewContext <|
+                            ViewPost postId
             ]
             (Element.text <|
                 shortenedHash postId.messageHash
@@ -262,7 +261,7 @@ viewTopic topic =
             , Element.Events.onClick <|
                 MsgUp <|
                     GotoRoute <|
-                        Routing.ViewContext <|
+                        RouteViewContext <|
                             Topic topic
             ]
             (Element.text <| topic)
@@ -286,14 +285,15 @@ actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model =
                         ]
                         [ case dProfile of
                             Desktop ->
-                                Element.map MsgUp <|
-                                    phaceElement
-                                        ( 100, 100 )
-                                        True
-                                        userInfo.address
-                                        (showAddressId == Just UserPhace)
-                                        (Common.Msg.ShowOrHideAddress UserPhace)
-                                        NoOp
+                                --Element.map MsgUp <|
+                                --phaceElement
+                                --( 100, 100 )
+                                --True
+                                --userInfo.address
+                                --(showAddressId == Just UserPhace)
+                                --(Types.ShowOrHideAddress UserPhace)
+                                --NoOp
+                                goBackButton dProfile
 
                             Mobile ->
                                 goBackButton dProfile
@@ -370,7 +370,7 @@ inputsElement dProfile donateChecked userInfo model =
                     , Element.spacing 5
                     ]
                     [ Element.Input.checkbox [ Element.alignTop ]
-                        { onChange = MsgUp << Common.Msg.DonationCheckboxSet
+                        { onChange = MsgUp << Types.DonationCheckboxSet
                         , icon = Element.Input.defaultCheckbox
                         , checked = donateChecked
                         , label = Element.Input.labelHidden "Donate an extra 1% to Foundry"
@@ -480,9 +480,9 @@ goButtonAndMaybeError dProfile donateChecked userInfo model =
                                         ( Just content, Just rendered ) ->
                                             ( maybeGoButton dProfile <|
                                                 Just <|
-                                                    Post.Draft
+                                                    Draft
                                                         donateAmount
-                                                        (Post.Core
+                                                        (Core
                                                             userInfo.address
                                                             burnAmount
                                                             content
@@ -527,7 +527,7 @@ commonActionButtonStyles dProfile =
     ]
 
 
-maybeGoButton : EH.DisplayProfile -> Maybe Post.Draft -> Element Msg
+maybeGoButton : EH.DisplayProfile -> Maybe Draft -> Element Msg
 maybeGoButton dProfile maybeDraft =
     case maybeDraft of
         Just draft ->

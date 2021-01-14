@@ -1,4 +1,4 @@
-module PostUX.Preview exposing (..)
+module View.Post exposing (view)
 
 import Color
 import Dict exposing (Dict)
@@ -12,13 +12,11 @@ import Helpers.Element as EH exposing (DisplayProfile, responsiveVal)
 import Helpers.Time as TimeHelpers
 import Html.Attributes
 import Post
-import PostUX.Types exposing (..)
-import PostUX.View
 import Theme exposing (almostWhite, lightGray, theme)
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
-import View exposing (daiAmountInput, daiSymbol, unlockUXOr)
+import View.Common exposing (daiAmountInput, daiSymbol, unlockUXOr)
 import Wallet
 
 
@@ -29,10 +27,10 @@ view :
     -> Dict Int Time.Posix
     -> Time.Posix
     -> Wallet
-    -> Maybe Model
+    -> Types.PostState
     -> Published
     -> Element Msg
-view dProfile donateChecked showAddressOnPhace blockTimes now wallet maybeUXModel post =
+view dProfile donateChecked showAddressOnPhace blockTimes now wallet state post =
     Element.row
         [ Element.width Element.fill
         , Element.height <| Element.px <| 120
@@ -49,16 +47,18 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet maybeUXMode
             blockTimes
             now
             (Wallet.unlockStatus wallet)
-            maybeUXModel
+            --maybeUXModel
+            Nothing
             post
         , publishedPostActionForm
             dProfile
             donateChecked
             post
-            (maybeUXModel
-                |> Maybe.map .showInput
-                |> Maybe.withDefault None
-            )
+            --(maybeUXModel
+            --|> Maybe.andThen .showInput
+            --|> Maybe.withDefault None
+            --)
+            Types.None
             (Wallet.unlockStatus wallet)
         ]
 
@@ -70,7 +70,7 @@ mainPreviewPane :
     -> Dict Int Time.Posix
     -> Time.Posix
     -> UnlockStatus
-    -> Maybe Model
+    -> Maybe PostState
     -> Published
     -> Element Msg
 mainPreviewPane dProfile showAddress donateChecked blockTimes now unlockStatus maybeUXModel post =
@@ -251,7 +251,7 @@ publishedPostActionForm :
     DisplayProfile
     -> Bool
     -> Published
-    -> ShowInputState
+    -> Types.ShowInputState
     -> UnlockStatus
     -> Element Msg
 publishedPostActionForm dProfile donateChecked publishedPost showInput unlockStatus =
@@ -274,7 +274,8 @@ publishedPostActionForm dProfile donateChecked publishedPost showInput unlockSta
                 (Element.rgba 0 1 0 0.1)
                 input
                 "Tip"
-                (SupportTipSubmitClicked publishedPost.id)
+                --(SupportTipSubmitClicked publishedPost.id)
+                (always ClickHappened)
                 unlockStatus
 
         Burn input ->
@@ -284,7 +285,8 @@ publishedPostActionForm dProfile donateChecked publishedPost showInput unlockSta
                 (Element.rgba 1 0 0 0.1)
                 input
                 "Burn"
-                (SupportBurnSubmitClicked publishedPost.id)
+                --(SupportBurnSubmitClicked publishedPost.id)
+                (always ClickHappened)
                 unlockStatus
 
 
@@ -300,7 +302,8 @@ supportTipButton postId =
             [ EH.withTitle "Tip DAI for this post, rewarding the author"
             , Element.Background.color theme.daiTippedBackground
             ]
-            SupportTipClicked
+            --SupportTipClicked
+            ClickHappened
           <|
             Element.image
                 [ Element.height <| Element.px 14
@@ -320,7 +323,8 @@ supportBurnButton postId =
         [ EH.withTitle "Burn DAI to increase this post's visibility"
         , Element.Background.color theme.daiBurnedBackground
         ]
-        SupportBurnClicked
+        --SupportBurnClicked
+        ClickHappened
     <|
         Element.image
             [ Element.height <| Element.px 14
@@ -339,7 +343,7 @@ replyButton postId =
         [ EH.withTitle "Reply"
         , Element.Background.color Theme.blue
         ]
-        (MsgUp <| Types.StartInlineCompose <| Reply postId)
+        (Types.StartInlineCompose <| Reply postId)
     <|
         Element.image
             [ Element.width Element.fill
@@ -399,7 +403,6 @@ unlockOrInputForm dProfile donateChecked bgColor currentString buttonLabel onSub
             dProfile
             []
             unlockStatus
-            MsgUp
             (inputForm dProfile donateChecked currentString buttonLabel onSubmit)
         , EH.closeButton
             [ Element.alignTop
@@ -407,7 +410,8 @@ unlockOrInputForm dProfile donateChecked bgColor currentString buttonLabel onSub
             , Element.moveRight 5
             ]
             EH.black
-            ResetActionForm
+            --ResetActionForm
+            ClickHappened
         ]
 
 
@@ -431,7 +435,8 @@ inputForm dProfile donateChecked currentString buttonLabel onSubmit =
                 dProfile
                 []
                 currentString
-                AmountInputChanged
+                --AmountInputChanged
+                (always ClickHappened)
             , maybeSubmitButton
                 dProfile
                 buttonLabel
@@ -444,7 +449,7 @@ inputForm dProfile donateChecked currentString buttonLabel onSubmit =
             ]
             [ Element.Input.checkbox
                 []
-                { onChange = MsgUp << Types.DonationCheckboxSet
+                { onChange = Types.DonationCheckboxSet
                 , icon = Element.Input.defaultCheckbox
                 , checked = donateChecked
                 , label =

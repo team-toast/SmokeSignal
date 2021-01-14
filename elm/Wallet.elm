@@ -1,17 +1,12 @@
 module Wallet exposing (..)
 
-import Common.Types exposing (..)
+import Types exposing (UnlockStatus(..), UserInfo, Wallet(..))
 import Config
 import Eth.Net
 import Eth.Types exposing (Address, HttpProvider, TxHash, WebsocketProvider)
 import Helpers.Eth as EthHelpers
+import Misc exposing (withBalance)
 import TokenValue exposing (TokenValue)
-
-
-type Wallet
-    = NoneDetected
-    | OnlyNetwork Eth.Net.NetworkId
-    | Active UserInfo
 
 
 userInfo : Wallet -> Maybe UserInfo
@@ -53,7 +48,7 @@ withUnlockStatus status wallet =
     case wallet of
         Active uInfo ->
             Active <|
-                (uInfo |> Common.Types.withUnlockStatus status)
+                (uInfo |> Misc.withUnlockStatus status)
 
         _ ->
             wallet

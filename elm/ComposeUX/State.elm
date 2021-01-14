@@ -1,8 +1,5 @@
 module ComposeUX.State exposing (..)
 
-import Common.Msg exposing (..)
-import Common.Types exposing (..)
-import Common.View
 import ComposeUX.Types exposing (..)
 import Contracts.Dai as Dai
 import Contracts.SmokeSignal as SSContract
@@ -14,11 +11,12 @@ import Eth.Utils
 import Helpers.Time as TimeHelpers
 import Post
 import Time
+import Types exposing (..)
 import UserNotice as UN
-import Wallet exposing (Wallet)
+import View
 
 
-init : Time.Posix -> Post.Context -> Model
+init : Time.Posix -> Context -> Model
 init now context =
     { now = now
     , context = context
@@ -102,10 +100,10 @@ justModelUpdate model =
         []
 
 
-renderPreviewIfNonEmpty : Post.Content -> Maybe (Element Never)
+renderPreviewIfNonEmpty : Content -> Maybe (Element Never)
 renderPreviewIfNonEmpty content =
     if Post.contentIsEmpty content then
         Nothing
 
     else
-        Just <| Common.View.renderContentOrError content
+        Just <| View.renderContentOrError content

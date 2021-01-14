@@ -1,20 +1,18 @@
 module ComposeUX.Types exposing (..)
 
-import Common.Msg exposing (..)
-import Common.Types exposing (..)
 import Element exposing (Element)
 import Eth.Types exposing (Address, TxHash)
 import Http
 import Post
 import Time
 import TokenValue exposing (TokenValue)
-import Wallet exposing (Wallet)
+import Types exposing (..)
 
 
 type alias Model =
     { now : Time.Posix
-    , context : Post.Context
-    , content : Post.Content
+    , context : Context
+    , content : Content
     , daiInput : String
     , showPreviewOnMobile : Bool
     , lastInputChangedTime : Time.Posix
@@ -38,7 +36,7 @@ type alias UpdateResult =
     }
 
 
-updateContext : Post.Context -> Model -> Model
+updateContext : Context -> Model -> Model
 updateContext context m =
     { m | context = context }
 
@@ -63,7 +61,7 @@ updateDaiInput input m =
 
 
 type alias CheckedMaybeValidInputs =
-    { content : Maybe Post.Content
+    { content : Maybe Content
     , burnAndDonateAmount : Maybe (Result String ( TokenValue, TokenValue ))
     }
 

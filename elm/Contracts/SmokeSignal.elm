@@ -12,6 +12,7 @@ import Json.Decode.Pipeline exposing (custom)
 import Post
 import Task
 import TokenValue exposing (TokenValue)
+import Types exposing (Accounting, Content, Core, EncodedDraft, Id, Published)
 
 
 type alias MessageBurn =
@@ -51,7 +52,7 @@ messageBurnDecoder =
         |> Decode.map convertBurnAmount
 
 
-burnEncodedPost : Post.EncodedDraft -> Call Hex
+burnEncodedPost : EncodedDraft -> Call Hex
 burnEncodedPost encodedPost =
     G.burnMessage
         Config.smokesignalContractAddress
@@ -60,7 +61,7 @@ burnEncodedPost encodedPost =
         (TokenValue.getEvmValue encodedPost.donateAmount)
 
 
-fromMessageBurn : TxHash -> Int -> (Post.Content -> Element.Element Never) -> MessageBurn -> Post.Published
+fromMessageBurn : TxHash -> Int -> (Content -> Element.Element msg) -> MessageBurn -> Published
 fromMessageBurn txHash block renderFunc messageEvent =
     let
         ( extractedMetadata, extractedMessage ) =
@@ -73,31 +74,31 @@ fromMessageBurn txHash block renderFunc messageEvent =
                     , Post.justBodyContent messageEvent.message
                     )
     in
-    Post.Published
+    Published
         txHash
-        (Post.Id
+        (Id
             block
             messageEvent.hash
         )
-        (Post.Core
+        (Core
             messageEvent.from
             messageEvent.burnAmount
             extractedMessage
             extractedMetadata
-            (renderFunc extractedMessage)
+         --(renderFunc extractedMessage)
         )
         Nothing
 
 
-toAccounting : G.StoredMessageData -> Post.Accounting
+toAccounting : G.StoredMessageData -> Accounting
 toAccounting storedMessageData =
-    Post.Accounting
+    Accounting
         storedMessageData.firstAuthor
         (TokenValue.tokenValue storedMessageData.totalBurned)
         (TokenValue.tokenValue storedMessageData.totalTipped)
 
 
-getAccountingCmd : Hex -> (Result Http.Error Post.Accounting -> msg) -> Cmd msg
+getAccountingCmd : Hex -> (Result Http.Error Accounting -> msg) -> Cmd msg
 getAccountingCmd msgHash msgConstructor =
     Eth.call
         Config.httpProviderUrl

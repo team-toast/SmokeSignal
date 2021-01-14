@@ -1,44 +1,62 @@
-module Home.View exposing (banner, view)
+module View.Home exposing (banner, view)
 
 import Dict exposing (Dict)
 import Dict.Extra
-import Element exposing (Attribute, Element, column, el, fill, fillPortion, padding, paddingXY, row, text, width)
+import Element exposing (Attribute, Element, column, el, fill, fillPortion, padding, paddingXY, px, row, spaceEvenly, text, width)
 import Element.Background
 import Element.Border
 import Element.Events
 import Element.Font
-import Element.Input
+import Element.Input as Input
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..))
 import Helpers.Time as TimeHelpers
-import Home.Types exposing (Model, Msg(..))
 import Html.Attributes
-import Maybe.Extra
+import Maybe.Extra exposing (unwrap)
 import Misc exposing (getPublishedPostFromId)
 import Post
-import PostUX.Preview as PostPreview
-import PostUX.Types as PostUX
 import Routing
 import Theme exposing (almostWhite, theme)
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (Context(..), Id, MsgUp(..), PhaceIconId(..), Post(..), Published, PublishedPostsDict, Route(..), ViewContext(..))
-import View exposing (daiSymbol, phaceElement, whiteGlowAttribute, whiteGlowAttributeSmall)
+import Types exposing (Context(..), Id, Model, Msg(..), PhaceIconId(..), Post(..), PostState, Published, PublishedPostsDict, Route(..), ViewContext(..))
+import View.Common exposing (daiSymbol, phaceElement, whiteGlowAttribute, whiteGlowAttributeSmall)
+import View.Post
 import Wallet
 
 
-view :
-    DisplayProfile
-    -> Bool
-    -> Dict Int Time.Posix
-    -> Time.Posix
-    -> Maybe PhaceIconId
-    -> String
-    -> Types.Wallet
-    -> PublishedPostsDict
-    -> Model
-    -> Element Msg
-view dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts model =
+view : Model -> Element Msg
+view model =
+    let
+        dProfile =
+            model.dProfile
+
+        donateChecked =
+            model.donateChecked
+
+        blockTimes =
+            model.blockTimes
+
+        now =
+            model.now
+
+        showAddressId =
+            model.showAddressId
+
+        demoPhaceSrc =
+            model.demoPhaceSrc
+
+        wallet =
+            model.wallet
+
+        posts =
+            model.publishedPosts
+
+        state =
+            { showAddress = False
+            , showInput = Types.None
+            }
+    in
     case dProfile of
         Desktop ->
             column
@@ -49,7 +67,8 @@ view dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
                     ++ (List.map Element.inFront <|
                             viewModals
                                 dProfile
-                                model.showNewToSmokeSignalModal
+                                --model.showNewToSmokeSignalModal
+                                False
                        )
                 )
                 [ el
@@ -59,17 +78,14 @@ view dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
                   <|
                     banner
                         dProfile
-                , body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts model
+                , body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts state model.searchInput
                 ]
 
         Mobile ->
             text "mobile view"
 
 
-viewModals :
-    DisplayProfile
-    -> Bool
-    -> List (Element Msg)
+viewModals : DisplayProfile -> Bool -> List (Element Msg)
 viewModals dProfile showNewToSmokeSignalModal =
     Maybe.Extra.values
         [ if showNewToSmokeSignalModal == True then
@@ -77,8 +93,10 @@ viewModals dProfile showNewToSmokeSignalModal =
                 EH.modal
                     (Element.rgba 0 0 0 0.25)
                     False
-                    CloseNewToSmokeSignalModal
-                    CloseNewToSmokeSignalModal
+                    --CloseNewToSmokeSignalModal
+                    --CloseNewToSmokeSignalModal
+                    ClickHappened
+                    ClickHappened
                 <|
                     viewNewToSmokeSignalModal dProfile
 
@@ -87,9 +105,7 @@ viewModals dProfile showNewToSmokeSignalModal =
         ]
 
 
-viewNewToSmokeSignalModal :
-    DisplayProfile
-    -> Element Msg
+viewNewToSmokeSignalModal : DisplayProfile -> Element Msg
 viewNewToSmokeSignalModal dProfile =
     column
         [ whiteGlowAttribute
@@ -163,11 +179,7 @@ viewNewToSmokeSignalModal dProfile =
         ]
 
 
-rowElement :
-    DisplayProfile
-    -> List (Attribute Msg)
-    -> Element Msg
-    -> Element Msg
+rowElement : DisplayProfile -> List (Attribute Msg) -> Element Msg -> Element Msg
 rowElement dProfile attributes element =
     row
         ([ Element.height fill
@@ -178,9 +190,7 @@ rowElement dProfile attributes element =
         [ element ]
 
 
-banner :
-    DisplayProfile
-    -> Element Msg
+banner : DisplayProfile -> Element Msg
 banner dProfile =
     el
         [ Element.centerX
@@ -204,9 +214,10 @@ body :
     -> String
     -> Types.Wallet
     -> PublishedPostsDict
-    -> Model
+    -> PostState
+    -> String
     -> Element Msg
-body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts model =
+body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts state searchInput =
     let
         xs =
             Dict.values posts
@@ -231,7 +242,8 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
         [ orangeBannerEl
             dProfile
             [ Element.pointer
-            , Element.Events.onClick ShowNewToSmokeSignalModal
+
+            --, Element.Events.onClick ShowNewToSmokeSignalModal
             ]
             40
             20
@@ -246,7 +258,7 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
                 20
                 10
                 "RECENT POSTS..."
-            , postFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet xs
+            , postFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet xs state
             ]
         ]
     , column
@@ -256,7 +268,7 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
         , Element.spacing 20
         ]
         [ walletUXPane dProfile showAddressId demoPhaceSrc wallet
-        , topicsUX dProfile model.topicSearchInput posts
+        , topicsUX dProfile searchInput posts
         ]
     ]
         |> row
@@ -291,11 +303,7 @@ orangeBannerEl dProfile attributes fontSize paddingVal bannerText =
         Element.text bannerText
 
 
-topicsUX :
-    DisplayProfile
-    -> String
-    -> PublishedPostsDict
-    -> Element Msg
+topicsUX : DisplayProfile -> String -> PublishedPostsDict -> Element Msg
 topicsUX dProfile topicsSearchInput posts =
     column
         [ Element.spacing 10
@@ -313,23 +321,25 @@ topicsUX dProfile topicsSearchInput posts =
             , Element.alignTop
             , Element.spacing 1
             ]
-            [ Element.Input.text
+            [ Input.text
                 [ width fill
                 , Element.Background.color EH.black
                 , Element.Border.color Theme.almostWhite
                 , whiteGlowAttributeSmall
                 , Element.Font.color EH.white
                 ]
-                { onChange = SearchInputChanged
+                { onChange = always ClickHappened
+
+                --{ onChange = SearchInputChanged
                 , text = topicsSearchInput
                 , placeholder =
                     Just <|
-                        Element.Input.placeholder
+                        Input.placeholder
                             [ Element.Font.color EH.white
                             , Element.Font.italic
                             ]
                             (Element.text "Find or Create Topic...")
-                , label = Element.Input.labelHidden "topic"
+                , label = Input.labelHidden "topic"
                 }
             , topicsColumn
                 dProfile
@@ -339,11 +349,7 @@ topicsUX dProfile topicsSearchInput posts =
         ]
 
 
-topicsColumn :
-    EH.DisplayProfile
-    -> String
-    -> PublishedPostsDict
-    -> Element Msg
+topicsColumn : EH.DisplayProfile -> String -> PublishedPostsDict -> Element Msg
 topicsColumn dProfile topicSearchStr allPosts =
     let
         talliedTopics : List ( String, ( ( TokenValue, TokenValue ), Int ) )
@@ -413,66 +419,6 @@ topicsColumn dProfile topicSearchStr allPosts =
             , Element.Background.color EH.black
             ]
 
-        topicEls =
-            filteredTalliedTopics
-                |> List.map
-                    (\( topic, ( ( totalBurned, totalTipped ), count ) ) ->
-                        row
-                            (commonElStyles
-                                ++ [ Element.Events.onClick <|
-                                        GotoRoute <|
-                                            RouteViewContext <|
-                                                Topic topic
-                                   ]
-                            )
-                            [ el
-                                [ width <| Element.px 100 ]
-                              <|
-                                row
-                                    [ padding 5
-                                    , Element.spacing 3
-                                    , Element.Border.rounded 5
-                                    , Element.Background.color theme.daiBurnedBackground
-                                    , Element.Font.color
-                                        (if theme.daiBurnedTextIsWhite then
-                                            EH.white
-
-                                         else
-                                            EH.black
-                                        )
-                                    ]
-                                    [ daiSymbol theme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
-                                    , Element.text <|
-                                        (TokenValue.toConciseString totalBurned
-                                            |> (if TokenValue.compare totalBurned (TokenValue.fromIntTokenValue 1) == LT then
-                                                    String.left 5
-
-                                                else
-                                                    identity
-                                               )
-                                        )
-                                    ]
-                            , el
-                                [ width fill
-                                , Element.height fill
-                                ]
-                              <|
-                                el
-                                    [ Element.centerY
-                                    , Element.Font.color EH.white
-                                    ]
-                                <|
-                                    Element.text topic
-                            , el
-                                [ Element.alignRight
-                                , Element.Font.color EH.white
-                                ]
-                              <|
-                                Element.text <|
-                                    String.fromInt count
-                            ]
-                    )
-
         exactTopicFound =
             talliedTopics
                 |> List.any (Tuple.first >> (==) topicSearchStr)
@@ -504,8 +450,64 @@ topicsColumn dProfile topicSearchStr allPosts =
             else
                 Nothing
     in
-    Element.map MsgUp <|
-        column
+    filteredTalliedTopics
+        |> List.map
+            (\( topic, ( ( totalBurned, totalTipped ), count ) ) ->
+                Input.button commonElStyles
+                    { onPress =
+                        Topic topic
+                            |> RouteViewContext
+                            |> GotoRoute
+                            |> Just
+                    , label =
+                        [ [ daiSymbol theme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
+                          , TokenValue.toConciseString totalBurned
+                                |> (if TokenValue.compare totalBurned (TokenValue.fromIntTokenValue 1) == LT then
+                                        String.left 5
+
+                                    else
+                                        identity
+                                   )
+                                |> text
+                          ]
+                            |> row
+                                [ Element.spacing 3
+                                , padding 5
+                                , Element.Border.rounded 5
+                                , Element.Background.color theme.daiBurnedBackground
+                                , Element.Font.color
+                                    (if theme.daiBurnedTextIsWhite then
+                                        EH.white
+
+                                     else
+                                        EH.black
+                                    )
+                                ]
+                            |> el
+                                [ width <| px 100
+                                ]
+                        , [ text topic
+                                |> el
+                                    [ Element.Font.color EH.white
+                                    ]
+                          , el
+                                [ Element.alignRight
+                                , Element.Font.color EH.white
+                                ]
+                            <|
+                                Element.text <|
+                                    String.fromInt count
+                          ]
+                            |> row [ spaceEvenly, width fill ]
+                        ]
+                            |> row [ width fill ]
+                    }
+            )
+        |> (++)
+            (maybeCreateTopicEl
+                |> unwrap [] List.singleton
+            )
+        |> column
             [ Element.Border.roundEach
                 { topRight = 0
                 , topLeft = 0
@@ -517,11 +519,6 @@ topicsColumn dProfile topicSearchStr allPosts =
             , Element.spacing 5
             , Element.Background.color EH.black
             ]
-            ((Maybe.map List.singleton maybeCreateTopicEl
-                |> Maybe.withDefault []
-             )
-                ++ topicEls
-            )
 
 
 walletUXPane :
@@ -535,37 +532,32 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
         phaceEl =
             case Wallet.userInfo wallet of
                 Nothing ->
-                    el
-                        [ Element.Border.rounded 10
-                        , Element.Border.glow
-                            (Element.rgba 1 0 1 0.3)
-                            9
-                        ]
-                    <|
-                        --phaceElement
-                        --( 100, 100 )
-                        --True
-                        --(Eth.Utils.unsafeToAddress demoPhaceSrc)
-                        --(showAddressId == Just DemoPhace)
-                        --(ShowOrHideAddress DemoPhace)
-                        --NoOp
-                        Element.none
+                    phaceElement
+                        ( 100, 100 )
+                        True
+                        (Eth.Utils.unsafeToAddress demoPhaceSrc)
+                        (showAddressId == Just DemoPhace)
+                        (ShowOrHideAddress DemoPhace)
+                        |> el
+                            [ Element.Border.rounded 10
+                            , Element.Border.glow
+                                (Element.rgba 1 0 1 0.3)
+                                9
+                            ]
 
                 Just userInfo ->
-                    --phaceElement
-                    --( 100, 100 )
-                    --True
-                    --userInfo.address
-                    --(showAddressId == Just UserPhace)
-                    --(ShowOrHideAddress UserPhace)
-                    --NoOp
-                    --|> el
-                    --[ Element.Border.rounded 10
-                    --, Element.Border.glow
-                    --(Element.rgba 0 0.5 1 0.4)
-                    --9
-                    --]
-                    Element.none
+                    phaceElement
+                        ( 100, 100 )
+                        True
+                        userInfo.address
+                        (showAddressId == Just UserPhace)
+                        (ShowOrHideAddress UserPhace)
+                        |> el
+                            [ Element.Border.rounded 10
+                            , Element.Border.glow
+                                (Element.rgba 0 0.5 1 0.4)
+                                9
+                            ]
 
         ( buttonText, maybeButtonAction, maybeExplainerText ) =
             case wallet of
@@ -641,21 +633,20 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
                     )
                 |> Maybe.withDefault Element.none
     in
-    Element.map MsgUp <|
-        row
+    row
+        [ width fill
+        , Element.spacing 10
+        ]
+        [ phaceEl
+        , column
             [ width fill
-            , Element.spacing 10
+            , Element.spacing 15
+            , Element.height fill
             ]
-            [ phaceEl
-            , column
-                [ width fill
-                , Element.spacing 15
-                , Element.height fill
-                ]
-                [ button
-                , explainerParagraphOrNone
-                ]
+            [ button
+            , explainerParagraphOrNone
             ]
+        ]
 
 
 majorSpacing : Int
@@ -671,21 +662,24 @@ postFeed :
     -> Maybe Id
     -> Types.Wallet
     -> List Published
+    -> PostState
     -> Element Msg
-postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet listOfPosts =
+postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet listOfPosts state =
     listOfPosts
         |> List.sortBy (feedSortByFunc blockTimes now)
         |> List.reverse
         |> List.take 10
         |> List.map
-            (previewPost
-                dProfile
-                donateChecked
-                blockTimes
-                now
-                maybeShowAddressForId
-                wallet
-                Nothing
+            (\post ->
+                View.Post.view
+                    dProfile
+                    donateChecked
+                    (maybeShowAddressForId == Just post.id)
+                    blockTimes
+                    now
+                    wallet
+                    state
+                    post
             )
         |> column
             [ width fill
@@ -694,10 +688,7 @@ postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet list
             ]
 
 
-feedSortByFunc :
-    Dict Int Time.Posix
-    -> Time.Posix
-    -> (Published -> Float)
+feedSortByFunc : Dict Int Time.Posix -> Time.Posix -> (Published -> Float)
 feedSortByFunc blockTimes now =
     \post ->
         let
@@ -728,26 +719,3 @@ feedSortByFunc blockTimes now =
             -- (ageFactor * 4.0) + 1
         in
         totalBurned * newnessMultiplier
-
-
-previewPost :
-    DisplayProfile
-    -> Bool
-    -> Dict Int Time.Posix
-    -> Time.Posix
-    -> Maybe Id
-    -> Types.Wallet
-    -> Maybe PostUX.Model
-    -> Published
-    -> Element Msg
-previewPost dProfile donateChecked blockTimes now maybeShowAddressForId wallet maybePostUXModel post =
-    Element.map PostUXMsg <|
-        PostPreview.view
-            dProfile
-            donateChecked
-            (maybeShowAddressForId == Just post.id)
-            blockTimes
-            now
-            wallet
-            maybePostUXModel
-            post

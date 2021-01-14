@@ -1,5 +1,6 @@
 module Post exposing (..)
 
+import Types exposing (Content, Context(..), Core, Draft, EncodedDraft, Id, Metadata, Post(..))
 import Element exposing (Element)
 import Element.Font
 import ElementMarkdown
@@ -15,71 +16,9 @@ import Theme exposing (Theme)
 import TokenValue exposing (TokenValue)
 
 
-type Post
-    = PublishedPost Published
-    | PostDraft Draft
-
-
-type alias Accounting =
-    { firstAuthor : Address
-    , totalBurned : TokenValue
-    , totalTipped : TokenValue
-    }
-
-
-type alias Published =
-    { txHash : TxHash
-    , id : Id
-    , core : Core
-    , maybeAccounting : Maybe Accounting
-    }
-
-
-type alias Draft =
-    { donateAmount : TokenValue
-    , core : Core
-    }
-
-
-type alias Core =
-    { author : Address
-    , authorBurn : TokenValue
-    , content : Content
-    , metadata : Metadata
-    , renderedPost : Element Never
-    }
-
-
-type alias Content =
-    { title : Maybe String
-    , desc : Maybe String
-    , body : String
-    }
-
-
 justBodyContent : String -> Content
 justBodyContent =
     Content Nothing Nothing
-
-
-type alias EncodedDraft =
-    { author : Address
-    , encodedContentAndMetadata : String
-    , burnAmount : TokenValue
-    , donateAmount : TokenValue
-    }
-
-
-type alias Metadata =
-    { metadataVersion : Int
-    , context : Context
-    , maybeDecodeError : Maybe String
-    }
-
-
-type Context
-    = Reply Id
-    | TopLevel String
 
 
 getCore : Post -> Core
@@ -145,12 +84,6 @@ contextTopic context =
 
         _ ->
             Nothing
-
-
-type alias Id =
-    { block : Int
-    , messageHash : Hex
-    }
 
 
 defaultTopic : String

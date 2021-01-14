@@ -6,10 +6,16 @@ import Eth.Utils
 import Post
 import Time
 import TokenValue exposing (TokenValue)
+import Types exposing (Id)
 
 
 testMode =
     False
+
+
+initDemoPhaceSrc : String
+initDemoPhaceSrc =
+    "2222222222222222222222222228083888c8f222"
 
 
 httpProviderUrl : String
@@ -23,7 +29,7 @@ httpProviderUrl =
 
 mainnetHttpProviderUrl : String
 mainnetHttpProviderUrl =
-    "https://2902ba438aac4b0294ead60c7a2e0aa3.eth.rpc.rivet.cloud/"
+    "https://d8a8054f0e9440f68e34f7ab44a78b09.eth.rpc.rivet.cloud/"
 
 
 ganacheHttpProviderUrl : String
@@ -62,7 +68,7 @@ messageBurnEventSig =
     Eth.Utils.unsafeToHex "555288072588ecd9d95a72f03f4bf18f419c7edad2c7a56d3f0c56ec313857fe"
 
 
-moreInfoPostId : Post.Id
+moreInfoPostId : Id
 moreInfoPostId =
     { block = 9956175
     , messageHash = Eth.Utils.unsafeToHex "0x005217c20d13cb47dee70a55b7f705044ac67789036133ff6944340b1f937d2a"

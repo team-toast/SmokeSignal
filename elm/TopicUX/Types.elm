@@ -1,7 +1,5 @@
 module TopicUX.Types exposing (..)
 
-import Common.Msg exposing (..)
-import Common.Types exposing (..)
 import Dict exposing (Dict)
 import Element exposing (Element)
 import Element.Font
@@ -12,11 +10,12 @@ import Helpers.List as ListHelpers
 import Json.Decode as D
 import Json.Encode as E
 import Maybe.Extra
-import Post exposing (Post)
+import Post
 import Result.Extra
 import String.Extra
 import Theme exposing (Theme)
 import TokenValue exposing (TokenValue)
+import Types exposing (..)
 
 
 type alias Model =
@@ -32,8 +31,8 @@ type Msg
     | SupportBurnClicked
     | SupportTipClicked
     | AmountInputChanged String
-    | SupportTipSubmitClicked Post.Id TokenValue
-    | SupportBurnSubmitClicked Post.Id TokenValue
+    | SupportTipSubmitClicked Id TokenValue
+    | SupportBurnSubmitClicked Id TokenValue
     | ResetActionForm
 
 

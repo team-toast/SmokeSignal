@@ -1,8 +1,8 @@
 module PostUX.State exposing (..)
 
-import Common.Msg
-import Post exposing (Post)
+import Post
 import PostUX.Types exposing (..)
+import Types
 import UserNotice as UN exposing (UserNotice)
 
 
@@ -19,9 +19,8 @@ update :
     -> UpdateResult
 update msg prevModel =
     case msg of
-        NoOp ->
-            justModelUpdate prevModel
-
+        --NoOp ->
+        --justModelUpdate prevModel
         MsgUp msgUp ->
             UpdateResult
                 prevModel
@@ -69,7 +68,7 @@ update msg prevModel =
                     UpdateResult
                         prevModel
                         Cmd.none
-                        [ Common.Msg.AddUserNotice <|
+                        [ Types.AddUserNotice <|
                             UN.unexpectedError "Input changed when showInput == None" newInput
                         ]
 
@@ -91,13 +90,13 @@ update msg prevModel =
             UpdateResult
                 prevModel
                 Cmd.none
-                [ Common.Msg.SubmitTip postId amount ]
+                [ Types.SubmitTip postId amount ]
 
         SupportBurnSubmitClicked postId amount ->
             UpdateResult
                 prevModel
                 Cmd.none
-                [ Common.Msg.SubmitBurn postId amount ]
+                [ Types.SubmitBurn postId amount ]
 
         ResetActionForm ->
             justModelUpdate
