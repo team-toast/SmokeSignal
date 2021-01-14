@@ -1,7 +1,6 @@
 module Home.View exposing (banner, view)
 
 import Common.Types exposing (Context(..), Id, MsgUp(..), PhaceIconId(..), Post(..), Published, PublishedPostsDict, Route(..), ViewContext(..))
-import Common.View exposing (daiSymbol, phaceElement, whiteGlowAttribute, whiteGlowAttributeSmall)
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element, column, el, fill, fillPortion, padding, paddingXY, row, text, width)
@@ -24,6 +23,7 @@ import Routing
 import Theme exposing (almostWhite, theme)
 import Time
 import TokenValue exposing (TokenValue)
+import View exposing (daiSymbol, phaceElement, whiteGlowAttribute, whiteGlowAttributeSmall)
 import Wallet
 
 

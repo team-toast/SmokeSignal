@@ -1,7 +1,6 @@
 module ComposeUX.View exposing (..)
 
 import Common.Types exposing (..)
-import Common.View exposing (..)
 import ComposeUX.Types exposing (..)
 import Element exposing (Attribute, Element)
 import Element.Background
@@ -18,6 +17,7 @@ import Maybe.Extra
 import Post
 import Theme exposing (theme)
 import TokenValue exposing (TokenValue)
+import View exposing (..)
 import Wallet
 
 

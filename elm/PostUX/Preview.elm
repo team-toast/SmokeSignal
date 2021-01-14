@@ -2,7 +2,6 @@ module PostUX.Preview exposing (..)
 
 import Color
 import Common.Types exposing (..)
-import Common.View exposing (daiAmountInput, daiSymbol, unlockUXOr)
 import Dict exposing (Dict)
 import Element exposing (Attribute, Element, el, text)
 import Element.Background
@@ -19,6 +18,7 @@ import PostUX.View
 import Theme exposing (almostWhite, lightGray, theme)
 import Time
 import TokenValue exposing (TokenValue)
+import View exposing (daiAmountInput, daiSymbol, unlockUXOr)
 import Wallet
 
 
@@ -226,7 +226,7 @@ previewBody dProfile showAddress post =
         , Element.height Element.fill
         , Element.spacing 5
         ]
-        --[ Common.View.phaceElement
+        --[ View.phaceElement
         --( 60, 60 )
         --True
         --post.core.author

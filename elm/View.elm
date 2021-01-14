@@ -2,12 +2,11 @@ module View exposing (..)
 
 import Browser
 import Common.Types exposing (..)
-import Common.View exposing (..)
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
-import Element.Border
+import Element.Border as Border
 import Element.Events
 import Element.Font as Font
 import Element.Input as Input
@@ -384,7 +383,7 @@ modals model =
             --[ Element.alignBottom
             --, Element.alignLeft
             --, Element.paddingXY 20 10
-            --, Element.Border.glow
+            --, Border.glow
             --(Element.rgba 0 0 0 0.5)
             --5
             --]
@@ -498,7 +497,7 @@ maybeTxTracker dProfile showExpanded trackedTxs =
                     ]
                 <|
                     Element.column
-                        [ Element.Border.rounded 5
+                        [ Border.rounded 5
                         , Background.color <| Element.rgb 0.2 0.2 0.2
                         , Element.padding (responsiveVal dProfile 10 5)
                         , Element.spacing (responsiveVal dProfile 10 5)
@@ -522,8 +521,8 @@ trackedTxsColumn :
 trackedTxsColumn trackedTxs =
     Element.column
         [ Background.color <| Theme.lightBlue
-        , Element.Border.rounded 3
-        , Element.Border.glow
+        , Border.rounded 3
+        , Border.glow
             (Element.rgba 0 0 0 0.2)
             4
         , Element.padding 10
@@ -638,9 +637,9 @@ viewTrackedTxRow trackedTx =
             (trackedTxStatusToColor trackedTx.status
                 |> EH.withAlpha 0.3
             )
-        , Element.Border.rounded 2
-        , Element.Border.width 1
-        , Element.Border.color <| Element.rgba 0 0 0 0.3
+        , Border.rounded 2
+        , Border.width 1
+        , Border.color <| Element.rgba 0 0 0 0.3
         , Element.padding 4
         , Element.spacing 4
         , Font.size 20
@@ -744,11 +743,11 @@ userNotice dProfile ( id, notice ) =
     in
     Element.el
         [ Background.color color
-        , Element.Border.rounded (EH.responsiveVal dProfile 10 5)
+        , Border.rounded (EH.responsiveVal dProfile 10 5)
         , Element.padding (EH.responsiveVal dProfile 8 3)
         , Element.width Element.fill
-        , Element.Border.width 1
-        , Element.Border.color <| Element.rgba 0 0 0 0.15
+        , Border.width 1
+        , Border.color <| Element.rgba 0 0 0 0.15
         , EH.subtleShadow
 
         --, EH.onClickNoPropagation <| MsgUp NoOp
@@ -774,3 +773,433 @@ userNotice dProfile ( id, notice ) =
                 , Element.width Element.fill
                 ]
         )
+
+
+shortenedHash :
+    Hex
+    -> String
+shortenedHash hash =
+    let
+        hashStr =
+            Eth.Utils.hexToString hash
+    in
+    if String.length hashStr <= 10 then
+        hashStr
+
+    else
+        String.left 6 hashStr
+            ++ "..."
+            ++ String.right 4 hashStr
+
+
+web3ConnectButton :
+    EH.DisplayProfile
+    -> List (Attribute msg)
+    -> (MsgUp -> msg)
+    -> Element msg
+web3ConnectButton dProfile attrs msgMapper =
+    theme.emphasizedActionButton
+        dProfile
+        attrs
+        [ "Connect to Wallet" ]
+        (EH.Action <| msgMapper ConnectToWeb3)
+
+
+phaceElement :
+    ( Int, Int )
+    -> Bool
+    -> Address
+    -> Bool
+    -> msg
+    -> msg
+    -> Element msg
+phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClick noOpMsg =
+    let
+        addressOutputEl () =
+            -- delay processing because addressToChecksumString is expensive!
+            Element.el
+                [ Element.alignBottom
+                , if addressHangToRight then
+                    Element.alignLeft
+
+                  else
+                    Element.alignRight
+                , Background.color EH.white
+                , Font.size 12
+                , EH.moveToFront
+                , Border.width 2
+                , Border.color EH.black
+                , EH.onClickNoPropagation noOpMsg
+                ]
+                (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
+    in
+    Element.el
+        (if showAddress then
+            [ Element.inFront <| addressOutputEl ()
+            , Element.alignTop
+            ]
+
+         else
+            [ Element.alignTop ]
+        )
+    <|
+        Element.el
+            [ Border.rounded 5
+            , Element.clip
+            , Element.pointer
+            , EH.onClickNoPropagation onClick
+
+            -- , Border.width 1
+            -- , Border.color Theme.blue
+            ]
+        <|
+            Element.html
+                (Phace.fromEthAddress fromAddress width height)
+
+
+loadingElement :
+    List (Attribute msg)
+    -> Maybe String
+    -> Element msg
+loadingElement attrs maybeString =
+    Element.el
+        ([ Font.italic
+         , Font.color theme.loadingTextColor
+         , Font.size 20
+         ]
+            ++ attrs
+        )
+        (Element.text <| Maybe.withDefault "loading..." maybeString)
+
+
+emphasizedText : String -> Element msg
+emphasizedText =
+    Element.el
+        [ Font.bold
+        , Font.color EH.white
+        ]
+        << Element.text
+
+
+daiSymbol :
+    Bool
+    -> List (Attribute msg)
+    -> Element msg
+daiSymbol isWhite attributes =
+    Element.image attributes
+        { src =
+            if isWhite then
+                "img/dai-unit-char-white.svg"
+
+            else
+                "img/dai-unit-char-black.svg"
+        , description = ""
+        }
+
+
+appStatusMessage :
+    Element.Color
+    -> String
+    -> Element msg
+appStatusMessage color errStr =
+    Element.el [ Element.width Element.fill, Element.height Element.fill ] <|
+        Element.paragraph
+            [ Element.centerX
+            , Element.centerY
+            , Font.center
+            , Font.italic
+            , Font.color color
+            , Font.size 36
+            , Element.width (Element.fill |> Element.maximum 800)
+            , Element.padding 40
+            ]
+            [ Element.text errStr ]
+
+
+posixToString :
+    Time.Posix
+    -> String
+posixToString t =
+    let
+        z =
+            Time.utc
+    in
+    String.fromInt (Time.toYear z t)
+        ++ "-"
+        ++ String.padLeft 2 '0' (String.fromInt <| TimeHelpers.monthToInt <| Time.toMonth z t)
+        ++ "-"
+        ++ String.padLeft 2 '0' (String.fromInt (Time.toDay z t))
+        ++ " "
+        ++ String.padLeft 2 '0' (String.fromInt (Time.toHour z t))
+        ++ ":"
+        ++ String.padLeft 2 '0' (String.fromInt (Time.toMinute z t))
+        ++ " (UTC)"
+
+
+subheaderAttributes : DisplayProfile -> List (Attribute msg)
+subheaderAttributes dProfile =
+    [ Element.paddingXY 0 (responsiveVal dProfile 20 10)
+    , Font.size (responsiveVal dProfile 50 30)
+    , Font.color theme.headerTextColor
+    ]
+
+
+commonFontSize :
+    DisplayProfile
+    -> Int
+commonFontSize dProfile =
+    case dProfile of
+        Desktop ->
+            24
+
+        Mobile ->
+            18
+
+
+viewMetadata :
+    Bool
+    -> Metadata
+    -> Element MsgUp
+viewMetadata showContext metadata =
+    Element.column
+        [ Element.width Element.fill
+        , Element.spacing 10
+        ]
+        [ case metadata.maybeDecodeError of
+            Just jsonDecodeErr ->
+                viewMetadataDecodeError jsonDecodeErr
+
+            Nothing ->
+                Element.none
+        , if showContext then
+            Element.el [ Element.alignLeft ] <|
+                viewContext metadata.context
+
+          else
+            Element.none
+        ]
+
+
+viewMetadataDecodeError :
+    String
+    -> Element msg
+viewMetadataDecodeError error =
+    Element.el
+        [ Border.rounded 5
+        , Border.width 1
+        , Border.color <| Element.rgba 0 0 0 0.3
+        , Element.clip
+        ]
+    <|
+        Element.el
+            [ Font.color theme.errorTextColor
+            , Font.italic
+            , Font.size 18
+            , Element.height (Element.shrink |> Element.maximum 80)
+            , Element.width (Element.shrink |> Element.maximum 400)
+            , Element.scrollbars
+            , Background.color <| Element.rgba 1 0 0 0.1
+            ]
+            (Element.text <|
+                "Metadata decode error:\n\n"
+                    ++ error
+            )
+
+
+viewContext :
+    Context
+    -> Element MsgUp
+viewContext context =
+    case context of
+        Reply postId ->
+            viewReplyInfo postId
+
+        TopLevel topic ->
+            viewTopic topic
+
+
+viewTopic :
+    String
+    -> Element MsgUp
+viewTopic topic =
+    Element.column
+        [ Element.padding 10
+        , Border.rounded 5
+        , Font.size 20
+        , Font.italic
+        , Background.color <| Element.rgba 1 1 1 0.5
+        , Element.spacing 5
+        , Element.clipX
+        , Element.scrollbarX
+        , Element.width (Element.shrink |> Element.maximum 400)
+        ]
+        [ Element.text "Topic:"
+        , Element.el
+            [ Font.color theme.linkTextColor
+            , Element.pointer
+
+            --, Element.Events.onClick <|
+            --GotoRoute <|
+            --RouteViewContext <|
+            --Topic topic
+            ]
+            (Element.text topic)
+        ]
+
+
+viewReplyInfo :
+    Id
+    -> Element MsgUp
+viewReplyInfo postId =
+    Element.row
+        [ Element.padding 10
+        , Border.rounded 5
+        , Font.size 20
+        , Font.italic
+        , Background.color <| Element.rgba 1 1 1 0.5
+        , Element.spacing 5
+        ]
+        [ Element.column
+            [ Element.spacing 3
+            ]
+            [ Element.text "Replying to:"
+            , Element.el
+                [ Font.color theme.linkTextColor
+                , Element.pointer
+
+                --, Element.Events.onClick <|
+                --GotoRoute <|
+                --RouteViewContext <|
+                --Common.Types.ViewPost postId
+                ]
+                (Element.text <|
+                    shortenedHash postId.messageHash
+                )
+            ]
+        ]
+
+
+coloredAppTitle :
+    List (Attribute msg)
+    -> Element msg
+coloredAppTitle attributes =
+    Element.row attributes
+        [ Element.el [ Font.color Theme.darkGray ] <| Element.text "Smoke"
+        , Element.el [ Font.color <| Element.rgb 1 0.5 0 ] <| Element.text "Signal"
+        ]
+
+
+maxContentColWidth =
+    1000
+
+
+renderContentOrError :
+    Content
+    -> Element msg
+renderContentOrError content =
+    let
+        renderResult =
+            ElementMarkdown.renderString
+                [ Element.spacing 15
+                , Font.color theme.postBodyTextColor
+                , Element.width Element.fill
+                ]
+                content.body
+    in
+    case renderResult of
+        Ok rendered ->
+            rendered
+
+        Err errStr ->
+            Element.el
+                [ Font.color theme.errorTextColor
+                , Font.italic
+                ]
+            <|
+                Element.text <|
+                    "Error parsing/rendering markdown: "
+                        ++ errStr
+
+
+unlockUXOr :
+    DisplayProfile
+    -> List (Attribute msg)
+    -> UnlockStatus
+    -> (MsgUp -> msg)
+    -> Element msg
+    -> Element msg
+unlockUXOr dProfile attributes unlockStatus msgMapper el =
+    case unlockStatus of
+        NotConnected ->
+            web3ConnectButton
+                dProfile
+                attributes
+                msgMapper
+
+        Checking ->
+            loadingElement
+                attributes
+            <|
+                Just "Checking DAI lock..."
+
+        Locked ->
+            unlockButton
+                dProfile
+                attributes
+                msgMapper
+
+        Unlocking ->
+            loadingElement
+                attributes
+            <|
+                Just "Unlocking DAI..."
+
+        Unlocked ->
+            Element.el attributes el
+
+
+unlockButton :
+    EH.DisplayProfile
+    -> List (Attribute msg)
+    -> (MsgUp -> msg)
+    -> Element msg
+unlockButton dProfile attrs msgMapper =
+    theme.emphasizedActionButton
+        dProfile
+        attrs
+        [ "Unlock Dai" ]
+        (EH.Action <| msgMapper UnlockDai)
+
+
+daiAmountInput :
+    DisplayProfile
+    -> List (Attribute msg)
+    -> String
+    -> (String -> msg)
+    -> Element msg
+daiAmountInput dProfile attributes currentInput onChange =
+    Input.text
+        [ Element.width <| Element.px (responsiveVal dProfile 100 60)
+        , Element.height <| Element.px (responsiveVal dProfile 40 35)
+        , Font.size (responsiveVal dProfile 20 14)
+        , Background.color <| Element.rgba 1 1 1 0.4
+        ]
+        { onChange = onChange
+        , text = currentInput
+        , placeholder = Nothing
+        , label = Input.labelHidden "dai amount"
+        }
+
+
+whiteGlowAttribute : Element.Attribute msg
+whiteGlowAttribute =
+    Border.glow
+        (Element.rgba 1 1 1 0.4)
+        5
+
+
+whiteGlowAttributeSmall : Element.Attribute msg
+whiteGlowAttributeSmall =
+    Border.glow
+        (Element.rgba 1 1 1 0.4)
+        2

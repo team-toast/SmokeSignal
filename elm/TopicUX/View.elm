@@ -2,7 +2,6 @@ module TopicUX.View exposing (..)
 
 import Color
 import Common.Types exposing (..)
-import Common.View exposing (daiAmountInput, daiSymbol, unlockUXOr, whiteGlowAttribute)
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element, alignRight, alignTop, column, el, fill, fillPortion, height, padding, px, row, spacing, text, width)
@@ -19,6 +18,7 @@ import Theme exposing (almostWhite, lightGray, theme)
 import Time
 import TokenValue exposing (TokenValue)
 import TopicUX.Types exposing (..)
+import View exposing (daiAmountInput, daiSymbol, unlockUXOr, whiteGlowAttribute)
 import Wallet
 
 
@@ -255,7 +255,7 @@ previewBody :
     -> Published
     -> Element Msg
 previewBody dProfile showAddress post =
-    [ Common.View.phaceElement
+    [ View.phaceElement
         ( 60, 60 )
         True
         post.core.author

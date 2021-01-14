@@ -1,7 +1,6 @@
 module ComposeUX.State exposing (..)
 
 import Common.Types exposing (..)
-import Common.View
 import ComposeUX.Types exposing (..)
 import Contracts.Dai as Dai
 import Contracts.SmokeSignal as SSContract
@@ -14,6 +13,7 @@ import Helpers.Time as TimeHelpers
 import Post
 import Time
 import UserNotice as UN
+import View
 
 
 init : Time.Posix -> Context -> Model
@@ -106,4 +106,4 @@ renderPreviewIfNonEmpty content =
         Nothing
 
     else
-        Just <| Common.View.renderContentOrError content
+        Just <| View.renderContentOrError content

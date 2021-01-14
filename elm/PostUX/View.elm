@@ -3,7 +3,6 @@ module PostUX.View exposing (view)
 --import PostUX.Types exposing (Msg(..))
 
 import Common.Types exposing (..)
-import Common.View exposing (..)
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element)
@@ -24,6 +23,7 @@ import Routing
 import Theme exposing (theme)
 import Time
 import TokenValue exposing (TokenValue)
+import View exposing (..)
 import Wallet
 
 

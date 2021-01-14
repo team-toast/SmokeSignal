@@ -12,7 +12,7 @@ import Browser
 import Browser.Events
 import Browser.Navigation
 import Common.Types exposing (..)
-import Common.View
+import View
 import Config
 import Contracts.Dai as Dai
 import Contracts.SmokeSignal as SSContract
@@ -295,7 +295,7 @@ update msg prevModel =
                                     (SSContract.fromMessageBurn
                                         log.transactionHash
                                         log.blockNumber
-                                        Common.View.renderContentOrError
+                                        View.renderContentOrError
                                         ssPost
                                     )
                     in
@@ -879,7 +879,7 @@ handleTxReceipt txReceipt =
                 (SSContract.fromMessageBurn
                     txReceipt.hash
                     txReceipt.blockNumber
-                    Common.View.renderContentOrError
+                    View.renderContentOrError
                 )
                 maybePostEvent
             , Nothing
