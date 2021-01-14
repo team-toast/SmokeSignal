@@ -1,6 +1,6 @@
 module TopicUX.State exposing (..)
 
-import Common.Msg
+import Common.Types
 import Post
 import TopicUX.Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
@@ -69,7 +69,7 @@ update msg prevModel =
                     UpdateResult
                         prevModel
                         Cmd.none
-                        [ Common.Msg.AddUserNotice <|
+                        [ Common.Types.AddUserNotice <|
                             UN.unexpectedError "Input changed when showInput == None" newInput
                         ]
 
@@ -91,13 +91,13 @@ update msg prevModel =
             UpdateResult
                 prevModel
                 Cmd.none
-                [ Common.Msg.SubmitTip postId amount ]
+                [ Common.Types.SubmitTip postId amount ]
 
         SupportBurnSubmitClicked postId amount ->
             UpdateResult
                 prevModel
                 Cmd.none
-                [ Common.Msg.SubmitBurn postId amount ]
+                [ Common.Types.SubmitBurn postId amount ]
 
         ResetActionForm ->
             justModelUpdate

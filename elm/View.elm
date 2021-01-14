@@ -1,11 +1,8 @@
 module View exposing (..)
 
 import Browser
-import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Common.View exposing (..)
-import ComposeUX.Types as ComposeUX
-import ComposeUX.View as ComposeUX
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
@@ -23,23 +20,18 @@ import Helpers.Eth as EthHelpers
 import Helpers.List as ListHelpers
 import Helpers.Time as TimeHelpers
 import Helpers.Tuple as TupleHelpers
-import Home.View
 import Html.Attributes
 import Json.Decode
 import List.Extra
 import Maybe.Extra
-import Misc exposing (getPublishedPostFromId)
+import Misc exposing (getPublishedPostFromId, getTitle)
 import Phace
 import Post
-import PostUX.Types as PostUX
-import PostUX.View as PostUX
 import Routing
 import Theme exposing (theme)
 import Time
 import TokenValue exposing (TokenValue)
-import TopicUX.View as TopicUX
 import Tuple3
-import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import Wallet
 
@@ -201,33 +193,32 @@ bodyContent model =
             BlankMode ->
                 Element.none
 
-            ModeHome homeModel ->
-                Element.map HomeMsg <|
-                    Element.Lazy.lazy
-                        (\publishedPosts ->
-                            Home.View.view
-                                model.dProfile
-                                model.donateChecked
-                                model.blockTimes
-                                model.now
-                                model.showAddressId
-                                model.demoPhaceSrc
-                                model.wallet
-                                publishedPosts
-                                homeModel
-                        )
-                        model.publishedPosts
-
+            --ModeHome homeModel ->
+            --Element.map HomeMsg <|
+            --Element.Lazy.lazy
+            --(\publishedPosts ->
+            --Home.View.view
+            --model.dProfile
+            --model.donateChecked
+            --model.blockTimes
+            --model.now
+            --model.showAddressId
+            --model.demoPhaceSrc
+            --model.wallet
+            --publishedPosts
+            --homeModel
+            --)
+            --model.publishedPosts
             ModeCompose ->
-                Element.map ComposeUXMsg <|
-                    --ComposeUX.viewFull
-                    --model.dProfile
-                    --model.donateChecked
-                    --model.wallet
-                    --model.showAddressId
-                    --model.composeUXModel
-                    -- TODO
-                    text "compose"
+                --Element.map ComposeUXMsg <|
+                --ComposeUX.viewFull
+                --model.dProfile
+                --model.donateChecked
+                --model.wallet
+                --model.showAddressId
+                --model.composeUXModel
+                -- TODO
+                text "compose"
 
             ViewContext context ->
                 case context of
@@ -246,14 +237,14 @@ bodyContent model =
                                         }
                                     ]
                                     [ viewPostHeader model.dProfile post
-                                    , Element.Lazy.lazy5
-                                        (viewPostAndReplies model.dProfile model.donateChecked model.wallet)
-                                        model.publishedPosts
-                                        model.blockTimes
-                                        model.replies
-                                        post
-                                        --model.postUX
-                                        Nothing
+
+                                    --, Element.Lazy.lazy5
+                                    --(viewPostAndReplies model.dProfile model.donateChecked model.wallet)
+                                    --model.publishedPosts
+                                    --model.blockTimes
+                                    --model.replies
+                                    --post
+                                    --model.postUX
                                     ]
 
                             Nothing ->
@@ -273,9 +264,9 @@ bodyContent model =
                                 , left = 0
                                 }
                             ]
-                            [ Element.map HomeMsg <|
-                                Home.View.banner model.dProfile
-                            , viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
+                            --[ Element.map HomeMsg <|
+                            --Home.View.banner model.dProfile
+                            [ viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
                             , Element.Lazy.lazy4
                                 (viewPostsForTopic model.dProfile model.donateChecked False model.wallet)
                                 model.blockTimes
@@ -290,18 +281,19 @@ dummyElement =
     Element.none
 
 
-viewPostAndReplies :
-    DisplayProfile
-    -> Bool
-    -> Wallet
-    -> PublishedPostsDict
-    -> Dict Int Time.Posix
-    -> List ReplyIds
-    -> Published
-    -> Maybe ( PostUXId, PostUX.Model )
-    -> Element Msg
-viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies publishedPost postUX =
-    dummyElement
+
+--viewPostAndReplies :
+--DisplayProfile
+---> Bool
+---> Wallet
+---> PublishedPostsDict
+---> Dict Int Time.Posix
+---> List ReplyIds
+---> Published
+---> Maybe ( PostUXId, PostUX.Model )
+---> Element Msg
+--viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies publishedPost postUX =
+--dummyElement
 
 
 viewTopicHeader :
@@ -310,10 +302,11 @@ viewTopicHeader :
     -> String
     -> Element Msg
 viewTopicHeader dProfile maybeUserInfo topic =
-    Element.map TopicUXMsg <|
-        TopicUX.topicHeader
-            dProfile
-            topic
+    --Element.map TopicUXMsg <|
+    --TopicUX.topicHeader
+    --dProfile
+    --topic
+    Element.none
 
 
 viewPostsForTopic :
@@ -327,17 +320,18 @@ viewPostsForTopic :
     -> PublishedPostsDict
     -> Element Msg
 viewPostsForTopic dProfile donateChecked showAddressOnPhace wallet blockTimes now topic allPosts =
-    Element.map TopicUXMsg <|
-        TopicUX.view
-            dProfile
-            donateChecked
-            showAddressOnPhace
-            topic
-            blockTimes
-            now
-            wallet
-            Nothing
-            allPosts
+    --Element.map TopicUXMsg <|
+    --TopicUX.view
+    --dProfile
+    --donateChecked
+    --showAddressOnPhace
+    --topic
+    --blockTimes
+    --now
+    --wallet
+    --Nothing
+    --allPosts
+    Element.none
 
 
 viewPostHeader dProfile post =
@@ -534,7 +528,8 @@ trackedTxsColumn trackedTxs =
             4
         , Element.padding 10
         , Element.spacing 5
-        , EH.onClickNoPropagation <| MsgUp NoOp
+
+        --, EH.onClickNoPropagation <| MsgUp NoOp
         , Element.height (Element.shrink |> Element.maximum 400)
         , Element.scrollbarY
         , Element.alignRight
@@ -755,7 +750,8 @@ userNotice dProfile ( id, notice ) =
         , Element.Border.width 1
         , Element.Border.color <| Element.rgba 0 0 0 0.15
         , EH.subtleShadow
-        , EH.onClickNoPropagation <| MsgUp NoOp
+
+        --, EH.onClickNoPropagation <| MsgUp NoOp
         ]
         (notice.mainParagraphs
             |> List.map (List.map (Element.map never))

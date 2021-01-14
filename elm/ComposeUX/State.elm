@@ -1,6 +1,5 @@
 module ComposeUX.State exposing (..)
 
-import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Common.View
 import ComposeUX.Types exposing (..)

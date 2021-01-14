@@ -3,7 +3,62 @@ module Misc exposing (..)
 import Common.Types exposing (..)
 import Dict
 import Eth.Types exposing (Address, Hex, TxHash)
+import List.Extra
 import TokenValue exposing (TokenValue)
+
+
+filterPosts : (Published -> Bool) -> PublishedPostsDict -> PublishedPostsDict
+filterPosts filterFunc =
+    Dict.map
+        (always <| List.filter filterFunc)
+        >> Dict.filter
+            (\_ publishedPosts ->
+                not <| publishedPosts == []
+            )
+
+
+updateTrackedTxByTxInfo : TxInfo -> (TrackedTx -> TrackedTx) -> Model -> Model
+updateTrackedTxByTxInfo txInfo =
+    updateTrackedTxIf
+        (.txInfo >> (==) txInfo)
+
+
+updateTrackedTxByTxHash : TxHash -> (TrackedTx -> TrackedTx) -> Model -> Model
+updateTrackedTxByTxHash txHash =
+    updateTrackedTxIf
+        (.txHash >> (==) txHash)
+
+
+updateTrackedTxIf : (TrackedTx -> Bool) -> (TrackedTx -> TrackedTx) -> Model -> Model
+updateTrackedTxIf test update model =
+    { model
+        | trackedTxs =
+            model.trackedTxs
+                |> List.Extra.updateIf
+                    test
+                    update
+    }
+
+
+getTitle : Model -> String
+getTitle model =
+    let
+        defaultMain =
+            "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
+    in
+    case model.mode of
+        BlankMode ->
+            defaultMain
+
+        --ModeHome homeModel ->
+        --defaultMain
+        ModeCompose ->
+            "Compose | SmokeSignal"
+
+        ViewContext context ->
+            viewContextToMaybeTitlePart model.publishedPosts context
+                |> Maybe.map (\contextTitle -> contextTitle ++ " | SmokeSignal")
+                |> Maybe.withDefault defaultMain
 
 
 withBalance :

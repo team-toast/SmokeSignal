@@ -1,6 +1,5 @@
 module TopicUX.Types exposing (..)
 
-import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Dict exposing (Dict)
 import Element exposing (Element)

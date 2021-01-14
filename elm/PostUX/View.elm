@@ -1,6 +1,7 @@
-module PostUX.View exposing (..)
+module PostUX.View exposing (view)
 
-import Common.Msg
+--import PostUX.Types exposing (Msg(..))
+
 import Common.Types exposing (..)
 import Common.View exposing (..)
 import Dict exposing (Dict)
@@ -19,7 +20,6 @@ import Helpers.Eth as EthHelpers
 import List.Extra
 import Maybe.Extra
 import Post
-import PostUX.Types exposing (..)
 import Routing
 import Theme exposing (theme)
 import Time
@@ -90,16 +90,17 @@ view dProfile donateChecked showContext post wallet maybeUXModel =
 
 makePhaceElement : ( Int, Int ) -> Address -> Maybe Model -> Element Msg
 makePhaceElement ( width, height ) author maybeUXModel =
-    phaceElement
-        ( width, height )
-        True
-        author
-        (maybeUXModel
-            |> Maybe.map .showAddress
-            |> Maybe.withDefault False
-        )
-        PhaceIconClicked
-        NoOp
+    --phaceElement
+    --( width, height )
+    --True
+    --author
+    --(maybeUXModel
+    --|> Maybe.map .showAddress
+    --|> Maybe.withDefault False
+    --)
+    --PhaceIconClicked
+    --NoOp
+    Element.none
 
 
 viewDaiBurned : Post -> Element Msg
@@ -205,7 +206,7 @@ viewPostLinks postId =
             , Element.Font.bold
             , Element.Events.onClick <|
                 MsgUp <|
-                    Common.Msg.GotoRoute <|
+                    Common.Types.GotoRoute <|
                         route
             ]
             (Element.text (shortenedHash postId.messageHash))
@@ -261,15 +262,16 @@ viewMainPostBlock dProfile donateChecked showContext post unlockStatus maybeUXMo
         , Element.map never postCore.renderedPost
         , case post of
             PublishedPost published ->
-                publishedPostActionForm
-                    dProfile
-                    donateChecked
-                    published
-                    (maybeUXModel
-                        |> Maybe.map .showInput
-                        |> Maybe.withDefault None
-                    )
-                    unlockStatus
+                --publishedPostActionForm
+                --dProfile
+                --donateChecked
+                --published
+                --(maybeUXModel
+                --|> Maybe.map .showInput
+                --|> Maybe.withDefault None
+                --)
+                --unlockStatus
+                Element.none
 
             _ ->
                 Element.none
@@ -346,7 +348,7 @@ replyButton : Id -> Element Msg
 replyButton postId =
     publishedPostActionButton
         [ EH.withTitle "Reply" ]
-        (MsgUp <| Common.Msg.StartInlineCompose <| Reply postId)
+        (MsgUp <| Common.Types.StartInlineCompose <| Reply postId)
     <|
         Element.image
             [ Element.width Element.fill ]
@@ -431,7 +433,7 @@ inputForm dProfile donateChecked currentString buttonLabel onSubmit =
             ]
             [ Element.Input.checkbox
                 []
-                { onChange = MsgUp << Common.Msg.DonationCheckboxSet
+                { onChange = MsgUp << Common.Types.DonationCheckboxSet
                 , icon = Element.Input.defaultCheckbox
                 , checked = donateChecked
                 , label =

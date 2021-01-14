@@ -1,6 +1,5 @@
 module ComposeUX.View exposing (..)
 
-import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Common.View exposing (..)
 import ComposeUX.Types exposing (..)
@@ -172,13 +171,14 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedContent context =
                 ]
                 [ case maybeShowPhaceInfo of
                     Just ( fromAddress, showAddress ) ->
-                        phaceElement
-                            ( 100, 100 )
-                            True
-                            fromAddress
-                            showAddress
-                            (MsgUp <| ShowOrHideAddress PhaceForPreview)
-                            (MsgUp NoOp)
+                        --phaceElement
+                        --( 100, 100 )
+                        --True
+                        --fromAddress
+                        --showAddress
+                        --(MsgUp <| ShowOrHideAddress PhaceForPreview)
+                        --(MsgUp NoOp)
+                        Element.none
 
                     Nothing ->
                         Element.none
@@ -285,14 +285,15 @@ actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model =
                         ]
                         [ case dProfile of
                             Desktop ->
-                                Element.map MsgUp <|
-                                    phaceElement
-                                        ( 100, 100 )
-                                        True
-                                        userInfo.address
-                                        (showAddressId == Just UserPhace)
-                                        (Common.Msg.ShowOrHideAddress UserPhace)
-                                        NoOp
+                                --Element.map MsgUp <|
+                                --phaceElement
+                                --( 100, 100 )
+                                --True
+                                --userInfo.address
+                                --(showAddressId == Just UserPhace)
+                                --(Common.Types.ShowOrHideAddress UserPhace)
+                                --NoOp
+                                goBackButton dProfile
 
                             Mobile ->
                                 goBackButton dProfile
@@ -369,7 +370,7 @@ inputsElement dProfile donateChecked userInfo model =
                     , Element.spacing 5
                     ]
                     [ Element.Input.checkbox [ Element.alignTop ]
-                        { onChange = MsgUp << Common.Msg.DonationCheckboxSet
+                        { onChange = MsgUp << Common.Types.DonationCheckboxSet
                         , icon = Element.Input.defaultCheckbox
                         , checked = donateChecked
                         , label = Element.Input.labelHidden "Donate an extra 1% to Foundry"

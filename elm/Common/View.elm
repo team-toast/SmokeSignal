@@ -1,6 +1,5 @@
 module Common.View exposing (..)
 
-import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Element exposing (Attribute, Element)
 import Element.Background

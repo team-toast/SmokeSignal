@@ -1,6 +1,5 @@
 module PostUX.Types exposing (..)
 
-import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Dict exposing (Dict)
 import Element exposing (Element)
@@ -27,7 +26,6 @@ type alias Model =
 
 type Msg
     = MsgUp MsgUp
-    | NoOp
     | PhaceIconClicked
     | SupportBurnClicked
     | SupportTipClicked

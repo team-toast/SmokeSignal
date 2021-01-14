@@ -1,6 +1,5 @@
 module ComposeUX.Types exposing (..)
 
-import Common.Msg exposing (..)
 import Common.Types exposing (..)
 import Element exposing (Element)
 import Eth.Types exposing (Address, TxHash)

@@ -1,6 +1,6 @@
 module Home.Types exposing (..)
 
-import Common.Msg exposing (..)
+import Common.Types exposing (..)
 import PostUX.Types as PostUX
 
 

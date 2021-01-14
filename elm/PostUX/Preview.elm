@@ -1,7 +1,6 @@
 module PostUX.Preview exposing (..)
 
 import Color
-import Common.Msg
 import Common.Types exposing (..)
 import Common.View exposing (daiAmountInput, daiSymbol, unlockUXOr)
 import Dict exposing (Dict)
@@ -227,14 +226,14 @@ previewBody dProfile showAddress post =
         , Element.height Element.fill
         , Element.spacing 5
         ]
-        [ Common.View.phaceElement
-            ( 60, 60 )
-            True
-            post.core.author
-            showAddress
-            (MsgUp <| Common.Msg.ShowOrHideAddress <| PhaceForPublishedPost post.id)
-            NoOp
-        , post.core.content.title
+        --[ Common.View.phaceElement
+        --( 60, 60 )
+        --True
+        --post.core.author
+        --showAddress
+        --(MsgUp <| Common.Types.ShowOrHideAddress <| PhaceForPublishedPost post.id)
+        --NoOp
+        [ post.core.content.title
             |> Maybe.withDefault post.core.content.body
             |> limitedString
             |> text
@@ -340,7 +339,7 @@ replyButton postId =
         [ EH.withTitle "Reply"
         , Element.Background.color Theme.blue
         ]
-        (MsgUp <| Common.Msg.StartInlineCompose <| Reply postId)
+        (MsgUp <| Common.Types.StartInlineCompose <| Reply postId)
     <|
         Element.image
             [ Element.width Element.fill
@@ -445,7 +444,7 @@ inputForm dProfile donateChecked currentString buttonLabel onSubmit =
             ]
             [ Element.Input.checkbox
                 []
-                { onChange = MsgUp << Common.Msg.DonationCheckboxSet
+                { onChange = MsgUp << Common.Types.DonationCheckboxSet
                 , icon = Element.Input.defaultCheckbox
                 , checked = donateChecked
                 , label =

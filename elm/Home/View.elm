@@ -1,7 +1,6 @@
 module Home.View exposing (banner, view)
 
-import Common.Msg exposing (MsgUp(..))
-import Common.Types exposing (Context(..), Id, PhaceIconId(..), Post(..), Published, PublishedPostsDict, Route(..), ViewContext(..))
+import Common.Types exposing (Context(..), Id, MsgUp(..), PhaceIconId(..), Post(..), Published, PublishedPostsDict, Route(..), ViewContext(..))
 import Common.View exposing (daiSymbol, phaceElement, whiteGlowAttribute, whiteGlowAttributeSmall)
 import Dict exposing (Dict)
 import Dict.Extra
@@ -543,28 +542,30 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
                             9
                         ]
                     <|
-                        phaceElement
-                            ( 100, 100 )
-                            True
-                            (Eth.Utils.unsafeToAddress demoPhaceSrc)
-                            (showAddressId == Just DemoPhace)
-                            (ShowOrHideAddress DemoPhace)
-                            NoOp
+                        --phaceElement
+                        --( 100, 100 )
+                        --True
+                        --(Eth.Utils.unsafeToAddress demoPhaceSrc)
+                        --(showAddressId == Just DemoPhace)
+                        --(ShowOrHideAddress DemoPhace)
+                        --NoOp
+                        Element.none
 
                 Just userInfo ->
-                    phaceElement
-                        ( 100, 100 )
-                        True
-                        userInfo.address
-                        (showAddressId == Just UserPhace)
-                        (ShowOrHideAddress UserPhace)
-                        NoOp
-                        |> el
-                            [ Element.Border.rounded 10
-                            , Element.Border.glow
-                                (Element.rgba 0 0.5 1 0.4)
-                                9
-                            ]
+                    --phaceElement
+                    --( 100, 100 )
+                    --True
+                    --userInfo.address
+                    --(showAddressId == Just UserPhace)
+                    --(ShowOrHideAddress UserPhace)
+                    --NoOp
+                    --|> el
+                    --[ Element.Border.rounded 10
+                    --, Element.Border.glow
+                    --(Element.rgba 0 0.5 1 0.4)
+                    --9
+                    --]
+                    Element.none
 
         ( buttonText, maybeButtonAction, maybeExplainerText ) =
             case wallet of
