@@ -49,8 +49,8 @@ whiteGlowAttributeSmall =
         2
 
 
-phaceElement : ( Int, Int ) -> Bool -> Address -> Bool -> Msg -> Msg -> Element Msg
-phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClick noOpMsg =
+phaceElement : ( Int, Int ) -> Bool -> Address -> Bool -> Msg -> Element Msg
+phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClick =
     let
         addressOutputEl () =
             -- delay processing because addressToChecksumString is expensive!
@@ -66,7 +66,8 @@ phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClic
                 , EH.moveToFront
                 , Border.width 2
                 , Border.color EH.black
-                , EH.onClickNoPropagation noOpMsg
+
+                --, EH.onClickNoPropagation noOpMsg
                 ]
                 (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
     in

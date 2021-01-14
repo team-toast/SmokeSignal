@@ -70,10 +70,6 @@ init flags url key =
                     PostLogReceived
                     initEventSentry
 
-        --fetchPostsFromBlockrangeCmd
-        --(Eth.Types.BlockNum Config.startScanBlock)
-        --Eth.Types.LatestBlock
-        --initEventSentry
         now =
             Time.millisToPosix flags.nowInMillis
 

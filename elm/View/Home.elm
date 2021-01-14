@@ -2,17 +2,17 @@ module View.Home exposing (banner, view)
 
 import Dict exposing (Dict)
 import Dict.Extra
-import Element exposing (Attribute, Element, column, el, fill, fillPortion, padding, paddingXY, row, text, width)
+import Element exposing (Attribute, Element, column, el, fill, fillPortion, padding, paddingXY, px, row, spaceEvenly, text, width)
 import Element.Background
 import Element.Border
 import Element.Events
 import Element.Font
-import Element.Input
+import Element.Input as Input
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..))
 import Helpers.Time as TimeHelpers
 import Html.Attributes
-import Maybe.Extra
+import Maybe.Extra exposing (unwrap)
 import Misc exposing (getPublishedPostFromId)
 import Post
 import Routing
@@ -53,7 +53,7 @@ view model =
             model.publishedPosts
 
         state =
-            { showAddress = True
+            { showAddress = False
             , showInput = Types.None
             }
     in
@@ -78,7 +78,7 @@ view model =
                   <|
                     banner
                         dProfile
-                , body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts state
+                , body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts state model.searchInput
                 ]
 
         Mobile ->
@@ -215,8 +215,9 @@ body :
     -> Types.Wallet
     -> PublishedPostsDict
     -> PostState
+    -> String
     -> Element Msg
-body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts state =
+body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts state searchInput =
     let
         xs =
             Dict.values posts
@@ -267,8 +268,7 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
         , Element.spacing 20
         ]
         [ walletUXPane dProfile showAddressId demoPhaceSrc wallet
-
-        --, topicsUX dProfile model.topicSearchInput posts
+        , topicsUX dProfile searchInput posts
         ]
     ]
         |> row
@@ -321,7 +321,7 @@ topicsUX dProfile topicsSearchInput posts =
             , Element.alignTop
             , Element.spacing 1
             ]
-            [ Element.Input.text
+            [ Input.text
                 [ width fill
                 , Element.Background.color EH.black
                 , Element.Border.color Theme.almostWhite
@@ -334,12 +334,12 @@ topicsUX dProfile topicsSearchInput posts =
                 , text = topicsSearchInput
                 , placeholder =
                     Just <|
-                        Element.Input.placeholder
+                        Input.placeholder
                             [ Element.Font.color EH.white
                             , Element.Font.italic
                             ]
                             (Element.text "Find or Create Topic...")
-                , label = Element.Input.labelHidden "topic"
+                , label = Input.labelHidden "topic"
                 }
             , topicsColumn
                 dProfile
@@ -419,66 +419,6 @@ topicsColumn dProfile topicSearchStr allPosts =
             , Element.Background.color EH.black
             ]
 
-        topicEls =
-            filteredTalliedTopics
-                |> List.map
-                    (\( topic, ( ( totalBurned, totalTipped ), count ) ) ->
-                        row
-                            (commonElStyles
-                                ++ [ Element.Events.onClick <|
-                                        GotoRoute <|
-                                            RouteViewContext <|
-                                                Topic topic
-                                   ]
-                            )
-                            [ el
-                                [ width <| Element.px 100 ]
-                              <|
-                                row
-                                    [ padding 5
-                                    , Element.spacing 3
-                                    , Element.Border.rounded 5
-                                    , Element.Background.color theme.daiBurnedBackground
-                                    , Element.Font.color
-                                        (if theme.daiBurnedTextIsWhite then
-                                            EH.white
-
-                                         else
-                                            EH.black
-                                        )
-                                    ]
-                                    [ daiSymbol theme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
-                                    , Element.text <|
-                                        (TokenValue.toConciseString totalBurned
-                                            |> (if TokenValue.compare totalBurned (TokenValue.fromIntTokenValue 1) == LT then
-                                                    String.left 5
-
-                                                else
-                                                    identity
-                                               )
-                                        )
-                                    ]
-                            , el
-                                [ width fill
-                                , Element.height fill
-                                ]
-                              <|
-                                el
-                                    [ Element.centerY
-                                    , Element.Font.color EH.white
-                                    ]
-                                <|
-                                    Element.text topic
-                            , el
-                                [ Element.alignRight
-                                , Element.Font.color EH.white
-                                ]
-                              <|
-                                Element.text <|
-                                    String.fromInt count
-                            ]
-                    )
-
         exactTopicFound =
             talliedTopics
                 |> List.any (Tuple.first >> (==) topicSearchStr)
@@ -510,23 +450,75 @@ topicsColumn dProfile topicSearchStr allPosts =
             else
                 Nothing
     in
-    column
-        [ Element.Border.roundEach
-            { topRight = 0
-            , topLeft = 0
-            , bottomRight = 5
-            , bottomLeft = 5
-            }
-        , width (fill |> Element.maximum 530)
-        , padding 5
-        , Element.spacing 5
-        , Element.Background.color EH.black
-        ]
-        ((Maybe.map List.singleton maybeCreateTopicEl
-            |> Maybe.withDefault []
-         )
-            ++ topicEls
-        )
+    filteredTalliedTopics
+        |> List.map
+            (\( topic, ( ( totalBurned, totalTipped ), count ) ) ->
+                Input.button commonElStyles
+                    { onPress =
+                        Topic topic
+                            |> RouteViewContext
+                            |> GotoRoute
+                            |> Just
+                    , label =
+                        [ [ daiSymbol theme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
+                          , TokenValue.toConciseString totalBurned
+                                |> (if TokenValue.compare totalBurned (TokenValue.fromIntTokenValue 1) == LT then
+                                        String.left 5
+
+                                    else
+                                        identity
+                                   )
+                                |> text
+                          ]
+                            |> row
+                                [ Element.spacing 3
+                                , padding 5
+                                , Element.Border.rounded 5
+                                , Element.Background.color theme.daiBurnedBackground
+                                , Element.Font.color
+                                    (if theme.daiBurnedTextIsWhite then
+                                        EH.white
+
+                                     else
+                                        EH.black
+                                    )
+                                ]
+                            |> el
+                                [ width <| px 100
+                                ]
+                        , [ text topic
+                                |> el
+                                    [ Element.Font.color EH.white
+                                    ]
+                          , el
+                                [ Element.alignRight
+                                , Element.Font.color EH.white
+                                ]
+                            <|
+                                Element.text <|
+                                    String.fromInt count
+                          ]
+                            |> row [ spaceEvenly, width fill ]
+                        ]
+                            |> row [ width fill ]
+                    }
+            )
+        |> (++)
+            (maybeCreateTopicEl
+                |> unwrap [] List.singleton
+            )
+        |> column
+            [ Element.Border.roundEach
+                { topRight = 0
+                , topLeft = 0
+                , bottomRight = 5
+                , bottomLeft = 5
+                }
+            , width (fill |> Element.maximum 530)
+            , padding 5
+            , Element.spacing 5
+            , Element.Background.color EH.black
+            ]
 
 
 walletUXPane :
@@ -540,37 +532,32 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
         phaceEl =
             case Wallet.userInfo wallet of
                 Nothing ->
-                    el
-                        [ Element.Border.rounded 10
-                        , Element.Border.glow
-                            (Element.rgba 1 0 1 0.3)
-                            9
-                        ]
-                    <|
-                        --phaceElement
-                        --( 100, 100 )
-                        --True
-                        --(Eth.Utils.unsafeToAddress demoPhaceSrc)
-                        --(showAddressId == Just DemoPhace)
-                        --(ShowOrHideAddress DemoPhace)
-                        --NoOp
-                        Element.none
+                    phaceElement
+                        ( 100, 100 )
+                        True
+                        (Eth.Utils.unsafeToAddress demoPhaceSrc)
+                        (showAddressId == Just DemoPhace)
+                        (ShowOrHideAddress DemoPhace)
+                        |> el
+                            [ Element.Border.rounded 10
+                            , Element.Border.glow
+                                (Element.rgba 1 0 1 0.3)
+                                9
+                            ]
 
                 Just userInfo ->
-                    --phaceElement
-                    --( 100, 100 )
-                    --True
-                    --userInfo.address
-                    --(showAddressId == Just UserPhace)
-                    --(ShowOrHideAddress UserPhace)
-                    --NoOp
-                    --|> el
-                    --[ Element.Border.rounded 10
-                    --, Element.Border.glow
-                    --(Element.rgba 0 0.5 1 0.4)
-                    --9
-                    --]
-                    Element.none
+                    phaceElement
+                        ( 100, 100 )
+                        True
+                        userInfo.address
+                        (showAddressId == Just UserPhace)
+                        (ShowOrHideAddress UserPhace)
+                        |> el
+                            [ Element.Border.rounded 10
+                            , Element.Border.glow
+                                (Element.rgba 0 0.5 1 0.4)
+                                9
+                            ]
 
         ( buttonText, maybeButtonAction, maybeExplainerText ) =
             case wallet of
