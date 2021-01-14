@@ -27,10 +27,10 @@ view :
     -> Dict Int Time.Posix
     -> Time.Posix
     -> Wallet
-    -> Maybe Types.PostState
+    -> Types.PostState
     -> Published
     -> Element Msg
-view dProfile donateChecked showAddressOnPhace blockTimes now wallet maybeUXModel post =
+view dProfile donateChecked showAddressOnPhace blockTimes now wallet state post =
     Element.row
         [ Element.width Element.fill
         , Element.height <| Element.px <| 120
@@ -47,7 +47,8 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet maybeUXMode
             blockTimes
             now
             (Wallet.unlockStatus wallet)
-            maybeUXModel
+            --maybeUXModel
+            Nothing
             post
         , publishedPostActionForm
             dProfile

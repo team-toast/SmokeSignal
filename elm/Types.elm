@@ -124,7 +124,7 @@ type ShowInputState
 
 type Mode
     = BlankMode
-      --| ModeHome Home.Model
+    | ModeHome
     | ModeCompose
     | ViewContext ViewContext
 

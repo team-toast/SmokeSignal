@@ -85,6 +85,7 @@ init flags url key =
         , route = route
         , wallet = wallet
         , now = now
+        , mode = Types.ModeHome
         , dProfile = Helpers.Element.screenWidthToDisplayProfile flags.width
         , txSentry = txSentry
         , eventSentry = eventSentry

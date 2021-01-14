@@ -204,22 +204,9 @@ bodyContent model =
             BlankMode ->
                 Element.none
 
-            --ModeHome homeModel ->
-            --Element.map HomeMsg <|
-            --Element.Lazy.lazy
-            --(\publishedPosts ->
-            --Home.View.view
-            --model.dProfile
-            --model.donateChecked
-            --model.blockTimes
-            --model.now
-            --model.showAddressId
-            --model.demoPhaceSrc
-            --model.wallet
-            --publishedPosts
-            --homeModel
-            --)
-            --model.publishedPosts
+            ModeHome ->
+                View.Home.view model
+
             ModeCompose ->
                 --Element.map ComposeUXMsg <|
                 --ComposeUX.viewFull

@@ -94,8 +94,9 @@ getTitle model =
         BlankMode ->
             defaultMain
 
-        --ModeHome homeModel ->
-        --defaultMain
+        ModeHome ->
+            defaultMain
+
         ModeCompose ->
             "Compose | SmokeSignal"
 

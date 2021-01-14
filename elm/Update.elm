@@ -984,8 +984,9 @@ updateSeoDescriptionIfNeededCmd model =
                 BlankMode ->
                     Nothing
 
-                --ModeHome _ ->
-                --Nothing
+                ModeHome ->
+                    Nothing
+
                 ModeCompose ->
                     Nothing
 

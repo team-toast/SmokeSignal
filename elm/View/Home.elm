@@ -19,24 +19,44 @@ import Routing
 import Theme exposing (almostWhite, theme)
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (Context(..), Id, Model, Msg(..), PhaceIconId(..), Post(..), Published, PublishedPostsDict, Route(..), ViewContext(..))
+import Types exposing (Context(..), Id, Model, Msg(..), PhaceIconId(..), Post(..), PostState, Published, PublishedPostsDict, Route(..), ViewContext(..))
 import View.Common exposing (daiSymbol, phaceElement, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Post
 import Wallet
 
 
-view :
-    DisplayProfile
-    -> Bool
-    -> Dict Int Time.Posix
-    -> Time.Posix
-    -> Maybe PhaceIconId
-    -> String
-    -> Types.Wallet
-    -> PublishedPostsDict
-    -> Model
-    -> Element Msg
-view dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts model =
+view : Model -> Element Msg
+view model =
+    let
+        dProfile =
+            model.dProfile
+
+        donateChecked =
+            model.donateChecked
+
+        blockTimes =
+            model.blockTimes
+
+        now =
+            model.now
+
+        showAddressId =
+            model.showAddressId
+
+        demoPhaceSrc =
+            model.demoPhaceSrc
+
+        wallet =
+            model.wallet
+
+        posts =
+            model.publishedPosts
+
+        state =
+            { showAddress = True
+            , showInput = Types.None
+            }
+    in
     case dProfile of
         Desktop ->
             column
@@ -58,17 +78,14 @@ view dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
                   <|
                     banner
                         dProfile
-                , body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts model
+                , body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts state
                 ]
 
         Mobile ->
             text "mobile view"
 
 
-viewModals :
-    DisplayProfile
-    -> Bool
-    -> List (Element Msg)
+viewModals : DisplayProfile -> Bool -> List (Element Msg)
 viewModals dProfile showNewToSmokeSignalModal =
     Maybe.Extra.values
         [ if showNewToSmokeSignalModal == True then
@@ -88,9 +105,7 @@ viewModals dProfile showNewToSmokeSignalModal =
         ]
 
 
-viewNewToSmokeSignalModal :
-    DisplayProfile
-    -> Element Msg
+viewNewToSmokeSignalModal : DisplayProfile -> Element Msg
 viewNewToSmokeSignalModal dProfile =
     column
         [ whiteGlowAttribute
@@ -164,11 +179,7 @@ viewNewToSmokeSignalModal dProfile =
         ]
 
 
-rowElement :
-    DisplayProfile
-    -> List (Attribute Msg)
-    -> Element Msg
-    -> Element Msg
+rowElement : DisplayProfile -> List (Attribute Msg) -> Element Msg -> Element Msg
 rowElement dProfile attributes element =
     row
         ([ Element.height fill
@@ -179,9 +190,7 @@ rowElement dProfile attributes element =
         [ element ]
 
 
-banner :
-    DisplayProfile
-    -> Element Msg
+banner : DisplayProfile -> Element Msg
 banner dProfile =
     el
         [ Element.centerX
@@ -205,9 +214,9 @@ body :
     -> String
     -> Types.Wallet
     -> PublishedPostsDict
-    -> Model
+    -> PostState
     -> Element Msg
-body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts model =
+body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts state =
     let
         xs =
             Dict.values posts
@@ -248,7 +257,7 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
                 20
                 10
                 "RECENT POSTS..."
-            , postFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet xs
+            , postFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet xs state
             ]
         ]
     , column
@@ -294,11 +303,7 @@ orangeBannerEl dProfile attributes fontSize paddingVal bannerText =
         Element.text bannerText
 
 
-topicsUX :
-    DisplayProfile
-    -> String
-    -> PublishedPostsDict
-    -> Element Msg
+topicsUX : DisplayProfile -> String -> PublishedPostsDict -> Element Msg
 topicsUX dProfile topicsSearchInput posts =
     column
         [ Element.spacing 10
@@ -344,11 +349,7 @@ topicsUX dProfile topicsSearchInput posts =
         ]
 
 
-topicsColumn :
-    EH.DisplayProfile
-    -> String
-    -> PublishedPostsDict
-    -> Element Msg
+topicsColumn : EH.DisplayProfile -> String -> PublishedPostsDict -> Element Msg
 topicsColumn dProfile topicSearchStr allPosts =
     let
         talliedTopics : List ( String, ( ( TokenValue, TokenValue ), Int ) )
@@ -674,21 +675,24 @@ postFeed :
     -> Maybe Id
     -> Types.Wallet
     -> List Published
+    -> PostState
     -> Element Msg
-postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet listOfPosts =
+postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet listOfPosts state =
     listOfPosts
         |> List.sortBy (feedSortByFunc blockTimes now)
         |> List.reverse
         |> List.take 10
         |> List.map
-            (previewPost
-                dProfile
-                donateChecked
-                blockTimes
-                now
-                maybeShowAddressForId
-                wallet
-                Nothing
+            (\post ->
+                View.Post.view
+                    dProfile
+                    donateChecked
+                    (maybeShowAddressForId == Just post.id)
+                    blockTimes
+                    now
+                    wallet
+                    state
+                    post
             )
         |> column
             [ width fill
@@ -697,10 +701,7 @@ postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet list
             ]
 
 
-feedSortByFunc :
-    Dict Int Time.Posix
-    -> Time.Posix
-    -> (Published -> Float)
+feedSortByFunc : Dict Int Time.Posix -> Time.Posix -> (Published -> Float)
 feedSortByFunc blockTimes now =
     \post ->
         let
@@ -731,25 +732,3 @@ feedSortByFunc blockTimes now =
             -- (ageFactor * 4.0) + 1
         in
         totalBurned * newnessMultiplier
-
-
-previewPost :
-    DisplayProfile
-    -> Bool
-    -> Dict Int Time.Posix
-    -> Time.Posix
-    -> Maybe Id
-    -> Types.Wallet
-    -> Maybe Types.PostState
-    -> Published
-    -> Element Msg
-previewPost dProfile donateChecked blockTimes now maybeShowAddressForId wallet maybePostUXModel post =
-    View.Post.view
-        dProfile
-        donateChecked
-        (maybeShowAddressForId == Just post.id)
-        blockTimes
-        now
-        wallet
-        maybePostUXModel
-        post
