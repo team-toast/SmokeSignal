@@ -1,10 +1,54 @@
 module Misc exposing (..)
 
-import Types exposing (..)
+import Browser.Navigation
 import Dict
+import Eth.Sentry.Event exposing (EventSentry)
+import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address, Hex, TxHash)
+import Helpers.Element
 import List.Extra
+import Ports
+import Time
 import TokenValue exposing (TokenValue)
+import Types exposing (..)
+
+
+emptyModel : Browser.Navigation.Key -> Model
+emptyModel key =
+    { navKey = key
+    , basePath = ""
+    , route = Types.Home
+    , wallet = Types.NoneDetected
+    , now = Time.millisToPosix 0
+    , dProfile = Helpers.Element.Desktop
+    , txSentry =
+        TxSentry.init
+            ( Ports.txOut, Ports.txIn )
+            TxSentryMsg
+            ""
+    , eventSentry = Eth.Sentry.Event.init (always Types.ClickHappened) "" |> Tuple.first
+    , publishedPosts = Dict.empty
+
+    --, postUX = Nothing
+    , replies = []
+    , mode = BlankMode
+    , showHalfComposeUX = False
+
+    --, composeUXModel = Nothing -- TODO ComposeUX.init now (TopLevel Post.defaultTopic)
+    , blockTimes = Dict.empty
+    , showAddressId = Nothing
+    , userNotices = []
+    , trackedTxs = []
+    , showExpandedTrackedTxs = False
+    , draftModal = Nothing
+    , demoPhaceSrc = ""
+    , donateChecked = True
+    , cookieConsentGranted = False
+    , maybeSeoDescription = Nothing
+    , searchInput = ""
+
+    --, topicUXModel = Nothing
+    }
 
 
 filterPosts : (Published -> Bool) -> PublishedPostsDict -> PublishedPostsDict

@@ -1,16 +1,21 @@
 module Config exposing (..)
 
 import BigInt exposing (BigInt)
-import Types exposing (Id)
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Post
 import Time
 import TokenValue exposing (TokenValue)
+import Types exposing (Id)
 
 
 testMode =
     False
+
+
+initDemoPhaceSrc : String
+initDemoPhaceSrc =
+    "2222222222222222222222222228083888c8f222"
 
 
 httpProviderUrl : String
