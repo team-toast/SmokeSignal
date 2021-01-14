@@ -3,7 +3,7 @@ module Routing exposing (..)
 import Common.Types exposing (..)
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
-import Post exposing (Post)
+import Misc exposing (..)
 import Result.Extra
 import Url exposing (Url)
 import Url.Builder as Builder
@@ -11,19 +11,12 @@ import Url.Parser as Parser exposing ((</>), (<?>), Parser)
 import Url.Parser.Query as Query
 
 
-type Route
-    = Home
-    | Compose Post.Context
-    | ViewContext ViewContext
-    | NotFound String
-
-
 routeParser : Parser (Route -> a) a
 routeParser =
     Parser.oneOf
         [ Parser.map Home Parser.top
         , (Parser.s "context" </> viewContextParser)
-            |> Parser.map (Result.Extra.unpack NotFound ViewContext)
+            |> Parser.map (Result.Extra.unpack NotFound RouteViewContext)
         , (Parser.s "compose" </> postContextParser)
             |> Parser.map (Result.Extra.unpack NotFound Compose)
         ]
@@ -43,7 +36,7 @@ routeToString basePath route =
                         ([ "#!", "compose" ] ++ encodePostContextPaths context)
                         (encodePostContextQueryParams context)
 
-                ViewContext context ->
+                RouteViewContext context ->
                     Builder.relative
                         ([ "#!", "context" ] ++ encodeViewContextPaths context)
                         (encodeViewContextQueryParams context)
@@ -65,14 +58,14 @@ viewContextParser =
     postContextParser |> Parser.map (Result.map postContextToViewContext)
 
 
-postContextParser : Parser (Result String Post.Context -> a) a
+postContextParser : Parser (Result String Context -> a) a
 postContextParser =
     Parser.oneOf
         [ (Parser.s "re" <?> postIdQueryParser)
-            |> Parser.map (Result.map Post.Reply)
+            |> Parser.map (Result.map Reply)
         , (Parser.s "topic" </> topicParser)
             |> Parser.map (Result.fromMaybe "Couldn't parse topic")
-            |> Parser.map (Result.map Post.TopLevel)
+            |> Parser.map (Result.map TopLevel)
         ]
 
 
@@ -83,13 +76,13 @@ encodeViewContextPaths context =
         |> encodePostContextPaths
 
 
-encodePostContextPaths : Post.Context -> List String
+encodePostContextPaths : Context -> List String
 encodePostContextPaths context =
     case context of
-        Post.Reply _ ->
+        Reply _ ->
             [ "re" ]
 
-        Post.TopLevel topic ->
+        TopLevel topic ->
             [ "topic", encodeTopic topic ]
 
 
@@ -104,13 +97,13 @@ topicParser =
         |> Parser.map Url.percentDecode
 
 
-encodePostContextQueryParams : Post.Context -> List Builder.QueryParameter
+encodePostContextQueryParams : Context -> List Builder.QueryParameter
 encodePostContextQueryParams context =
     case context of
-        Post.Reply postId ->
+        Reply postId ->
             encodePostIdQueryParameters postId
 
-        Post.TopLevel _ ->
+        TopLevel _ ->
             []
 
 
@@ -121,17 +114,17 @@ encodeViewContextQueryParams context =
         |> encodePostContextQueryParams
 
 
-postIdQueryParser : Query.Parser (Result String Post.Id)
+postIdQueryParser : Query.Parser (Result String Id)
 postIdQueryParser =
     Query.map2
-        (Result.map2 Post.Id)
+        (Result.map2 Id)
         (Query.int "block"
             |> Query.map (Result.fromMaybe "Can't interpret 'block'")
         )
         (hexQueryParser "hash")
 
 
-encodePostIdQueryParameters : Post.Id -> List Builder.QueryParameter
+encodePostIdQueryParameters : Id -> List Builder.QueryParameter
 encodePostIdQueryParameters postIdInfo =
     [ Builder.string "block" (String.fromInt postIdInfo.block)
     , Builder.string "hash" (Eth.Utils.hexToString postIdInfo.messageHash)

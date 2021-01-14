@@ -1,7 +1,7 @@
 module Home.View exposing (banner, view)
 
 import Common.Msg exposing (MsgUp(..))
-import Common.Types exposing (PhaceIconId(..), PublishedPostsDict, ViewContext(..), getPublishedPostFromId)
+import Common.Types exposing (Context(..), Id, PhaceIconId(..), Post(..), Published, PublishedPostsDict, Route(..), ViewContext(..))
 import Common.View exposing (daiSymbol, phaceElement, whiteGlowAttribute, whiteGlowAttributeSmall)
 import Dict exposing (Dict)
 import Dict.Extra
@@ -17,6 +17,7 @@ import Helpers.Time as TimeHelpers
 import Home.Types exposing (Model, Msg(..))
 import Html.Attributes
 import Maybe.Extra
+import Misc exposing (getPublishedPostFromId)
 import Post
 import PostUX.Preview as PostPreview
 import PostUX.Types as PostUX
@@ -24,7 +25,7 @@ import Routing
 import Theme exposing (almostWhite, theme)
 import Time
 import TokenValue exposing (TokenValue)
-import Wallet exposing (Wallet)
+import Wallet
 
 
 view :
@@ -34,7 +35,7 @@ view :
     -> Time.Posix
     -> Maybe PhaceIconId
     -> String
-    -> Wallet
+    -> Common.Types.Wallet
     -> PublishedPostsDict
     -> Model
     -> Element Msg
@@ -202,7 +203,7 @@ body :
     -> Time.Posix
     -> Maybe PhaceIconId
     -> String
-    -> Wallet
+    -> Common.Types.Wallet
     -> PublishedPostsDict
     -> Model
     -> Element Msg
@@ -349,19 +350,19 @@ topicsColumn dProfile topicSearchStr allPosts =
         talliedTopics : List ( String, ( ( TokenValue, TokenValue ), Int ) )
         talliedTopics =
             let
-                findTopic : Post.Published -> Maybe String
+                findTopic : Published -> Maybe String
                 findTopic publishedPost =
                     case publishedPost.core.metadata.context of
-                        Post.TopLevel topic ->
+                        TopLevel topic ->
                             Just topic
 
-                        Post.Reply postId ->
+                        Reply postId ->
                             getPublishedPostFromId allPosts postId
                                 |> Maybe.andThen findTopic
             in
             allPosts
                 |> Dict.values
-                |> List.concat 
+                |> List.concat
                 |> Dict.Extra.filterGroupBy findTopic
                 -- This ignores any replies that lead eventually to a postId not in 'posts'
                 |> Dict.map
@@ -421,7 +422,7 @@ topicsColumn dProfile topicSearchStr allPosts =
                             (commonElStyles
                                 ++ [ Element.Events.onClick <|
                                         GotoRoute <|
-                                            Routing.ViewContext <|
+                                            RouteViewContext <|
                                                 Topic topic
                                    ]
                             )
@@ -484,8 +485,8 @@ topicsColumn dProfile topicSearchStr allPosts =
                         (commonElStyles
                             ++ [ Element.Events.onClick <|
                                     GotoRoute <|
-                                        Routing.Compose <|
-                                            Post.TopLevel topicSearchStr
+                                        Compose <|
+                                            TopLevel topicSearchStr
                                ]
                         )
                     <|
@@ -528,7 +529,7 @@ walletUXPane :
     DisplayProfile
     -> Maybe PhaceIconId
     -> String
-    -> Wallet
+    -> Common.Types.Wallet
     -> Element Msg
 walletUXPane dProfile showAddressId demoPhaceSrc wallet =
     let
@@ -567,19 +568,19 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
 
         ( buttonText, maybeButtonAction, maybeExplainerText ) =
             case wallet of
-                Wallet.NoneDetected ->
+                Common.Types.NoneDetected ->
                     ( "Install Metamask"
                     , Just <| EH.NewTabLink "https://metamask.io/"
                     , Just "Then come back to try on some phaces!"
                     )
 
-                Wallet.OnlyNetwork _ ->
+                Common.Types.OnlyNetwork _ ->
                     ( "Connect Wallet"
                     , Just <| EH.Action ConnectToWeb3
                     , Just "Each address has a unique phace!"
                     )
 
-                Wallet.Active userInfo ->
+                Common.Types.Active userInfo ->
                     let
                         userHasNoEth =
                             userInfo.balance
@@ -594,7 +595,7 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
 
                     else
                         ( "Compose Post"
-                        , Just <| EH.Action <| GotoRoute <| Routing.Compose <| Post.TopLevel Post.defaultTopic
+                        , Just <| EH.Action <| GotoRoute <| Compose <| TopLevel Post.defaultTopic
                         , Nothing
                         )
 
@@ -666,9 +667,9 @@ postFeed :
     -> Bool
     -> Dict Int Time.Posix
     -> Time.Posix
-    -> Maybe Post.Id
-    -> Wallet
-    -> List Post.Published
+    -> Maybe Id
+    -> Common.Types.Wallet
+    -> List Published
     -> Element Msg
 postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet listOfPosts =
     listOfPosts
@@ -695,7 +696,7 @@ postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet list
 feedSortByFunc :
     Dict Int Time.Posix
     -> Time.Posix
-    -> (Post.Published -> Float)
+    -> (Published -> Float)
 feedSortByFunc blockTimes now =
     \post ->
         let
@@ -717,7 +718,7 @@ feedSortByFunc blockTimes now =
                     |> (\ascNum -> 1 - ascNum)
 
             totalBurned =
-                Post.totalBurned (Post.PublishedPost post)
+                Post.totalBurned (PublishedPost post)
                     |> TokenValue.toFloatWithWarning
 
             newnessMultiplier =
@@ -733,10 +734,10 @@ previewPost :
     -> Bool
     -> Dict Int Time.Posix
     -> Time.Posix
-    -> Maybe Post.Id
-    -> Wallet
+    -> Maybe Id
+    -> Common.Types.Wallet
     -> Maybe PostUX.Model
-    -> Post.Published
+    -> Published
     -> Element Msg
 previewPost dProfile donateChecked blockTimes now maybeShowAddressForId wallet maybePostUXModel post =
     Element.map PostUXMsg <|

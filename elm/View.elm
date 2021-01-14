@@ -28,11 +28,12 @@ import Html.Attributes
 import Json.Decode
 import List.Extra
 import Maybe.Extra
+import Misc exposing (getPublishedPostFromId)
 import Phace
-import Post exposing (Post)
+import Post
 import PostUX.Types as PostUX
 import PostUX.View as PostUX
-import Routing exposing (Route)
+import Routing
 import Theme exposing (theme)
 import Time
 import TokenValue exposing (TokenValue)
@@ -40,7 +41,7 @@ import TopicUX.View as TopicUX
 import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
-import Wallet exposing (Wallet)
+import Wallet
 
 
 root :
@@ -200,7 +201,7 @@ bodyContent model =
             BlankMode ->
                 Element.none
 
-            Home homeModel ->
+            ModeHome homeModel ->
                 Element.map HomeMsg <|
                     Element.Lazy.lazy
                         (\publishedPosts ->
@@ -217,18 +218,20 @@ bodyContent model =
                         )
                         model.publishedPosts
 
-            Compose ->
+            ModeCompose ->
                 Element.map ComposeUXMsg <|
-                    ComposeUX.viewFull
-                        model.dProfile
-                        model.donateChecked
-                        model.wallet
-                        model.showAddressId
-                        model.composeUXModel
+                    --ComposeUX.viewFull
+                    --model.dProfile
+                    --model.donateChecked
+                    --model.wallet
+                    --model.showAddressId
+                    --model.composeUXModel
+                    -- TODO
+                    text "compose"
 
             ViewContext context ->
                 case context of
-                    Post postId ->
+                    ViewPost postId ->
                         case getPublishedPostFromId model.publishedPosts postId of
                             Just post ->
                                 Element.column
@@ -249,7 +252,8 @@ bodyContent model =
                                         model.blockTimes
                                         model.replies
                                         post
-                                        model.postUX
+                                        --model.postUX
+                                        Nothing
                                     ]
 
                             Nothing ->
@@ -292,8 +296,8 @@ viewPostAndReplies :
     -> Wallet
     -> PublishedPostsDict
     -> Dict Int Time.Posix
-    -> List Reply
-    -> Post.Published
+    -> List ReplyIds
+    -> Published
     -> Maybe ( PostUXId, PostUX.Model )
     -> Element Msg
 viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies publishedPost postUX =
@@ -345,7 +349,7 @@ modals :
     -> List (Element Msg)
 modals model =
     Maybe.Extra.values
-        ([ if model.mode /= Compose && model.showHalfComposeUX then
+        ([ if model.mode /= ModeCompose && model.showHalfComposeUX then
             --Just <|
             --viewHalfComposeUX model
             Nothing
@@ -370,26 +374,30 @@ modals model =
          , let
             showDraftInProgressButton =
                 case model.mode of
-                    Compose ->
+                    ModeCompose ->
                         False
 
                     _ ->
-                        (model.showHalfComposeUX == False)
-                            && (not <| Post.contentIsEmpty model.composeUXModel.content)
+                        --(model.showHalfComposeUX == False)
+                        --&& (not <| Post.contentIsEmpty model.composeUXModel.content)
+                        -- TODO
+                        False
            in
            if showDraftInProgressButton then
-            Just <|
-                theme.secondaryActionButton
-                    model.dProfile
-                    [ Element.alignBottom
-                    , Element.alignLeft
-                    , Element.paddingXY 20 10
-                    , Element.Border.glow
-                        (Element.rgba 0 0 0 0.5)
-                        5
-                    ]
-                    [ "Draft in Progress" ]
-                    (EH.Action <| MsgUp <| StartInlineCompose model.composeUXModel.context)
+            --Just <|
+            --theme.secondaryActionButton
+            --model.dProfile
+            --[ Element.alignBottom
+            --, Element.alignLeft
+            --, Element.paddingXY 20 10
+            --, Element.Border.glow
+            --(Element.rgba 0 0 0 0.5)
+            --5
+            --]
+            --[ "Draft in Progress" ]
+            --(EH.Action <| MsgUp <| StartInlineCompose model.composeUXModel.context)
+            -- TODO
+            Nothing
 
            else
             Nothing
@@ -563,8 +571,8 @@ viewTrackedTxRow trackedTx =
                             , Element.Events.onClick <|
                                 MsgUp <|
                                     GotoRoute <|
-                                        Routing.ViewContext <|
-                                            Post postId
+                                        RouteViewContext <|
+                                            Common.Types.ViewPost postId
                             ]
                             (Element.text "Post")
                         ]
@@ -579,8 +587,8 @@ viewTrackedTxRow trackedTx =
                             , Element.Events.onClick <|
                                 MsgUp <|
                                     GotoRoute <|
-                                        Routing.ViewContext <|
-                                            Post postId
+                                        RouteViewContext <|
+                                            ViewPost postId
                             ]
                             (Element.text "Post")
                         ]
@@ -619,7 +627,7 @@ viewTrackedTxRow trackedTx =
                                     Element.el
                                         [ Font.color theme.linkTextColor
                                         , Element.pointer
-                                        , Element.Events.onClick <| MsgUp <| GotoRoute <| Routing.ViewContext <| Post postId
+                                        , Element.Events.onClick <| MsgUp <| GotoRoute <| RouteViewContext <| ViewPost postId
                                         ]
                                         (Element.text "Published")
 

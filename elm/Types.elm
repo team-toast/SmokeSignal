@@ -1,32 +1,28 @@
 module Types exposing (..)
 
-import Array exposing (Array)
 import Browser
 import Browser.Navigation
-import Common.Msg exposing (..)
-import Common.Types as Common exposing (..)
+import Common.Msg exposing (MsgUp(..))
+import Common.Types exposing (Accounting, Draft, Id, PhaceIconId, Published, PublishedPostsDict, ReplyIds, Route, TrackedTx, TxInfo, ViewContext, Wallet)
 import ComposeUX.Types as ComposeUX
-import Contracts.SmokeSignal as SSContract
-import DemoPhaceSrcMutator exposing (MutateInfo)
 import Dict exposing (Dict)
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
-import Eth.Sentry.Wallet as WalletSentry exposing (WalletSentry)
-import Eth.Types exposing (Address, Hex, Tx, TxHash, TxReceipt)
-import Eth.Utils
+import Eth.Sentry.Wallet exposing (WalletSentry)
+import Eth.Types exposing (Address, TxHash, TxReceipt)
 import Helpers.Element as EH
 import Home.Types as Home
 import Http
 import List.Extra
-import Post exposing (Post)
+import Misc exposing (viewContextToMaybeTitlePart)
+import Post
 import PostUX.Types as PostUX
-import Routing exposing (Route)
+import Routing
 import Time
 import TokenValue exposing (TokenValue)
 import TopicUX.Types as TopicUX
 import Url exposing (Url)
-import UserNotice as UN exposing (UserNotice)
-import Wallet exposing (Wallet)
+import UserNotice exposing (UserNotice)
 
 
 type alias Flags =
@@ -49,28 +45,31 @@ type alias Model =
     , txSentry : TxSentry Msg
     , eventSentry : EventSentry Msg
     , publishedPosts : PublishedPostsDict
-    , postUX : Maybe ( PostUXId, PostUX.Model )
-    , replies : List Reply
+
+    --, postUX : Maybe ( PostUXId, PostUX.Model )
+    , replies : List ReplyIds
     , mode : Mode
     , showHalfComposeUX : Bool
-    , composeUXModel : ComposeUX.Model
+
+    --, composeUXModel : Maybe ComposeUX.Model
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
     , trackedTxs : List TrackedTx -- Can't use TxHash as a key; Elm is silly with what is and is not comparable
     , showExpandedTrackedTxs : Bool
-    , draftModal : Maybe Post.Draft
+    , draftModal : Maybe Draft
     , demoPhaceSrc : String
     , donateChecked : Bool
     , cookieConsentGranted : Bool
     , maybeSeoDescription : Maybe String
     , searchInput : String
-    , topicUXModel : Maybe TopicUX.Model
+
+    --, topicUXModel : Maybe TopicUX.Model
     }
 
 
 type PostUXId
-    = PublishedPost Post.Id
+    = PublishedPost Id
     | DraftPreview
 
 
@@ -87,14 +86,14 @@ type Msg
     | TxSentryMsg TxSentry.Msg
     | EventSentryMsg EventSentry.Msg
     | PostLogReceived Eth.Types.Log
-    | PostAccountingFetched Post.Id (Result Http.Error Post.Accounting)
+    | PostAccountingFetched Id (Result Http.Error Accounting)
     | ShowExpandedTrackedTxs Bool
     | CheckTrackedTxsStatus
     | TrackedTxStatusResult (Result Http.Error TxReceipt)
     | TxSigned TxInfo (Result String TxHash)
-    | ViewDraft (Maybe Post.Draft)
+    | ViewDraft (Maybe Draft)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
-    | RestoreDraft Post.Draft
+    | RestoreDraft Draft
     | DismissNotice Int
     | ClickHappened
     | PostUXMsg PostUXId PostUX.Msg
@@ -109,22 +108,18 @@ type Msg
 
 type Mode
     = BlankMode
-    | Home Home.Model
-    | Compose
+    | ModeHome Home.Model
+    | ModeCompose
     | ViewContext ViewContext
 
 
-filterPosts : (Post.Published -> Bool) -> PublishedPostsDict -> PublishedPostsDict
+filterPosts : (Published -> Bool) -> PublishedPostsDict -> PublishedPostsDict
 filterPosts filterFunc =
     Dict.map
         (always <| List.filter filterFunc)
         >> Dict.filter
             (\_ publishedPosts ->
-                if publishedPosts == [] then
-                    False
-
-                else
-                    True
+                not <| publishedPosts == []
             )
 
 
@@ -161,10 +156,10 @@ getTitle model =
         BlankMode ->
             defaultMain
 
-        Home homeModel ->
+        ModeHome homeModel ->
             defaultMain
 
-        Compose ->
+        ModeCompose ->
             "Compose | SmokeSignal"
 
         ViewContext context ->

@@ -1,7 +1,7 @@
 module TopicUX.State exposing (..)
 
 import Common.Msg
-import Post exposing (Post)
+import Post
 import TopicUX.Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 

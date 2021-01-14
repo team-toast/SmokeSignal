@@ -15,7 +15,6 @@ import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Time as TimeHelpers
 import Phace
 import Post
-import Routing exposing (Route)
 import Theme exposing (theme)
 import Time
 
@@ -203,7 +202,7 @@ commonFontSize dProfile =
 
 viewMetadata :
     Bool
-    -> Post.Metadata
+    -> Metadata
     -> Element MsgUp
 viewMetadata showContext metadata =
     Element.column
@@ -252,14 +251,14 @@ viewMetadataDecodeError error =
 
 
 viewContext :
-    Post.Context
+    Context
     -> Element MsgUp
 viewContext context =
     case context of
-        Post.Reply postId ->
+        Reply postId ->
             viewReplyInfo postId
 
-        Post.TopLevel topic ->
+        TopLevel topic ->
             viewTopic topic
 
 
@@ -284,7 +283,7 @@ viewTopic topic =
             , Element.pointer
             , Element.Events.onClick <|
                 GotoRoute <|
-                    Routing.ViewContext <|
+                    RouteViewContext <|
                         Topic topic
             ]
             (Element.text topic)
@@ -292,7 +291,7 @@ viewTopic topic =
 
 
 viewReplyInfo :
-    Post.Id
+    Id
     -> Element MsgUp
 viewReplyInfo postId =
     Element.row
@@ -312,8 +311,8 @@ viewReplyInfo postId =
                 , Element.pointer
                 , Element.Events.onClick <|
                     GotoRoute <|
-                        Routing.ViewContext <|
-                            Post postId
+                        RouteViewContext <|
+                            Common.Types.ViewPost postId
                 ]
                 (Element.text <|
                     shortenedHash postId.messageHash
@@ -337,7 +336,7 @@ maxContentColWidth =
 
 
 renderContentOrError :
-    Post.Content
+    Content
     -> Element msg
 renderContentOrError content =
     let

@@ -15,10 +15,9 @@ import Helpers.Time as TimeHelpers
 import Post
 import Time
 import UserNotice as UN
-import Wallet exposing (Wallet)
 
 
-init : Time.Posix -> Post.Context -> Model
+init : Time.Posix -> Context -> Model
 init now context =
     { now = now
     , context = context
@@ -102,7 +101,7 @@ justModelUpdate model =
         []
 
 
-renderPreviewIfNonEmpty : Post.Content -> Maybe (Element Never)
+renderPreviewIfNonEmpty : Content -> Maybe (Element Never)
 renderPreviewIfNonEmpty content =
     if Post.contentIsEmpty content then
         Nothing

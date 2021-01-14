@@ -12,7 +12,7 @@ import Helpers.List as ListHelpers
 import Json.Decode as D
 import Json.Encode as E
 import Maybe.Extra
-import Post exposing (Post)
+import Post
 import Result.Extra
 import String.Extra
 import Theme exposing (Theme)
@@ -32,8 +32,8 @@ type Msg
     | SupportBurnClicked
     | SupportTipClicked
     | AmountInputChanged String
-    | SupportTipSubmitClicked Post.Id TokenValue
-    | SupportBurnSubmitClicked Post.Id TokenValue
+    | SupportTipSubmitClicked Id TokenValue
+    | SupportBurnSubmitClicked Id TokenValue
     | ResetActionForm
 
 

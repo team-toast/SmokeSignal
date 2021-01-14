@@ -1,0 +1,149 @@
+module Misc exposing (..)
+
+import Common.Types exposing (..)
+import Dict
+import Eth.Types exposing (Address, Hex, TxHash)
+import TokenValue exposing (TokenValue)
+
+
+withBalance :
+    TokenValue
+    -> UserInfo
+    -> UserInfo
+withBalance balance userInfo =
+    { userInfo
+        | balance = Just balance
+    }
+
+
+withUnlockStatus :
+    UnlockStatus
+    -> UserInfo
+    -> UserInfo
+withUnlockStatus unlockStatus userInfo =
+    { userInfo
+        | unlockStatus = unlockStatus
+    }
+
+
+getPublishedPostFromId :
+    PublishedPostsDict
+    -> Id
+    -> Maybe Published
+getPublishedPostFromId publishedPosts postId =
+    publishedPosts
+        |> Dict.get postId.block
+        |> Maybe.map
+            (List.filter
+                (\post ->
+                    post.id.messageHash == postId.messageHash
+                )
+            )
+        |> Maybe.andThen List.head
+
+
+getPublishedPostFromTxHash :
+    PublishedPostsDict
+    -> TxHash
+    -> Maybe Published
+getPublishedPostFromTxHash publishedPosts txHash =
+    publishedPosts
+        |> Dict.values
+        |> List.concat
+        |> List.filter
+            (\publishedPost ->
+                publishedPost.txHash == txHash
+            )
+        |> List.head
+
+
+viewContextToMaybeTitlePart :
+    PublishedPostsDict
+    -> ViewContext
+    -> Maybe String
+viewContextToMaybeTitlePart posts context =
+    case context of
+        ViewPost postId ->
+            getPublishedPostFromId posts postId
+                |> Maybe.andThen (.core >> .content >> .title)
+
+        Topic topic ->
+            Just <| "#" ++ topic
+
+
+viewContextToMaybeDescription :
+    PublishedPostsDict
+    -> ViewContext
+    -> Maybe String
+viewContextToMaybeDescription posts context =
+    case context of
+        ViewPost postId ->
+            getPublishedPostFromId posts postId
+                |> Maybe.andThen (.core >> .content >> .desc)
+
+        Topic topic ->
+            Just <| "Discussions related to #" ++ topic ++ " on SmokeSignal"
+
+
+postContextToViewContext :
+    Context
+    -> ViewContext
+postContextToViewContext postContext =
+    case postContext of
+        Reply id ->
+            ViewPost id
+
+        TopLevel topicStr ->
+            Topic topicStr
+
+
+viewContextToPostContext :
+    ViewContext
+    -> Context
+viewContextToPostContext viewContext =
+    case viewContext of
+        ViewPost id ->
+            Reply id
+
+        Topic topicStr ->
+            TopLevel topicStr
+
+
+defaultSeoDescription : String
+defaultSeoDescription =
+    "SmokeSignal - Uncensorable, Global, Immutable chat. Burn crypto to cement your writing on the blockchain. Grant your ideas immortality."
+
+
+updatePublishedPost :
+    Id
+    -> (Published -> Published)
+    -> PublishedPostsDict
+    -> PublishedPostsDict
+updatePublishedPost postId updateFunc posts =
+    posts
+        |> Dict.update postId.block
+            (Maybe.map <|
+                List.map
+                    (\thisPost ->
+                        if thisPost.id == postId then
+                            updateFunc thisPost
+
+                        else
+                            thisPost
+                    )
+            )
+
+
+txInfoToNameStr txInfo =
+    case txInfo of
+        UnlockTx ->
+            "Unlock DAI"
+
+        PostTx _ ->
+            "Post Submit"
+
+        TipTx postId amount ->
+            "Tip"
+
+        BurnTx postId amount ->
+            "Burn"

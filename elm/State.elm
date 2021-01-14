@@ -28,11 +28,12 @@ import Json.Decode
 import Json.Encode
 import List.Extra
 import Maybe.Extra
+import Misc exposing (defaultSeoDescription, txInfoToNameStr, updatePublishedPost, viewContextToMaybeDescription)
 import Ports exposing (connectToWeb3, consentToCookies, gTagOut, setDescription, txIn, txOut, walletSentryPort)
-import Post exposing (Post)
+import Post
 import PostUX.State as PostUX
 import Random
-import Routing exposing (Route)
+import Routing
 import Task
 import Time
 import TokenValue exposing (TokenValue)
@@ -56,12 +57,12 @@ init flags url key =
 
         ( wallet, walletNotices ) =
             if flags.networkId == 0 then
-                ( Wallet.NoneDetected
+                ( Common.Types.NoneDetected
                 , [ UN.noWeb3Provider ]
                 )
 
             else
-                ( Wallet.OnlyNetwork <| Eth.Net.toNetworkId flags.networkId
+                ( Common.Types.OnlyNetwork <| Eth.Net.toNetworkId flags.networkId
                 , []
                 )
 
@@ -92,11 +93,13 @@ init flags url key =
     , txSentry = txSentry
     , eventSentry = eventSentry
     , publishedPosts = Dict.empty
-    , postUX = Nothing
+
+    --, postUX = Nothing
     , replies = []
     , mode = BlankMode
     , showHalfComposeUX = False
-    , composeUXModel = ComposeUX.init now (Post.TopLevel Post.defaultTopic)
+
+    --, composeUXModel = Nothing -- TODO ComposeUX.init now (TopLevel Post.defaultTopic)
     , blockTimes = Dict.empty
     , showAddressId = Nothing
     , userNotices = walletNotices
@@ -108,7 +111,8 @@ init flags url key =
     , cookieConsentGranted = flags.cookieConsent
     , maybeSeoDescription = Nothing
     , searchInput = ""
-    , topicUXModel = Nothing
+
+    --, topicUXModel = Nothing
     }
         |> gotoRoute route
         |> Tuple.mapSecond
@@ -227,7 +231,7 @@ update msg prevModel =
                                         )
 
                                     else
-                                        ( Wallet.Active <|
+                                        ( Common.Types.Active <|
                                             UserInfo
                                                 walletSentry.networkId
                                                 newAddress
@@ -237,7 +241,7 @@ update msg prevModel =
                                         )
 
                                 Nothing ->
-                                    ( Wallet.OnlyNetwork walletSentry.networkId
+                                    ( Common.Types.OnlyNetwork walletSentry.networkId
                                     , Cmd.none
                                     )
                     in
@@ -304,7 +308,7 @@ update msg prevModel =
                                     | status =
                                         Mined <|
                                             Just <|
-                                                Post.Id
+                                                Id
                                                     log.blockNumber
                                                     ssPost.hash
                                 }
@@ -435,18 +439,21 @@ update msg prevModel =
         RestoreDraft draft ->
             { prevModel
                 | draftModal = Nothing
-                , composeUXModel =
-                    prevModel.composeUXModel
-                        |> (\composeUXModel ->
-                                { composeUXModel
-                                    | content = draft.core.content
-                                    , daiInput =
-                                        draft.core.authorBurn
-                                            |> TokenValue.toFloatString Nothing
-                                }
-                           )
+
+                --, composeUXModel =
+                --prevModel.composeUXModel
+                --|> (\composeUXModel ->
+                --{ composeUXModel
+                --| content = draft.core.content
+                --, daiInput =
+                --draft.core.authorBurn
+                --|> TokenValue.toFloatString Nothing
+                --}
+                --)
+                -- TODO
+                --|> identity
             }
-                |> (gotoRoute <| Routing.Compose draft.core.metadata.context)
+                |> (gotoRoute <| Compose draft.core.metadata.context)
 
         DismissNotice id ->
             ( { prevModel
@@ -459,7 +466,8 @@ update msg prevModel =
         PostUXMsg postUXId postUXMsg ->
             let
                 postUXModelBeforeMsg =
-                    case prevModel.postUX of
+                    -- TODO
+                    case Nothing of
                         Just ( prevPostUXId, prevPostUXModel ) ->
                             if prevPostUXId == postUXId then
                                 prevPostUXModel
@@ -474,13 +482,13 @@ update msg prevModel =
                     postUXModelBeforeMsg
                         |> PostUX.update postUXMsg
             in
-            ( { prevModel
-                | postUX =
-                    Just <|
-                        ( postUXId
-                        , updateResult.newModel
-                        )
-              }
+            ( prevModel
+              -- TODO
+              --| postUX =
+              --Just <|
+              --( postUXId
+              --, updateResult.newModel
+              --)
             , Cmd.map (PostUXMsg postUXId) updateResult.cmd
             )
                 |> withMsgUps updateResult.msgUps
@@ -488,43 +496,48 @@ update msg prevModel =
         ComposeUXMsg composeUXMsg ->
             let
                 updateResult =
-                    prevModel.composeUXModel
-                        |> ComposeUX.update composeUXMsg
-            in
-            ( { prevModel
-                | composeUXModel =
-                    updateResult.newModel
-              }
-            , Cmd.map ComposeUXMsg updateResult.cmd
-            )
-                |> withMsgUps updateResult.msgUps
+                    --prevModel.composeUXModel
+                    Nothing
 
+                --TODO
+                --|> ComposeUX.update composeUXMsg
+            in
+            ( prevModel
+              --| composeUXModel =
+              --updateResult.newModel
+              -- TODO
+              --prevModel.composeUXModel
+              --}
+              --, Cmd.map ComposeUXMsg updateResult.cmd
+            , Cmd.none
+            )
+
+        --|> withMsgUps updateResult.msgUps
         TopicUXMsg topicUXMsg ->
-            let
-                topicUXModelBeforeMsg =
-                    case prevModel.topicUXModel of
-                        Just prevTopicUXModel ->
-                            prevTopicUXModel
-
-                        Nothing ->
-                            TopicUX.init
-
-                updateResult =
-                    topicUXModelBeforeMsg
-                        |> TopicUX.update topicUXMsg
-            in
-            ( { prevModel
-                | topicUXModel =
-                    Just <|
-                        updateResult.newModel
-              }
-            , Cmd.map TopicUXMsg updateResult.cmd
-            )
-                |> withMsgUps updateResult.msgUps
+            --let
+            --topicUXModelBeforeMsg =
+            --case prevModel.topicUXModel of
+            --Just prevTopicUXModel ->
+            --prevTopicUXModel
+            --Nothing ->
+            --TopicUX.init
+            --updateResult =
+            --topicUXModelBeforeMsg
+            --|> TopicUX.update topicUXMsg
+            --in
+            --( { prevModel
+            --| topicUXModel =
+            --Just <|
+            --updateResult.newModel
+            --}
+            --, Cmd.map TopicUXMsg updateResult.cmd
+            --)
+            --|> withMsgUps updateResult.msgUps
+            ( prevModel, Cmd.none )
 
         HomeMsg homeMsg ->
             case prevModel.mode of
-                Home homeModel ->
+                ModeHome homeModel ->
                     let
                         updateResult =
                             homeModel
@@ -532,7 +545,7 @@ update msg prevModel =
                     in
                     ( { prevModel
                         | mode =
-                            Home updateResult.newModel
+                            ModeHome updateResult.newModel
                       }
                     , Cmd.map HomeMsg updateResult.cmd
                     )
@@ -548,10 +561,12 @@ update msg prevModel =
                         maybeNewRouteAndComposeModel =
                             case txInfo of
                                 PostTx draft ->
-                                    Just <|
-                                        ( Routing.ViewContext <| postContextToViewContext prevModel.composeUXModel.context
-                                        , prevModel.composeUXModel |> ComposeUX.resetModel
-                                        )
+                                    -- TODO
+                                    --Just <|
+                                    --( Routing.ViewContext <| postContextToViewContext prevModel.composeUXModel.context
+                                    --, prevModel.composeUXModel |> ComposeUX.resetModel
+                                    --)
+                                    Nothing
 
                                 _ ->
                                     Nothing
@@ -565,7 +580,8 @@ update msg prevModel =
                                     Nothing
 
                                 _ ->
-                                    prevModel.postUX
+                                    --prevModel.postUX
+                                    Nothing
 
                         newWallet =
                             case txInfo of
@@ -579,17 +595,19 @@ update msg prevModel =
                         interimModel =
                             { prevModel
                                 | showExpandedTrackedTxs = True
-                                , postUX = newPostUX
+
+                                --, postUX = newPostUX
                                 , wallet = newWallet
                             }
                                 |> addTrackedTx txHash txInfo
                     in
                     case maybeNewRouteAndComposeModel of
                         Just ( route, composeUXModel ) ->
-                            { interimModel
-                                | composeUXModel = composeUXModel
-                            }
-                                |> gotoRoute route
+                            --{ interimModel
+                            --| composeUXModel = composeUXModel
+                            --}
+                            --|> gotoRoute route
+                            ( interimModel, Cmd.none )
 
                         Nothing ->
                             ( interimModel
@@ -684,7 +702,7 @@ handleMsgUp msgUp prevModel =
 
         ConnectToWeb3 ->
             case prevModel.wallet of
-                Wallet.NoneDetected ->
+                Common.Types.NoneDetected ->
                     ( prevModel |> addUserNotice UN.cantConnectNoWeb3
                     , Cmd.none
                     )
@@ -711,9 +729,11 @@ handleMsgUp msgUp prevModel =
                 Desktop ->
                     ( { prevModel
                         | showHalfComposeUX = True
-                        , composeUXModel =
-                            prevModel.composeUXModel
-                                |> ComposeUX.updateContext composeContext
+
+                        --, composeUXModel =
+                        --prevModel.composeUXModel
+                        -- TODO
+                        --|> ComposeUX.updateContext composeContext
                       }
                     , Cmd.none
                     )
@@ -721,15 +741,16 @@ handleMsgUp msgUp prevModel =
                 Mobile ->
                     prevModel
                         |> (gotoRoute <|
-                                Routing.Compose composeContext
+                                Compose composeContext
                            )
 
         ExitCompose ->
             case prevModel.mode of
-                Compose ->
-                    prevModel
-                        |> gotoRoute (Routing.ViewContext <| postContextToViewContext prevModel.composeUXModel.context)
+                ModeCompose ->
+                    -- TODO
+                    ( prevModel, Cmd.none )
 
+                --|> gotoRoute (Routing.ViewContext <| postContextToViewContext prevModel.composeUXModel.context)
                 _ ->
                     ( { prevModel
                         | showHalfComposeUX = False
@@ -841,7 +862,7 @@ handleMsgUp msgUp prevModel =
 
 handleTxReceipt :
     Eth.Types.TxReceipt
-    -> ( TxStatus, Maybe Post.Published, Maybe UserNotice )
+    -> ( TxStatus, Maybe Published, Maybe UserNotice )
 handleTxReceipt txReceipt =
     case txReceipt.status of
         Just True ->
@@ -857,7 +878,7 @@ handleTxReceipt txReceipt =
             ( Mined <|
                 Maybe.map
                     (\ssEvent ->
-                        Post.Id
+                        Id
                             txReceipt.blockNumber
                             ssEvent.hash
                     )
@@ -977,31 +998,34 @@ gotoRoute :
     -> ( Model, Cmd Msg )
 gotoRoute route prevModel =
     (case route of
-        Routing.Home ->
+        Home ->
             let
                 ( homeModel, homeCmd ) =
                     Home.init
             in
             ( { prevModel
                 | route = route
-                , mode = Home homeModel
+                , mode = ModeHome homeModel
                 , showHalfComposeUX = False
               }
             , Cmd.map HomeMsg homeCmd
             )
 
-        Routing.Compose context ->
+        Compose context ->
             ( { prevModel
                 | route = route
-                , mode = Compose
+                , mode = ModeCompose
                 , showHalfComposeUX = False
-                , composeUXModel =
-                    prevModel.composeUXModel |> ComposeUX.updateContext context
+
+                --, composeUXModel =
+                --prevModel.composeUXModel
+                --|> ComposeUX.updateContext context
+                -- TODO
               }
             , Cmd.none
             )
 
-        Routing.ViewContext context ->
+        RouteViewContext context ->
             ( { prevModel
                 | route = route
                 , mode = ViewContext context
@@ -1012,7 +1036,7 @@ gotoRoute route prevModel =
                 |> Maybe.withDefault Cmd.none
             )
 
-        Routing.NotFound err ->
+        NotFound err ->
             ( { prevModel
                 | route = route
               }
@@ -1025,7 +1049,7 @@ gotoRoute route prevModel =
 
 addPost :
     Int
-    -> Post.Published
+    -> Published
     -> Model
     -> ( Model, Cmd Msg )
 addPost blockNumber publishedPost prevModel =
@@ -1101,10 +1125,10 @@ updateSeoDescriptionIfNeededCmd model =
                 BlankMode ->
                     Nothing
 
-                Home _ ->
+                ModeHome _ ->
                     Nothing
 
-                Compose ->
+                ModeCompose ->
                     Nothing
 
                 ViewContext context ->

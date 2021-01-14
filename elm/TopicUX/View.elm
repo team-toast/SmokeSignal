@@ -20,7 +20,7 @@ import Theme exposing (almostWhite, lightGray, theme)
 import Time
 import TokenValue exposing (TokenValue)
 import TopicUX.Types exposing (..)
-import Wallet exposing (Wallet)
+import Wallet
 
 
 topicHeader :
@@ -52,13 +52,13 @@ view dProfile donateChecked showAddressOnPhace topic blockTimes now wallet input
     let
         listOfPosts =
             let
-                isTopicMatch : String -> Post.Published -> Bool
+                isTopicMatch : String -> Published -> Bool
                 isTopicMatch topicToFind post =
                     case post.core.metadata.context of
-                        Post.TopLevel postTopic ->
+                        TopLevel postTopic ->
                             postTopic == topicToFind
 
-                        Post.Reply postId ->
+                        Reply postId ->
                             False
             in
             posts
@@ -99,7 +99,7 @@ mainPreviewPane :
     -> Time.Posix
     -> UnlockStatus
     -> ShowInputState
-    -> Post.Published
+    -> Published
     -> Element Msg
 mainPreviewPane dProfile showAddress donateChecked blockTimes now unlockStatus inputState post =
     row []
@@ -124,7 +124,7 @@ previewMetadata :
     DisplayProfile
     -> Dict Int Time.Posix
     -> Time.Posix
-    -> Post.Published
+    -> Published
     -> Element Msg
 previewMetadata dProfile blockTimes now post =
     row
@@ -140,7 +140,7 @@ previewMetadata dProfile blockTimes now post =
 
 viewAccounting :
     DisplayProfile
-    -> Post.Published
+    -> Published
     -> Element Msg
 viewAccounting dProfile post =
     row
@@ -165,7 +165,7 @@ commonDaiElStyles =
 
 viewDaiBurned :
     DisplayProfile
-    -> Post.Published
+    -> Published
     -> Element Msg
 viewDaiBurned dProfile post =
     row
@@ -179,7 +179,7 @@ viewDaiBurned dProfile post =
             text <|
                 TokenValue.toConciseString <|
                     Post.totalBurned <|
-                        Post.PublishedPost post
+                        PublishedPost post
         ]
 
 
@@ -203,14 +203,14 @@ viewDaiTipped dProfile amount =
 
 viewContext :
     DisplayProfile
-    -> Post.Context
+    -> Context
     -> Element Msg
 viewContext dProfile context =
     (case context of
-        Post.Reply id ->
+        Reply id ->
             text "reply"
 
-        Post.TopLevel topic ->
+        TopLevel topic ->
             text <| "#" ++ topic
     )
         |> el
@@ -223,7 +223,7 @@ viewTiming :
     DisplayProfile
     -> Dict Int Time.Posix
     -> Time.Posix
-    -> Post.Id
+    -> Id
     -> Element Msg
 viewTiming dProfile blockTimes now id =
     let
@@ -253,7 +253,7 @@ viewTiming dProfile blockTimes now id =
 previewBody :
     DisplayProfile
     -> Bool
-    -> Post.Published
+    -> Published
     -> Element Msg
 previewBody dProfile showAddress post =
     [ Common.View.phaceElement
@@ -274,7 +274,7 @@ previewBody dProfile showAddress post =
 
 viewTitleOrTextPreview :
     DisplayProfile
-    -> Post.Content
+    -> Content
     -> Element Msg
 viewTitleOrTextPreview dProfile content =
     [ text <|
@@ -297,7 +297,7 @@ viewTitleOrTextPreview dProfile content =
 publishedPostActionForm :
     DisplayProfile
     -> Bool
-    -> Post.Published
+    -> Published
     -> ShowInputState
     -> UnlockStatus
     -> Element Msg
@@ -336,7 +336,7 @@ publishedPostActionForm dProfile donateChecked publishedPost showInput unlockSta
 
 
 supportTipButton :
-    Post.Id
+    Id
     -> Element Msg
 supportTipButton postId =
     [ publishedPostActionButton
@@ -360,7 +360,7 @@ supportTipButton postId =
 
 
 supportBurnButton :
-    Post.Id
+    Id
     -> Element Msg
 supportBurnButton postId =
     publishedPostActionButton
@@ -379,14 +379,14 @@ supportBurnButton postId =
 
 
 replyButton :
-    Post.Id
+    Id
     -> Element Msg
 replyButton postId =
     publishedPostActionButton
         [ EH.withTitle "Reply"
         , Element.Background.color Theme.blue
         ]
-        (MsgUp <| Common.Msg.StartInlineCompose <| Post.Reply postId)
+        (MsgUp <| Common.Msg.StartInlineCompose <| Reply postId)
     <|
         Element.image
             [ width fill

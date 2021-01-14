@@ -34,8 +34,7 @@
             "myrho/elm-round": "1.0.4",
             "rtfeldman/elm-css": "16.1.0",
             "rtfeldman/elm-hex": "1.0.0",
-            "timjs/elm-collage": "2.0.3",
-            "tricycle/elm-embed-youtube": "1.1.2"
+            "timjs/elm-collage": "2.0.3"
         },
         "indirect": {
             "Chadtech/elm-bool-extra": "2.4.2",

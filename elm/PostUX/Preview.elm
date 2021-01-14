@@ -20,7 +20,7 @@ import PostUX.View
 import Theme exposing (almostWhite, lightGray, theme)
 import Time
 import TokenValue exposing (TokenValue)
-import Wallet exposing (Wallet)
+import Wallet
 
 
 view :
@@ -31,7 +31,7 @@ view :
     -> Time.Posix
     -> Wallet
     -> Maybe Model
-    -> Post.Published
+    -> Published
     -> Element Msg
 view dProfile donateChecked showAddressOnPhace blockTimes now wallet maybeUXModel post =
     Element.row
@@ -72,7 +72,7 @@ mainPreviewPane :
     -> Time.Posix
     -> UnlockStatus
     -> Maybe Model
-    -> Post.Published
+    -> Published
     -> Element Msg
 mainPreviewPane dProfile showAddress donateChecked blockTimes now unlockStatus maybeUXModel post =
     Element.column
@@ -89,7 +89,7 @@ previewMetadata :
     DisplayProfile
     -> Dict Int Time.Posix
     -> Time.Posix
-    -> Post.Published
+    -> Published
     -> Element Msg
 previewMetadata dProfile blockTimes now post =
     Element.row
@@ -105,7 +105,7 @@ previewMetadata dProfile blockTimes now post =
 
 viewAccounting :
     DisplayProfile
-    -> Post.Published
+    -> Published
     -> Element Msg
 viewAccounting dProfile post =
     Element.row
@@ -130,7 +130,7 @@ commonDaiElStyles =
 
 viewDaiBurned :
     DisplayProfile
-    -> Post.Published
+    -> Published
     -> Element Msg
 viewDaiBurned dProfile post =
     Element.row
@@ -144,7 +144,7 @@ viewDaiBurned dProfile post =
             Element.text <|
                 TokenValue.toConciseString <|
                     Post.totalBurned <|
-                        Post.PublishedPost post
+                        PublishedPost post
         ]
 
 
@@ -168,7 +168,7 @@ viewDaiTipped dProfile amount =
 
 viewContext :
     DisplayProfile
-    -> Post.Context
+    -> Context
     -> Element Msg
 viewContext dProfile context =
     Element.el
@@ -177,10 +177,10 @@ viewContext dProfile context =
         ]
     <|
         case context of
-            Post.Reply id ->
+            Reply id ->
                 Element.text "reply"
 
-            Post.TopLevel topic ->
+            TopLevel topic ->
                 Element.text <| "#" ++ topic
 
 
@@ -188,7 +188,7 @@ viewTiming :
     DisplayProfile
     -> Dict Int Time.Posix
     -> Time.Posix
-    -> Post.Id
+    -> Id
     -> Element Msg
 viewTiming dProfile blockTimes now id =
     let
@@ -219,7 +219,7 @@ viewTiming dProfile blockTimes now id =
 previewBody :
     DisplayProfile
     -> Bool
-    -> Post.Published
+    -> Published
     -> Element Msg
 previewBody dProfile showAddress post =
     Element.row
@@ -251,7 +251,7 @@ previewBody dProfile showAddress post =
 publishedPostActionForm :
     DisplayProfile
     -> Bool
-    -> Post.Published
+    -> Published
     -> ShowInputState
     -> UnlockStatus
     -> Element Msg
@@ -290,7 +290,7 @@ publishedPostActionForm dProfile donateChecked publishedPost showInput unlockSta
 
 
 supportTipButton :
-    Post.Id
+    Id
     -> Element Msg
 supportTipButton postId =
     Element.row
@@ -314,7 +314,7 @@ supportTipButton postId =
 
 
 supportBurnButton :
-    Post.Id
+    Id
     -> Element Msg
 supportBurnButton postId =
     publishedPostActionButton
@@ -333,14 +333,14 @@ supportBurnButton postId =
 
 
 replyButton :
-    Post.Id
+    Id
     -> Element Msg
 replyButton postId =
     publishedPostActionButton
         [ EH.withTitle "Reply"
         , Element.Background.color Theme.blue
         ]
-        (MsgUp <| Common.Msg.StartInlineCompose <| Post.Reply postId)
+        (MsgUp <| Common.Msg.StartInlineCompose <| Reply postId)
     <|
         Element.image
             [ Element.width Element.fill

@@ -1,12 +1,12 @@
 module Common.Types exposing (..)
 
 import Dict exposing (Dict)
+import Element exposing (Element)
 import Eth.Net
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address, Hex, TxHash)
 import Json.Decode
 import Json.Encode
-import Post exposing (Post)
 import TokenValue exposing (TokenValue)
 
 
@@ -18,6 +18,12 @@ type alias UserInfo =
     }
 
 
+type Wallet
+    = NoneDetected
+    | OnlyNetwork Eth.Net.NetworkId
+    | Active UserInfo
+
+
 type UnlockStatus
     = NotConnected
     | Checking
@@ -27,150 +33,29 @@ type UnlockStatus
 
 
 type ViewContext
-    = Post Post.Id
+    = ViewPost Id
     | Topic String
 
 
-withBalance :
-    TokenValue
-    -> UserInfo
-    -> UserInfo
-withBalance balance userInfo =
-    { userInfo
-        | balance = Just balance
-    }
-
-
-withUnlockStatus :
-    UnlockStatus
-    -> UserInfo
-    -> UserInfo
-withUnlockStatus unlockStatus userInfo =
-    { userInfo
-        | unlockStatus = unlockStatus
-    }
-
-
 type alias PublishedPostsDict =
-    Dict Int (List Post.Published)
+    Dict Int (List Published)
 
 
-getPublishedPostFromId :
-    PublishedPostsDict
-    -> Post.Id
-    -> Maybe Post.Published
-getPublishedPostFromId publishedPosts postId =
-    publishedPosts
-        |> Dict.get postId.block
-        |> Maybe.map
-            (List.filter
-                (\post ->
-                    post.id.messageHash == postId.messageHash
-                )
-            )
-        |> Maybe.andThen List.head
-
-
-getPublishedPostFromTxHash :
-    PublishedPostsDict
-    -> TxHash
-    -> Maybe Post.Published
-getPublishedPostFromTxHash publishedPosts txHash =
-    publishedPosts
-        |> Dict.values
-        |> List.concat
-        |> List.filter
-            (\publishedPost ->
-                publishedPost.txHash == txHash
-            )
-        |> List.head
-
-
-viewContextToMaybeTitlePart :
-    PublishedPostsDict
-    -> ViewContext
-    -> Maybe String
-viewContextToMaybeTitlePart posts context =
-    case context of
-        Post postId ->
-            getPublishedPostFromId posts postId
-                |> Maybe.andThen (.core >> .content >> .title)
-
-        Topic topic ->
-            Just <| "#" ++ topic
-
-
-viewContextToMaybeDescription :
-    PublishedPostsDict
-    -> ViewContext
-    -> Maybe String
-viewContextToMaybeDescription posts context =
-    case context of
-        Post postId ->
-            getPublishedPostFromId posts postId
-                |> Maybe.andThen (.core >> .content >> .desc)
-
-        Topic topic ->
-            Just <| "Discussions related to #" ++ topic ++ " on SmokeSignal"
-
-
-postContextToViewContext :
-    Post.Context
-    -> ViewContext
-postContextToViewContext postContext =
-    case postContext of
-        Post.Reply id ->
-            Post id
-
-        Post.TopLevel topicStr ->
-            Topic topicStr
-
-
-viewContextToPostContext :
-    ViewContext
-    -> Post.Context
-viewContextToPostContext viewContext =
-    case viewContext of
-        Post id ->
-            Post.Reply id
-
-        Topic topicStr ->
-            Post.TopLevel topicStr
-
-
-defaultSeoDescription : String
-defaultSeoDescription =
-    "SmokeSignal - Uncensorable, Global, Immutable chat. Burn crypto to cement your writing on the blockchain. Grant your ideas immortality."
-
-
-updatePublishedPost :
-    Post.Id
-    -> (Post.Published -> Post.Published)
-    -> PublishedPostsDict
-    -> PublishedPostsDict
-updatePublishedPost postId updateFunc posts =
-    posts
-        |> Dict.update postId.block
-            (Maybe.map <|
-                List.map
-                    (\thisPost ->
-                        if thisPost.id == postId then
-                            updateFunc thisPost
-
-                        else
-                            thisPost
-                    )
-            )
-
-
-type alias Reply =
-    { from : Post.Id
-    , to : Post.Id
+type alias ReplyIds =
+    { from : Id
+    , to : Id
     }
+
+
+type Route
+    = Home
+    | Compose Context
+    | RouteViewContext ViewContext
+    | NotFound String
 
 
 type PhaceIconId
-    = PhaceForPublishedPost Post.Id
+    = PhaceForPublishedPost Id
     | PhaceForDraft
     | PhaceForPreview
     | UserPhace
@@ -185,35 +70,20 @@ type alias TrackedTx =
 
 
 type TxInfo
-    = PostTx Post.Draft
+    = PostTx Draft
     | UnlockTx
-    | TipTx Post.Id TokenValue
-    | BurnTx Post.Id TokenValue
+    | TipTx Id TokenValue
+    | BurnTx Id TokenValue
 
 
 type TxStatus
     = Mining
     | Failed FailReason
-    | Mined (Maybe Post.Id)
+    | Mined (Maybe Id)
 
 
 type FailReason
     = MinedButExecutionFailed
-
-
-txInfoToNameStr txInfo =
-    case txInfo of
-        UnlockTx ->
-            "Unlock DAI"
-
-        PostTx _ ->
-            "Post Submit"
-
-        TipTx postId amount ->
-            "Tip"
-
-        BurnTx postId amount ->
-            "Burn"
 
 
 type alias GTagData =
@@ -221,4 +91,72 @@ type alias GTagData =
     , category : String
     , label : String
     , value : Int
+    }
+
+
+type Post
+    = PublishedPost Published
+    | PostDraft Draft
+
+
+type alias Accounting =
+    { firstAuthor : Address
+    , totalBurned : TokenValue
+    , totalTipped : TokenValue
+    }
+
+
+type alias Published =
+    { txHash : TxHash
+    , id : Id
+    , core : Core
+    , maybeAccounting : Maybe Accounting
+    }
+
+
+type alias Draft =
+    { donateAmount : TokenValue
+    , core : Core
+    }
+
+
+type alias Core =
+    { author : Address
+    , authorBurn : TokenValue
+    , content : Content
+    , metadata : Metadata
+    , renderedPost : Element Never
+    }
+
+
+type alias Content =
+    { title : Maybe String
+    , desc : Maybe String
+    , body : String
+    }
+
+
+type alias EncodedDraft =
+    { author : Address
+    , encodedContentAndMetadata : String
+    , burnAmount : TokenValue
+    , donateAmount : TokenValue
+    }
+
+
+type alias Metadata =
+    { metadataVersion : Int
+    , context : Context
+    , maybeDecodeError : Maybe String
+    }
+
+
+type Context
+    = Reply Id
+    | TopLevel String
+
+
+type alias Id =
+    { block : Int
+    , messageHash : Hex
     }

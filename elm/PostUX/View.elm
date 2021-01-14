@@ -18,13 +18,13 @@ import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Helpers.Eth as EthHelpers
 import List.Extra
 import Maybe.Extra
-import Post exposing (Post)
+import Post
 import PostUX.Types exposing (..)
-import Routing exposing (Route)
+import Routing
 import Theme exposing (theme)
 import Time
 import TokenValue exposing (TokenValue)
-import Wallet exposing (Wallet)
+import Wallet
 
 
 view : DisplayProfile -> Bool -> Bool -> Post -> Wallet -> Maybe Model -> Element Msg
@@ -35,7 +35,7 @@ view dProfile donateChecked showContext post wallet maybeUXModel =
 
         maybePostId =
             case post of
-                Post.PublishedPost publishedPost ->
+                PublishedPost publishedPost ->
                     Just publishedPost.id
 
                 _ ->
@@ -178,12 +178,12 @@ tipSummaryString post =
         ++ " in tips"
 
 
-viewPostLinks : Post.Id -> Element Msg
+viewPostLinks : Id -> Element Msg
 viewPostLinks postId =
     let
         route =
-            Routing.ViewContext <|
-                Post postId
+            RouteViewContext <|
+                ViewPost postId
     in
     Element.row
         [ Element.alignBottom
@@ -215,8 +215,8 @@ viewPostLinks postId =
             ]
             { url =
                 Routing.routeToFullDotEthUrlString <|
-                    Routing.ViewContext <|
-                        Post postId
+                    RouteViewContext <|
+                        ViewPost postId
             , label = Element.text "(.eth permalink)"
             }
         ]
@@ -260,7 +260,7 @@ viewMainPostBlock dProfile donateChecked showContext post unlockStatus maybeUXMo
             ]
         , Element.map never postCore.renderedPost
         , case post of
-            Post.PublishedPost published ->
+            PublishedPost published ->
                 publishedPostActionForm
                     dProfile
                     donateChecked
@@ -276,7 +276,7 @@ viewMainPostBlock dProfile donateChecked showContext post unlockStatus maybeUXMo
         ]
 
 
-publishedPostActionForm : DisplayProfile -> Bool -> Post.Published -> ShowInputState -> UnlockStatus -> Element Msg
+publishedPostActionForm : DisplayProfile -> Bool -> Published -> ShowInputState -> UnlockStatus -> Element Msg
 publishedPostActionForm dProfile donateChecked publishedPost showInput unlockStatus =
     Element.el
         [ Element.alignRight ]
@@ -312,7 +312,7 @@ publishedPostActionForm dProfile donateChecked publishedPost showInput unlockSta
                     unlockStatus
 
 
-supportTipButton : Post.Id -> Element Msg
+supportTipButton : Id -> Element Msg
 supportTipButton postId =
     publishedPostActionButton
         [ EH.withTitle "Tip DAI for this post, rewarding the author" ]
@@ -327,7 +327,7 @@ supportTipButton postId =
             }
 
 
-supportBurnButton : Post.Id -> Element Msg
+supportBurnButton : Id -> Element Msg
 supportBurnButton postId =
     publishedPostActionButton
         [ EH.withTitle "Burn DAI to increase this post's visibility" ]
@@ -342,11 +342,11 @@ supportBurnButton postId =
             }
 
 
-replyButton : Post.Id -> Element Msg
+replyButton : Id -> Element Msg
 replyButton postId =
     publishedPostActionButton
         [ EH.withTitle "Reply" ]
-        (MsgUp <| Common.Msg.StartInlineCompose <| Post.Reply postId)
+        (MsgUp <| Common.Msg.StartInlineCompose <| Reply postId)
     <|
         Element.image
             [ Element.width Element.fill ]
