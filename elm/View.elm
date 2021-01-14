@@ -1,8 +1,7 @@
-module View exposing (..)
+module View exposing (view)
 
 import Browser
 import Dict exposing (Dict)
-import Dict.Extra
 import Element exposing (Attribute, Element, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -10,56 +9,66 @@ import Element.Events
 import Element.Font as Font
 import Element.Input as Input
 import Element.Lazy
-import ElementMarkdown
-import Eth.Types exposing (Address, Hex, TxHash)
+import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal)
 import Helpers.Eth as EthHelpers
-import Helpers.List as ListHelpers
 import Helpers.Time as TimeHelpers
 import Helpers.Tuple as TupleHelpers
+import Html exposing (Html)
 import Html.Attributes
-import Json.Decode
-import List.Extra
 import Maybe.Extra
 import Misc exposing (getPublishedPostFromId, getTitle)
 import Phace
-import Post
-import Routing
 import Theme exposing (theme)
 import Time
-import TokenValue exposing (TokenValue)
 import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import Wallet
 
 
-root :
-    Model
-    -> Browser.Document Msg
-root model =
+view : Model -> Browser.Document Msg
+view model =
     { title = getTitle model
     , body =
-        [ Element.layout
-            ([ Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
-             , Element.Events.onClick ClickHappened
-             , Element.height Element.fill
-             ]
-             -- ++ List.map Element.inFront (modals model)
-            )
-          <|
-            Element.column
-                [ Element.width Element.fill
-                , Element.height Element.fill
-                , Element.clip
-                ]
-                [ header model.wallet model.searchInput
-                , body model
-                , footer
-                ]
-        ]
+        viewPage model
+            |> render model
+            |> List.singleton
     }
+
+
+render : Model -> Element Msg -> Html Msg
+render model =
+    modals model
+        |> List.map Element.inFront
+        |> (++)
+            [ Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
+            , Element.Events.onClick ClickHappened
+            , Element.height Element.fill
+            ]
+        |> Element.layoutWith
+            { options =
+                [ Element.focusStyle
+                    { borderColor = Nothing
+                    , backgroundColor = Nothing
+                    , shadow = Nothing
+                    }
+                ]
+            }
+
+
+viewPage : Model -> Element Msg
+viewPage model =
+    [ header model.wallet model.searchInput
+    , body model
+    , footer
+    ]
+        |> Element.column
+            [ Element.width Element.fill
+            , Element.height Element.fill
+            , Element.clip
+            ]
 
 
 header : Wallet -> String -> Element Msg
@@ -161,9 +170,7 @@ footer =
             ]
 
 
-body :
-    Model
-    -> Element Msg
+body : Model -> Element Msg
 body model =
     Element.el
         [ Element.width Element.fill
@@ -235,15 +242,13 @@ bodyContent model =
                                         , left = 0
                                         }
                                     ]
-                                    [ viewPostHeader model.dProfile post
-
-                                    --, Element.Lazy.lazy5
-                                    --(viewPostAndReplies model.dProfile model.donateChecked model.wallet)
-                                    --model.publishedPosts
-                                    --model.blockTimes
-                                    --model.replies
-                                    --post
-                                    --model.postUX
+                                    [--, Element.Lazy.lazy5
+                                     --(viewPostAndReplies model.dProfile model.donateChecked model.wallet)
+                                     --model.publishedPosts
+                                     --model.blockTimes
+                                     --model.replies
+                                     --post
+                                     --model.postUX
                                     ]
 
                             Nothing ->
@@ -274,10 +279,6 @@ bodyContent model =
                                 model.publishedPosts
                             ]
         ]
-
-
-dummyElement =
-    Element.none
 
 
 
@@ -333,13 +334,7 @@ viewPostsForTopic dProfile donateChecked showAddressOnPhace wallet blockTimes no
     Element.none
 
 
-viewPostHeader dProfile post =
-    dummyElement
-
-
-modals :
-    Model
-    -> List (Element Msg)
+modals : Model -> List (Element Msg)
 modals model =
     Maybe.Extra.values
         ([ if model.mode /= ModeCompose && model.showHalfComposeUX then
@@ -1088,34 +1083,6 @@ coloredAppTitle attributes =
 
 maxContentColWidth =
     1000
-
-
-renderContentOrError :
-    Content
-    -> Element Msg
-renderContentOrError content =
-    let
-        renderResult =
-            ElementMarkdown.renderString
-                [ Element.spacing 15
-                , Font.color theme.postBodyTextColor
-                , Element.width Element.fill
-                ]
-                content.body
-    in
-    case renderResult of
-        Ok rendered ->
-            rendered
-
-        Err errStr ->
-            Element.el
-                [ Font.color theme.errorTextColor
-                , Font.italic
-                ]
-            <|
-                Element.text <|
-                    "Error parsing/rendering markdown: "
-                        ++ errStr
 
 
 unlockUXOr :

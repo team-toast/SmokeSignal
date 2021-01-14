@@ -41,6 +41,7 @@ import Types exposing (..)
 import Url exposing (Url)
 import UserNotice as UN exposing (UserNotice)
 import View
+import View.Common
 import Wallet
 
 
@@ -207,7 +208,7 @@ update msg prevModel =
                                     (SSContract.fromMessageBurn
                                         log.transactionHash
                                         log.blockNumber
-                                        View.renderContentOrError
+                                        View.Common.renderContentOrError
                                         ssPost
                                     )
                     in
@@ -890,7 +891,7 @@ handleTxReceipt txReceipt =
                 (SSContract.fromMessageBurn
                     txReceipt.hash
                     txReceipt.blockNumber
-                    View.renderContentOrError
+                    View.Common.renderContentOrError
                 )
                 maybePostEvent
             , Nothing

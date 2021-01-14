@@ -19,14 +19,14 @@ import Types exposing (..)
 import Update exposing (update)
 import Url exposing (Url)
 import UserNotice
-import View
+import View exposing (view)
 
 
 main : Program Flags Model Msg
 main =
     Browser.Hash.application
         { init = init
-        , view = View.root
+        , view = view
         , update = update
         , subscriptions = subscriptions
         , onUrlRequest = LinkClicked
