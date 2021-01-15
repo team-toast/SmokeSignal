@@ -19,7 +19,7 @@ import Routing
 import Theme exposing (almostWhite, theme)
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (Context(..), Id, Model, Msg(..), PhaceIconId(..), Post(..), PostState, Published, PublishedPostsDict, Route(..), ViewContext(..))
+import Types exposing (Context(..), Id, Model, Msg(..), PhaceIconId(..), Post(..), PostState, Published, PublishedPostsDict, Route(..))
 import View.Common exposing (daiSymbol, phaceElement, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Post
 import Wallet
@@ -455,8 +455,7 @@ topicsColumn dProfile topicSearchStr allPosts =
             (\( topic, ( ( totalBurned, totalTipped ), count ) ) ->
                 Input.button commonElStyles
                     { onPress =
-                        Topic topic
-                            |> RouteViewContext
+                        RouteTopic topic
                             |> GotoRoute
                             |> Just
                     , label =

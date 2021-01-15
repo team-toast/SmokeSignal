@@ -1,4 +1,4 @@
-module View.Common exposing (daiAmountInput, daiSymbol, phaceElement, renderContentOrError, unlockButton, unlockUXOr, whiteGlowAttribute, whiteGlowAttributeSmall)
+module View.Common exposing (cappedHeight, cappedWidth, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, unlockButton, unlockUXOr, whiteGlowAttribute, whiteGlowAttributeSmall)
 
 import Element exposing (Attribute, Element)
 import Element.Background as Background
@@ -6,12 +6,22 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import ElementMarkdown
-import Eth.Types exposing (Address, Hex)
+import Eth.Types exposing (Address)
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal)
 import Phace
 import Theme exposing (theme)
 import Types exposing (Content, Msg, UnlockStatus(..))
+
+
+cappedWidth : Int -> Attribute msg
+cappedWidth n =
+    Element.fill |> Element.maximum n |> Element.width
+
+
+cappedHeight : Int -> Attribute msg
+cappedHeight n =
+    Element.fill |> Element.maximum n |> Element.height
 
 
 web3ConnectButton : EH.DisplayProfile -> List (Attribute Msg) -> Element Msg
@@ -108,8 +118,8 @@ daiSymbol isWhite attributes =
         }
 
 
-daiAmountInput : DisplayProfile -> List (Attribute Msg) -> String -> (String -> Msg) -> Element Msg
-daiAmountInput dProfile attributes currentInput onChange =
+daiAmountInput : DisplayProfile -> String -> (String -> Msg) -> Element Msg
+daiAmountInput dProfile currentInput onChange =
     Input.text
         [ Element.width <| Element.px (responsiveVal dProfile 100 60)
         , Element.height <| Element.px (responsiveVal dProfile 40 35)

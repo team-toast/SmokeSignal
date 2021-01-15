@@ -1,7 +1,7 @@
 module App exposing (main)
 
 import Browser.Events
-import Browser.Hash
+import Browser.Hashbang
 import Browser.Navigation
 import Config
 import Contracts.SmokeSignal
@@ -24,7 +24,7 @@ import View exposing (view)
 
 main : Program Flags Model Msg
 main =
-    Browser.Hash.application
+    Browser.Hashbang.application
         { init = init
         , view = view
         , update = update
@@ -81,7 +81,6 @@ init flags url key =
         , route = route
         , wallet = wallet
         , now = now
-        , mode = Types.ModeHome
         , dProfile = Helpers.Element.screenWidthToDisplayProfile flags.width
         , txSentry = txSentry
         , eventSentry = eventSentry
