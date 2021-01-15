@@ -1,10 +1,11 @@
 module Routing exposing (..)
 
-import Types exposing (..)
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
+import Maybe.Extra exposing (unwrap)
 import Misc exposing (..)
 import Result.Extra
+import Types exposing (..)
 import Url exposing (Url)
 import Url.Builder as Builder
 import Url.Parser as Parser exposing ((</>), (<?>), Parser)
@@ -15,10 +16,17 @@ routeParser : Parser (Route -> a) a
 routeParser =
     Parser.oneOf
         [ Parser.map Home Parser.top
-        , (Parser.s "context" </> viewContextParser)
-            |> Parser.map (Result.Extra.unpack NotFound RouteViewContext)
-        , (Parser.s "compose" </> postContextParser)
-            |> Parser.map (Result.Extra.unpack NotFound Compose)
+        , Parser.s "context"
+            </> Parser.s "topic"
+            </> Parser.string
+            |> Parser.map
+                (Url.percentDecode
+                    >> unwrap (NotFound "topic decode fail") RouteTopic
+                )
+
+        --|> Parser.map (Result.Extra.unpack NotFound RouteViewContext)
+        --, (Parser.s "compose" </> postContextParser)
+        --|> Parser.map (Result.Extra.unpack NotFound Compose)
         ]
 
 
@@ -36,10 +44,19 @@ routeToString basePath route =
                         ([ "#!", "compose" ] ++ encodePostContextPaths context)
                         (encodePostContextQueryParams context)
 
-                RouteViewContext context ->
+                RouteViewContext ->
+                    --Builder.relative
+                    --([ "#!", "context" ] ++ encodeViewContextPaths context)
+                    --(encodeViewContextQueryParams context)
                     Builder.relative
-                        ([ "#!", "context" ] ++ encodeViewContextPaths context)
-                        (encodeViewContextQueryParams context)
+                        [ "#!" ]
+                        []
+
+                RouteTopic str ->
+                    Builder.relative
+                        [ "#!", "context", "topic", Url.percentEncode str ]
+                        --(encodeViewContextQueryParams context)
+                        []
 
                 NotFound _ ->
                     Builder.relative
@@ -53,9 +70,10 @@ routeToFullDotEthUrlString route =
     routeToString "https://smokesignal.eth/" route
 
 
-viewContextParser : Parser (Result String ViewContext -> a) a
-viewContextParser =
-    postContextParser |> Parser.map (Result.map postContextToViewContext)
+
+--viewContextParser : Parser (Result String ViewContext -> a) a
+--viewContextParser =
+--postContextParser |> Parser.map (Result.map postContextToViewContext)
 
 
 postContextParser : Parser (Result String Context -> a) a
@@ -69,11 +87,12 @@ postContextParser =
         ]
 
 
-encodeViewContextPaths : ViewContext -> List String
-encodeViewContextPaths context =
-    context
-        |> viewContextToPostContext
-        |> encodePostContextPaths
+
+--encodeViewContextPaths : ViewContext -> List String
+--encodeViewContextPaths context =
+--context
+--|> viewContextToPostContext
+--|> encodePostContextPaths
 
 
 encodePostContextPaths : Context -> List String
@@ -107,11 +126,12 @@ encodePostContextQueryParams context =
             []
 
 
-encodeViewContextQueryParams : ViewContext -> List Builder.QueryParameter
-encodeViewContextQueryParams context =
-    context
-        |> viewContextToPostContext
-        |> encodePostContextQueryParams
+
+--encodeViewContextQueryParams : ViewContext -> List Builder.QueryParameter
+--encodeViewContextQueryParams context =
+--context
+--|> viewContextToPostContext
+--|> encodePostContextQueryParams
 
 
 postIdQueryParser : Query.Parser (Result String Id)

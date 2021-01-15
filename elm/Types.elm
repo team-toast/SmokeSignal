@@ -1,4 +1,4 @@
-module Types exposing (Accounting, Content, Context(..), Core, Draft, EncodedDraft, FailReason(..), Flags, GTagData, Id, Metadata, Mode(..), Model, Msg(..), PhaceIconId(..), Post(..), PostState, PostUXId(..), Published, PublishedPostsDict, ReplyIds, Route(..), ShowInputState(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), UserInfo, ViewContext(..), Wallet(..))
+module Types exposing (Accounting, Content, Context(..), Core, Draft, EncodedDraft, FailReason(..), Flags, GTagData, Id, Metadata, Model, Msg(..), PhaceIconId(..), Post(..), PostState, PostUXId(..), Published, PublishedPostsDict, ReplyIds, Route(..), ShowInputState(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), UserInfo, View(..), Wallet(..))
 
 import Browser
 import Browser.Navigation
@@ -42,7 +42,7 @@ type alias Model =
 
     --, postUX : Maybe ( PostUXId, PostUX.Model )
     , replies : List ReplyIds
-    , mode : Mode
+    , view : View
     , showHalfComposeUX : Bool
 
     --, composeUXModel : Maybe ComposeUX.Model
@@ -122,11 +122,11 @@ type ShowInputState
     | Tip String
 
 
-type Mode
-    = BlankMode
-    | ModeHome
-    | ModeCompose
-    | ViewContext ViewContext
+type View
+    = ViewHome
+    | ViewCompose
+    | ViewPost Id
+    | ViewTopic String
 
 
 type alias UserInfo =
@@ -151,11 +151,6 @@ type UnlockStatus
     | Unlocked
 
 
-type ViewContext
-    = ViewPost Id
-    | Topic String
-
-
 type alias PublishedPostsDict =
     Dict Int (List Published)
 
@@ -169,7 +164,8 @@ type alias ReplyIds =
 type Route
     = Home
     | Compose Context
-    | RouteViewContext ViewContext
+    | RouteViewContext
+    | RouteTopic String
     | NotFound String
 
 

@@ -29,7 +29,7 @@ import Json.Decode
 import Json.Encode
 import List.Extra
 import Maybe.Extra
-import Misc exposing (defaultSeoDescription, txInfoToNameStr, updatePublishedPost, viewContextToMaybeDescription)
+import Misc exposing (defaultSeoDescription, txInfoToNameStr, updatePublishedPost)
 import Ports exposing (connectToWeb3, consentToCookies, gTagOut, setDescription, txIn, txOut, walletSentryPort)
 import Post
 import Random
@@ -61,7 +61,46 @@ update msg prevModel =
             ( prevModel, cmd )
 
         UrlChanged url ->
-            prevModel |> updateFromPageRoute (url |> Routing.urlToRoute)
+            let
+                route =
+                    url
+                        |> Routing.urlToRoute
+            in
+            case route of
+                Home ->
+                    ( { prevModel
+                        | view = ViewHome
+                      }
+                    , Cmd.none
+                    )
+
+                Compose context ->
+                    ( { prevModel
+                        | view = ViewCompose
+                      }
+                    , Cmd.none
+                    )
+
+                RouteViewContext ->
+                    ( { prevModel
+                        | view = prevModel.view
+                      }
+                    , Cmd.none
+                    )
+
+                RouteTopic str ->
+                    ( { prevModel
+                        | view = ViewTopic str
+                      }
+                    , Cmd.none
+                    )
+
+                NotFound err ->
+                    ( { prevModel
+                        | userNotices = [ UN.routeNotFound ]
+                      }
+                    , Cmd.none
+                    )
 
         Tick newTime ->
             ( { prevModel | now = newTime }, Cmd.none )
@@ -449,7 +488,7 @@ update msg prevModel =
         --|> Home.update homeMsg
         --in
         --( { prevModel
-        --| mode =
+        --| view =
         --ModeHome updateResult.newModel
         --}
         --, Cmd.map HomeMsg updateResult.cmd
@@ -528,17 +567,22 @@ update msg prevModel =
                     )
 
         GotoRoute route ->
-            prevModel
-                |> gotoRoute route
-                |> Tuple.mapSecond
-                    (\cmd ->
-                        Cmd.batch
-                            [ cmd
-                            , Browser.Navigation.pushUrl
-                                prevModel.navKey
-                                (Routing.routeToString prevModel.basePath route)
-                            ]
-                    )
+            --prevModel
+            --|> gotoRoute route
+            --|> Tuple.mapSecond
+            --(\cmd ->
+            --Cmd.batch
+            --[ cmd
+            --, Browser.Navigation.pushUrl
+            --prevModel.navKey
+            --(Routing.routeToString prevModel.basePath route)
+            --]
+            --)
+            ( prevModel
+            , Browser.Navigation.pushUrl
+                prevModel.navKey
+                (Routing.routeToString prevModel.basePath route)
+            )
 
         ConnectToWeb3 ->
             case prevModel.wallet of
@@ -585,8 +629,8 @@ update msg prevModel =
                            )
 
         ExitCompose ->
-            case prevModel.mode of
-                ModeCompose ->
+            case prevModel.view of
+                ViewCompose ->
                     -- TODO
                     ( prevModel, Cmd.none )
 
@@ -752,10 +796,7 @@ encodeGTag gtag =
         ]
 
 
-gotoRoute :
-    Route
-    -> Model
-    -> ( Model, Cmd Msg )
+gotoRoute : Route -> Model -> ( Model, Cmd Msg )
 gotoRoute route prevModel =
     (case route of
         Home ->
@@ -765,7 +806,7 @@ gotoRoute route prevModel =
             --in
             --( { prevModel
             --| route = route
-            --, mode = ModeHome homeModel
+            --, view = ModeHome homeModel
             --, showHalfComposeUX = False
             --}
             --, Cmd.map HomeMsg homeCmd
@@ -775,7 +816,8 @@ gotoRoute route prevModel =
         Compose context ->
             ( { prevModel
                 | route = route
-                , mode = ModeCompose
+
+                --, view = ModeCompose
                 , showHalfComposeUX = False
 
                 --, composeUXModel =
@@ -786,16 +828,21 @@ gotoRoute route prevModel =
             , Cmd.none
             )
 
-        RouteViewContext context ->
+        RouteViewContext ->
             ( { prevModel
                 | route = route
-                , mode = ViewContext context
+
+                --, view = ViewContext context
               }
-            , Maybe.map
-                setDescription
-                (viewContextToMaybeDescription prevModel.publishedPosts context)
-                |> Maybe.withDefault Cmd.none
+              --, Maybe.map
+              --setDescription
+              --(viewContextToMaybeDescription prevModel.publishedPosts context)
+              --|> Maybe.withDefault Cmd.none
+            , Cmd.none
             )
+
+        RouteTopic _ ->
+            ( prevModel, Cmd.none )
 
         NotFound err ->
             ( { prevModel
@@ -980,18 +1027,17 @@ updateSeoDescriptionIfNeededCmd :
 updateSeoDescriptionIfNeededCmd model =
     let
         appropriateMaybeDescription =
-            case model.mode of
-                BlankMode ->
+            case model.view of
+                ViewHome ->
                     Nothing
 
-                ModeHome ->
+                ViewCompose ->
                     Nothing
 
-                ModeCompose ->
+                --ViewContext context ->
+                _ ->
+                    --viewContextToMaybeDescription model.publishedPosts context
                     Nothing
-
-                ViewContext context ->
-                    viewContextToMaybeDescription model.publishedPosts context
     in
     if appropriateMaybeDescription /= model.maybeSeoDescription then
         ( { model

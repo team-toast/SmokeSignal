@@ -7,6 +7,7 @@ import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address, Hex, TxHash)
 import Helpers.Element
 import List.Extra
+import Maybe.Extra exposing (unwrap)
 import Ports
 import Time
 import TokenValue exposing (TokenValue)
@@ -31,7 +32,7 @@ emptyModel key =
 
     --, postUX = Nothing
     , replies = []
-    , mode = BlankMode
+    , view = ViewHome
     , showHalfComposeUX = False
 
     --, composeUXModel = Nothing -- TODO ComposeUX.init now (TopLevel Post.defaultTopic)
@@ -90,20 +91,20 @@ getTitle model =
         defaultMain =
             "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
     in
-    case model.mode of
-        BlankMode ->
+    case model.view of
+        ViewHome ->
             defaultMain
 
-        ModeHome ->
-            defaultMain
-
-        ModeCompose ->
+        ViewCompose ->
             "Compose | SmokeSignal"
 
-        ViewContext context ->
-            viewContextToMaybeTitlePart model.publishedPosts context
-                |> Maybe.map (\contextTitle -> contextTitle ++ " | SmokeSignal")
-                |> Maybe.withDefault defaultMain
+        ViewPost postId ->
+            getPublishedPostFromId model.publishedPosts postId
+                |> Maybe.andThen (.core >> .content >> .title)
+                |> unwrap defaultMain (\contextTitle -> contextTitle ++ " | SmokeSignal")
+
+        ViewTopic topic ->
+            "#" ++ topic ++ " | SmokeSignal"
 
 
 withBalance :
@@ -157,56 +158,36 @@ getPublishedPostFromTxHash publishedPosts txHash =
         |> List.head
 
 
-viewContextToMaybeTitlePart :
-    PublishedPostsDict
-    -> ViewContext
-    -> Maybe String
-viewContextToMaybeTitlePart posts context =
-    case context of
-        ViewPost postId ->
-            getPublishedPostFromId posts postId
-                |> Maybe.andThen (.core >> .content >> .title)
 
-        Topic topic ->
-            Just <| "#" ++ topic
-
-
-viewContextToMaybeDescription :
-    PublishedPostsDict
-    -> ViewContext
-    -> Maybe String
-viewContextToMaybeDescription posts context =
-    case context of
-        ViewPost postId ->
-            getPublishedPostFromId posts postId
-                |> Maybe.andThen (.core >> .content >> .desc)
-
-        Topic topic ->
-            Just <| "Discussions related to #" ++ topic ++ " on SmokeSignal"
-
-
-postContextToViewContext :
-    Context
-    -> ViewContext
-postContextToViewContext postContext =
-    case postContext of
-        Reply id ->
-            ViewPost id
-
-        TopLevel topicStr ->
-            Topic topicStr
-
-
-viewContextToPostContext :
-    ViewContext
-    -> Context
-viewContextToPostContext viewContext =
-    case viewContext of
-        ViewPost id ->
-            Reply id
-
-        Topic topicStr ->
-            TopLevel topicStr
+--viewContextToMaybeDescription :
+--PublishedPostsDict
+---> ViewContext
+---> Maybe String
+--viewContextToMaybeDescription posts context =
+--case context of
+--ViewPost postId ->
+--getPublishedPostFromId posts postId
+--|> Maybe.andThen (.core >> .content >> .desc)
+--Topic topic ->
+--Just <| "Discussions related to #" ++ topic ++ " on SmokeSignal"
+--postContextToViewContext :
+--Context
+---> ViewContext
+--postContextToViewContext postContext =
+--case postContext of
+--Reply id ->
+--ViewPost id
+--TopLevel topicStr ->
+--Topic topicStr
+--viewContextToPostContext :
+--ViewContext
+---> Context
+--viewContextToPostContext viewContext =
+--case viewContext of
+--ViewPost id ->
+--Reply id
+--Topic topicStr ->
+--TopLevel topicStr
 
 
 defaultSeoDescription : String

@@ -433,7 +433,6 @@ inputForm dProfile donateChecked currentString buttonLabel onSubmit =
                 [ Element.height <| Element.px 22 ]
             , daiAmountInput
                 dProfile
-                []
                 currentString
                 --AmountInputChanged
                 (always ClickHappened)

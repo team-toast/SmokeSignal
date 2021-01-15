@@ -25,11 +25,12 @@ import Phace
 import Theme exposing (theme)
 import Time
 import Tuple3
-import Types exposing (Context(..), FailReason(..), Id, Metadata, Mode(..), Model, Msg(..), PublishedPostsDict, Route(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), UserInfo, ViewContext(..), Wallet)
+import Types exposing (Context(..), FailReason(..), Id, Metadata, Model, Msg(..), PublishedPostsDict, Route(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), UserInfo, View(..), Wallet)
 import UserNotice as UN exposing (UserNotice)
 import View.Common exposing (daiSymbol, phaceElement, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Home
 import View.Post
+import View.Topic
 import Wallet
 
 
@@ -200,14 +201,11 @@ bodyContent model =
         , Element.height Element.fill
         , Element.scrollbarY
         ]
-        [ case model.mode of
-            BlankMode ->
-                Element.none
-
-            ModeHome ->
+        [ case model.view of
+            ViewHome ->
                 View.Home.view model
 
-            ModeCompose ->
+            ViewCompose ->
                 --Element.map ComposeUXMsg <|
                 --ComposeUX.viewFull
                 --model.dProfile
@@ -218,37 +216,9 @@ bodyContent model =
                 -- TODO
                 text "compose"
 
-            ViewContext context ->
-                case context of
-                    ViewPost postId ->
-                        case getPublishedPostFromId model.publishedPosts postId of
-                            Just post ->
-                                Element.column
-                                    [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
-                                    , Element.centerX
-                                    , Element.spacing 20
-                                    , Element.paddingEach
-                                        { top = 20
-                                        , bottom = 0
-                                        , right = 0
-                                        , left = 0
-                                        }
-                                    ]
-                                    [--, Element.Lazy.lazy5
-                                     --(viewPostAndReplies model.dProfile model.donateChecked model.wallet)
-                                     --model.publishedPosts
-                                     --model.blockTimes
-                                     --model.replies
-                                     --post
-                                     --model.postUX
-                                    ]
-
-                            Nothing ->
-                                appStatusMessage
-                                    theme.appStatusTextColor
-                                    "Loading post..."
-
-                    Topic topic ->
+            ViewPost postId ->
+                case getPublishedPostFromId model.publishedPosts postId of
+                    Just post ->
                         Element.column
                             [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
                             , Element.centerX
@@ -260,16 +230,22 @@ bodyContent model =
                                 , left = 0
                                 }
                             ]
-                            --[ Element.map HomeMsg <|
-                            --Home.View.banner model.dProfile
-                            [ viewTopicHeader model.dProfile (Wallet.userInfo model.wallet) topic
-                            , Element.Lazy.lazy4
-                                (viewPostsForTopic model.dProfile model.donateChecked False model.wallet)
-                                model.blockTimes
-                                model.now
-                                topic
-                                model.publishedPosts
+                            [--, Element.Lazy.lazy5
+                             --(viewPostAndReplies model.dProfile model.donateChecked model.wallet)
+                             --model.publishedPosts
+                             --model.blockTimes
+                             --model.replies
+                             --post
+                             --model.postUX
                             ]
+
+                    Nothing ->
+                        appStatusMessage
+                            theme.appStatusTextColor
+                            "Loading post..."
+
+            ViewTopic topic ->
+                View.Topic.view model topic
         ]
 
 
@@ -288,48 +264,10 @@ bodyContent model =
 --dummyElement
 
 
-viewTopicHeader :
-    DisplayProfile
-    -> Maybe UserInfo
-    -> String
-    -> Element Msg
-viewTopicHeader dProfile maybeUserInfo topic =
-    --Element.map TopicUXMsg <|
-    --TopicUX.topicHeader
-    --dProfile
-    --topic
-    Element.none
-
-
-viewPostsForTopic :
-    DisplayProfile
-    -> Bool
-    -> Bool
-    -> Wallet
-    -> Dict Int Time.Posix
-    -> Time.Posix
-    -> String
-    -> PublishedPostsDict
-    -> Element Msg
-viewPostsForTopic dProfile donateChecked showAddressOnPhace wallet blockTimes now topic allPosts =
-    --Element.map TopicUXMsg <|
-    --TopicUX.view
-    --dProfile
-    --donateChecked
-    --showAddressOnPhace
-    --topic
-    --blockTimes
-    --now
-    --wallet
-    --Nothing
-    --allPosts
-    Element.none
-
-
 modals : Model -> List (Element Msg)
 modals model =
     Maybe.Extra.values
-        ([ if model.mode /= ModeCompose && model.showHalfComposeUX then
+        ([ if model.view /= ViewCompose && model.showHalfComposeUX then
             --Just <|
             --viewHalfComposeUX model
             Nothing
@@ -353,8 +291,8 @@ modals model =
             )
          , let
             showDraftInProgressButton =
-                case model.mode of
-                    ModeCompose ->
+                case model.view of
+                    ViewCompose ->
                         False
 
                     _ ->
@@ -551,8 +489,9 @@ viewTrackedTxRow trackedTx =
                             , Element.pointer
                             , Element.Events.onClick <|
                                 GotoRoute <|
-                                    RouteViewContext <|
-                                        Types.ViewPost postId
+                                    RouteViewContext
+
+                            --Types.ViewPost postId
                             ]
                             (Element.text "Post")
                         ]
@@ -566,8 +505,9 @@ viewTrackedTxRow trackedTx =
                             , Element.pointer
                             , Element.Events.onClick <|
                                 GotoRoute <|
-                                    RouteViewContext <|
-                                        ViewPost postId
+                                    RouteViewContext
+
+                            --ViewPost postId
                             ]
                             (Element.text "Post")
                         ]
@@ -606,7 +546,7 @@ viewTrackedTxRow trackedTx =
                                     Element.el
                                         [ Font.color theme.linkTextColor
                                         , Element.pointer
-                                        , Element.Events.onClick <| GotoRoute <| RouteViewContext <| ViewPost postId
+                                        , Element.Events.onClick <| GotoRoute <| RouteViewContext --<| ViewPost postId
                                         ]
                                         (Element.text "Published")
 
