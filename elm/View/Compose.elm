@@ -1,6 +1,5 @@
-module ComposeUX.View exposing (..)
+module View.Compose exposing (view)
 
-import ComposeUX.Types exposing (..)
 import Element exposing (Attribute, Element)
 import Element.Background
 import Element.Border
@@ -10,31 +9,27 @@ import Element.Input
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
-import Helpers.Eth as EthHelpers
-import Helpers.List as ListHelpers
-import Maybe.Extra
-import Post
 import Theme exposing (theme)
 import TokenValue exposing (TokenValue)
-import Types exposing (..)
-import View exposing (..)
+import Types exposing (CheckedMaybeValidInputs, Content, Context, Draft, Id, Model, Msg(..), PhaceIconId, Route(..), UnlockStatus(..), UserInfo, Wallet)
+import View.Common exposing (appStatusMessage, daiAmountInput, shortenedHash, unlockUXOr, viewContext, web3ConnectButton)
 import Wallet
 
 
-viewFull : DisplayProfile -> Bool -> Wallet -> Maybe PhaceIconId -> Model -> Element Msg
-viewFull dProfile donateChecked wallet showAddressId model =
+view : Model -> Element Msg
+view model =
     Element.el
         [ Element.width Element.fill
         , Element.height Element.fill
-        , Element.padding (responsiveVal dProfile 20 10)
+        , Element.padding (responsiveVal model.dProfile 20 10)
         , Element.Background.color theme.appBackground
         ]
     <|
-        view dProfile donateChecked wallet showAddressId model
+        viewBody model.dProfile model.donateChecked model.wallet model.showAddressId model
 
 
-view : EH.DisplayProfile -> Bool -> Wallet -> Maybe PhaceIconId -> Model -> Element Msg
-view dProfile donateChecked wallet showAddressId model =
+viewBody : EH.DisplayProfile -> Bool -> Wallet -> Maybe PhaceIconId -> Model -> Element Msg
+viewBody dProfile donateChecked wallet showAddressId model =
     let
         commonAttributes =
             [ Element.width Element.fill
@@ -48,7 +43,7 @@ view dProfile donateChecked wallet showAddressId model =
                     , Element.alignRight
                     ]
                     (Element.rgb 0.3 0.3 0.3)
-                    (MsgUp ExitCompose)
+                    ExitCompose
             ]
     in
     case dProfile of
@@ -64,10 +59,11 @@ view dProfile donateChecked wallet showAddressId model =
                     , Element.height Element.fill
                     , Element.spacing 10
                     ]
-                    [ viewInput dProfile model.content
-                    , Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model
+                    --[ viewInput dProfile model.content
+                    [ Element.el [ Element.alignRight ] <| actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model
                     ]
-                , viewPreviewWithPostContext dProfile Nothing model.renderedPreview model.context
+
+                --, viewPreviewWithPostContext dProfile Nothing model.renderedPreview model.context
                 ]
 
         Mobile ->
@@ -78,31 +74,80 @@ view dProfile donateChecked wallet showAddressId model =
                        , Element.Font.size 20
                        ]
                 )
-                (if model.showPreviewOnMobile then
-                    [ viewPreviewWithPostContext
-                        dProfile
-                        (case Wallet.userInfo wallet of
-                            Just userInfo ->
-                                Just <|
-                                    ( userInfo.address
-                                    , showAddressId == Just PhaceForPreview
-                                    )
-
-                            Nothing ->
-                                Nothing
-                        )
-                        model.renderedPreview
-                        model.context
-                    , actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model
+                --(if model.showPreviewOnMobile then
+                (if True then
+                    --[ viewPreviewWithPostContext
+                    --dProfile
+                    --(case Wallet.userInfo wallet of
+                    --Just userInfo ->
+                    --Just <|
+                    --( userInfo.address
+                    --, showAddressId == Just PhaceForPreview
+                    --)
+                    --Nothing ->
+                    --Nothing
+                    --)
+                    --model.renderedPreview
+                    --model.context
+                    [ actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model
                     ]
 
                  else
-                    [ viewInput dProfile model.content
-                    , viewPreviewButton
+                    --[ viewInput dProfile model.content
+                    [ viewPreviewButton
                         dProfile
-                        (model.content.body /= "")
+                        --(model.content.body /= "")
+                        False
                     ]
                 )
+
+
+validateInputs : Bool -> Model -> CheckedMaybeValidInputs
+validateInputs donateChecked composeModel =
+    { content =
+        --if composeModel.content.body == "" then
+        if True then
+            Nothing
+
+        else
+            --Just composeModel.content
+            Nothing
+    , burnAndDonateAmount =
+        validateBurnAmount ""
+            --validateBurnAmount composeModel.daiInput
+            |> Maybe.map
+                (Result.map
+                    (\burnAmount ->
+                        ( burnAmount
+                        , if donateChecked then
+                            TokenValue.div burnAmount 100
+
+                          else
+                            TokenValue.zero
+                        )
+                    )
+                )
+    }
+
+
+validateBurnAmount : String -> Maybe (Result String TokenValue)
+validateBurnAmount input =
+    if input == "" then
+        Nothing
+
+    else
+        Just
+            (TokenValue.fromString input
+                |> Result.fromMaybe "Invalid burn amount"
+                |> Result.andThen
+                    (\tv ->
+                        if TokenValue.compare tv TokenValue.zero == GT then
+                            Ok tv
+
+                        else
+                            Err "Minimum amount is 0.000000000000000001 DAI"
+                    )
+            )
 
 
 composeUXShadow : Attribute Msg
@@ -122,7 +167,8 @@ viewPreviewButton dProfile enabled =
             dProfile
             []
             [ "Preview" ]
-            (EH.Action MobilePreviewToggle)
+            (EH.Action ClickHappened)
+        --MobilePreviewToggle)
 
     else
         theme.disabledActionButton
@@ -144,7 +190,7 @@ viewInput dProfile content =
                     []
                     [ Element.Font.size 18 ]
             )
-            { onChange = BodyInputChanged
+            { onChange = always ClickHappened -- BodyInputChanged
             , text = content.body
             , placeholder = Just messageInputPlaceholder
             , label = Element.Input.labelHidden "messageInput"
@@ -183,8 +229,7 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedContent context =
                     Nothing ->
                         Element.none
                 , Element.el [ Element.alignLeft ] <|
-                    Element.map MsgUp <|
-                        viewContext context
+                    viewContext context
                 ]
             , case renderedContent of
                 Nothing ->
@@ -230,10 +275,10 @@ viewReplyInfo postId =
             [ Element.Font.color theme.linkTextColor
             , Element.pointer
             , Element.Events.onClick <|
-                MsgUp <|
-                    GotoRoute <|
-                        RouteViewContext <|
-                            ViewPost postId
+                GotoRoute <|
+                    RouteViewContext
+
+            --ViewPost postId
             ]
             (Element.text <|
                 shortenedHash postId.messageHash
@@ -259,10 +304,10 @@ viewTopic topic =
             [ Element.Font.color theme.linkTextColor
             , Element.pointer
             , Element.Events.onClick <|
-                MsgUp <|
-                    GotoRoute <|
-                        RouteViewContext <|
-                            Topic topic
+                GotoRoute <|
+                    RouteViewContext
+
+            --Topic topic
             ]
             (Element.text <| topic)
         ]
@@ -285,7 +330,6 @@ actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model =
                         ]
                         [ case dProfile of
                             Desktop ->
-                                --Element.map MsgUp <|
                                 --phaceElement
                                 --( 100, 100 )
                                 --True
@@ -324,7 +368,6 @@ actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model =
             web3ConnectButton
                 dProfile
                 [ Element.centerX, Element.centerY ]
-                MsgUp
 
 
 inputsElement : EH.DisplayProfile -> Bool -> UserInfo -> Model -> Element Msg
@@ -349,7 +392,6 @@ inputsElement dProfile donateChecked userInfo model =
             , Element.centerY
             ]
             userInfo.unlockStatus
-            MsgUp
         <|
             Element.column
                 [ Element.spacing 10 ]
@@ -360,9 +402,10 @@ inputsElement dProfile donateChecked userInfo model =
                     [ Element.text "Burn"
                     , daiAmountInput
                         dProfile
-                        []
-                        model.daiInput
-                        DaiInputChanged
+                        ""
+                        --model.daiInput
+                        --DaiInputChanged
+                        (always ClickHappened)
                     , Element.text "DAI"
                     ]
                 , Element.row
@@ -370,7 +413,7 @@ inputsElement dProfile donateChecked userInfo model =
                     , Element.spacing 5
                     ]
                     [ Element.Input.checkbox [ Element.alignTop ]
-                        { onChange = MsgUp << Types.DonationCheckboxSet
+                        { onChange = Types.DonationCheckboxSet
                         , icon = Element.Input.defaultCheckbox
                         , checked = donateChecked
                         , label = Element.Input.labelHidden "Donate an extra 1% to Foundry"
@@ -470,25 +513,28 @@ goButtonAndMaybeError dProfile donateChecked userInfo model =
                                 else
                                     let
                                         maybeUpToDateRender =
-                                            if model.renderNeeded then
+                                            --if model.renderNeeded then
+                                            if True then
                                                 Nothing
 
                                             else
-                                                model.renderedPreview
+                                                --model.renderedPreview
+                                                Nothing
                                     in
                                     case ( validateResults.content, maybeUpToDateRender ) of
                                         ( Just content, Just rendered ) ->
                                             ( maybeGoButton dProfile <|
-                                                Just <|
-                                                    Draft
-                                                        donateAmount
-                                                        (Core
-                                                            userInfo.address
-                                                            burnAmount
-                                                            content
-                                                            (Post.buildMetadataFromContext model.context)
-                                                            rendered
-                                                        )
+                                                --Just <|
+                                                --Draft
+                                                --donateAmount
+                                                --(Core
+                                                --userInfo.address
+                                                --burnAmount
+                                                --content
+                                                --(Post.buildMetadataFromContext model.context)
+                                                --rendered
+                                                --)
+                                                Nothing
                                             , Nothing
                                             )
 
@@ -535,7 +581,7 @@ maybeGoButton dProfile maybeDraft =
                 dProfile
                 (commonActionButtonStyles dProfile)
                 [ "GO" ]
-                (EH.Action <| MsgUp <| SubmitPost draft)
+                (EH.Action <| SubmitPost draft)
 
         Nothing ->
             theme.disabledActionButton
@@ -550,4 +596,5 @@ goBackButton dProfile =
         dProfile
         (commonActionButtonStyles dProfile)
         [ "Edit" ]
-        (EH.Action <| MobilePreviewToggle)
+        -- MobilePreviewToggle)
+        (EH.Action <| ClickHappened)

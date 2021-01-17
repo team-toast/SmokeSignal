@@ -1,6 +1,5 @@
 module View.Post exposing (view)
 
-import Color
 import Dict exposing (Dict)
 import Element exposing (Attribute, Element, el, text)
 import Element.Background
@@ -10,9 +9,8 @@ import Element.Font
 import Element.Input
 import Helpers.Element as EH exposing (DisplayProfile, responsiveVal)
 import Helpers.Time as TimeHelpers
-import Html.Attributes
 import Post
-import Theme exposing (almostWhite, lightGray, theme)
+import Theme exposing (almostWhite, theme)
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)

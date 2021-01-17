@@ -1,12 +1,9 @@
-module Wallet exposing (..)
+module Wallet exposing (network, unlockStatus, userInfo, withFetchedBalance, withUnlockStatus)
 
-import Types exposing (UnlockStatus(..), UserInfo, Wallet(..))
-import Config
 import Eth.Net
-import Eth.Types exposing (Address, HttpProvider, TxHash, WebsocketProvider)
-import Helpers.Eth as EthHelpers
 import Misc exposing (withBalance)
 import TokenValue exposing (TokenValue)
+import Types exposing (UnlockStatus(..), UserInfo, Wallet(..))
 
 
 userInfo : Wallet -> Maybe UserInfo
