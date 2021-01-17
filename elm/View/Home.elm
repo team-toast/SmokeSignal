@@ -15,7 +15,6 @@ import Html.Attributes
 import Maybe.Extra exposing (unwrap)
 import Misc exposing (getPublishedPostFromId)
 import Post
-import Routing
 import Theme exposing (almostWhite, theme)
 import Time
 import TokenValue exposing (TokenValue)

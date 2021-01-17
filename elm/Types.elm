@@ -1,4 +1,4 @@
-module Types exposing (Accounting, Content, Context(..), Core, Draft, EncodedDraft, FailReason(..), Flags, GTagData, Id, Metadata, Model, Msg(..), PhaceIconId(..), Post(..), PostState, PostUXId(..), Published, PublishedPostsDict, ReplyIds, Route(..), ShowInputState(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), UserInfo, View(..), Wallet(..))
+module Types exposing (Accounting, CheckedMaybeValidInputs, Content, Context(..), Core, Draft, EncodedDraft, FailReason(..), Flags, GTagData, Id, Metadata, Model, Msg(..), PhaceIconId(..), Post(..), PostState, PostUXId(..), Published, PublishedPostsDict, ReplyIds, Route(..), ShowInputState(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), UserInfo, View(..), Wallet(..))
 
 import Browser
 import Browser.Navigation
@@ -275,4 +275,10 @@ type Context
 type alias Id =
     { block : Int
     , messageHash : Hex
+    }
+
+
+type alias CheckedMaybeValidInputs =
+    { content : Maybe Content
+    , burnAndDonateAmount : Maybe (Result String ( TokenValue, TokenValue ))
     }

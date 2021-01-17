@@ -1,18 +1,12 @@
 module View exposing (view)
 
---import View.Post
-
 import Browser
-import Dict exposing (Dict)
 import Element exposing (Attribute, Element, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events
 import Element.Font as Font
 import Element.Input as Input
-import Element.Lazy
-import Eth.Types exposing (Address, Hex)
-import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal)
 import Helpers.Eth as EthHelpers
 import Helpers.Time as TimeHelpers
@@ -21,17 +15,15 @@ import Html exposing (Html)
 import Html.Attributes
 import Maybe.Extra
 import Misc exposing (getPublishedPostFromId, getTitle)
-import Phace
 import Theme exposing (theme)
 import Time
 import Tuple3
-import Types exposing (Context(..), FailReason(..), Id, Metadata, Model, Msg(..), PublishedPostsDict, Route(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), UserInfo, View(..), Wallet)
+import Types exposing (Context(..), FailReason(..), Metadata, Model, Msg(..), Route(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), View(..), Wallet)
 import UserNotice as UN exposing (UserNotice)
-import View.Common exposing (daiSymbol, phaceElement, whiteGlowAttribute, whiteGlowAttributeSmall)
+import View.Common exposing (appStatusMessage, viewContext, whiteGlowAttribute)
+import View.Compose
 import View.Home
-import View.Post
 import View.Topic
-import Wallet
 
 
 view : Model -> Browser.Document Msg
@@ -206,15 +198,7 @@ bodyContent model =
                 View.Home.view model
 
             ViewCompose ->
-                --Element.map ComposeUXMsg <|
-                --ComposeUX.viewFull
-                --model.dProfile
-                --model.donateChecked
-                --model.wallet
-                --model.showAddressId
-                --model.composeUXModel
-                -- TODO
-                text "compose"
+                View.Compose.view model
 
             ViewPost postId ->
                 case getPublishedPostFromId model.publishedPosts postId of
@@ -700,23 +684,6 @@ userNotice dProfile ( id, notice ) =
         )
 
 
-shortenedHash :
-    Hex
-    -> String
-shortenedHash hash =
-    let
-        hashStr =
-            Eth.Utils.hexToString hash
-    in
-    if String.length hashStr <= 10 then
-        hashStr
-
-    else
-        String.left 6 hashStr
-            ++ "..."
-            ++ String.right 4 hashStr
-
-
 emphasizedText : String -> Element Msg
 emphasizedText =
     Element.el
@@ -724,22 +691,6 @@ emphasizedText =
         , Font.color EH.white
         ]
         << Element.text
-
-
-appStatusMessage : Element.Color -> String -> Element Msg
-appStatusMessage color errStr =
-    Element.el [ Element.width Element.fill, Element.height Element.fill ] <|
-        Element.paragraph
-            [ Element.centerX
-            , Element.centerY
-            , Font.center
-            , Font.italic
-            , Font.color color
-            , Font.size 36
-            , Element.width (Element.fill |> Element.maximum 800)
-            , Element.padding 40
-            ]
-            [ Element.text errStr ]
 
 
 posixToString : Time.Posix -> String
@@ -821,73 +772,6 @@ viewMetadataDecodeError error =
                 "Metadata decode error:\n\n"
                     ++ error
             )
-
-
-viewContext : Context -> Element Msg
-viewContext context =
-    case context of
-        Reply postId ->
-            viewReplyInfo postId
-
-        TopLevel topic ->
-            viewTopic topic
-
-
-viewTopic : String -> Element Msg
-viewTopic topic =
-    Element.column
-        [ Element.padding 10
-        , Border.rounded 5
-        , Font.size 20
-        , Font.italic
-        , Background.color <| Element.rgba 1 1 1 0.5
-        , Element.spacing 5
-        , Element.clipX
-        , Element.scrollbarX
-        , Element.width (Element.shrink |> Element.maximum 400)
-        ]
-        [ Element.text "Topic:"
-        , Element.el
-            [ Font.color theme.linkTextColor
-            , Element.pointer
-
-            --, Element.Events.onClick <|
-            --GotoRoute <|
-            --RouteViewContext <|
-            --Topic topic
-            ]
-            (Element.text topic)
-        ]
-
-
-viewReplyInfo : Id -> Element Msg
-viewReplyInfo postId =
-    Element.row
-        [ Element.padding 10
-        , Border.rounded 5
-        , Font.size 20
-        , Font.italic
-        , Background.color <| Element.rgba 1 1 1 0.5
-        , Element.spacing 5
-        ]
-        [ Element.column
-            [ Element.spacing 3
-            ]
-            [ Element.text "Replying to:"
-            , Element.el
-                [ Font.color theme.linkTextColor
-                , Element.pointer
-
-                --, Element.Events.onClick <|
-                --GotoRoute <|
-                --RouteViewContext <|
-                --Types.ViewPost postId
-                ]
-                (Element.text <|
-                    shortenedHash postId.messageHash
-                )
-            ]
-        ]
 
 
 coloredAppTitle : List (Attribute Msg) -> Element Msg

@@ -1,4 +1,4 @@
-module View.Common exposing (cappedHeight, cappedWidth, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, unlockButton, unlockUXOr, whiteGlowAttribute, whiteGlowAttributeSmall)
+module View.Common exposing (appStatusMessage, cappedHeight, cappedWidth, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, unlockButton, unlockUXOr, viewContext, web3ConnectButton, whiteGlowAttribute, whiteGlowAttributeSmall)
 
 import Element exposing (Attribute, Element)
 import Element.Background as Background
@@ -6,12 +6,110 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import ElementMarkdown
-import Eth.Types exposing (Address)
+import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal)
 import Phace
 import Theme exposing (theme)
-import Types exposing (Content, Msg, UnlockStatus(..))
+import Types exposing (Content, Context, Id, Msg, UnlockStatus(..))
+
+
+viewContext : Context -> Element Msg
+viewContext context =
+    case context of
+        Types.Reply postId ->
+            viewReplyInfo postId
+
+        Types.TopLevel topic ->
+            viewTopic topic
+
+
+viewTopic : String -> Element Msg
+viewTopic topic =
+    Element.column
+        [ Element.padding 10
+        , Border.rounded 5
+        , Font.size 20
+        , Font.italic
+        , Background.color <| Element.rgba 1 1 1 0.5
+        , Element.spacing 5
+        , Element.clipX
+        , Element.scrollbarX
+        , Element.width (Element.shrink |> Element.maximum 400)
+        ]
+        [ Element.text "Topic:"
+        , Element.el
+            [ Font.color theme.linkTextColor
+            , Element.pointer
+
+            --, Element.Events.onClick <|
+            --GotoRoute <|
+            --RouteViewContext <|
+            --Topic topic
+            ]
+            (Element.text topic)
+        ]
+
+
+viewReplyInfo : Id -> Element Msg
+viewReplyInfo postId =
+    Element.row
+        [ Element.padding 10
+        , Border.rounded 5
+        , Font.size 20
+        , Font.italic
+        , Background.color <| Element.rgba 1 1 1 0.5
+        , Element.spacing 5
+        ]
+        [ Element.column
+            [ Element.spacing 3
+            ]
+            [ Element.text "Replying to:"
+            , Element.el
+                [ Font.color theme.linkTextColor
+                , Element.pointer
+
+                --, Element.Events.onClick <|
+                --GotoRoute <|
+                --RouteViewContext <|
+                --Types.ViewPost postId
+                ]
+                (Element.text <|
+                    shortenedHash postId.messageHash
+                )
+            ]
+        ]
+
+
+shortenedHash : Hex -> String
+shortenedHash hash =
+    let
+        hashStr =
+            Eth.Utils.hexToString hash
+    in
+    if String.length hashStr <= 10 then
+        hashStr
+
+    else
+        String.left 6 hashStr
+            ++ "..."
+            ++ String.right 4 hashStr
+
+
+appStatusMessage : Element.Color -> String -> Element Msg
+appStatusMessage color errStr =
+    Element.el [ Element.width Element.fill, Element.height Element.fill ] <|
+        Element.paragraph
+            [ Element.centerX
+            , Element.centerY
+            , Font.center
+            , Font.italic
+            , Font.color color
+            , Font.size 36
+            , Element.width (Element.fill |> Element.maximum 800)
+            , Element.padding 40
+            ]
+            [ Element.text errStr ]
 
 
 cappedWidth : Int -> Attribute msg
