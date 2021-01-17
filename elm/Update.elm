@@ -7,40 +7,34 @@ module Update exposing (update)
 --import ComposeUX.State as ComposeUX
 --import ComposeUX.Types as ComposeUX
 
-import Array exposing (Array)
 import Browser
-import Browser.Events
 import Browser.Navigation
 import Config
 import Contracts.Dai as Dai
 import Contracts.SmokeSignal as SSContract
-import DemoPhaceSrcMutator exposing (mutateInfoGenerator)
+import DemoPhaceSrcMutator
 import Dict exposing (Dict)
 import Eth
 import Eth.Decode
-import Eth.Net
-import Eth.Sentry.Event as EventSentry exposing (EventSentry)
+import Eth.Sentry.Event as EventSentry
 import Eth.Sentry.Tx as TxSentry
-import Eth.Sentry.Wallet as WalletSentry
 import Eth.Types exposing (Address, TxHash)
-import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..))
 import Json.Decode
 import Json.Encode
 import List.Extra
 import Maybe.Extra
 import Misc exposing (defaultSeoDescription, txInfoToNameStr, updatePublishedPost)
-import Ports exposing (connectToWeb3, consentToCookies, gTagOut, setDescription, txIn, txOut, walletSentryPort)
+import Ports exposing (connectToWeb3, consentToCookies, gTagOut, setDescription)
 import Post
 import Random
 import Routing
 import Task
 import Time
-import TokenValue exposing (TokenValue)
-import Types exposing (..)
-import Url exposing (Url)
+import TokenValue
+import Types exposing (GTagData, Id, Model, Msg(..), Published, Route(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), UserInfo, View(..))
+import Url
 import UserNotice as UN exposing (UserNotice)
-import View
 import View.Common
 import Wallet
 
@@ -945,7 +939,7 @@ handleTxReceipt txReceipt =
             )
 
         Just False ->
-            ( Failed MinedButExecutionFailed
+            ( Failed Types.MinedButExecutionFailed
             , Nothing
             , Nothing
             )
