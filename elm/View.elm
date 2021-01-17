@@ -20,7 +20,8 @@ import Time
 import Tuple3
 import Types exposing (Context(..), FailReason(..), Metadata, Model, Msg(..), Route(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), View(..), Wallet)
 import UserNotice as UN exposing (UserNotice)
-import View.Common exposing (appStatusMessage, viewContext, whiteGlowAttribute)
+import View.Attrs exposing (whiteGlowAttribute)
+import View.Common exposing (appStatusMessage, viewContext)
 import View.Compose
 import View.Home
 import View.Topic
@@ -41,9 +42,10 @@ render model =
     modals model
         |> List.map Element.inFront
         |> (++)
-            [ Element.htmlAttribute <| Html.Attributes.style "height" "100vh"
-            , Element.Events.onClick ClickHappened
-            , Element.height Element.fill
+            [ Element.Events.onClick ClickHappened
+            , height fill
+            , width fill
+            , View.Attrs.typeFont
             ]
         |> Element.layoutWith
             { options =
@@ -59,13 +61,13 @@ render model =
 viewPage : Model -> Element Msg
 viewPage model =
     [ header model.wallet model.searchInput
-    , body model
+    , viewBody model
     , footer
     ]
-        |> Element.column
-            [ Element.width Element.fill
-            , Element.height Element.fill
-            , Element.clip
+        |> column
+            [ width fill
+            , height fill
+            , Background.image "/img/smoke-bg.jpg"
             ]
 
 
@@ -135,102 +137,76 @@ header wallet searchInput =
 
 footer : Element Msg
 footer =
-    Element.el
-        [ Element.width Element.fill
-        , Element.height <| Element.px 80
-        , Background.color EH.black
-        , Element.alignBottom
-        , EH.moveToFront
-        , whiteGlowAttribute
-        , Element.paddingXY 0 15
+    [ Element.image
+        [ Element.height <| Element.px 50 ]
+        { src = "img/forged-by-foundry-white.svg"
+        , description =
+            "forged by foundry"
+        }
+    , text "ABOUT"
+    , text "NEWS"
+    , text "STATS"
+    , Element.image
+        [ Element.height <| Element.px 50
         ]
-    <|
-        Element.row
+        { src = "img/smokesignal-logo-horizontal.svg"
+        , description = "smokesignal logo"
+        }
+    ]
+        |> row
             [ Element.spacingXY 150 0
             , Font.color Theme.orange
             , Element.centerX
             ]
-            [ Element.image
-                [ Element.height <| Element.px 50 ]
-                { src = "img/forged-by-foundry-white.svg"
-                , description =
-                    "forged by foundry"
-                }
-            , Element.el [] <| Element.text "ABOUT"
-            , Element.text "NEWS"
-            , Element.text "STATS"
-            , Element.image
-                [ Element.height <| Element.px 50
-                ]
-                { src = "img/smokesignal-logo-horizontal.svg"
-                , description = "smokesignal logo"
-                }
-            ]
-
-
-body : Model -> Element Msg
-body model =
-    Element.el
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Element.inFront <| bodyContent model
-        , Element.clipY
-        ]
-    <|
-        Element.image
+        |> el
             [ Element.width Element.fill
-            , Element.height Element.fill
+            , Element.height <| Element.px 80
+            , Background.color EH.black
+            , Element.alignBottom
+            , whiteGlowAttribute
+            , Element.paddingXY 0 15
             ]
-            { src = "img/smoke-bg.jpg"
-            , description = "background"
-            }
 
 
-bodyContent : Model -> Element Msg
-bodyContent model =
-    Element.column
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Element.scrollbarY
-        ]
-        [ case model.view of
-            ViewHome ->
-                View.Home.view model
+viewBody : Model -> Element Msg
+viewBody model =
+    case model.view of
+        ViewHome ->
+            View.Home.view model
 
-            ViewCompose ->
-                View.Compose.view model
+        ViewCompose ->
+            View.Compose.view model
 
-            ViewPost postId ->
-                case getPublishedPostFromId model.publishedPosts postId of
-                    Just post ->
-                        Element.column
-                            [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
-                            , Element.centerX
-                            , Element.spacing 20
-                            , Element.paddingEach
-                                { top = 20
-                                , bottom = 0
-                                , right = 0
-                                , left = 0
-                                }
-                            ]
-                            [--, Element.Lazy.lazy5
-                             --(viewPostAndReplies model.dProfile model.donateChecked model.wallet)
-                             --model.publishedPosts
-                             --model.blockTimes
-                             --model.replies
-                             --post
-                             --model.postUX
-                            ]
+        ViewPost postId ->
+            case getPublishedPostFromId model.publishedPosts postId of
+                Just post ->
+                    Element.column
+                        [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
+                        , Element.centerX
+                        , Element.spacing 20
+                        , Element.paddingEach
+                            { top = 20
+                            , bottom = 0
+                            , right = 0
+                            , left = 0
+                            }
+                        ]
+                        [--, Element.Lazy.lazy5
+                         --(viewPostAndReplies model.dProfile model.donateChecked model.wallet)
+                         --model.publishedPosts
+                         --model.blockTimes
+                         --model.replies
+                         --post
+                         --model.postUX
+                        ]
 
-                    Nothing ->
-                        appStatusMessage
-                            theme.appStatusTextColor
-                            "Loading post..."
+                Nothing ->
+                    appStatusMessage
+                        theme.appStatusTextColor
+                        "Loading post..."
 
-            ViewTopic topic ->
-                View.Topic.view model topic
-        ]
+        ViewTopic topic ->
+            View.Topic.view model topic
 
 
 

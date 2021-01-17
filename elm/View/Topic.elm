@@ -9,7 +9,7 @@ import Helpers.Element as EH exposing (DisplayProfile)
 import Theme exposing (theme)
 import Time
 import Types exposing (Context(..), Model, Msg, Published, PublishedPostsDict, Wallet)
-import View.Common exposing (cappedWidth, whiteGlowAttribute)
+import View.Attrs exposing (cappedWidth, whiteGlowAttribute)
 import View.Post
 
 

@@ -1,11 +1,9 @@
-module Routing exposing (..)
+module Routing exposing (routeParser, routeToString, urlToRoute)
 
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (..)
-import Result.Extra
-import Types exposing (..)
+import Types exposing (Context(..), Id, Route(..))
 import Url exposing (Url)
 import Url.Builder as Builder
 import Url.Parser as Parser exposing ((</>), (<?>), Parser)

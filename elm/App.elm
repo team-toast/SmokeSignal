@@ -6,7 +6,7 @@ import Browser.Navigation
 import Config
 import Contracts.SmokeSignal
 import Eth.Net
-import Eth.Sentry.Event exposing (EventSentry)
+import Eth.Sentry.Event
 import Eth.Sentry.Tx
 import Eth.Sentry.Wallet
 import Eth.Types
@@ -15,7 +15,7 @@ import Misc
 import Ports
 import Routing
 import Time
-import Types exposing (..)
+import Types exposing (Flags, Model, Msg)
 import Update exposing (update)
 import Url exposing (Url)
 import UserNotice
@@ -29,8 +29,8 @@ main =
         , view = view
         , update = update
         , subscriptions = subscriptions
-        , onUrlRequest = LinkClicked
-        , onUrlChange = UrlChanged
+        , onUrlRequest = Types.LinkClicked
+        , onUrlChange = Types.UrlChanged
         }
 
 
@@ -54,11 +54,11 @@ init flags url key =
         txSentry =
             Eth.Sentry.Tx.init
                 ( Ports.txOut, Ports.txIn )
-                TxSentryMsg
+                Types.TxSentryMsg
                 Config.httpProviderUrl
 
         ( initEventSentry, initEventSentryCmd ) =
-            Eth.Sentry.Event.init EventSentryMsg Config.httpProviderUrl
+            Eth.Sentry.Event.init Types.EventSentryMsg Config.httpProviderUrl
 
         ( eventSentry, secondEventSentryCmd, _ ) =
             Contracts.SmokeSignal.messageBurnEventFilter
@@ -67,7 +67,7 @@ init flags url key =
                 Nothing
                 Nothing
                 |> Eth.Sentry.Event.watch
-                    PostLogReceived
+                    Types.PostLogReceived
                     initEventSentry
 
         now =
@@ -100,17 +100,17 @@ init flags url key =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Time.every 200 Tick
-        , Time.every 2000 (always ChangeDemoPhaceSrc)
-        , Time.every 2500 (always EveryFewSeconds)
-        , Time.every 5000 (always CheckTrackedTxsStatus)
+        [ Time.every 200 Types.Tick
+        , Time.every 2000 (always Types.ChangeDemoPhaceSrc)
+        , Time.every 2500 (always Types.EveryFewSeconds)
+        , Time.every 5000 (always Types.CheckTrackedTxsStatus)
         , Ports.walletSentryPort
             (Eth.Sentry.Wallet.decodeToMsg
-                (WalletStatus << Err)
-                (WalletStatus << Ok)
+                (Types.WalletStatus << Err)
+                (Types.WalletStatus << Ok)
             )
         , Eth.Sentry.Tx.listen model.txSentry
-        , Browser.Events.onResize Resize
+        , Browser.Events.onResize Types.Resize
 
         --, Sub.map ComposeUXMsg ComposeUX.subscriptions
         ]

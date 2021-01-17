@@ -3,7 +3,6 @@ module Types exposing (Accounting, CheckedMaybeValidInputs, Content, Context(..)
 import Browser
 import Browser.Navigation
 import Dict exposing (Dict)
-import Element exposing (Element)
 import Eth.Net
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
@@ -11,8 +10,6 @@ import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
 import Helpers.Element as EH
 import Http
-import Json.Decode
-import Json.Encode
 import Time
 import TokenValue exposing (TokenValue)
 import Url exposing (Url)

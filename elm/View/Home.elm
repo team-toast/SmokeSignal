@@ -2,14 +2,14 @@ module View.Home exposing (banner, view)
 
 import Dict exposing (Dict)
 import Dict.Extra
-import Element exposing (Attribute, Element, column, el, fill, fillPortion, padding, paddingXY, px, row, spaceEvenly, text, width)
-import Element.Background
-import Element.Border
+import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, fillPortion, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
+import Element.Background as Background
+import Element.Border as Border
 import Element.Events
-import Element.Font
+import Element.Font as Font
 import Element.Input as Input
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..))
+import Helpers.Element as EH exposing (DisplayProfile(..), white)
 import Helpers.Time as TimeHelpers
 import Html.Attributes
 import Maybe.Extra exposing (unwrap)
@@ -19,7 +19,8 @@ import Theme exposing (almostWhite, theme)
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (Context(..), Id, Model, Msg(..), PhaceIconId(..), Post(..), PostState, Published, PublishedPostsDict, Route(..))
-import View.Common exposing (daiSymbol, phaceElement, whiteGlowAttribute, whiteGlowAttributeSmall)
+import View.Attrs exposing (whiteGlowAttribute, whiteGlowAttributeSmall)
+import View.Common exposing (daiSymbol, phaceElement)
 import View.Post
 import Wallet
 
@@ -70,13 +71,7 @@ view model =
                                 False
                        )
                 )
-                [ el
-                    [ width fill
-                    , paddingXY 10 0
-                    ]
-                  <|
-                    banner
-                        dProfile
+                [ banner dProfile
                 , body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts state model.searchInput
                 ]
 
@@ -108,10 +103,10 @@ viewNewToSmokeSignalModal : DisplayProfile -> Element Msg
 viewNewToSmokeSignalModal dProfile =
     column
         [ whiteGlowAttribute
-        , Element.Border.rounded 10
-        , Element.Font.color EH.white
+        , Border.rounded 10
+        , Font.color EH.white
         , width fill
-        , Element.Background.color <| Element.rgba 0 0 0 0.85
+        , Background.color <| Element.rgba 0 0 0 0.85
         , padding 50
         , Element.spacing 30
         ]
@@ -137,7 +132,7 @@ viewNewToSmokeSignalModal dProfile =
             []
           <|
             el
-                [ Element.Font.color Theme.orange, Element.Font.size 28, Element.Font.bold ]
+                [ Font.color Theme.orange, Font.size 28, Font.bold ]
             <|
                 Element.text "No Usernames. No Moderators. No censorship. No Deplatforming."
         , rowElement
@@ -169,8 +164,8 @@ viewNewToSmokeSignalModal dProfile =
             []
           <|
             el
-                [ Element.Font.color Theme.orange
-                , Element.Font.semiBold
+                [ Font.color Theme.orange
+                , Font.semiBold
                 ]
             <|
                 Element.text
@@ -191,15 +186,22 @@ rowElement dProfile attributes element =
 
 banner : DisplayProfile -> Element Msg
 banner dProfile =
-    el
-        [ Element.centerX
-        , Element.Font.color EH.white
-        ]
-        (Element.text "banner here")
+    [ text "REAL FREE SPEECH"
+    , text "ETERNALLY UNMUTABLE."
+    ]
+        |> column
+            [ spacing 10
+            , centerX
+            , centerY
+            , Font.color EH.white
+            , View.Attrs.sanSerifFont
+            , Font.bold
+            , Font.size 40
+            ]
         |> el
             [ width fill
             , Element.height <| Element.px 200
-            , Element.Background.color EH.black
+            , Background.color EH.black
             , whiteGlowAttribute
             ]
 
@@ -238,15 +240,19 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
         , width <| fillPortion 2
         , padding 10
         ]
-        [ orangeBannerEl
-            dProfile
-            [ Element.pointer
-
-            --, Element.Events.onClick ShowNewToSmokeSignalModal
-            ]
-            40
-            20
-            "NEW TO SMOKESIGNAL?"
+        [ "NEW TO SMOKE SIGNAL?"
+            |> text
+            |> el
+                [ View.Attrs.sanSerifFont
+                , padding 20
+                , Border.rounded 1
+                , Background.color Theme.orange
+                , Font.bold
+                , Font.color white
+                , Font.size 30
+                , whiteGlowAttributeSmall
+                , width fill
+                ]
         , column
             [ width fill
             , Element.spacing 3
@@ -260,15 +266,16 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
             , postFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet xs state
             ]
         ]
-    , column
-        [ width <| fillPortion 1
-        , Element.alignTop
-        , padding 10
-        , Element.spacing 20
-        ]
-        [ walletUXPane dProfile showAddressId demoPhaceSrc wallet
-        , topicsUX dProfile searchInput posts
-        ]
+    , [ walletUXPane dProfile showAddressId demoPhaceSrc wallet
+      , topicsUX dProfile searchInput posts
+      ]
+        |> column
+            [ width <| fillPortion 1
+            , Element.alignTop
+            , padding 10
+            , Element.spacing 20
+            , height fill
+            ]
     ]
         |> row
             [ fill
@@ -289,12 +296,12 @@ orangeBannerEl dProfile attributes fontSize paddingVal bannerText =
     el
         ([ width fill
          , padding paddingVal
-         , Element.Font.size fontSize
-         , Element.Background.color Theme.orange
-         , Element.Font.semiBold
-         , Element.Font.color EH.white
+         , Font.size fontSize
+         , Background.color Theme.orange
+         , Font.semiBold
+         , Font.color EH.white
          , whiteGlowAttribute
-         , Element.Border.rounded 10
+         , Border.rounded 10
          ]
             ++ attributes
         )
@@ -304,48 +311,49 @@ orangeBannerEl dProfile attributes fontSize paddingVal bannerText =
 
 topicsUX : DisplayProfile -> String -> PublishedPostsDict -> Element Msg
 topicsUX dProfile topicsSearchInput posts =
-    column
-        [ Element.spacing 10
-        , Element.centerX
-        , width (fill |> Element.minimum 400)
-        ]
-        [ orangeBannerEl
+    [ orangeBannerEl
+        dProfile
+        []
+        26
+        12
+        "TOPICS"
+    , [ Input.text
+            [ width fill
+            , Background.color EH.black
+            , Border.color Theme.almostWhite
+            , whiteGlowAttributeSmall
+            , Font.color EH.white
+            ]
+            { onChange = always ClickHappened
+
+            --{ onChange = SearchInputChanged
+            , text = topicsSearchInput
+            , placeholder =
+                Just <|
+                    Input.placeholder
+                        [ Font.color EH.white
+                        , Font.italic
+                        ]
+                        (Element.text "Find or Create Topic...")
+            , label = Input.labelHidden "topic"
+            }
+      , topicsColumn
             dProfile
-            []
-            26
-            12
-            "TOPICS"
-        , column
+            (Post.sanitizeTopic topicsSearchInput)
+            posts
+      ]
+        |> column
             [ width fill
             , Element.alignTop
-            , Element.spacing 1
+            , height fill
             ]
-            [ Input.text
-                [ width fill
-                , Element.Background.color EH.black
-                , Element.Border.color Theme.almostWhite
-                , whiteGlowAttributeSmall
-                , Element.Font.color EH.white
-                ]
-                { onChange = always ClickHappened
-
-                --{ onChange = SearchInputChanged
-                , text = topicsSearchInput
-                , placeholder =
-                    Just <|
-                        Input.placeholder
-                            [ Element.Font.color EH.white
-                            , Element.Font.italic
-                            ]
-                            (Element.text "Find or Create Topic...")
-                , label = Input.labelHidden "topic"
-                }
-            , topicsColumn
-                dProfile
-                (Post.sanitizeTopic topicsSearchInput)
-                posts
+    ]
+        |> column
+            [ Element.spacing 10
+            , Element.centerX
+            , width (fill |> Element.minimum 400)
+            , height fill
             ]
-        ]
 
 
 topicsColumn : EH.DisplayProfile -> String -> PublishedPostsDict -> Element Msg
@@ -408,14 +416,14 @@ topicsColumn dProfile topicSearchStr allPosts =
         commonElStyles =
             [ Element.spacing 5
             , padding 5
-            , Element.Border.width 1
-            , Element.Border.color Theme.almostWhite
+            , Border.width 1
+            , Border.color Theme.almostWhite
             , width fill
             , Element.pointer
             , Element.height <| Element.px 40
             , whiteGlowAttributeSmall
-            , Element.Font.color EH.white
-            , Element.Background.color EH.black
+            , Font.color EH.white
+            , Background.color EH.black
             ]
 
         exactTopicFound =
@@ -439,8 +447,8 @@ topicsColumn dProfile topicSearchStr allPosts =
                             ]
                             [ Element.text "Start new topic "
                             , el
-                                [ Element.Font.italic
-                                , Element.Font.bold
+                                [ Font.italic
+                                , Font.bold
                                 ]
                               <|
                                 Element.text topicSearchStr
@@ -471,9 +479,9 @@ topicsColumn dProfile topicSearchStr allPosts =
                             |> row
                                 [ Element.spacing 3
                                 , padding 5
-                                , Element.Border.rounded 5
-                                , Element.Background.color theme.daiBurnedBackground
-                                , Element.Font.color
+                                , Border.rounded 5
+                                , Background.color theme.daiBurnedBackground
+                                , Font.color
                                     (if theme.daiBurnedTextIsWhite then
                                         EH.white
 
@@ -486,11 +494,11 @@ topicsColumn dProfile topicSearchStr allPosts =
                                 ]
                         , [ text topic
                                 |> el
-                                    [ Element.Font.color EH.white
+                                    [ Font.color EH.white
                                     ]
                           , el
                                 [ Element.alignRight
-                                , Element.Font.color EH.white
+                                , Font.color EH.white
                                 ]
                             <|
                                 Element.text <|
@@ -506,7 +514,7 @@ topicsColumn dProfile topicSearchStr allPosts =
                 |> unwrap [] List.singleton
             )
         |> column
-            [ Element.Border.roundEach
+            [ Border.roundEach
                 { topRight = 0
                 , topLeft = 0
                 , bottomRight = 5
@@ -515,7 +523,9 @@ topicsColumn dProfile topicSearchStr allPosts =
             , width (fill |> Element.maximum 530)
             , padding 5
             , Element.spacing 5
-            , Element.Background.color EH.black
+            , Background.color EH.black
+            , Element.scrollbarY
+            , height fill
             ]
 
 
@@ -537,8 +547,8 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
                         (showAddressId == Just DemoPhace)
                         (ShowOrHideAddress DemoPhace)
                         |> el
-                            [ Element.Border.rounded 10
-                            , Element.Border.glow
+                            [ Border.rounded 10
+                            , Border.glow
                                 (Element.rgba 1 0 1 0.3)
                                 9
                             ]
@@ -551,8 +561,8 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
                         (showAddressId == Just UserPhace)
                         (ShowOrHideAddress UserPhace)
                         |> el
-                            [ Element.Border.rounded 10
-                            , Element.Border.glow
+                            [ Border.rounded 10
+                            , Border.glow
                                 (Element.rgba 0 0.5 1 0.4)
                                 9
                             ]
@@ -624,8 +634,8 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
                 |> Maybe.map
                     (\text ->
                         Element.paragraph
-                            [ Element.Font.color EH.white
-                            , Element.Font.size 16
+                            [ Font.color EH.white
+                            , Font.size 16
                             ]
                             [ Element.text text ]
                     )

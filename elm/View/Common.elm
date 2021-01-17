@@ -1,4 +1,7 @@
-module View.Common exposing (appStatusMessage, cappedHeight, cappedWidth, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, unlockButton, unlockUXOr, viewContext, web3ConnectButton, whiteGlowAttribute, whiteGlowAttributeSmall)
+module View.Common exposing (appStatusMessage, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, unlockButton, unlockUXOr, viewContext, web3ConnectButton)
+
+{-| A module for managing elm-ui 'Element' helper functions and reuseable components.
+-}
 
 import Element exposing (Attribute, Element)
 import Element.Background as Background
@@ -112,16 +115,6 @@ appStatusMessage color errStr =
             [ Element.text errStr ]
 
 
-cappedWidth : Int -> Attribute msg
-cappedWidth n =
-    Element.fill |> Element.maximum n |> Element.width
-
-
-cappedHeight : Int -> Attribute msg
-cappedHeight n =
-    Element.fill |> Element.maximum n |> Element.height
-
-
 web3ConnectButton : EH.DisplayProfile -> List (Attribute Msg) -> Element Msg
 web3ConnectButton dProfile attrs =
     theme.emphasizedActionButton
@@ -141,20 +134,6 @@ loadingElement attrs maybeString =
             ++ attrs
         )
         (Element.text <| Maybe.withDefault "loading..." maybeString)
-
-
-whiteGlowAttribute : Element.Attribute Msg
-whiteGlowAttribute =
-    Border.glow
-        (Element.rgba 1 1 1 0.4)
-        5
-
-
-whiteGlowAttributeSmall : Element.Attribute Msg
-whiteGlowAttributeSmall =
-    Border.glow
-        (Element.rgba 1 1 1 0.4)
-        2
 
 
 phaceElement : ( Int, Int ) -> Bool -> Address -> Bool -> Msg -> Element Msg

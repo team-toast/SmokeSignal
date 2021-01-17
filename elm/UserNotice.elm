@@ -1,6 +1,6 @@
-module UserNotice exposing (..)
+module UserNotice exposing (Alignment(..), NoticeType(..), UserNotice, cantConnectNoWeb3, eventDecodeError, noWeb3Provider, routeNotFound, unexpectedError, walletError, web3FetchError, web3SigError)
 
-import Element exposing (Attribute, Element)
+import Element exposing (Element)
 import Element.Font
 import Http
 import Json.Decode
@@ -25,12 +25,6 @@ type NoticeType
     | Caution
     | Error
     | ShouldBeImpossible
-
-
-placeholderNotice s =
-    UserNotice
-        Caution
-        [ [ Element.text s ] ]
 
 
 screenToSmall : Int -> UserNotice
