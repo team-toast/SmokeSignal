@@ -1,4 +1,4 @@
-module Types exposing (Accounting, CheckedMaybeValidInputs, Content, Context(..), Core, Draft, EncodedDraft, FailReason(..), Flags, GTagData, Id, Metadata, Model, Msg(..), PhaceIconId(..), Post(..), PostState, PostUXId(..), Published, PublishedPostsDict, ReplyIds, Route(..), ShowInputState(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), UserInfo, View(..), Wallet(..))
+module Types exposing (Accounting, CheckedMaybeValidInputs, Content, Context(..), Core, Draft, EncodedDraft, FailReason(..), Flags, GTagData, Id, Metadata, Model, Msg(..), PhaceIconId(..), Post(..), PostState, PostUXId(..), Published, PublishedPostsDict, ReplyIds, Route(..), ShowInputState(..), TrackedTx, TxInfo(..), TxStatus(..), UserInfo, View(..), ViewContext(..), Wallet(..))
 
 import Browser
 import Browser.Navigation
@@ -130,7 +130,6 @@ type alias UserInfo =
     { network : Eth.Net.NetworkId
     , address : Address
     , balance : Maybe TokenValue
-    , unlockStatus : UnlockStatus
     }
 
 
@@ -140,12 +139,9 @@ type Wallet
     | Active UserInfo
 
 
-type UnlockStatus
-    = NotConnected
-    | Checking
-    | Locked
-    | Unlocking
-    | Unlocked
+type ViewContext
+    = ViewPost Id
+    | Topic String
 
 
 type alias PublishedPostsDict =
