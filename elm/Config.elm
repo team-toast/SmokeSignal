@@ -52,7 +52,7 @@ smokesignalContractAddress =
         Eth.Utils.unsafeToAddress "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B"
 
     else
-        Eth.Utils.unsafeToAddress "0xf18407C16ACF13a0057b2746B29F580eb8343156"
+        Eth.Utils.unsafeToAddress "0x9f0Cec66a2893da5525D4339F83fD5B25A4E076B"
 
 
 startScanBlock : Int
