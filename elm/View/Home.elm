@@ -1,5 +1,6 @@
 module View.Home exposing (banner, view)
 
+import Config
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, fillPortion, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
@@ -9,9 +10,8 @@ import Element.Events
 import Element.Font as Font
 import Element.Input as Input
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), white)
+import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Helpers.Time as TimeHelpers
-import Html.Attributes
 import Maybe.Extra exposing (unwrap)
 import Misc exposing (getPublishedPostFromId)
 import Post
@@ -19,7 +19,7 @@ import Theme exposing (almostWhite, theme)
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (Context(..), Id, Model, Msg(..), PhaceIconId(..), Post(..), PostState, Published, PublishedPostsDict, Route(..))
-import View.Attrs exposing (whiteGlowAttribute, whiteGlowAttributeSmall)
+import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common exposing (daiSymbol, phaceElement)
 import View.Post
 import Wallet
@@ -59,21 +59,21 @@ view model =
     in
     case dProfile of
         Desktop ->
-            column
-                ([ Element.centerX
-                 , width <| Element.px 1000
-                 , Element.spacing majorSpacing
-                 ]
-                    ++ (List.map Element.inFront <|
-                            viewModals
-                                dProfile
-                                --model.showNewToSmokeSignalModal
-                                False
-                       )
-                )
-                [ banner dProfile
-                , body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts state model.searchInput
-                ]
+            [ banner dProfile
+            , body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts state model.searchInput
+            ]
+                |> column
+                    ([ width fill
+                     , height fill
+                     , spacing 10
+                     ]
+                        ++ (List.map Element.inFront <|
+                                viewModals
+                                    dProfile
+                                    --model.showNewToSmokeSignalModal
+                                    False
+                           )
+                    )
 
         Mobile ->
             text "mobile view"
@@ -186,7 +186,7 @@ rowElement dProfile attributes element =
 
 banner : DisplayProfile -> Element Msg
 banner dProfile =
-    [ text "REAL FREE SPEECH"
+    [ text "REAL FREE SPEECH."
     , text "ETERNALLY UNMUTABLE."
     ]
         |> column
@@ -196,11 +196,11 @@ banner dProfile =
             , Font.color EH.white
             , View.Attrs.sanSerifFont
             , Font.bold
-            , Font.size 40
+            , Font.size 30
             ]
         |> el
             [ width fill
-            , Element.height <| Element.px 200
+            , Element.height <| Element.px 120
             , Background.color EH.black
             , whiteGlowAttribute
             ]
@@ -223,7 +223,7 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
         xs =
             Dict.values posts
                 |> List.concat
-                |> List.take 3
+                |> List.take 5
 
         maybeShowAddressForPostId =
             case showAddressId of
@@ -233,19 +233,12 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
                 _ ->
                     Nothing
     in
-    [ column
-        [ Element.spacing majorSpacing
-        , Element.alignTop
-        , Element.htmlAttribute (Html.Attributes.style "flex-shrink" "1")
-        , width <| fillPortion 2
-        , padding 10
-        ]
-        [ "NEW TO SMOKE SIGNAL?"
+    [ [ "NEW TO SMOKE SIGNAL?"
             |> text
             |> el
                 [ View.Attrs.sanSerifFont
                 , padding 20
-                , Border.rounded 1
+                , slightRound
                 , Background.color Theme.orange
                 , Font.bold
                 , Font.color white
@@ -253,35 +246,78 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
                 , whiteGlowAttributeSmall
                 , width fill
                 ]
-        , column
-            [ width fill
-            , Element.spacing 3
+      , [ [ [ "Topics"
+                |> text
+                |> el [ Font.size 35 ]
+            , Input.text
+                [ width fill
+                , Background.color EH.black
+                , Border.color Theme.almostWhite
+                , whiteGlowAttributeSmall
+                , Font.color EH.white
+                ]
+                { onChange = always ClickHappened
+                , text = ""
+                , placeholder =
+                    Just <|
+                        Input.placeholder
+                            [ Font.color EH.white
+                            , Font.italic
+                            ]
+                            (Element.text "Find or Create Topic...")
+                , label = Input.labelHidden "topic"
+                }
             ]
-            [ orangeBannerEl
-                dProfile
-                []
-                20
-                10
-                "RECENT POSTS..."
-            , postFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet xs state
-            ]
+                |> row
+                    [ width fill
+                    , Background.color black
+                    , spacing 50
+                    , Font.color white
+                    , padding 15
+                    ]
+          , "MORE RECENT POSTS..."
+                |> text
+                |> el
+                    [ View.Attrs.sanSerifFont
+                    , padding 10
+                    , slightRound
+                    , Background.color Theme.orange
+                    , Font.bold
+                    , Font.color white
+                    , Font.size 20
+                    , width fill
+                    ]
+          ]
+            |> column
+                [ width fill
+                , whiteGlowAttributeSmall
+                ]
+        , postFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet xs state
         ]
+            |> column
+                [ width fill
+                , Element.spacing 3
+                , height fill
+                ]
+      ]
+        |> column
+            [ spacing 10
+            , width <| fillPortion 2
+            , height fill
+            ]
     , [ walletUXPane dProfile showAddressId demoPhaceSrc wallet
       , topicsUX dProfile searchInput posts
       ]
         |> column
-            [ width <| fillPortion 1
-            , Element.alignTop
-            , padding 10
-            , Element.spacing 20
+            [ cappedWidth 400
+            , spacing 10
             , height fill
             ]
     ]
         |> row
-            [ fill
-                |> Element.maximum 1000
-                |> width
-            , Element.spacing majorSpacing
+            [ width fill
+            , height fill
+            , spacing 10
             ]
 
 
@@ -311,48 +347,172 @@ orangeBannerEl dProfile attributes fontSize paddingVal bannerText =
 
 topicsUX : DisplayProfile -> String -> PublishedPostsDict -> Element Msg
 topicsUX dProfile topicsSearchInput posts =
-    [ orangeBannerEl
-        dProfile
-        []
-        26
-        12
-        "TOPICS"
-    , [ Input.text
-            [ width fill
-            , Background.color EH.black
-            , Border.color Theme.almostWhite
-            , whiteGlowAttributeSmall
-            , Font.color EH.white
-            ]
-            { onChange = always ClickHappened
-
-            --{ onChange = SearchInputChanged
-            , text = topicsSearchInput
-            , placeholder =
-                Just <|
-                    Input.placeholder
-                        [ Font.color EH.white
-                        , Font.italic
-                        ]
-                        (Element.text "Find or Create Topic...")
-            , label = Input.labelHidden "topic"
-            }
-      , topicsColumn
-            dProfile
-            (Post.sanitizeTopic topicsSearchInput)
-            posts
-      ]
-        |> column
-            [ width fill
-            , Element.alignTop
-            , height fill
-            ]
+    [ Input.button
+        [ padding 5
+        , slightRound
+        , Background.color Theme.orange
+        , Font.size 20
+        , width fill
+        , whiteGlowAttributeSmall
+        , hover
+        ]
+        { onPress = Nothing
+        , label =
+            text "See All Topics"
+                |> el [ centerX ]
+        }
+    , viewBookmarkedTopics
+    , viewTopTrending
+    , viewTopVoices
     ]
         |> column
-            [ Element.spacing 10
-            , Element.centerX
-            , width (fill |> Element.minimum 400)
+            [ spacing 10
+            , width fill
             , height fill
+            ]
+
+
+viewTopTrending : Element msg
+viewTopTrending =
+    [ text "Top 3 Trending"
+        |> el [ centerX ]
+        |> el
+            [ Font.size 20
+            , width fill
+            , Background.color Theme.orange
+            , slightRound
+            , padding 5
+            ]
+    , [ "Misc"
+      , "Sovereign-Network"
+      , "Censorship"
+      ]
+        |> List.map
+            (\txt ->
+                [ txt
+                    |> text
+                    |> el [ width fill, Font.size 20 ]
+                , 7
+                    |> String.fromInt
+                    |> text
+                    |> el [ Font.size 30, Font.bold ]
+                ]
+                    |> row
+                        [ width fill
+                        , whiteGlowAttributeSmall
+                        , Background.color black
+                        , Font.color white
+                        , paddingXY 15 5
+                        ]
+            )
+        |> column [ width fill, height <| px 120, Element.scrollbarY ]
+    ]
+        |> column
+            [ width fill
+            , whiteGlowAttributeSmall
+            ]
+
+
+viewTopVoices : Element Msg
+viewTopVoices =
+    [ text "Top 3 Voices"
+        |> el [ centerX ]
+        |> el
+            [ Font.size 20
+            , width fill
+            , Background.color Theme.orange
+            , slightRound
+            , padding 5
+            ]
+    , List.range 0 2
+        |> List.map
+            ([ phaceElement
+                ( 50, 50 )
+                False
+                (Eth.Utils.unsafeToAddress "5257af4ab3b9d719897195658da427dcbbebf048")
+                False
+                (ShowOrHideAddress DemoPhace)
+             , [ "0x10c4...f736"
+                    |> text
+                    |> el [ Font.size 17 ]
+               , "(.eth permalink)"
+                    |> text
+                    |> el [ Font.size 13 ]
+               ]
+                |> row [ width fill, spaceEvenly, paddingXY 10 0 ]
+             ]
+                |> row
+                    [ width fill
+                    , spaceEvenly
+                    , whiteGlowAttributeSmall
+                    , Background.color black
+                    , Font.color white
+                    ]
+                |> always
+            )
+        |> column [ width fill ]
+    ]
+        |> column
+            [ width fill
+            , whiteGlowAttributeSmall
+            ]
+
+
+viewBookmarkedTopics : Element msg
+viewBookmarkedTopics =
+    [ [ Element.image
+            [ height <| px 30
+            , width <| px 30
+            ]
+            { src = "/img/bookmark.svg"
+            , description = ""
+            }
+      , Input.button
+            [ Font.size 20
+            , width fill
+            ]
+            { onPress = Nothing
+            , label =
+                text "Bookmarked Topics"
+                    |> el [ centerX ]
+            }
+      ]
+        |> row
+            [ width fill
+            , height <| px 30
+            , Background.color Theme.orange
+            , slightRound
+            ]
+    , [ "Games"
+      , "Misc"
+      , "Sovereign-Network"
+      , "Meta"
+      , "Censorship"
+      , "SmokeSignal/use-cases"
+      ]
+        |> List.map
+            (\txt ->
+                [ txt
+                    |> text
+                    |> el [ width fill, Font.size 20 ]
+                , 7
+                    |> String.fromInt
+                    |> text
+                    |> el [ Font.size 30, Font.bold ]
+                ]
+                    |> row
+                        [ width fill
+                        , whiteGlowAttributeSmall
+                        , Background.color black
+                        , Font.color white
+                        , paddingXY 15 5
+                        ]
+            )
+        |> column [ width fill, height <| px 120, Element.scrollbarY ]
+    ]
+        |> column
+            [ width fill
+            , whiteGlowAttributeSmall
             ]
 
 
@@ -541,7 +701,7 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
             case Wallet.userInfo wallet of
                 Nothing ->
                     phaceElement
-                        ( 100, 100 )
+                        ( 80, 80 )
                         True
                         (Eth.Utils.unsafeToAddress demoPhaceSrc)
                         (showAddressId == Just DemoPhace)
@@ -641,25 +801,20 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
                     )
                 |> Maybe.withDefault Element.none
     in
-    row
+    [ phaceEl
+    , column
         [ width fill
-        , Element.spacing 10
+        , spaceEvenly
+        , height fill
         ]
-        [ phaceEl
-        , column
+        [ button
+        , explainerParagraphOrNone
+        ]
+    ]
+        |> row
             [ width fill
-            , Element.spacing 15
-            , Element.height fill
+            , spacing 10
             ]
-            [ button
-            , explainerParagraphOrNone
-            ]
-        ]
-
-
-majorSpacing : Int
-majorSpacing =
-    20
 
 
 postFeed :
@@ -676,7 +831,6 @@ postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet list
     listOfPosts
         |> List.sortBy (feedSortByFunc blockTimes now)
         |> List.reverse
-        |> List.take 10
         |> List.map
             (\post ->
                 View.Post.view
@@ -691,7 +845,9 @@ postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet list
             )
         |> column
             [ width fill
-            , Element.spacingXY 0 5
+            , height fill
+            , Element.scrollbarY
+            , spacing 5
             , paddingXY 0 5
             ]
 

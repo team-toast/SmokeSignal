@@ -1,4 +1,4 @@
-module View.Attrs exposing (cappedHeight, cappedWidth, roundBorder, sanSerifFont, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
+module View.Attrs exposing (cappedHeight, cappedWidth, fade, hover, roundBorder, sanSerifFont, slightRound, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
 
 {-| A module for managing elm-ui 'Attribute' values and related functions.
 -}
@@ -6,6 +6,21 @@ module View.Attrs exposing (cappedHeight, cappedWidth, roundBorder, sanSerifFont
 import Element exposing (Attribute)
 import Element.Border as Border
 import Element.Font as Font
+
+
+hover : Attribute msg
+hover =
+    Element.mouseOver [ fade ]
+
+
+fade : Element.Attr a b
+fade =
+    Element.alpha 0.7
+
+
+slightRound : Attribute msg
+slightRound =
+    Border.rounded 1
 
 
 roundBorder : Attribute msg
