@@ -11,8 +11,8 @@ import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
 import Theme exposing (theme)
 import TokenValue exposing (TokenValue)
-import Types exposing (CheckedMaybeValidInputs, Content, Context, Draft, Id, Model, Msg(..), PhaceIconId, Route(..), UnlockStatus(..), UserInfo, Wallet)
-import View.Common exposing (appStatusMessage, daiAmountInput, shortenedHash, unlockUXOr, viewContext, web3ConnectButton)
+import Types exposing (CheckedMaybeValidInputs, Content, Context, Draft, Id, Model, Msg(..), PhaceIconId, Route(..), UserInfo, Wallet)
+import View.Common exposing (appStatusMessage, daiAmountInput, shortenedHash, viewContext, web3ConnectButton)
 import Wallet
 
 
@@ -386,13 +386,7 @@ inputsElement dProfile donateChecked userInfo model =
                )
         )
     <|
-        unlockUXOr
-            dProfile
-            [ Element.centerX
-            , Element.centerY
-            ]
-            userInfo.unlockStatus
-        <|
+        Element.el [] <|
             Element.column
                 [ Element.spacing 10 ]
                 [ Element.row
@@ -483,8 +477,8 @@ goButtonAndMaybeError dProfile donateChecked userInfo model =
                 )
 
             else
-                case userInfo.unlockStatus of
-                    Unlocked ->
+                case 1 of
+                    1 ->
                         let
                             validateResults =
                                 validateInputs donateChecked model

@@ -1,7 +1,7 @@
 module View.Post exposing (view)
 
 import Dict exposing (Dict)
-import Element exposing (Attribute, Element, el, text)
+import Element exposing (Attribute, Element, el, row, text)
 import Element.Background
 import Element.Border
 import Element.Events
@@ -14,7 +14,7 @@ import Theme exposing (almostWhite, theme)
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
-import View.Common exposing (daiAmountInput, daiSymbol, unlockUXOr)
+import View.Common exposing (daiAmountInput, daiSymbol)
 import Wallet
 
 
@@ -29,36 +29,34 @@ view :
     -> Published
     -> Element Msg
 view dProfile donateChecked showAddressOnPhace blockTimes now wallet state post =
-    Element.row
-        [ Element.width Element.fill
-        , Element.height <| Element.px <| 120
-        , Element.Background.color theme.blockBackground
-        , Element.Border.width 1
-        , Element.Border.color theme.blockBorderColor
-        , Element.Border.rounded 5
-        , Element.padding 1
-        ]
-        [ mainPreviewPane
-            dProfile
-            showAddressOnPhace
-            donateChecked
-            blockTimes
-            now
-            (Wallet.unlockStatus wallet)
-            --maybeUXModel
-            Nothing
-            post
-        , publishedPostActionForm
-            dProfile
-            donateChecked
-            post
-            --(maybeUXModel
-            --|> Maybe.andThen .showInput
-            --|> Maybe.withDefault None
-            --)
-            Types.None
-            (Wallet.unlockStatus wallet)
-        ]
+    [ mainPreviewPane
+        dProfile
+        showAddressOnPhace
+        donateChecked
+        blockTimes
+        now
+        --maybeUXModel
+        Nothing
+        post
+    , publishedPostActionForm
+        dProfile
+        donateChecked
+        post
+        --(maybeUXModel
+        --|> Maybe.andThen .showInput
+        --|> Maybe.withDefault None
+        --)
+        Types.None
+    ]
+        |> row
+            [ Element.width Element.fill
+            , Element.height <| Element.px <| 120
+            , Element.Background.color theme.blockBackground
+            , Element.Border.width 1
+            , Element.Border.color theme.blockBorderColor
+            , Element.Border.rounded 5
+            , Element.padding 1
+            ]
 
 
 mainPreviewPane :
@@ -67,11 +65,10 @@ mainPreviewPane :
     -> Bool
     -> Dict Int Time.Posix
     -> Time.Posix
-    -> UnlockStatus
     -> Maybe PostState
     -> Published
     -> Element Msg
-mainPreviewPane dProfile showAddress donateChecked blockTimes now unlockStatus maybeUXModel post =
+mainPreviewPane dProfile showAddress donateChecked blockTimes now maybeUXModel post =
     Element.column
         [ Element.width <| Element.fillPortion 11
         , Element.height Element.fill
@@ -250,14 +247,12 @@ publishedPostActionForm :
     -> Bool
     -> Published
     -> Types.ShowInputState
-    -> UnlockStatus
     -> Element Msg
-publishedPostActionForm dProfile donateChecked publishedPost showInput unlockStatus =
+publishedPostActionForm dProfile donateChecked publishedPost showInput =
     case showInput of
         None ->
             Element.column
                 [ Element.spacing 5
-                , Element.width <| Element.fillPortion 1
                 , Element.alignRight
                 ]
                 [ supportTipButton publishedPost.id
@@ -274,7 +269,6 @@ publishedPostActionForm dProfile donateChecked publishedPost showInput unlockSta
                 "Tip"
                 --(SupportTipSubmitClicked publishedPost.id)
                 (always ClickHappened)
-                unlockStatus
 
         Burn input ->
             unlockOrInputForm
@@ -285,7 +279,6 @@ publishedPostActionForm dProfile donateChecked publishedPost showInput unlockSta
                 "Burn"
                 --(SupportBurnSubmitClicked publishedPost.id)
                 (always ClickHappened)
-                unlockStatus
 
 
 supportTipButton :
@@ -384,9 +377,8 @@ unlockOrInputForm :
     -> String
     -> String
     -> (TokenValue -> Msg)
-    -> UnlockStatus
     -> Element Msg
-unlockOrInputForm dProfile donateChecked bgColor currentString buttonLabel onSubmit unlockStatus =
+unlockOrInputForm dProfile donateChecked bgColor currentString buttonLabel onSubmit =
     Element.row
         [ Element.padding 10
         , Element.Border.rounded 6
@@ -397,12 +389,7 @@ unlockOrInputForm dProfile donateChecked bgColor currentString buttonLabel onSub
             5
         , Element.width <| Element.fillPortion 1
         ]
-        [ unlockUXOr
-            dProfile
-            []
-            unlockStatus
-            (inputForm dProfile donateChecked currentString buttonLabel onSubmit)
-        , EH.closeButton
+        [ EH.closeButton
             [ Element.alignTop
             , Element.moveUp 5
             , Element.moveRight 5

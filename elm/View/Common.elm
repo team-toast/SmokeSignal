@@ -1,4 +1,4 @@
-module View.Common exposing (appStatusMessage, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, unlockButton, unlockUXOr, viewContext, web3ConnectButton)
+module View.Common exposing (appStatusMessage, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, unlockButton, viewContext, web3ConnectButton)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
@@ -14,7 +14,7 @@ import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal)
 import Phace
 import Theme exposing (theme)
-import Types exposing (Content, Context, Id, Msg, UnlockStatus(..))
+import Types exposing (Content, Context, Id, Msg)
 
 
 viewContext : Context -> Element Msg
@@ -234,35 +234,6 @@ renderContentOrError content =
                 Element.text <|
                     "Error parsing/rendering markdown: "
                         ++ errStr
-
-
-unlockUXOr : DisplayProfile -> List (Attribute Msg) -> UnlockStatus -> Element Msg -> Element Msg
-unlockUXOr dProfile attributes unlockStatus el =
-    case unlockStatus of
-        NotConnected ->
-            web3ConnectButton
-                dProfile
-                attributes
-
-        Checking ->
-            loadingElement
-                attributes
-            <|
-                Just "Checking DAI lock..."
-
-        Locked ->
-            unlockButton
-                dProfile
-                attributes
-
-        Unlocking ->
-            loadingElement
-                attributes
-            <|
-                Just "Unlocking DAI..."
-
-        Unlocked ->
-            Element.el attributes el
 
 
 unlockButton : EH.DisplayProfile -> List (Attribute Msg) -> Element Msg

@@ -1,4 +1,4 @@
-module Types exposing (Accounting, CheckedMaybeValidInputs, Content, Context(..), Core, Draft, EncodedDraft, FailReason(..), Flags, GTagData, Id, Metadata, Model, Msg(..), PhaceIconId(..), Post(..), PostState, PostUXId(..), Published, PublishedPostsDict, ReplyIds, Route(..), ShowInputState(..), TrackedTx, TxInfo(..), TxStatus(..), UserInfo, View(..), ViewContext(..), Wallet(..))
+module Types exposing (Accounting, CheckedMaybeValidInputs, Content, Context(..), Core, Draft, EncodedDraft, FailReason(..), Flags, GTagData, Id, Metadata, Model, Msg(..), PhaceIconId(..), Post(..), PostState, PostUXId(..), Published, PublishedPostsDict, ReplyIds, Route(..), ShowInputState(..), TrackedTx, TxInfo(..), TxStatus(..), UserInfo, View(..), Wallet(..))
 
 import Browser
 import Browser.Navigation
@@ -137,11 +137,6 @@ type Wallet
     = NoneDetected
     | OnlyNetwork Eth.Net.NetworkId
     | Active UserInfo
-
-
-type ViewContext
-    = ViewPost Id
-    | Topic String
 
 
 type alias PublishedPostsDict =
