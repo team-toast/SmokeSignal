@@ -12,15 +12,14 @@ import Helpers.Eth as EthHelpers
 import Helpers.Time as TimeHelpers
 import Helpers.Tuple as TupleHelpers
 import Html exposing (Html)
-import Html.Attributes
 import Maybe.Extra
 import Misc exposing (getPublishedPostFromId, getTitle)
 import Theme exposing (theme)
 import Time
 import Tuple3
-import Types exposing (Context(..), FailReason(..), Metadata, Model, Msg(..), Route(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), View(..), Wallet)
+import Types exposing (Context(..), FailReason(..), Metadata, Model, Msg(..), Route(..), TrackedTx, TxInfo(..), TxStatus(..), View(..), Wallet)
 import UserNotice as UN exposing (UserNotice)
-import View.Attrs exposing (whiteGlowAttribute)
+import View.Attrs exposing (cappedWidth, whiteGlowAttribute)
 import View.Common exposing (appStatusMessage, viewContext)
 import View.Compose
 import View.Home
@@ -62,6 +61,7 @@ viewPage : Model -> Element Msg
 viewPage model =
     [ header model.wallet model.searchInput
     , viewBody model
+        |> el [ height fill, cappedWidth maxContentColWidth, Element.centerX ]
     , footer
     ]
         |> column
@@ -82,6 +82,7 @@ header wallet searchInput =
     , Input.text
         [ fill |> Element.maximum 350 |> width
         , Background.color black
+        , View.Attrs.whiteGlowAttributeSmall
         ]
         { onChange = always ClickHappened
         , label = Input.labelHidden ""
