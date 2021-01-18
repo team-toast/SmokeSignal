@@ -1,5 +1,6 @@
 module Contracts.SmokeSignal exposing (..)
 
+import Helpers.Eth as EthHelpers
 import Config
 import Contracts.Generated.SmokeSignal as G
 import Element
@@ -57,8 +58,8 @@ burnEncodedPost encodedPost =
     G.burnMessage
         Config.smokesignalContractAddress
         encodedPost.encodedContentAndMetadata
-        (TokenValue.getEvmValue encodedPost.burnAmount)
         (TokenValue.getEvmValue encodedPost.donateAmount)
+        |> EthHelpers.updateCallValue (TokenValue.getEvmValue encodedPost.burnAmount)
 
 
 fromMessageBurn : TxHash -> Int -> (Content -> Element.Element msg) -> MessageBurn -> Published
@@ -94,8 +95,8 @@ toAccounting : G.StoredMessageData -> Accounting
 toAccounting storedMessageData =
     Accounting
         storedMessageData.firstAuthor
-        (TokenValue.tokenValue storedMessageData.totalBurned)
-        (TokenValue.tokenValue storedMessageData.totalTipped)
+        (TokenValue.tokenValue storedMessageData.nativeBurned)
+        (TokenValue.tokenValue storedMessageData.nativeTipped)
 
 
 getAccountingCmd : Hex -> (Result Http.Error Accounting -> msg) -> Cmd msg
@@ -115,7 +116,6 @@ tipForPost messageHash amount donate =
     G.tipHashOrBurnIfNoAuthor
         Config.smokesignalContractAddress
         messageHash
-        (TokenValue.getEvmValue amount)
         (if donate then
             TokenValue.div
                 amount
@@ -125,6 +125,7 @@ tipForPost messageHash amount donate =
          else
             TokenValue.zero |> TokenValue.getEvmValue
         )
+        |> EthHelpers.updateCallValue (TokenValue.getEvmValue amount)
 
 
 burnForPost : Hex -> TokenValue -> Bool -> Call ()
@@ -132,7 +133,6 @@ burnForPost messageHash amount donate =
     G.burnHash
         Config.smokesignalContractAddress
         messageHash
-        (TokenValue.getEvmValue amount)
         (if donate then
             TokenValue.div
                 amount
@@ -142,3 +142,4 @@ burnForPost messageHash amount donate =
          else
             TokenValue.zero |> TokenValue.getEvmValue
         )
+        |> EthHelpers.updateCallValue (TokenValue.getEvmValue amount)

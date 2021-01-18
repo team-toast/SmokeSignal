@@ -117,16 +117,6 @@ withBalance balance userInfo =
     }
 
 
-withUnlockStatus :
-    UnlockStatus
-    -> UserInfo
-    -> UserInfo
-withUnlockStatus unlockStatus userInfo =
-    { userInfo
-        | unlockStatus = unlockStatus
-    }
-
-
 getPublishedPostFromId :
     PublishedPostsDict
     -> Id

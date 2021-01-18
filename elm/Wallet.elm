@@ -1,9 +1,9 @@
-module Wallet exposing (network, unlockStatus, userInfo, withFetchedBalance, withUnlockStatus)
+module Wallet exposing (network, userInfo, withFetchedBalance)
 
 import Eth.Net
 import Misc exposing (withBalance)
 import TokenValue exposing (TokenValue)
-import Types exposing (UnlockStatus(..), UserInfo, Wallet(..))
+import Types exposing (UserInfo, Wallet(..))
 
 
 userInfo : Wallet -> Maybe UserInfo
@@ -38,24 +38,3 @@ withFetchedBalance balance wallet =
 
         _ ->
             wallet
-
-
-withUnlockStatus : UnlockStatus -> Wallet -> Wallet
-withUnlockStatus status wallet =
-    case wallet of
-        Active uInfo ->
-            Active <|
-                (uInfo |> Misc.withUnlockStatus status)
-
-        _ ->
-            wallet
-
-
-unlockStatus : Wallet -> UnlockStatus
-unlockStatus wallet =
-    case wallet of
-        Active uInfo ->
-            uInfo.unlockStatus
-
-        _ ->
-            NotConnected

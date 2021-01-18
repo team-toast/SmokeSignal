@@ -10,7 +10,6 @@ module Update exposing (update)
 import Browser
 import Browser.Navigation
 import Config
-import Contracts.Dai as Dai
 import Contracts.SmokeSignal as SSContract
 import DemoPhaceSrcMutator
 import Dict exposing (Dict)
@@ -32,7 +31,7 @@ import Routing
 import Task
 import Time
 import TokenValue
-import Types exposing (GTagData, Id, Model, Msg(..), Published, Route(..), TrackedTx, TxInfo(..), TxStatus(..), UnlockStatus(..), UserInfo, View(..))
+import Types exposing (GTagData, Id, Model, Msg(..), Published, Route(..), TrackedTx, TxInfo(..), TxStatus(..), UserInfo, View(..))
 import Url
 import UserNotice as UN exposing (UserNotice)
 import View.Common
@@ -176,12 +175,13 @@ update msg prevModel =
                                         )
 
                                     else
-                                        ( Types.Active <|
-                                            UserInfo
-                                                walletSentry.networkId
-                                                newAddress
-                                                Nothing
-                                                Checking
+                                        --( Types.Active <|
+                                        --UserInfo
+                                        --walletSentry.networkId
+                                        --newAddress
+                                        --Nothing
+                                        --Checking
+                                        ( prevModel.wallet
                                         , fetchDaiBalanceAndAllowanceCmd newAddress
                                         )
 
@@ -343,10 +343,13 @@ update msg prevModel =
 
                             newWallet =
                                 if isUnlocked then
-                                    prevModel.wallet |> Wallet.withUnlockStatus Unlocked
+                                    --prevModel.wallet |> Wallet.withUnlockStatus Unlocked
+                                    prevModel.wallet
 
-                                else if Wallet.unlockStatus prevModel.wallet /= Unlocking then
-                                    prevModel.wallet |> Wallet.withUnlockStatus Locked
+                                else if False then
+                                    --else if Wallet.unlockStatus prevModel.wallet /= Unlocking then
+                                    --prevModel.wallet |> Wallet.withUnlockStatus Locked
+                                    prevModel.wallet
 
                                 else
                                     prevModel.wallet
@@ -519,21 +522,12 @@ update msg prevModel =
                                     --prevModel.postUX
                                     Nothing
 
-                        newWallet =
-                            case txInfo of
-                                UnlockTx ->
-                                    prevModel.wallet
-                                        |> Wallet.withUnlockStatus Unlocking
-
-                                _ ->
-                                    prevModel.wallet
-
                         interimModel =
                             { prevModel
                                 | showExpandedTrackedTxs = True
 
                                 --, postUX = newPostUX
-                                , wallet = newWallet
+                                --, wallet = newWallet
                             }
                                 |> addTrackedTx txHash txInfo
                     in
@@ -642,24 +636,22 @@ update msg prevModel =
             )
 
         UnlockDai ->
-            let
-                txParams =
-                    Dai.unlockDaiCall
-                        |> Eth.toSend
-
-                listeners =
-                    { onMined = Nothing
-                    , onSign = Just <| TxSigned UnlockTx
-                    , onBroadcast = Nothing
-                    }
-
-                ( txSentry, cmd ) =
-                    TxSentry.customSend prevModel.txSentry listeners txParams
-            in
+            --let
+            --txParams =
+            --Dai.unlockDaiCall
+            --|> Eth.toSend
+            --listeners =
+            --{ onMined = Nothing
+            --, onSign = Just <| TxSigned UnlockTx
+            --, onBroadcast = Nothing
+            --}
+            --( txSentry, cmd ) =
+            --TxSentry.customSend prevModel.txSentry listeners txParams
+            --in
             ( { prevModel
-                | txSentry = txSentry
+                | txSentry = prevModel.txSentry
               }
-            , cmd
+            , Cmd.none
             )
 
         SubmitPost postDraft ->
@@ -1049,9 +1041,10 @@ fetchDaiBalanceAndAllowanceCmd :
     -> Cmd Msg
 fetchDaiBalanceAndAllowanceCmd address =
     Cmd.batch
-        [ Dai.getAllowanceCmd address (AllowanceFetched address)
-        , Dai.getBalanceCmd address (BalanceFetched address)
-        ]
+        --[ Dai.getAllowanceCmd address (AllowanceFetched address)
+        --, Dai.getBalanceCmd address (BalanceFetched address)
+        --]
+        []
 
 
 getBlockTimeCmd :
