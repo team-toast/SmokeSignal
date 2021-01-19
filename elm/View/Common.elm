@@ -124,18 +124,6 @@ web3ConnectButton dProfile attrs =
         (EH.Action Types.ConnectToWeb3)
 
 
-loadingElement : List (Attribute Msg) -> Maybe String -> Element Msg
-loadingElement attrs maybeString =
-    Element.el
-        ([ Font.italic
-         , Font.color theme.loadingTextColor
-         , Font.size 20
-         ]
-            ++ attrs
-        )
-        (Element.text <| Maybe.withDefault "loading..." maybeString)
-
-
 phaceElement : ( Int, Int ) -> Bool -> Address -> Bool -> Msg -> Element Msg
 phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClick =
     let
