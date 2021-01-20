@@ -48,7 +48,7 @@ routeToString basePath route =
 
                 RouteTopic str ->
                     Builder.relative
-                        [ "#!", "context", "topic", Url.percentEncode str ]
+                        [ "#!", "context", "topic", Url.percentEncode <| String.toLower str ]
                         --(encodeViewContextQueryParams context)
                         []
 

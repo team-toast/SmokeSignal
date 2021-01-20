@@ -178,7 +178,7 @@ viewBody : Model -> Element Msg
 viewBody model =
     case model.view of
         ViewHome ->
-            View.Home.view model
+            View.Home.viewOverview model
 
         ViewCompose ->
             View.Compose.view model
@@ -204,7 +204,7 @@ viewBody model =
                         "Loading post..."
 
         ViewTopic topic ->
-            View.Topic.view model topic
+            View.Home.viewTopic model topic
 
 
 modals : Model -> List (Element Msg)

@@ -1,15 +1,16 @@
 module View.Topic exposing (view)
 
 import Dict exposing (Dict)
-import Element exposing (Element, centerX, column, fill, padding, spacing, text, width)
-import Element.Background
-import Element.Border
-import Element.Font
-import Helpers.Element as EH exposing (DisplayProfile)
+import Element exposing (Element, centerX, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
+import Element.Background as Background
+import Element.Border as Border
+import Element.Font as Font
+import Element.Input as Input
+import Helpers.Element as EH exposing (DisplayProfile, black, white)
 import Theme exposing (theme)
 import Time
 import Types exposing (Context(..), Model, Msg, Published, PublishedPostsDict, Wallet)
-import View.Attrs exposing (cappedWidth, whiteGlowAttribute)
+import View.Attrs exposing (cappedWidth, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Post
 
 
@@ -27,25 +28,49 @@ view model topic =
     ]
         |> column
             [ width fill
-            , spacing 20
-            , Element.paddingEach
-                { top = 20
-                , bottom = 0
-                , right = 0
-                , left = 0
-                }
+            , height fill
+            , spacing 10
+            , Element.alignTop
             ]
 
 
 topicHeader : String -> Element Msg
 topicHeader topic =
-    column
-        [ whiteGlowAttribute
-        , Element.Font.color EH.white
-        , width fill
-        , padding 10
-        ]
-        [ text topic ]
+    [ [ topic
+            |> text
+            |> el [ Font.size 35 ]
+      , Element.image
+            [ height <| px 50
+            , width <| px 50
+            ]
+            { src = "/img/bookmark.svg"
+            , description = ""
+            }
+      ]
+        |> row
+            [ width fill
+            , spaceEvenly
+            , Background.color black
+            , Font.color white
+            , padding 15
+            ]
+    , "Comment..."
+        |> text
+        |> el
+            [ View.Attrs.sansSerifFont
+            , padding 10
+            , slightRound
+            , Background.color Theme.orange
+            , Font.bold
+            , Font.color white
+            , Font.size 20
+            , width fill
+            ]
+    ]
+        |> column
+            [ width fill
+            , whiteGlowAttributeSmall
+            ]
 
 
 viewPosts : DisplayProfile -> Bool -> Bool -> String -> Dict Int Time.Posix -> Time.Posix -> Wallet -> PublishedPostsDict -> Element Msg
@@ -73,12 +98,11 @@ viewPosts dProfile donateChecked showAddressOnPhace topic blockTimes now wallet 
                 state
             )
         |> column
-            [ cappedWidth 600
-            , centerX
-            , Element.Background.color theme.blockBackground
-            , Element.Border.width 1
-            , Element.Border.color theme.blockBorderColor
-            , Element.Border.rounded 5
+            [ width fill
+            , Background.color theme.blockBackground
+            , Border.width 1
+            , Border.color theme.blockBorderColor
+            , Border.rounded 5
             ]
 
 
