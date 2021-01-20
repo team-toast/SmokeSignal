@@ -6,7 +6,7 @@ import Element.Background as Background
 import Element.Border
 import Element.Events
 import Element.Font as Font
-import Element.Input
+import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile, black, responsiveVal, white)
 import Helpers.Time as TimeHelpers
 import Misc
@@ -29,64 +29,69 @@ view :
     -> Published
     -> Element Msg
 view dProfile donateChecked showAddressOnPhace blockTimes now wallet state post =
-    [ [ viewAccounting dProfile post
-      , [ post.core.metadata.context
-            |> Misc.contextTopLevel
-            |> whenJust
-                (text
-                    >> el [ Font.size 30 ]
-                )
-        , [ text <| "Block " ++ String.fromInt post.id.block
-          , viewTiming dProfile blockTimes now post.id
+    Input.button
+        [ Background.color black
+        , Font.color white
+        , whiteGlowAttributeSmall
+        , padding 5
+        ]
+        { onPress = Just <| GotoRoute <| Types.RoutePost post.id
+        , label =
+            [ [ viewAccounting dProfile post
+              , [ post.core.metadata.context
+                    |> Misc.contextTopLevel
+                    |> whenJust
+                        (text
+                            >> el [ Font.size 30 ]
+                        )
+                , [ text <| "Block " ++ String.fromInt post.id.block
+                  , viewTiming dProfile blockTimes now post.id
 
-          --, viewContext dProfile post.core.metadata.context
-          ]
-            |> row
-                [ spacing 20
-                , Font.size 17
-                , Font.color theme.subtleTextColor
+                  --, viewContext dProfile post.core.metadata.context
+                  ]
+                    |> row
+                        [ spacing 20
+                        , Font.size 17
+                        , Font.color theme.subtleTextColor
+                        ]
                 ]
-        ]
-            |> row [ width fill, spaceEvenly ]
-      ]
-        |> row [ width fill, spacing 10 ]
-    , [ phaceElement
-            ( 60, 60 )
-            True
-            post.core.author
-            showAddressOnPhace
-            ClickHappened
-      , [ post.core.content.title |> whenJust (text >> el [ Font.bold ])
-        , post.core.content.body
-            |> limitedString
-            |> text
-            |> List.singleton
-            |> Element.paragraph []
-        , [ supportTipButton post.id
-          , supportBurnButton post.id
-          , replyButton post.id
-          ]
-            |> row
-                [ spacing 5
-                , Element.alignRight
+                    |> row [ width fill, spaceEvenly ]
+              ]
+                |> row [ width fill, spacing 10 ]
+            , [ phaceElement
+                    ( 60, 60 )
+                    True
+                    post.core.author
+                    showAddressOnPhace
+                    ClickHappened
+              , [ post.core.content.title |> whenJust (text >> el [ Font.bold ])
+                , post.core.content.body
+                    |> limitedString
+                    |> text
+                    |> List.singleton
+                    |> Element.paragraph []
+                , [ supportTipButton post.id
+                  , supportBurnButton post.id
+                  , replyButton post.id
+                  ]
+                    |> row
+                        [ spacing 5
+                        , Element.alignRight
+                        ]
                 ]
-        ]
-            |> column
-                [ spacing 10
-                , View.Attrs.sansSerifFont
-                , width fill
-                ]
-      ]
-        |> row [ width fill, spacing 10 ]
-    ]
-        |> column
-            [ Background.color black
-            , Font.color white
-            , whiteGlowAttributeSmall
-            , width fill
-            , padding 5
-            , spacing 5
+                    |> column
+                        [ spacing 10
+                        , View.Attrs.sansSerifFont
+                        , width fill
+                        ]
+              ]
+                |> row [ width fill, spacing 10 ]
             ]
+                |> column
+                    [ width fill
+                    , spacing 5
+                    ]
+        }
 
 
 view_ :
@@ -514,13 +519,13 @@ inputForm dProfile donateChecked currentString buttonLabel onSubmit =
             [ Element.centerX
             , Font.size 12
             ]
-            [ Element.Input.checkbox
+            [ Input.checkbox
                 []
                 { onChange = Types.DonationCheckboxSet
-                , icon = Element.Input.defaultCheckbox
+                , icon = Input.defaultCheckbox
                 , checked = donateChecked
                 , label =
-                    Element.Input.labelRight
+                    Input.labelRight
                         [ Element.centerY
                         ]
                     <|

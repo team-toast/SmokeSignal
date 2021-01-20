@@ -80,6 +80,13 @@ update msg prevModel =
                     , Cmd.none
                     )
 
+                RoutePost id ->
+                    ( { prevModel
+                        | view = ViewPost id
+                      }
+                    , Cmd.none
+                    )
+
                 RouteTopic str ->
                     ( { prevModel
                         | view = ViewTopic str
@@ -827,6 +834,9 @@ gotoRoute route prevModel =
             )
 
         RouteTopic _ ->
+            ( prevModel, Cmd.none )
+
+        RoutePost _ ->
             ( prevModel, Cmd.none )
 
         NotFound err ->

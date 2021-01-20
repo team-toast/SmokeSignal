@@ -3,6 +3,7 @@ module Routing exposing (routeParser, routeToString, urlToRoute)
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Maybe.Extra exposing (unwrap)
+import Result.Extra
 import Types exposing (Context(..), Id, Route(..))
 import Url exposing (Url)
 import Url.Builder as Builder
@@ -15,14 +16,9 @@ routeParser =
     Parser.oneOf
         [ Parser.map Home Parser.top
         , Parser.s "context"
-            </> Parser.s "topic"
-            </> Parser.string
-            |> Parser.map
-                (Url.percentDecode
-                    >> unwrap (NotFound "topic decode fail") RouteTopic
-                )
+            </> postContextParser
+            |> Parser.map (Result.Extra.unpack NotFound identity)
 
-        --|> Parser.map (Result.Extra.unpack NotFound RouteViewContext)
         --, (Parser.s "compose" </> postContextParser)
         --|> Parser.map (Result.Extra.unpack NotFound Compose)
         ]
@@ -56,6 +52,11 @@ routeToString basePath route =
                         --(encodeViewContextQueryParams context)
                         []
 
+                RoutePost id ->
+                    Builder.relative
+                        [ "#!", "context", "re" ]
+                        (encodePostIdQueryParameters id)
+
                 NotFound _ ->
                     Builder.relative
                         [ "#!" ]
@@ -68,20 +69,14 @@ routeToFullDotEthUrlString route =
     routeToString "https://smokesignal.eth/" route
 
 
-
---viewContextParser : Parser (Result String ViewContext -> a) a
---viewContextParser =
---postContextParser |> Parser.map (Result.map postContextToViewContext)
-
-
-postContextParser : Parser (Result String Context -> a) a
+postContextParser : Parser (Result String Route -> a) a
 postContextParser =
     Parser.oneOf
         [ (Parser.s "re" <?> postIdQueryParser)
-            |> Parser.map (Result.map Reply)
+            |> Parser.map (Result.map RoutePost)
         , (Parser.s "topic" </> topicParser)
             |> Parser.map (Result.fromMaybe "Couldn't parse topic")
-            |> Parser.map (Result.map TopLevel)
+            |> Parser.map (Result.map RouteTopic)
         ]
 
 

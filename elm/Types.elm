@@ -154,6 +154,7 @@ type Route
     | Compose Context
     | RouteViewContext
     | RouteTopic String
+    | RoutePost Id
     | NotFound String
 
 
