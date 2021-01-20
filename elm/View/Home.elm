@@ -1,4 +1,4 @@
-module View.Home exposing (banner, view)
+module View.Home exposing (banner, viewOverview, viewTopic)
 
 import Dict exposing (Dict)
 import Dict.Extra
@@ -20,58 +20,16 @@ import Types exposing (Context(..), Id, Model, Msg(..), PhaceIconId(..), Post(..
 import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common exposing (daiSymbol, phaceElement)
 import View.Post
+import View.Topic
 import Wallet
 
 
 view : Model -> Element Msg
 view model =
-    let
-        dProfile =
-            model.dProfile
-
-        donateChecked =
-            model.donateChecked
-
-        blockTimes =
-            model.blockTimes
-
-        now =
-            model.now
-
-        showAddressId =
-            model.showAddressId
-
-        demoPhaceSrc =
-            model.demoPhaceSrc
-
-        wallet =
-            model.wallet
-
-        posts =
-            model.publishedPosts
-
-        state =
-            { showAddress = False
-            , showInput = Types.None
-            }
-    in
-    case dProfile of
+    case model.dProfile of
         Desktop ->
-            [ banner dProfile
-            , body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts state model.searchInput
-            ]
-                |> column
-                    ([ width fill
-                     , height fill
-                     , spacing 10
-                     ]
-                        ++ (List.map Element.inFront <|
-                                viewModals
-                                    dProfile
-                                    --model.showNewToSmokeSignalModal
-                                    False
-                           )
-                    )
+            --viewDesktop model
+            text "mobile view"
 
         Mobile ->
             text "mobile view"
@@ -204,19 +162,41 @@ banner dProfile =
             ]
 
 
-body :
-    DisplayProfile
-    -> Bool
-    -> Dict Int Time.Posix
-    -> Time.Posix
-    -> Maybe PhaceIconId
-    -> String
-    -> Types.Wallet
-    -> PublishedPostsDict
-    -> PostState
-    -> String
-    -> Element Msg
-body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet posts state searchInput =
+viewFrame : Model -> Element Msg -> Element Msg
+viewFrame model elem =
+    [ banner model.dProfile
+    , [ elem
+      , [ walletUXPane model.dProfile model.showAddressId model.demoPhaceSrc model.wallet
+        , topicsUX model.dProfile model.searchInput model.publishedPosts
+        ]
+            |> column
+                [ cappedWidth 400
+                , spacing 10
+                , height fill
+                ]
+      ]
+        |> row
+            [ width fill
+            , height fill
+            , spacing 10
+            ]
+    ]
+        |> column
+            ([ width fill
+             , height fill
+             , spacing 10
+             ]
+                ++ (List.map Element.inFront <|
+                        viewModals
+                            model.dProfile
+                            --model.showNewToSmokeSignalModal
+                            False
+                   )
+            )
+
+
+viewOverview : Model -> Element Msg
+viewOverview model =
     let
         xs =
             Dict.values posts
@@ -230,24 +210,53 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
 
                 _ ->
                     Nothing
+
+        dProfile =
+            model.dProfile
+
+        donateChecked =
+            model.donateChecked
+
+        blockTimes =
+            model.blockTimes
+
+        now =
+            model.now
+
+        showAddressId =
+            model.showAddressId
+
+        demoPhaceSrc =
+            model.demoPhaceSrc
+
+        wallet =
+            model.wallet
+
+        posts =
+            model.publishedPosts
+
+        state =
+            { showAddress = False
+            , showInput = Types.None
+            }
     in
-    [ [ "NEW TO SMOKE SIGNAL?"
-            |> text
-            |> el
-                [ View.Attrs.sansSerifFont
-                , padding 20
-                , slightRound
-                , Background.color Theme.orange
-                , Font.bold
-                , Font.color white
-                , Font.size 30
-                , whiteGlowAttributeSmall
-                , width fill
-                ]
-      , [ [ [ "Topics"
+    [ "NEW TO SMOKE SIGNAL?"
+        |> text
+        |> el
+            [ View.Attrs.sansSerifFont
+            , padding 20
+            , slightRound
+            , Background.color Theme.orange
+            , Font.bold
+            , Font.color white
+            , Font.size 30
+            , whiteGlowAttributeSmall
+            , width fill
+            ]
+    , [ [ [ "Topics"
                 |> text
                 |> el [ Font.size 35 ]
-            , Input.text
+          , Input.text
                 [ width fill
                 , Background.color EH.black
                 , Border.color Theme.almostWhite
@@ -265,58 +274,51 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
                             (Element.text "Find or Create Topic...")
                 , label = Input.labelHidden "topic"
                 }
-            ]
-                |> row
-                    [ width fill
-                    , Background.color black
-                    , spacing 50
-                    , Font.color white
-                    , padding 15
-                    ]
-          , "MORE RECENT POSTS..."
-                |> text
-                |> el
-                    [ View.Attrs.sansSerifFont
-                    , padding 10
-                    , slightRound
-                    , Background.color Theme.orange
-                    , Font.bold
-                    , Font.color white
-                    , Font.size 20
-                    , width fill
-                    ]
           ]
+            |> row
+                [ width fill
+                , Background.color black
+                , spacing 50
+                , Font.color white
+                , padding 15
+                ]
+        , "MORE RECENT POSTS..."
+            |> text
+            |> el
+                [ View.Attrs.sansSerifFont
+                , padding 10
+                , slightRound
+                , Background.color Theme.orange
+                , Font.bold
+                , Font.color white
+                , Font.size 20
+                , width fill
+                ]
+        ]
             |> column
                 [ width fill
                 , whiteGlowAttributeSmall
                 ]
-        , postFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet xs state
-        ]
-            |> column
-                [ width fill
-                , Element.spacing 3
-                , height fill
-                ]
+      , postFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet xs state
       ]
+        |> column
+            [ width fill
+            , Element.spacing 3
+            , height fill
+            ]
+    ]
         |> column
             [ spacing 10
             , width <| fillPortion 2
             , height fill
             ]
-    , [ walletUXPane dProfile showAddressId demoPhaceSrc wallet
-      , topicsUX dProfile searchInput posts
-      ]
-        |> column
-            [ cappedWidth 400
-            , spacing 10
-            , height fill
-            ]
-    ]
-        |> row
-            [ width fill
-            , height fill
-            , spacing 10
-            ]
+        |> viewFrame model
+
+
+viewTopic : Model -> String -> Element Msg
+viewTopic model topic =
+    View.Topic.view model topic
+        |> viewFrame model
 
 
 orangeBannerEl :
@@ -456,7 +458,7 @@ viewTopVoices =
             ]
 
 
-viewBookmarkedTopics : Element msg
+viewBookmarkedTopics : Element Msg
 viewBookmarkedTopics =
     [ [ Element.image
             [ height <| px 30
@@ -490,21 +492,28 @@ viewBookmarkedTopics =
       ]
         |> List.map
             (\txt ->
-                [ txt
-                    |> text
-                    |> el [ width fill, Font.size 20 ]
-                , 7
-                    |> String.fromInt
-                    |> text
-                    |> el [ Font.size 30, Font.bold ]
-                ]
-                    |> row
-                        [ width fill
-                        , whiteGlowAttributeSmall
-                        , Background.color black
-                        , Font.color white
-                        , paddingXY 15 5
+                Input.button
+                    [ width fill
+                    , whiteGlowAttributeSmall
+                    , Background.color black
+                    , Font.color white
+                    , paddingXY 15 5
+                    , hover
+                    ]
+                    { onPress = Just <| GotoRoute <| RouteTopic txt
+                    , label =
+                        [ txt
+                            |> text
+                            |> el [ width fill, Font.size 20 ]
+                        , 7
+                            |> String.fromInt
+                            |> text
+                            |> el [ Font.size 30, Font.bold ]
                         ]
+                            |> row
+                                [ width fill
+                                ]
+                    }
             )
         |> column [ width fill, height <| px 120, Element.scrollbarY ]
     ]
@@ -614,6 +623,9 @@ topicsColumn dProfile topicSearchStr allPosts =
 
             else
                 Nothing
+
+        _ =
+            List.length filteredTalliedTopics
     in
     filteredTalliedTopics
         |> List.map

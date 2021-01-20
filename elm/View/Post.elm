@@ -60,9 +60,9 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet state post 
                 |> row [ width fill, spacing 10 ]
             , [ phaceElement
                     ( 60, 60 )
-                    True
+                    False
                     post.core.author
-                    showAddressOnPhace
+                    False
                     ClickHappened
               , [ post.core.content.title |> whenJust (text >> el [ Font.bold ])
                 , post.core.content.body
