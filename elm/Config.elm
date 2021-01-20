@@ -1,14 +1,11 @@
-module Config exposing (..)
+module Config exposing (httpProviderUrl, initDemoPhaceSrc, smokesignalContractAddress, startScanBlock)
 
-import BigInt exposing (BigInt)
-import Eth.Types exposing (Address)
+import Eth.Types exposing (Address, Hex)
 import Eth.Utils
-import Post
-import Time
-import TokenValue exposing (TokenValue)
 import Types exposing (Id)
 
 
+testMode : Bool
 testMode =
     False
 
@@ -61,4 +58,4 @@ startScanBlock =
         0
 
     else
-        9786122
+        11679315

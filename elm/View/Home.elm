@@ -1,6 +1,5 @@
 module View.Home exposing (banner, view)
 
-import Config
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, fillPortion, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
@@ -14,7 +13,6 @@ import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Helpers.Time as TimeHelpers
 import Maybe.Extra exposing (unwrap)
 import Misc exposing (getPublishedPostFromId)
-import Post
 import Theme exposing (almostWhite, theme)
 import Time
 import TokenValue exposing (TokenValue)
@@ -194,7 +192,7 @@ banner dProfile =
             , centerX
             , centerY
             , Font.color EH.white
-            , View.Attrs.sanSerifFont
+            , View.Attrs.sansSerifFont
             , Font.bold
             , Font.size 30
             ]
@@ -236,7 +234,7 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
     [ [ "NEW TO SMOKE SIGNAL?"
             |> text
             |> el
-                [ View.Attrs.sanSerifFont
+                [ View.Attrs.sansSerifFont
                 , padding 20
                 , slightRound
                 , Background.color Theme.orange
@@ -278,7 +276,7 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
           , "MORE RECENT POSTS..."
                 |> text
                 |> el
-                    [ View.Attrs.sanSerifFont
+                    [ View.Attrs.sansSerifFont
                     , padding 10
                     , slightRound
                     , Background.color Theme.orange
@@ -756,7 +754,7 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
 
                     else
                         ( "Compose Post"
-                        , Just <| EH.Action <| GotoRoute <| Compose <| TopLevel Post.defaultTopic
+                        , Just <| EH.Action <| GotoRoute <| Compose <| TopLevel Misc.defaultTopic
                         , Nothing
                         )
 
@@ -874,7 +872,7 @@ feedSortByFunc blockTimes now =
                     |> (\ascNum -> 1 - ascNum)
 
             totalBurned =
-                Post.totalBurned (PublishedPost post)
+                Misc.totalBurned (PublishedPost post)
                     |> TokenValue.toFloatWithWarning
 
             newnessMultiplier =

@@ -23,6 +23,7 @@ import View.Attrs exposing (cappedWidth, whiteGlowAttribute)
 import View.Common exposing (appStatusMessage, viewContext)
 import View.Compose
 import View.Home
+import View.Post
 import View.Topic
 
 
@@ -73,11 +74,15 @@ viewPage model =
 
 header : Wallet -> String -> Element Msg
 header wallet searchInput =
-    [ Element.image
-        [ height <| px 50
-        ]
-        { src = "img/smokesignal-logo-horizontal.svg"
-        , description = "smokesignal logo"
+    [ Input.button []
+        { onPress = Just <| GotoRoute Home
+        , label =
+            Element.image
+                [ height <| px 50
+                ]
+                { src = "img/smokesignal-logo-horizontal.svg"
+                , description = "smokesignal logo"
+                }
         }
     , Input.text
         [ fill |> Element.maximum 350 |> width
@@ -181,25 +186,17 @@ viewBody model =
         ViewPost postId ->
             case getPublishedPostFromId model.publishedPosts postId of
                 Just post ->
-                    Element.column
-                        [ Element.width (Element.fill |> Element.maximum (maxContentColWidth + 100))
-                        , Element.centerX
-                        , Element.spacing 20
-                        , Element.paddingEach
-                            { top = 20
-                            , bottom = 0
-                            , right = 0
-                            , left = 0
-                            }
-                        ]
-                        [--, Element.Lazy.lazy5
-                         --(viewPostAndReplies model.dProfile model.donateChecked model.wallet)
-                         --model.publishedPosts
-                         --model.blockTimes
-                         --model.replies
-                         --post
-                         --model.postUX
-                        ]
+                    View.Post.view model.dProfile
+                        model.donateChecked
+                        False
+                        model.blockTimes
+                        model.now
+                        model.wallet
+                        { showAddress = False
+                        , showInput = Types.None
+                        }
+                        post
+                        |> el [ Element.centerX, View.Attrs.cappedWidth 600, padding 50 ]
 
                 Nothing ->
                     appStatusMessage
@@ -208,21 +205,6 @@ viewBody model =
 
         ViewTopic topic ->
             View.Topic.view model topic
-
-
-
---viewPostAndReplies :
---DisplayProfile
----> Bool
----> Wallet
----> PublishedPostsDict
----> Dict Int Time.Posix
----> List ReplyIds
----> Published
----> Maybe ( PostUXId, PostUX.Model )
----> Element Msg
---viewPostAndReplies dProfile donateChecked wallet allPosts blockTimes replies publishedPost postUX =
---dummyElement
 
 
 modals : Model -> List (Element Msg)
@@ -759,5 +741,6 @@ coloredAppTitle attributes =
         ]
 
 
+maxContentColWidth : Int
 maxContentColWidth =
-    1000
+    1200

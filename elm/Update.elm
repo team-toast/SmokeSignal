@@ -25,13 +25,12 @@ import List.Extra
 import Maybe.Extra
 import Misc exposing (defaultSeoDescription, txInfoToNameStr, updatePublishedPost)
 import Ports exposing (connectToWeb3, consentToCookies, gTagOut, setDescription)
-import Post
 import Random
 import Routing
 import Task
 import Time
 import TokenValue
-import Types exposing (GTagData, Id, Model, Msg(..), Published, Route(..), TrackedTx, TxInfo(..), TxStatus(..), UserInfo, View(..))
+import Types exposing (GTagData, Id, Model, Msg(..), Published, Route(..), TrackedTx, TxInfo(..), TxStatus(..), View(..))
 import Url
 import UserNotice as UN exposing (UserNotice)
 import View.Common
@@ -77,6 +76,13 @@ update msg prevModel =
                 RouteViewContext ->
                     ( { prevModel
                         | view = prevModel.view
+                      }
+                    , Cmd.none
+                    )
+
+                RoutePost id ->
+                    ( { prevModel
+                        | view = ViewPost id
                       }
                     , Cmd.none
                     )
@@ -658,7 +664,7 @@ update msg prevModel =
             let
                 txParams =
                     postDraft
-                        |> Post.encodeDraft
+                        |> Misc.encodeDraft
                         |> SSContract.burnEncodedPost
                         |> Eth.toSend
 
@@ -830,6 +836,9 @@ gotoRoute route prevModel =
         RouteTopic _ ->
             ( prevModel, Cmd.none )
 
+        RoutePost _ ->
+            ( prevModel, Cmd.none )
+
         NotFound err ->
             ( { prevModel
                 | route = route
@@ -879,7 +888,7 @@ addPost blockNumber publishedPost prevModel =
             , replies =
                 List.append
                     prevModel.replies
-                    (case Post.contextReplyTo publishedPost.core.metadata.context of
+                    (case Misc.contextReplyTo publishedPost.core.metadata.context of
                         Just replyTo ->
                             [ { from = publishedPost.id
                               , to = replyTo

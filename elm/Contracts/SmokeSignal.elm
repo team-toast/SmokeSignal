@@ -1,16 +1,16 @@
 module Contracts.SmokeSignal exposing (..)
 
-import Helpers.Eth as EthHelpers
 import Config
 import Contracts.Generated.SmokeSignal as G
 import Element
 import Eth
 import Eth.Types exposing (..)
 import Eth.Utils as U
+import Helpers.Eth as EthHelpers
 import Http
 import Json.Decode as Decode exposing (Decoder, succeed)
 import Json.Decode.Pipeline exposing (custom)
-import Post
+import Misc
 import Task
 import TokenValue exposing (TokenValue)
 import Types exposing (Accounting, Content, Core, EncodedDraft, Id, Published)
@@ -68,11 +68,11 @@ fromMessageBurn txHash block renderFunc messageEvent =
         ( extractedMetadata, extractedMessage ) =
             case ( String.left 12 messageEvent.message, String.dropLeft 12 messageEvent.message ) of
                 ( "!smokesignal", jsonStr ) ->
-                    Post.decodePostData jsonStr
+                    Misc.decodePostData jsonStr
 
                 _ ->
-                    ( Post.nullMetadata
-                    , Post.justBodyContent messageEvent.message
+                    ( Misc.nullMetadata
+                    , Misc.justBodyContent messageEvent.message
                     )
     in
     Published

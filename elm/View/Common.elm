@@ -1,4 +1,4 @@
-module View.Common exposing (appStatusMessage, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, unlockButton, viewContext, web3ConnectButton)
+module View.Common exposing (appStatusMessage, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, unlockButton, viewContext, web3ConnectButton, whenJust)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
@@ -124,18 +124,6 @@ web3ConnectButton dProfile attrs =
         (EH.Action Types.ConnectToWeb3)
 
 
-loadingElement : List (Attribute Msg) -> Maybe String -> Element Msg
-loadingElement attrs maybeString =
-    Element.el
-        ([ Font.italic
-         , Font.color theme.loadingTextColor
-         , Font.size 20
-         ]
-            ++ attrs
-        )
-        (Element.text <| Maybe.withDefault "loading..." maybeString)
-
-
 phaceElement : ( Int, Int ) -> Bool -> Address -> Bool -> Msg -> Element Msg
 phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClick =
     let
@@ -243,3 +231,8 @@ unlockButton dProfile attrs =
         attrs
         [ "Unlock Dai" ]
         (EH.Action Types.UnlockDai)
+
+
+whenJust : (a -> Element msg) -> Maybe a -> Element msg
+whenJust fn =
+    Maybe.map fn >> Maybe.withDefault Element.none
