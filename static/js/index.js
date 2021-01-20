@@ -1,6 +1,5 @@
 var elm_ethereum_ports = require('elm-ethereum-ports');
 var networkChangeNotifier = require('./networkChangeNotifier');
-window.web3 = undefined; // hacky fix to Metamask's broken issue with the following library
 require('@metamask/legacy-web3');
  
 const { web3 } = window;
