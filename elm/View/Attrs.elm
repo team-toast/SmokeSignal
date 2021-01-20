@@ -1,4 +1,4 @@
-module View.Attrs exposing (cappedHeight, cappedWidth, fade, hover, roundBorder, sanSerifFont, slightRound, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
+module View.Attrs exposing (cappedHeight, cappedWidth, fade, hover, roundBorder, sansSerifFont, slightRound, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
 
 {-| A module for managing elm-ui 'Attribute' values and related functions.
 -}
@@ -35,8 +35,8 @@ typeFont =
         ]
 
 
-sanSerifFont : Attribute msg
-sanSerifFont =
+sansSerifFont : Attribute msg
+sansSerifFont =
     Font.family
         [ Font.typeface "DDin"
         ]

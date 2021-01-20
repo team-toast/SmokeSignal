@@ -1,4 +1,4 @@
-module Misc exposing (contextReplyTo, decodePostData, defaultSeoDescription, defaultTopic, emptyModel, encodeDraft, getPublishedPostFromId, getTitle, justBodyContent, nullMetadata, totalBurned, txInfoToNameStr, updatePublishedPost, withBalance)
+module Misc exposing (contextReplyTo, contextTopLevel, decodePostData, defaultSeoDescription, defaultTopic, emptyModel, encodeDraft, formatPosix, getPublishedPostFromId, getTitle, justBodyContent, nullMetadata, totalBurned, txInfoToNameStr, updatePublishedPost, withBalance)
 
 import Browser.Navigation
 import Dict
@@ -7,6 +7,7 @@ import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Hex, TxHash)
 import Eth.Utils
 import Helpers.Element
+import Helpers.Time
 import Json.Decode as D
 import Json.Encode as E
 import List.Extra
@@ -14,7 +15,7 @@ import Maybe.Extra exposing (unwrap)
 import Ports
 import Result.Extra
 import String.Extra
-import Time
+import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (Content, Context(..), Draft, EncodedDraft, Id, Metadata, Model, Msg(..), Post(..), Published, PublishedPostsDict, TrackedTx, TxInfo(..), UserInfo, View(..))
 
@@ -235,6 +236,16 @@ totalBurned post =
             postDraft.core.authorBurn
 
 
+contextTopLevel : Context -> Maybe String
+contextTopLevel context =
+    case context of
+        Reply _ ->
+            Nothing
+
+        TopLevel topic ->
+            Just topic
+
+
 contextReplyTo : Context -> Maybe Id
 contextReplyTo context =
     case context of
@@ -313,8 +324,7 @@ postDataDecoder =
 metadataDecoder : D.Decoder Metadata
 metadataDecoder =
     versionDecoder
-        |> D.andThen
-            (\v -> versionedMetadataDecoder v)
+        |> D.andThen versionedMetadataDecoder
 
 
 versionDecoder : D.Decoder Int
@@ -461,3 +471,30 @@ hexDecoder =
                     Ok hex ->
                         D.succeed hex
             )
+
+
+formatPosix : Posix -> String
+formatPosix t =
+    [ [ Time.toDay Time.utc t
+            |> String.fromInt
+            |> String.padLeft 2 '0'
+      , Time.toMonth Time.utc t
+            |> Helpers.Time.monthToInt
+            |> String.fromInt
+            |> String.padLeft 2 '0'
+      , Time.toYear Time.utc t
+            |> String.fromInt
+            |> String.right 2
+      ]
+        |> String.join "-"
+    , [ Time.toMinute Time.utc t
+            |> String.fromInt
+            |> String.padLeft 2 '0'
+      , Time.toHour Time.utc t
+            |> String.fromInt
+            |> String.padLeft 2 '0'
+      ]
+        |> String.join ":"
+    , "(UTC)"
+    ]
+        |> String.join " "

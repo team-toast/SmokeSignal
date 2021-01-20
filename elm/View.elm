@@ -759,5 +759,6 @@ coloredAppTitle attributes =
         ]
 
 
+maxContentColWidth : Int
 maxContentColWidth =
-    1000
+    1200

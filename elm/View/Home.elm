@@ -192,7 +192,7 @@ banner dProfile =
             , centerX
             , centerY
             , Font.color EH.white
-            , View.Attrs.sanSerifFont
+            , View.Attrs.sansSerifFont
             , Font.bold
             , Font.size 30
             ]
@@ -234,7 +234,7 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
     [ [ "NEW TO SMOKE SIGNAL?"
             |> text
             |> el
-                [ View.Attrs.sanSerifFont
+                [ View.Attrs.sansSerifFont
                 , padding 20
                 , slightRound
                 , Background.color Theme.orange
@@ -276,7 +276,7 @@ body dProfile donateChecked blockTimes now showAddressId demoPhaceSrc wallet pos
           , "MORE RECENT POSTS..."
                 |> text
                 |> el
-                    [ View.Attrs.sanSerifFont
+                    [ View.Attrs.sansSerifFont
                     , padding 10
                     , slightRound
                     , Background.color Theme.orange

@@ -1,24 +1,95 @@
 module View.Post exposing (view)
 
 import Dict exposing (Dict)
-import Element exposing (Attribute, Element, el, row, text)
-import Element.Background
+import Element exposing (Attribute, Element, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
+import Element.Background as Background
 import Element.Border
 import Element.Events
-import Element.Font
+import Element.Font as Font
 import Element.Input
-import Helpers.Element as EH exposing (DisplayProfile, responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile, black, responsiveVal, white)
 import Helpers.Time as TimeHelpers
 import Misc
 import Theme exposing (almostWhite, theme)
-import Time
+import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
-import Types exposing (..)
-import View.Common exposing (daiAmountInput, daiSymbol)
-import Wallet
+import Types exposing (Context(..), Id, Msg(..), Post(..), PostState, Published, ShowInputState(..), Wallet)
+import View.Attrs exposing (whiteGlowAttributeSmall)
+import View.Common exposing (daiAmountInput, daiSymbol, phaceElement, whenJust)
 
 
 view :
+    DisplayProfile
+    -> Bool
+    -> Bool
+    -> Dict Int Posix
+    -> Posix
+    -> Wallet
+    -> PostState
+    -> Published
+    -> Element Msg
+view dProfile donateChecked showAddressOnPhace blockTimes now wallet state post =
+    [ [ viewAccounting dProfile post
+      , [ post.core.metadata.context
+            |> Misc.contextTopLevel
+            |> whenJust
+                (text
+                    >> el [ Font.size 30 ]
+                )
+        , [ text <| "Block " ++ String.fromInt post.id.block
+          , viewTiming dProfile blockTimes now post.id
+
+          --, viewContext dProfile post.core.metadata.context
+          ]
+            |> row
+                [ spacing 20
+                , Font.size 17
+                , Font.color theme.subtleTextColor
+                ]
+        ]
+            |> row [ width fill, spaceEvenly ]
+      ]
+        |> row [ width fill, spacing 10 ]
+    , [ phaceElement
+            ( 60, 60 )
+            True
+            post.core.author
+            showAddressOnPhace
+            ClickHappened
+      , [ post.core.content.title |> whenJust (text >> el [ Font.bold ])
+        , post.core.content.body
+            |> limitedString
+            |> text
+            |> List.singleton
+            |> Element.paragraph []
+        , [ supportTipButton post.id
+          , supportBurnButton post.id
+          , replyButton post.id
+          ]
+            |> row
+                [ spacing 5
+                , Element.alignRight
+                ]
+        ]
+            |> column
+                [ spacing 10
+                , View.Attrs.sansSerifFont
+                , width fill
+                ]
+      ]
+        |> row [ width fill, spacing 10 ]
+    ]
+        |> column
+            [ Background.color black
+            , Font.color white
+            , whiteGlowAttributeSmall
+            , width fill
+            , padding 5
+            , spacing 5
+            ]
+
+
+view_ :
     DisplayProfile
     -> Bool
     -> Bool
@@ -28,7 +99,7 @@ view :
     -> Types.PostState
     -> Published
     -> Element Msg
-view dProfile donateChecked showAddressOnPhace blockTimes now wallet state post =
+view_ dProfile donateChecked showAddressOnPhace blockTimes now wallet state post =
     [ mainPreviewPane
         dProfile
         showAddressOnPhace
@@ -51,7 +122,7 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet state post 
         |> row
             [ Element.width Element.fill
             , Element.height <| Element.px <| 120
-            , Element.Background.color theme.blockBackground
+            , Background.color theme.blockBackground
             , Element.Border.width 1
             , Element.Border.color theme.blockBorderColor
             , Element.Border.rounded 5
@@ -87,7 +158,7 @@ previewMetadata :
     -> Element Msg
 previewMetadata dProfile blockTimes now post =
     Element.row
-        [ Element.Font.size <| responsiveVal dProfile 16 10
+        [ Font.size <| responsiveVal dProfile 16 10
         , Element.width <| Element.px 300
         , Element.spacing 40
         ]
@@ -103,8 +174,7 @@ viewAccounting :
     -> Element Msg
 viewAccounting dProfile post =
     Element.row
-        [ Element.width <| Element.px 100
-        , Element.spacing 5
+        [ spacing 5
         ]
         [ viewDaiBurned dProfile post
         , Maybe.map (viewDaiTipped dProfile)
@@ -118,7 +188,7 @@ commonDaiElStyles =
     [ Element.spacing 3
     , Element.padding 3
     , Element.Border.rounded 3
-    , Element.Font.size 14
+    , Font.size 14
     ]
 
 
@@ -129,11 +199,11 @@ viewDaiBurned :
 viewDaiBurned dProfile post =
     Element.row
         (commonDaiElStyles
-            ++ [ Element.Background.color theme.daiBurnedBackground ]
+            ++ [ Background.color theme.daiBurnedBackground ]
         )
         [ daiSymbol True [ Element.height <| Element.px 14 ]
         , Element.el
-            [ Element.Font.color EH.white ]
+            [ Font.color EH.white ]
           <|
             Element.text <|
                 TokenValue.toConciseString <|
@@ -149,11 +219,11 @@ viewDaiTipped :
 viewDaiTipped dProfile amount =
     Element.row
         (commonDaiElStyles
-            ++ [ Element.Background.color theme.daiTippedBackground ]
+            ++ [ Background.color theme.daiTippedBackground ]
         )
         [ daiSymbol True [ Element.height <| Element.px 14 ]
         , Element.el
-            [ Element.Font.color EH.white ]
+            [ Font.color EH.white ]
           <|
             Element.text <|
                 TokenValue.toConciseString amount
@@ -167,7 +237,7 @@ viewContext :
 viewContext dProfile context =
     Element.el
         [ Element.width Element.fill
-        , Element.Font.color almostWhite
+        , Font.color almostWhite
         ]
     <|
         case context of
@@ -197,16 +267,29 @@ viewTiming dProfile blockTimes now id =
                         TimeHelpers.sub now postTime
                     )
     in
-    Element.el
-        [ Element.width <| Element.px 100
-        , Element.Font.color theme.subtleTextColor
-        ]
-    <|
-        Element.text
-            (maybeTimePassed
-                |> Maybe.map TimeHelpers.roundToSingleUnit
-                |> Maybe.map (\s -> s ++ " ago")
-                |> Maybe.withDefault "..."
+    maybePostTime
+        |> whenJust
+            (\time ->
+                [ text <| Misc.formatPosix time
+                , TimeHelpers.sub now time
+                    |> TimeHelpers.roundToSingleUnit
+                    |> (\s -> s ++ " ago")
+                    --|> Maybe.withDefault "..."
+                    |> text
+                    |> el
+                        [ Font.color theme.subtleTextColor
+                        ]
+
+                --, maybeTimePassed
+                --|> Maybe.map TimeHelpers.roundToSingleUnit
+                --|> Maybe.map (\s -> s ++ " ago")
+                --|> Maybe.withDefault "..."
+                --|> text
+                --|> el
+                --[ Font.color theme.subtleTextColor
+                --]
+                ]
+                    |> row [ spacing 20 ]
             )
 
 
@@ -234,8 +317,8 @@ previewBody dProfile showAddress post =
             |> text
             |> List.singleton
             |> Element.paragraph
-                [ Element.Font.color almostWhite
-                , Element.Font.size (responsiveVal dProfile 14 8)
+                [ Font.color almostWhite
+                , Font.size (responsiveVal dProfile 14 8)
                 , Element.height Element.fill
                 , Element.width Element.fill
                 ]
@@ -291,7 +374,7 @@ supportTipButton postId =
         ]
         [ publishedPostActionButton
             [ EH.withTitle "Tip DAI for this post, rewarding the author"
-            , Element.Background.color theme.daiTippedBackground
+            , Background.color theme.daiTippedBackground
             ]
             --SupportTipClicked
             ClickHappened
@@ -312,7 +395,7 @@ supportBurnButton :
 supportBurnButton postId =
     publishedPostActionButton
         [ EH.withTitle "Burn DAI to increase this post's visibility"
-        , Element.Background.color theme.daiBurnedBackground
+        , Background.color theme.daiBurnedBackground
         ]
         --SupportBurnClicked
         ClickHappened
@@ -332,7 +415,7 @@ replyButton :
 replyButton postId =
     publishedPostActionButton
         [ EH.withTitle "Reply"
-        , Element.Background.color Theme.blue
+        , Background.color Theme.blue
         ]
         (Types.StartInlineCompose <| Reply postId)
     <|
@@ -382,7 +465,7 @@ unlockOrInputForm dProfile donateChecked bgColor currentString buttonLabel onSub
     Element.row
         [ Element.padding 10
         , Element.Border.rounded 6
-        , Element.Background.color bgColor
+        , Background.color bgColor
         , Element.spacing 10
         , Element.Border.glow
             (Element.rgba 0 0 0 0.1)
@@ -429,7 +512,7 @@ inputForm dProfile donateChecked currentString buttonLabel onSubmit =
             ]
         , Element.row
             [ Element.centerX
-            , Element.Font.size 12
+            , Font.size 12
             ]
             [ Element.Input.checkbox
                 []
@@ -444,7 +527,7 @@ inputForm dProfile donateChecked currentString buttonLabel onSubmit =
                         Element.text "Donate an extra 1% to "
                 }
             , Element.newTabLink
-                [ Element.Font.color theme.linkTextColor
+                [ Font.color theme.linkTextColor
                 , Element.centerY
                 ]
                 { url = "https://foundrydao.com/"
