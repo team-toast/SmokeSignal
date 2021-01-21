@@ -54,6 +54,7 @@ emptyModel key =
     , cookieConsentGranted = False
     , maybeSeoDescription = Nothing
     , searchInput = ""
+    , composeModal = False
 
     --, topicUXModel = Nothing
     }
