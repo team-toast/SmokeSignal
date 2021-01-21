@@ -1,4 +1,4 @@
-module View.Common exposing (appStatusMessage, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, unlockButton, viewContext, web3ConnectButton, whenJust)
+module View.Common exposing (appStatusMessage, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, unlockButton, viewContext, web3ConnectButton, whenAttr, whenJust)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
@@ -236,3 +236,13 @@ unlockButton dProfile attrs =
 whenJust : (a -> Element msg) -> Maybe a -> Element msg
 whenJust fn =
     Maybe.map fn >> Maybe.withDefault Element.none
+
+
+whenAttr : Bool -> Attribute msg -> Attribute msg
+whenAttr bool =
+    if bool then
+        identity
+
+    else
+        Element.below Element.none
+            |> always

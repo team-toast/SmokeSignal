@@ -23,6 +23,7 @@ type alias Flags =
     , height : Int
     , nowInMillis : Int
     , cookieConsent : Bool
+    , newUser : Bool
     }
 
 
@@ -54,6 +55,7 @@ type alias Model =
     , cookieConsentGranted : Bool
     , maybeSeoDescription : Maybe String
     , searchInput : String
+    , newUserModal : Bool
 
     --, topicUXModel : Maybe TopicUX.Model
     }
@@ -100,6 +102,7 @@ type Msg
     | SubmitTip Id TokenValue
     | SubmitBurn Id TokenValue
     | DonationCheckboxSet Bool
+    | CloseNewToSmokeSignalModal
 
 
 type alias PostState =

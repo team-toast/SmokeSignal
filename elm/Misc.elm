@@ -26,6 +26,7 @@ emptyModel key =
     , basePath = ""
     , route = Types.Home
     , wallet = Types.NoneDetected
+    , newUserModal = False
     , now = Time.millisToPosix 0
     , dProfile = Helpers.Element.Desktop
     , txSentry =
