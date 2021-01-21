@@ -23,6 +23,7 @@ import View.Attrs exposing (cappedWidth, whiteGlowAttribute)
 import View.Common exposing (appStatusMessage, viewContext)
 import View.Compose
 import View.Home
+import View.Modal
 import View.Post
 import View.Topic
 
@@ -63,6 +64,13 @@ viewPage model =
     [ header model.wallet model.searchInput
     , viewBody model
         |> el [ height fill, cappedWidth maxContentColWidth, Element.centerX ]
+        |> el
+            [ width fill
+            , height fill
+            , View.Modal.viewNewToSmokeSignal model.dProfile
+                |> Element.inFront
+                |> View.Common.whenAttr model.newUserModal
+            ]
     , footer
     ]
         |> column

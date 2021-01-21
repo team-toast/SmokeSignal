@@ -39,105 +39,19 @@ viewModals : DisplayProfile -> Bool -> List (Element Msg)
 viewModals dProfile showNewToSmokeSignalModal =
     Maybe.Extra.values
         [ if showNewToSmokeSignalModal == True then
-            Just <|
-                EH.modal
-                    (Element.rgba 0 0 0 0.25)
-                    False
-                    --CloseNewToSmokeSignalModal
-                    --CloseNewToSmokeSignalModal
-                    ClickHappened
-                    ClickHappened
-                <|
-                    viewNewToSmokeSignalModal dProfile
+            --Just <|
+            --EH.modal
+            --(Element.rgba 0 0 0 0.25)
+            --False
+            --CloseNewToSmokeSignalModal
+            --CloseNewToSmokeSignalModal
+            --<|
+            --viewNewToSmokeSignalModal dProfile
+            Nothing
 
           else
             Nothing
         ]
-
-
-viewNewToSmokeSignalModal : DisplayProfile -> Element Msg
-viewNewToSmokeSignalModal dProfile =
-    column
-        [ whiteGlowAttribute
-        , Border.rounded 10
-        , Font.color EH.white
-        , width fill
-        , Background.color <| Element.rgba 0 0 0 0.85
-        , padding 50
-        , Element.spacing 30
-        ]
-        [ Element.text "Welcome to" |> rowElement dProfile []
-        , rowElement
-            dProfile
-            []
-          <|
-            Element.image
-                [ width <| Element.px 200
-                ]
-                { src = "img/smokesignal-logo-vertical.svg"
-                , description =
-                    "smokesignal logo"
-                }
-        , rowElement
-            dProfile
-            []
-          <|
-            Element.text "SmokeSignal uses the Ethereum blockchain to facilitate uncensorable, global chat."
-        , rowElement
-            dProfile
-            []
-          <|
-            el
-                [ Font.color Theme.orange, Font.size 28, Font.bold ]
-            <|
-                Element.text "No Usernames. No Moderators. No censorship. No Deplatforming."
-        , rowElement
-            dProfile
-            []
-          <|
-            Element.text "All you need is ETH for gas and DAI to burn."
-        , rowElement
-            dProfile
-            []
-          <|
-            column
-                [ Element.spacing 5 ]
-                [ rowElement dProfile [] <| Element.text "All SmokeSignal posts are permanent and impossible to delete, and can be"
-                , rowElement dProfile [] <| Element.text "accessed with any browser via an IPFS Gateway (example)"
-                , rowElement dProfile [] <| Element.text "or the smokesignal.eth.link mirror (example)."
-                ]
-        , rowElement
-            dProfile
-            []
-          <|
-            column
-                [ Element.spacing 5 ]
-                [ rowElement dProfile [] <| Element.text "If the above two methods prove unreliable, some browsers also support direct"
-                , rowElement dProfile [] <| Element.text "smokesignal.eth links (example) or direct IPFS links (example)."
-                ]
-        , rowElement
-            dProfile
-            []
-          <|
-            el
-                [ Font.color Theme.orange
-                , Font.semiBold
-                ]
-            <|
-                Element.text
-                    "Go to introductory video →"
-        ]
-
-
-rowElement : DisplayProfile -> List (Attribute Msg) -> Element Msg -> Element Msg
-rowElement dProfile attributes element =
-    row
-        ([ Element.height fill
-         , Element.centerX
-         ]
-            ++ attributes
-        )
-        [ element ]
 
 
 banner : DisplayProfile -> Element Msg

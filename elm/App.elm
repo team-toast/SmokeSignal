@@ -87,6 +87,7 @@ init flags url key =
         , userNotices = walletNotices
         , demoPhaceSrc = Config.initDemoPhaceSrc
         , cookieConsentGranted = flags.cookieConsent
+        , newUserModal = flags.newUser
       }
     , Cmd.batch
         [ initEventSentryCmd

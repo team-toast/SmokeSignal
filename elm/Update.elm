@@ -775,6 +775,13 @@ update msg prevModel =
                 ]
             )
 
+        CloseNewToSmokeSignalModal ->
+            ( { prevModel
+                | newUserModal = False
+              }
+            , Ports.setVisited ()
+            )
+
 
 encodeGTag :
     GTagData
