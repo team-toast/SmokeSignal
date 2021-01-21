@@ -1,31 +1,105 @@
 module View.Compose exposing (view)
 
-import Element exposing (Attribute, Element)
-import Element.Background
-import Element.Border
+import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, height, padding, px, row, spacing, text, width)
+import Element.Background as Background
+import Element.Border as Border
 import Element.Events
-import Element.Font
-import Element.Input
+import Element.Font as Font
+import Element.Input as Input
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal, white)
 import Theme exposing (theme)
 import TokenValue exposing (TokenValue)
 import Types exposing (CheckedMaybeValidInputs, Content, Context, Draft, Id, Model, Msg(..), PhaceIconId, Route(..), UserInfo, Wallet)
+import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
 import View.Common exposing (appStatusMessage, daiAmountInput, shortenedHash, viewContext, web3ConnectButton)
 import Wallet
 
 
+wrapModal : msg -> Element msg -> Element msg
+wrapModal msg elem =
+    let
+        btn =
+            Input.button
+                [ height fill
+                , width fill
+                , Background.color <| Element.rgba255 0 0 0 0.4
+                ]
+                { onPress = Just msg
+                , label = Element.none
+                }
+    in
+    [ btn
+    , [ btn, elem, btn ]
+        |> column [ width fill, height fill ]
+    , btn
+    ]
+        |> row [ width fill, height fill ]
+
+
 view : Model -> Element Msg
 view model =
-    Element.el
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Element.padding (responsiveVal model.dProfile 20 10)
-        , Element.Background.color theme.appBackground
+    viewBox model
+        --|> el [ centerX, centerY ]
+        |> wrapModal ComposeToggle
+
+
+viewBox : Model -> Element Msg
+viewBox model =
+    [ "Comment"
+        |> text
+        |> el [ sansSerifFont, Font.color white, centerX ]
+        |> el
+            [ View.Attrs.sansSerifFont
+            , padding 10
+            , slightRound
+            , Background.color Theme.orange
+            , Font.bold
+            , Font.color white
+            , Font.size 20
+            , width fill
+            ]
+    , [ [ Input.text
+            [ width fill
+            , View.Attrs.whiteGlowAttributeSmall
+            ]
+            { onChange = always ClickHappened
+            , label = Input.labelHidden ""
+            , placeholder =
+                "Post Title"
+                    |> text
+                    |> Input.placeholder []
+                    |> Just
+            , text = model.searchInput
+            }
         ]
-    <|
-        viewBody model.dProfile model.donateChecked model.wallet model.showAddressId model
+            |> row [ width fill ]
+      , Input.multiline
+            [ width fill
+            , height fill
+            , View.Attrs.whiteGlowAttributeSmall
+            , Background.color black
+            ]
+            { onChange = always ClickHappened
+            , label = Input.labelHidden ""
+            , placeholder =
+                "What do you want to say?"
+                    |> text
+                    |> Input.placeholder []
+                    |> Just
+            , text = model.searchInput
+            , spellcheck = False
+            }
+      ]
+        |> column [ width fill, height fill, padding 30, spacing 20 ]
+    ]
+        |> column
+            [ width <| px 1000
+            , height <| px 450
+            , Background.color black
+            , whiteGlowAttributeSmall
+            ]
 
 
 viewBody : EH.DisplayProfile -> Bool -> Wallet -> Maybe PhaceIconId -> Model -> Element Msg
@@ -34,9 +108,9 @@ viewBody dProfile donateChecked wallet showAddressId model =
         commonAttributes =
             [ Element.width Element.fill
             , Element.height Element.fill
-            , Element.Background.color theme.postBodyBackground
+            , Background.color theme.postBodyBackground
             , composeUXShadow
-            , Element.Border.rounded 10
+            , Border.rounded 10
             , Element.inFront <|
                 EH.closeButton
                     [ Element.alignTop
@@ -71,7 +145,7 @@ viewBody dProfile donateChecked wallet showAddressId model =
                 (commonAttributes
                     ++ [ Element.padding 10
                        , Element.spacing 10
-                       , Element.Font.size 20
+                       , Font.size 20
                        ]
                 )
                 --(if model.showPreviewOnMobile then
@@ -152,7 +226,7 @@ validateBurnAmount input =
 
 composeUXShadow : Attribute Msg
 composeUXShadow =
-    Element.Border.shadow
+    Border.shadow
         { offset = ( 0, 0 )
         , size = 0
         , blur = 10
@@ -180,20 +254,20 @@ viewPreviewButton dProfile enabled =
 viewInput : DisplayProfile -> Content -> Element Msg
 viewInput dProfile content =
     EH.scrollbarYEl [] <|
-        Element.Input.multiline
+        Input.multiline
             ([ Element.width Element.fill
              , Element.height Element.fill
              , Element.padding (responsiveVal dProfile 10 5)
-             , Element.Background.color <| Element.rgba 1 1 1 0.5
+             , Background.color <| Element.rgba 1 1 1 0.5
              ]
                 ++ responsiveVal dProfile
                     []
-                    [ Element.Font.size 18 ]
+                    [ Font.size 18 ]
             )
             { onChange = always ClickHappened -- BodyInputChanged
             , text = content.body
             , placeholder = Just messageInputPlaceholder
-            , label = Element.Input.labelHidden "messageInput"
+            , label = Input.labelHidden "messageInput"
             , spellcheck = True
             }
 
@@ -205,10 +279,10 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedContent context =
             [ Element.width Element.fill
             , Element.height Element.fill
             , Element.padding 15
-            , Element.Background.color <| Element.rgba 1 1 1 0.5
-            , Element.Border.width 1
-            , Element.Border.color <| Element.rgba 0 0 0 0.5
-            , Element.Border.rounded 10
+            , Background.color <| Element.rgba 1 1 1 0.5
+            , Border.width 1
+            , Border.color <| Element.rgba 0 0 0 0.5
+            , Border.rounded 10
             , Element.spacing 15
             ]
             [ Element.row
@@ -240,9 +314,9 @@ viewPreviewWithPostContext dProfile maybeShowPhaceInfo renderedContent context =
             ]
 
 
-messageInputPlaceholder : Element.Input.Placeholder Msg
+messageInputPlaceholder : Input.Placeholder Msg
 messageInputPlaceholder =
-    Element.Input.placeholder [] <|
+    Input.placeholder [] <|
         Element.column
             [ Element.width Element.fill
             , Element.spacing 10
@@ -250,8 +324,8 @@ messageInputPlaceholder =
         <|
             List.map
                 (Element.paragraph
-                    [ Element.Font.color theme.messageInputPlaceholderTextColor
-                    , Element.Font.italic
+                    [ Font.color theme.messageInputPlaceholderTextColor
+                    , Font.italic
                     ]
                     << List.map Element.text
                 )
@@ -264,15 +338,15 @@ viewReplyInfo : Id -> Element Msg
 viewReplyInfo postId =
     Element.column
         [ Element.padding 10
-        , Element.Border.rounded 5
-        , Element.Font.size 20
-        , Element.Font.italic
-        , Element.Background.color <| Element.rgba 1 1 1 0.5
+        , Border.rounded 5
+        , Font.size 20
+        , Font.italic
+        , Background.color <| Element.rgba 1 1 1 0.5
         , Element.spacing 3
         ]
         [ Element.text "Replying to:"
         , Element.el
-            [ Element.Font.color theme.linkTextColor
+            [ Font.color theme.linkTextColor
             , Element.pointer
             , Element.Events.onClick <|
                 GotoRoute <|
@@ -290,10 +364,10 @@ viewTopic : String -> Element Msg
 viewTopic topic =
     Element.column
         [ Element.padding 10
-        , Element.Border.rounded 5
-        , Element.Font.size 20
-        , Element.Font.italic
-        , Element.Background.color <| Element.rgba 1 1 1 0.5
+        , Border.rounded 5
+        , Font.size 20
+        , Font.italic
+        , Background.color <| Element.rgba 1 1 1 0.5
         , Element.spacing 5
         , Element.scrollbarX
         , Element.clipX
@@ -301,7 +375,7 @@ viewTopic topic =
         ]
         [ Element.text "Topic:"
         , Element.el
-            [ Element.Font.color theme.linkTextColor
+            [ Font.color theme.linkTextColor
             , Element.pointer
             , Element.Events.onClick <|
                 GotoRoute <|
@@ -325,8 +399,8 @@ actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model =
                     Element.row
                         [ Element.spacing 15
                         , Element.padding 10
-                        , Element.Background.color <| Element.rgb 0.8 0.8 1
-                        , Element.Border.rounded 10
+                        , Background.color <| Element.rgb 0.8 0.8 1
+                        , Border.rounded 10
                         ]
                         [ case dProfile of
                             Desktop ->
@@ -375,7 +449,7 @@ inputsElement dProfile donateChecked userInfo model =
     Element.el
         ([ Element.centerY
          , Element.centerX
-         , Element.Font.size (responsiveVal dProfile 20 14)
+         , Font.size (responsiveVal dProfile 20 14)
          ]
             ++ (case dProfile of
                     Desktop ->
@@ -403,21 +477,21 @@ inputsElement dProfile donateChecked userInfo model =
                     , Element.text "DAI"
                     ]
                 , Element.row
-                    [ Element.Font.size (responsiveVal dProfile 14 10)
+                    [ Font.size (responsiveVal dProfile 14 10)
                     , Element.spacing 5
                     ]
-                    [ Element.Input.checkbox [ Element.alignTop ]
+                    [ Input.checkbox [ Element.alignTop ]
                         { onChange = Types.DonationCheckboxSet
-                        , icon = Element.Input.defaultCheckbox
+                        , icon = Input.defaultCheckbox
                         , checked = donateChecked
-                        , label = Element.Input.labelHidden "Donate an extra 1% to Foundry"
+                        , label = Input.labelHidden "Donate an extra 1% to Foundry"
                         }
                     , Element.column
                         [ Element.spacing 5 ]
                         [ Element.row []
                             [ Element.text "Donate an extra 1% to "
                             , Element.newTabLink
-                                [ Element.Font.color theme.linkTextColor ]
+                                [ Font.color theme.linkTextColor ]
                                 { url = "https://foundrydao.com/"
                                 , label = Element.text "Foundry"
                                 }
@@ -432,8 +506,8 @@ inputErrorEl : DisplayProfile -> Maybe (List (Element Msg)) -> Element Msg
 inputErrorEl dProfile els =
     let
         commonAttributes =
-            [ Element.Font.color theme.errorTextColor
-            , Element.Font.italic
+            [ Font.color theme.errorTextColor
+            , Font.italic
             ]
     in
     case dProfile of
@@ -442,7 +516,7 @@ inputErrorEl dProfile els =
                 (commonAttributes
                     ++ [ Element.width (Element.fill |> Element.maximum 200)
                        , Element.alignTop
-                       , Element.Font.alignRight
+                       , Font.alignRight
                        ]
                 )
                 (els |> Maybe.withDefault [ Element.text " " ])
@@ -451,7 +525,7 @@ inputErrorEl dProfile els =
             Element.paragraph
                 (commonAttributes
                     ++ [ Element.width Element.fill
-                       , Element.Font.size 14
+                       , Font.size 14
                        ]
                 )
                 (els |> Maybe.withDefault [ Element.text " " ])
@@ -468,7 +542,7 @@ goButtonAndMaybeError dProfile donateChecked userInfo model =
                         "That account ("
                             ++ Eth.Utils.addressToChecksumString userInfo.address
                             ++ ") doesn't have any DAI! "
-                    , Element.newTabLink [ Element.Font.color theme.linkTextColor ]
+                    , Element.newTabLink [ Font.color theme.linkTextColor ]
                         { url = "https://kyberswap.com/swap/eth-dai"
                         , label = Element.text "Kyberswap"
                         }
@@ -496,7 +570,7 @@ goButtonAndMaybeError dProfile donateChecked userInfo model =
                                     ( maybeGoButton dProfile Nothing
                                     , Just
                                         [ Element.text "You don't have that much DAI in your wallet! "
-                                        , Element.newTabLink [ Element.Font.color theme.linkTextColor ]
+                                        , Element.newTabLink [ Font.color theme.linkTextColor ]
                                             { url = "https://kyberswap.com/swap/eth-dai"
                                             , label = Element.text "Kyberswap"
                                             }
@@ -562,8 +636,8 @@ commonActionButtonStyles : DisplayProfile -> List (Attribute Msg)
 commonActionButtonStyles dProfile =
     [ Element.height <| Element.px (responsiveVal dProfile 100 70)
     , Element.width <| Element.px (responsiveVal dProfile 100 70)
-    , Element.Font.size (responsiveVal dProfile 26 20)
-    , Element.Border.rounded (responsiveVal dProfile 10 7)
+    , Font.size (responsiveVal dProfile 26 20)
+    , Border.rounded (responsiveVal dProfile 10 7)
     ]
 
 

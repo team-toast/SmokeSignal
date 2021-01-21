@@ -70,6 +70,9 @@ viewPage model =
             , View.Modal.viewNewToSmokeSignal model.dProfile
                 |> Element.inFront
                 |> View.Common.whenAttr model.newUserModal
+            , View.Compose.view model
+                |> Element.inFront
+                |> View.Common.whenAttr model.composeModal
             ]
     , footer
     ]

@@ -602,6 +602,13 @@ update msg prevModel =
             , Cmd.none
             )
 
+        ComposeToggle ->
+            ( { prevModel
+                | composeModal = not prevModel.composeModal
+              }
+            , Cmd.none
+            )
+
         StartInlineCompose composeContext ->
             case prevModel.dProfile of
                 Desktop ->

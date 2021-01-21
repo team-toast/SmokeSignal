@@ -10,7 +10,7 @@ import Helpers.Element as EH exposing (DisplayProfile, black, white)
 import Theme exposing (theme)
 import Time
 import Types exposing (Context(..), Model, Msg, Published, PublishedPostsDict, Wallet)
-import View.Attrs exposing (cappedWidth, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
+import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Post
 
 
@@ -54,18 +54,20 @@ topicHeader topic =
             , Font.color white
             , padding 15
             ]
-    , "Comment..."
-        |> text
-        |> el
-            [ View.Attrs.sansSerifFont
-            , padding 10
-            , slightRound
-            , Background.color Theme.orange
-            , Font.bold
-            , Font.color white
-            , Font.size 20
-            , width fill
-            ]
+    , Input.button
+        [ View.Attrs.sansSerifFont
+        , padding 10
+        , slightRound
+        , Background.color Theme.orange
+        , Font.bold
+        , Font.color white
+        , Font.size 20
+        , width fill
+        , hover
+        ]
+        { onPress = Just Types.ComposeToggle
+        , label = text "Comment..."
+        }
     ]
         |> column
             [ width fill

@@ -56,6 +56,7 @@ type alias Model =
     , maybeSeoDescription : Maybe String
     , searchInput : String
     , newUserModal : Bool
+    , composeModal : Bool
 
     --, topicUXModel : Maybe TopicUX.Model
     }
@@ -88,6 +89,7 @@ type Msg
       --| ComposeUXMsg ComposeUX.Msg
       --| TopicUXMsg TopicUX.Msg
       --| HomeMsg Home.Msg
+    | ComposeToggle
     | AllowanceFetched Address (Result Http.Error TokenValue)
     | BalanceFetched Address (Result Http.Error TokenValue)
     | CookieConsentGranted
