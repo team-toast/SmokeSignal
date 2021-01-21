@@ -12,10 +12,18 @@ const basePath = new URL(document.baseURI).pathname;
 //window.testStuff = secureComms.testStuff;
 window.web3Connected = false;
 
+// Local storage keys
+const HAS_VISITED = "has-visited";
+const COOKIE_CONSENT = "cookie-consent";
+
 window.addEventListener("load", function () {
   startDapp().then((app) => {
     analyticsGtagPortStuff(app);
     seoPortStuff(app);
+
+    app.ports.setVisited.subscribe(() =>
+      localStorage.setItem(HAS_VISITED, true)
+    );
   });
 });
 
@@ -56,6 +64,7 @@ const init = (networkId) => {
       height: window.innerHeight,
       nowInMillis: Date.now(),
       cookieConsent: getCookieConsent(),
+      newUser: !window.localStorage.getItem(HAS_VISITED),
     },
   });
 };
@@ -84,10 +93,10 @@ function seoPortStuff(app) {
 }
 
 function getCookieConsent() {
-  return Boolean(window.localStorage.getItem("cookie-consent"));
+  return Boolean(window.localStorage.getItem(COOKIE_CONSENT));
 }
 function setCookieConsent() {
-  window.localStorage.setItem("cookie-consent", true);
+  window.localStorage.setItem(COOKIE_CONSENT, true);
 }
 
 function web3PortStuff(app, web3) {
