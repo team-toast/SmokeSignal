@@ -181,13 +181,12 @@ update msg prevModel =
                                         )
 
                                     else
-                                        --( Types.Active <|
-                                        --UserInfo
-                                        --walletSentry.networkId
-                                        --newAddress
-                                        --Nothing
-                                        --Checking
-                                        ( prevModel.wallet
+                                        ( Types.Active <|
+                                            Types.UserInfo
+                                                walletSentry.networkId
+                                                newAddress
+                                                Nothing
+                                                
                                         , fetchDaiBalanceAndAllowanceCmd newAddress
                                         )
 
