@@ -157,7 +157,6 @@ type alias ReplyIds =
 type Route
     = Home
     | Compose Context
-    | RouteViewContext
     | RouteTopic String
     | RoutePost Id
     | NotFound String

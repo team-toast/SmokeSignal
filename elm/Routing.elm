@@ -38,14 +38,6 @@ routeToString basePath route =
                         ([ "#!", "compose" ] ++ encodePostContextPaths context)
                         (encodePostContextQueryParams context)
 
-                RouteViewContext ->
-                    --Builder.relative
-                    --([ "#!", "context" ] ++ encodeViewContextPaths context)
-                    --(encodeViewContextQueryParams context)
-                    Builder.relative
-                        [ "#!" ]
-                        []
-
                 RouteTopic str ->
                     Builder.relative
                         [ "#!", "context", "topic", Url.percentEncode <| String.toLower str ]
