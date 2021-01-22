@@ -1,5 +1,6 @@
 module View.Compose exposing (view)
 
+import Config
 import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, height, padding, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -9,39 +10,17 @@ import Element.Input as Input
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal, white)
-import Theme exposing (theme)
+import Theme exposing (orange, theme)
 import TokenValue exposing (TokenValue)
 import Types exposing (CheckedMaybeValidInputs, Content, Context, Draft, Id, Model, Msg(..), PhaceIconId, Route(..), UserInfo, Wallet)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
-import View.Common exposing (appStatusMessage, daiAmountInput, shortenedHash, viewContext, web3ConnectButton)
+import View.Common exposing (appStatusMessage, daiAmountInput, phaceElement, shortenedHash, viewContext, web3ConnectButton, wrapModal)
 import Wallet
-
-
-wrapModal : msg -> Element msg -> Element msg
-wrapModal msg elem =
-    let
-        btn =
-            Input.button
-                [ height fill
-                , width fill
-                , Background.color <| Element.rgba255 0 0 0 0.4
-                ]
-                { onPress = Just msg
-                , label = Element.none
-                }
-    in
-    [ btn
-    , [ btn, elem, btn ]
-        |> column [ width fill, height fill ]
-    , btn
-    ]
-        |> row [ width fill, height fill ]
 
 
 view : Model -> Element Msg
 view model =
     viewBox model
-        --|> el [ centerX, centerY ]
         |> wrapModal ComposeToggle
 
 
@@ -73,8 +52,34 @@ viewBox model =
                     |> Just
             , text = model.searchInput
             }
+        , [ text "🔥"
+                |> el [ Font.size 30 ]
+          , text "BURN"
+                |> el [ Font.size 15, centerX ]
+          ]
+            |> column
+                [ spacing 10
+                , Font.color orange
+                , Font.bold
+                ]
+        , [ text "💎"
+                |> el [ Font.size 30 ]
+          , text "ETH"
+                |> el [ Font.size 15, centerX ]
+          ]
+            |> column
+                [ spacing 10
+                , Font.color orange
+                , Font.bold
+                ]
+        , phaceElement
+            ( 50, 50 )
+            False
+            Config.smokesignalContractAddress
+            False
+            ClickHappened
         ]
-            |> row [ width fill ]
+            |> row [ width fill, spacing 10 ]
       , Input.multiline
             [ width fill
             , height fill
@@ -92,7 +97,13 @@ viewBox model =
             , spellcheck = False
             }
       ]
-        |> column [ width fill, height fill, padding 30, spacing 20 ]
+        |> column
+            [ width fill
+            , height fill
+            , padding 30
+            , spacing 20
+            , sansSerifFont
+            ]
     ]
         |> column
             [ width <| px 1000
