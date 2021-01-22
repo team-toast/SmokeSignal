@@ -1,9 +1,9 @@
-module View.Common exposing (appStatusMessage, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, unlockButton, viewContext, web3ConnectButton, whenAttr, whenJust)
+module View.Common exposing (appStatusMessage, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, unlockButton, viewContext, web3ConnectButton, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
 
-import Element exposing (Attribute, Element)
+import Element exposing (Attribute, Element, column, fill, height, row, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -246,3 +246,26 @@ whenAttr bool =
     else
         Element.below Element.none
             |> always
+
+
+{-| Wraps an element with transparent clickable areas.
+-}
+wrapModal : msg -> Element msg -> Element msg
+wrapModal msg elem =
+    let
+        btn =
+            Input.button
+                [ height fill
+                , width fill
+                , Background.color <| Element.rgba255 0 0 0 0.4
+                ]
+                { onPress = Just msg
+                , label = Element.none
+                }
+    in
+    [ btn
+    , [ btn, elem, btn ]
+        |> column [ width fill, height fill ]
+    , btn
+    ]
+        |> row [ width fill, height fill ]

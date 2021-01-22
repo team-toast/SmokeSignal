@@ -13,35 +13,13 @@ import Theme exposing (theme)
 import TokenValue exposing (TokenValue)
 import Types exposing (CheckedMaybeValidInputs, Content, Context, Draft, Id, Model, Msg(..), PhaceIconId, Route(..), UserInfo, Wallet)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
-import View.Common exposing (appStatusMessage, daiAmountInput, shortenedHash, viewContext, web3ConnectButton)
+import View.Common exposing (appStatusMessage, daiAmountInput, shortenedHash, viewContext, web3ConnectButton, wrapModal)
 import Wallet
-
-
-wrapModal : msg -> Element msg -> Element msg
-wrapModal msg elem =
-    let
-        btn =
-            Input.button
-                [ height fill
-                , width fill
-                , Background.color <| Element.rgba255 0 0 0 0.4
-                ]
-                { onPress = Just msg
-                , label = Element.none
-                }
-    in
-    [ btn
-    , [ btn, elem, btn ]
-        |> column [ width fill, height fill ]
-    , btn
-    ]
-        |> row [ width fill, height fill ]
 
 
 view : Model -> Element Msg
 view model =
     viewBox model
-        --|> el [ centerX, centerY ]
         |> wrapModal ComposeToggle
 
 
