@@ -350,7 +350,7 @@ viewReplyInfo postId =
             , Element.pointer
             , Element.Events.onClick <|
                 GotoRoute <|
-                    RouteViewContext
+                    RoutePost postId
 
             --ViewPost postId
             ]
@@ -379,7 +379,7 @@ viewTopic topic =
             , Element.pointer
             , Element.Events.onClick <|
                 GotoRoute <|
-                    RouteViewContext
+                    RouteTopic topic
 
             --Topic topic
             ]

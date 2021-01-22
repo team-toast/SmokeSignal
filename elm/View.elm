@@ -443,9 +443,8 @@ viewTrackedTxRow trackedTx =
                             , Element.pointer
                             , Element.Events.onClick <|
                                 GotoRoute <|
-                                    RouteViewContext
+                                    RoutePost postId
 
-                            --Types.ViewPost postId
                             ]
                             (Element.text "Post")
                         ]
@@ -459,9 +458,7 @@ viewTrackedTxRow trackedTx =
                             , Element.pointer
                             , Element.Events.onClick <|
                                 GotoRoute <|
-                                    RouteViewContext
-
-                            --ViewPost postId
+                                    RoutePost postId
                             ]
                             (Element.text "Post")
                         ]
@@ -500,7 +497,7 @@ viewTrackedTxRow trackedTx =
                                     Element.el
                                         [ Font.color theme.linkTextColor
                                         , Element.pointer
-                                        , Element.Events.onClick <| GotoRoute <| RouteViewContext --<| ViewPost postId
+                                        , Element.Events.onClick <| GotoRoute <| RoutePost postId
                                         ]
                                         (Element.text "Published")
 

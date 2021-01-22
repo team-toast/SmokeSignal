@@ -73,13 +73,6 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-                RouteViewContext ->
-                    ( { prevModel
-                        | view = prevModel.view
-                      }
-                    , Cmd.none
-                    )
-
                 RoutePost id ->
                     ( { prevModel
                         | view = ViewPost id
@@ -186,7 +179,6 @@ update msg prevModel =
                                                 walletSentry.networkId
                                                 newAddress
                                                 Nothing
-                                                
                                         , fetchDaiBalanceAndAllowanceCmd newAddress
                                         )
 
@@ -830,19 +822,6 @@ gotoRoute route prevModel =
                 --|> ComposeUX.updateContext context
                 -- TODO
               }
-            , Cmd.none
-            )
-
-        RouteViewContext ->
-            ( { prevModel
-                | route = route
-
-                --, view = ViewContext context
-              }
-              --, Maybe.map
-              --setDescription
-              --(viewContextToMaybeDescription prevModel.publishedPosts context)
-              --|> Maybe.withDefault Cmd.none
             , Cmd.none
             )
 
