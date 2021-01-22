@@ -16,6 +16,7 @@ import TokenValue exposing (TokenValue)
 import Types exposing (Context(..), Id, Msg(..), Post(..), PostState, Published, ShowInputState(..), Wallet)
 import View.Attrs exposing (whiteGlowAttributeSmall)
 import View.Common exposing (daiAmountInput, daiSymbol, phaceElement, whenJust)
+import View.Img
 
 
 view :
@@ -70,12 +71,28 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet state post 
                     |> text
                     |> List.singleton
                     |> Element.paragraph []
-                , [ supportTipButton post.id
-                  , supportBurnButton post.id
-                  , replyButton post.id
+                , [ [ ( "365 Comments", View.Img.speechBubble )
+                    , ( "Bookmark", View.Img.bookmark )
+                    , ( "Hide", View.Img.hide )
+                    ]
+                        |> List.map
+                            (\( txt, icn ) ->
+                                [ icn 17 almostWhite
+                                , text txt
+                                ]
+                                    |> row [ spacing 5 ]
+                            )
+                        |> row [ spacing 10, Font.color almostWhite, Font.size 17 ]
+                  , [ supportTipButton post.id
+                    , supportBurnButton post.id
+                    , replyButton post.id
+                    ]
+                        |> row
+                            [ spacing 5
+                            ]
                   ]
                     |> row
-                        [ spacing 5
+                        [ spacing 10
                         , Element.alignRight
                         ]
                 ]
@@ -414,23 +431,14 @@ supportBurnButton postId =
             }
 
 
-replyButton :
-    Id
-    -> Element Msg
+replyButton : Id -> Element Msg
 replyButton postId =
-    publishedPostActionButton
-        [ EH.withTitle "Reply"
-        , Background.color Theme.blue
-        ]
-        (Types.StartInlineCompose <| Reply postId)
-    <|
-        Element.image
-            [ Element.width Element.fill
-            , Element.height <| Element.px 14
+    View.Img.replyArrow 14 white
+        |> publishedPostActionButton
+            [ EH.withTitle "Reply"
+            , Background.color Theme.blue
             ]
-            { src = "img/reply-arrow-white.svg"
-            , description = "reply"
-            }
+            (Types.StartInlineCompose <| Reply postId)
 
 
 publishedPostActionButton :
