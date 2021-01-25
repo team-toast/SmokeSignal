@@ -12,6 +12,7 @@ const basePath = new URL(document.baseURI).pathname;
 const smokeSignalContractAddress = SMOKE_SIGNAL_CONTRACT_ADDRESS;
 const daiContractAddress = DAI_CONTRACT_ADDRESS;
 const httpProviderUrl = HTTP_PROVIDER_URL;
+const startScanBlock = START_SCAN_BLOCK;
 /* eslint-enable no-undef */
 
 //window.testStuff = secureComms.testStuff;
@@ -73,6 +74,7 @@ const init = (networkId) => {
       smokeSignalContractAddress,
       daiContractAddress,
       httpProviderUrl,
+      startScanBlock,
     },
   });
 };

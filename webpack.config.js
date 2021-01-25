@@ -6,12 +6,16 @@ const {
   HTTP_PROVIDER_URL,
   DAI_CONTRACT_ADDRESS,
   SMOKE_SIGNAL_CONTRACT_ADDRESS,
+  START_SCAN_BLOCK,
 } = process.env;
 
 if (
-  [HTTP_PROVIDER_URL, DAI_CONTRACT_ADDRESS, SMOKE_SIGNAL_CONTRACT_ADDRESS].some(
-    (x) => !x
-  )
+  [
+    HTTP_PROVIDER_URL,
+    DAI_CONTRACT_ADDRESS,
+    SMOKE_SIGNAL_CONTRACT_ADDRESS,
+    START_SCAN_BLOCK,
+  ].some((x) => !x)
 ) {
   throw "Missing environment variable.";
 }
@@ -66,6 +70,8 @@ module.exports = {
       SMOKE_SIGNAL_CONTRACT_ADDRESS: JSON.stringify(
         SMOKE_SIGNAL_CONTRACT_ADDRESS
       ),
+      // No stringify needed for an integer.
+      START_SCAN_BLOCK,
     }),
   ],
 };

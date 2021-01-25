@@ -3,13 +3,13 @@ module App exposing (main)
 import Browser.Events
 import Browser.Hashbang
 import Browser.Navigation
-import Config
 import Contracts.SmokeSignal
 import Eth.Net
 import Eth.Sentry.Event
 import Eth.Sentry.Tx
 import Eth.Sentry.Wallet
 import Eth.Types
+import Eth.Utils
 import Helpers.Element
 import Misc
 import Ports
@@ -37,6 +37,13 @@ main =
 init : Flags -> Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
+        config =
+            { smokeSignalContractAddress = Eth.Utils.unsafeToAddress flags.smokeSignalContractAddress
+            , daiContractAddress = Eth.Utils.unsafeToAddress flags.daiContractAddress
+            , httpProviderUrl = flags.httpProviderUrl
+            , startScanBlock = flags.startScanBlock
+            }
+
         route =
             Routing.urlToRoute url
 
@@ -55,14 +62,15 @@ init flags url key =
             Eth.Sentry.Tx.init
                 ( Ports.txOut, Ports.txIn )
                 Types.TxSentryMsg
-                Config.httpProviderUrl
+                config.httpProviderUrl
 
         ( initEventSentry, initEventSentryCmd ) =
-            Eth.Sentry.Event.init Types.EventSentryMsg Config.httpProviderUrl
+            Eth.Sentry.Event.init Types.EventSentryMsg config.httpProviderUrl
 
         ( eventSentry, secondEventSentryCmd, _ ) =
             Contracts.SmokeSignal.messageBurnEventFilter
-                (Eth.Types.BlockNum Config.startScanBlock)
+                config.smokeSignalContractAddress
+                (Eth.Types.BlockNum config.startScanBlock)
                 Eth.Types.LatestBlock
                 Nothing
                 Nothing
@@ -85,14 +93,9 @@ init flags url key =
         , txSentry = txSentry
         , eventSentry = eventSentry
         , userNotices = walletNotices
-        , demoPhaceSrc = Config.initDemoPhaceSrc
         , cookieConsentGranted = flags.cookieConsent
         , newUserModal = flags.newUser
-        , config =
-            { smokeSignalContractAddress = flags.smokeSignalContractAddress
-            , daiContractAddress = flags.daiContractAddress
-            , httpProviderUrl = flags.httpProviderUrl
-            }
+        , config = config
       }
     , Cmd.batch
         [ initEventSentryCmd

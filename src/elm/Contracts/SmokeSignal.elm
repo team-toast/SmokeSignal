@@ -1,6 +1,5 @@
 module Contracts.SmokeSignal exposing (..)
 
-import Config
 import Contracts.Generated.SmokeSignal as G
 import Element
 import Eth
@@ -13,7 +12,7 @@ import Json.Decode.Pipeline exposing (custom)
 import Misc
 import Task
 import TokenValue exposing (TokenValue)
-import Types exposing (Accounting, Content, Core, EncodedDraft, Id, Published)
+import Types exposing (Accounting, Config, Content, Core, EncodedDraft, Id, Published)
 
 
 type alias MessageBurn =
@@ -33,10 +32,10 @@ convertBurnAmount gen =
         gen.message
 
 
-messageBurnEventFilter : BlockId -> BlockId -> Maybe Hex -> Maybe Address -> LogFilter
-messageBurnEventFilter from to maybeHash maybeAuthor =
+messageBurnEventFilter : Address -> BlockId -> BlockId -> Maybe Hex -> Maybe Address -> LogFilter
+messageBurnEventFilter smokeSignalContractAddress from to maybeHash maybeAuthor =
     G.messageBurnEvent
-        Config.smokesignalContractAddress
+        smokeSignalContractAddress
         maybeHash
         maybeAuthor
         |> (\filter ->
@@ -53,10 +52,10 @@ messageBurnDecoder =
         |> Decode.map convertBurnAmount
 
 
-burnEncodedPost : EncodedDraft -> Call Hex
-burnEncodedPost encodedPost =
+burnEncodedPost : Address -> EncodedDraft -> Call Hex
+burnEncodedPost smokeSignalContractAddress encodedPost =
     G.burnMessage
-        Config.smokesignalContractAddress
+        smokeSignalContractAddress
         encodedPost.encodedContentAndMetadata
         (TokenValue.getEvmValue encodedPost.donateAmount)
         |> EthHelpers.updateCallValue (TokenValue.getEvmValue encodedPost.burnAmount)
@@ -99,22 +98,22 @@ toAccounting storedMessageData =
         (TokenValue.tokenValue storedMessageData.nativeTipped)
 
 
-getAccountingCmd : Hex -> (Result Http.Error Accounting -> msg) -> Cmd msg
-getAccountingCmd msgHash msgConstructor =
+getAccountingCmd : Config -> Hex -> (Result Http.Error Accounting -> msg) -> Cmd msg
+getAccountingCmd config msgHash msgConstructor =
     Eth.call
-        Config.httpProviderUrl
+        config.httpProviderUrl
         (G.storedMessageData
-            Config.smokesignalContractAddress
+            config.smokeSignalContractAddress
             msgHash
         )
         |> Task.map toAccounting
         |> Task.attempt msgConstructor
 
 
-tipForPost : Hex -> TokenValue -> Bool -> Call ()
-tipForPost messageHash amount donate =
+tipForPost : Address -> Hex -> TokenValue -> Bool -> Call ()
+tipForPost smokeSignalContractAddress messageHash amount donate =
     G.tipHashOrBurnIfNoAuthor
-        Config.smokesignalContractAddress
+        smokeSignalContractAddress
         messageHash
         (if donate then
             TokenValue.div
@@ -128,10 +127,10 @@ tipForPost messageHash amount donate =
         |> EthHelpers.updateCallValue (TokenValue.getEvmValue amount)
 
 
-burnForPost : Hex -> TokenValue -> Bool -> Call ()
-burnForPost messageHash amount donate =
+burnForPost : Address -> Hex -> TokenValue -> Bool -> Call ()
+burnForPost smokeSignalContractAddress messageHash amount donate =
     G.burnHash
-        Config.smokesignalContractAddress
+        smokeSignalContractAddress
         messageHash
         (if donate then
             TokenValue.div
