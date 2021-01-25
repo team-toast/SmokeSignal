@@ -1,7 +1,20 @@
 const { resolve } = require("path");
 const webpack = require("webpack");
 
-const { ENV } = process.env;
+const {
+  ENV,
+  HTTP_PROVIDER_URL,
+  DAI_CONTRACT_ADDRESS,
+  SMOKE_SIGNAL_CONTRACT_ADDRESS,
+} = process.env;
+
+if (
+  [HTTP_PROVIDER_URL, DAI_CONTRACT_ADDRESS, SMOKE_SIGNAL_CONTRACT_ADDRESS].some(
+    (x) => !x
+  )
+) {
+  throw "Missing environment variable.";
+}
 
 const publicFolder = resolve("./public");
 
@@ -45,5 +58,14 @@ module.exports = {
       },
     ],
   },
-  plugins: [new webpack.NoEmitOnErrorsPlugin()],
+  plugins: [
+    new webpack.NoEmitOnErrorsPlugin(),
+    new webpack.DefinePlugin({
+      HTTP_PROVIDER_URL: JSON.stringify(HTTP_PROVIDER_URL),
+      DAI_CONTRACT_ADDRESS: JSON.stringify(DAI_CONTRACT_ADDRESS),
+      SMOKE_SIGNAL_CONTRACT_ADDRESS: JSON.stringify(
+        SMOKE_SIGNAL_CONTRACT_ADDRESS
+      ),
+    }),
+  ],
 };
