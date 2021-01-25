@@ -110,6 +110,16 @@ getAccountingCmd config msgHash msgConstructor =
         |> Task.attempt msgConstructor
 
 
+getEthPriceCmd : Config -> (Result Http.Error Float -> msg) -> Cmd msg
+getEthPriceCmd config msgConstructor =
+    Eth.call
+        config.httpProviderUrl
+        (G.ethPrice config.smokeSignalContractAddress)
+        |> Task.map TokenValue.tokenValue
+        |> Task.map TokenValue.toFloatWithWarning
+        |> Task.attempt msgConstructor
+
+
 tipForPost : Address -> Hex -> TokenValue -> Bool -> Call ()
 tipForPost smokeSignalContractAddress messageHash amount donate =
     G.tipHashOrBurnIfNoAuthor

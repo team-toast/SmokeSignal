@@ -41,6 +41,7 @@ type alias Model =
     , txSentry : TxSentry Msg
     , eventSentry : EventSentry Msg
     , publishedPosts : PublishedPostsDict
+    , ethPrice : Maybe Float
 
     --, postUX : Maybe ( PostUXId, PostUX.Model )
     , replies : List ReplyIds
@@ -95,7 +96,6 @@ type Msg
       --| TopicUXMsg TopicUX.Msg
       --| HomeMsg Home.Msg
     | ComposeToggle
-    | AllowanceFetched Address (Result Http.Error TokenValue)
     | BalanceFetched Address (Result Http.Error TokenValue)
     | CookieConsentGranted
     | StartInlineCompose Context
@@ -110,6 +110,7 @@ type Msg
     | SubmitBurn Id TokenValue
     | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool
+    | EthPriceFetched (Result Http.Error Float)
 
 
 type alias Config =

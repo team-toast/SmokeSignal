@@ -29,6 +29,7 @@ emptyModel key =
     , newUserModal = False
     , now = Time.millisToPosix 0
     , dProfile = Helpers.Element.Desktop
+    , ethPrice = Nothing
     , txSentry =
         TxSentry.init
             ( Ports.txOut, Ports.txIn )

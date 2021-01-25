@@ -16,7 +16,7 @@ import Ports
 import Routing
 import Time
 import Types exposing (Flags, Model, Msg)
-import Update exposing (update)
+import Update exposing (update, fetchEthPriceCmd)
 import Url exposing (Url)
 import UserNotice
 import View exposing (view)
@@ -100,8 +100,7 @@ init flags url key =
     , Cmd.batch
         [ initEventSentryCmd
         , secondEventSentryCmd
-
-        --, routeCmd
+        , fetchEthPriceCmd config
         ]
     )
 

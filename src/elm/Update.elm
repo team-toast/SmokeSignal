@@ -1,4 +1,4 @@
-module Update exposing (update)
+module Update exposing (update, fetchEthPriceCmd)
 
 --import PostUX.State as PostUX
 --import TopicUX.State as TopicUX
@@ -106,12 +106,15 @@ update msg prevModel =
 
         EveryFewSeconds ->
             ( prevModel
-            , Wallet.userInfo prevModel.wallet
-                |> Maybe.map
-                    (\userInfo ->
-                        fetchDaiBalanceAndAllowanceCmd userInfo.address
-                    )
-                |> Maybe.withDefault Cmd.none
+            , Cmd.batch
+                [ fetchEthPriceCmd prevModel.config
+                , Wallet.userInfo prevModel.wallet
+                    |> Maybe.map
+                        (\userInfo ->
+                            fetchEthBalanceCmd prevModel.config userInfo.address
+                        )
+                    |> Maybe.withDefault Cmd.none
+                ]
             )
 
         ShowExpandedTrackedTxs flag ->
@@ -178,7 +181,7 @@ update msg prevModel =
                                                 walletSentry.networkId
                                                 newAddress
                                                 Nothing
-                                        , fetchDaiBalanceAndAllowanceCmd newAddress
+                                        , fetchEthBalanceCmd prevModel.config newAddress
                                         )
 
                                 Nothing ->
@@ -317,51 +320,20 @@ update msg prevModel =
                         , Cmd.none
                         )
 
-        AllowanceFetched address fetchResult ->
-            let
-                maybeCurrentAddress =
-                    Wallet.userInfo prevModel.wallet
-                        |> Maybe.map .address
-            in
-            if maybeCurrentAddress /= Just address then
-                ( prevModel, Cmd.none )
+        EthPriceFetched fetchResult ->
+            case fetchResult of
+                Ok price ->
+                    ( { prevModel
+                        | ethPrice = Just price
+                      }
+                    , Cmd.none
+                    )
 
-            else
-                case fetchResult of
-                    Ok allowance ->
-                        let
-                            isUnlocked =
-                                if TokenValue.isMaxTokenValue allowance then
-                                    True
-
-                                else
-                                    False
-
-                            newWallet =
-                                if isUnlocked then
-                                    --prevModel.wallet |> Wallet.withUnlockStatus Unlocked
-                                    prevModel.wallet
-
-                                else if False then
-                                    --else if Wallet.unlockStatus prevModel.wallet /= Unlocking then
-                                    --prevModel.wallet |> Wallet.withUnlockStatus Locked
-                                    prevModel.wallet
-
-                                else
-                                    prevModel.wallet
-                        in
-                        ( { prevModel
-                            | wallet =
-                                newWallet
-                          }
-                        , Cmd.none
-                        )
-
-                    Err httpErr ->
-                        ( prevModel
-                            |> addUserNotice (UN.web3FetchError "DAI unlock status" httpErr)
-                        , Cmd.none
-                        )
+                Err httpErr ->
+                    ( prevModel
+                        |> addUserNotice (UN.web3FetchError "ETH price" httpErr)
+                    , Cmd.none
+                    )
 
         BlockTimeFetched blocknum timeResult ->
             case timeResult of
@@ -407,88 +379,6 @@ update msg prevModel =
             , Cmd.none
             )
 
-        --PostUXMsg postUXId postUXMsg ->
-        --let
-        --postUXModelBeforeMsg =
-        ---- TODO
-        --case Nothing of
-        --Just ( prevPostUXId, prevPostUXModel ) ->
-        --if prevPostUXId == postUXId then
-        --prevPostUXModel
-        --else
-        --PostUX.init
-        --Nothing ->
-        --PostUX.init
-        --updateResult =
-        --postUXModelBeforeMsg
-        --|> PostUX.update postUXMsg
-        --in
-        --( prevModel
-        -- TODO
-        --| postUX =
-        --Just <|
-        --( postUXId
-        --, updateResult.newModel
-        --)
-        --, Cmd.map (PostUXMsg postUXId) updateResult.cmd
-        --)
-        --|> withMsgUps updateResult.msgUps
-        --ComposeUXMsg composeUXMsg ->
-        --let
-        --updateResult =
-        --prevModel.composeUXModel
-        --Nothing
-        --TODO
-        --|> ComposeUX.update composeUXMsg
-        --in
-        --( prevModel
-        --| composeUXModel =
-        --updateResult.newModel
-        -- TODO
-        --prevModel.composeUXModel
-        --}
-        --, Cmd.map ComposeUXMsg updateResult.cmd
-        --, Cmd.none
-        --)
-        --|> withMsgUps updateResult.msgUps
-        --TopicUXMsg topicUXMsg ->
-        --let
-        --topicUXModelBeforeMsg =
-        --case prevModel.topicUXModel of
-        --Just prevTopicUXModel ->
-        --prevTopicUXModel
-        --Nothing ->
-        --TopicUX.init
-        --updateResult =
-        --topicUXModelBeforeMsg
-        --|> TopicUX.update topicUXMsg
-        --in
-        --( { prevModel
-        --| topicUXModel =
-        --Just <|
-        --updateResult.newModel
-        --}
-        --, Cmd.map TopicUXMsg updateResult.cmd
-        --)
-        --|> withMsgUps updateResult.msgUps
-        --( prevModel, Cmd.none )
-        --HomeMsg homeMsg ->
-        --case prevModel.mode of
-        --ModeHome homeModel ->
-        --let
-        --updateResult =
-        --homeModel
-        --|> Home.update homeMsg
-        --in
-        --( { prevModel
-        --| view =
-        --ModeHome updateResult.newModel
-        --}
-        --, Cmd.map HomeMsg updateResult.cmd
-        --)
-        --|> withMsgUps updateResult.msgUps
-        --_ ->
-        --( prevModel, Cmd.none )
         TxSigned txInfo txHashResult ->
             case txHashResult of
                 Ok txHash ->
@@ -1038,15 +928,20 @@ updateSeoDescriptionIfNeededCmd model =
         ( model, Cmd.none )
 
 
-fetchDaiBalanceAndAllowanceCmd :
-    Address
-    -> Cmd Msg
-fetchDaiBalanceAndAllowanceCmd address =
-    Cmd.batch
-        --[ Dai.getAllowanceCmd address (AllowanceFetched address)
-        --, Dai.getBalanceCmd address (BalanceFetched address)
-        --]
-        []
+fetchEthBalanceCmd : Types.Config -> Address -> Cmd Msg
+fetchEthBalanceCmd config address =
+    Eth.getBalance
+        config.httpProviderUrl
+        address
+        |> Task.map TokenValue.tokenValue
+        |> Task.attempt (BalanceFetched address)
+
+
+fetchEthPriceCmd : Types.Config -> Cmd Msg
+fetchEthPriceCmd config =
+    SSContract.getEthPriceCmd
+        config
+        EthPriceFetched
 
 
 getBlockTimeCmd : String -> Int -> Cmd Msg
