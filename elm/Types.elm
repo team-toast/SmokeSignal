@@ -104,7 +104,7 @@ type Msg
     | SubmitTip Id TokenValue
     | SubmitBurn Id TokenValue
     | DonationCheckboxSet Bool
-    | CloseNewToSmokeSignalModal
+    | ShowNewToSmokeSignalModal Bool
 
 
 type alias PostState =

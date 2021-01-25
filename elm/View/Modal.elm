@@ -6,9 +6,10 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile(..), white)
-import Theme
+import Theme exposing (blue)
 import Types exposing (Context(..), Msg(..), PhaceIconId(..), Post(..), Route(..))
 import View.Attrs exposing (hover, whiteGlowAttribute)
+import View.Attrs exposing (slightRound)
 
 
 viewNewToSmokeSignal : DisplayProfile -> Element Msg
@@ -42,16 +43,10 @@ viewNewToSmokeSignal dProfile =
         dProfile
         []
       <|
-        Element.text "All you need is ETH for gas and DAI to burn."
-    , rowElement
-        dProfile
-        []
-      <|
         column
             [ Element.spacing 5 ]
-            [ rowElement dProfile [] <| Element.text "All SmokeSignal posts are permanent and impossible to delete, and can be"
-            , rowElement dProfile [] <| Element.text "accessed with any browser via an IPFS Gateway (example)"
-            , rowElement dProfile [] <| Element.text "or the smokesignal.eth.link mirror (example)."
+            [ rowElement dProfile [] <| Element.text "All SmokeSignal posts are permanent and impossible for anyone to delete."
+            , rowElement dProfile [] <| Element.text "All SmokeSignal authors are pseudonymous by default and cannot be deplatformed."
             ]
     , rowElement
         dProfile
@@ -59,20 +54,43 @@ viewNewToSmokeSignal dProfile =
       <|
         column
             [ Element.spacing 5 ]
-            [ rowElement dProfile [] <| Element.text "If the above two methods prove unreliable, some browsers also support direct"
-            , rowElement dProfile [] <| Element.text "smokesignal.eth links (example) or direct IPFS links (example)."
+            [ rowElement dProfile [] <|
+                Element.row
+                    []
+                    [ Element.text "All you need to post is a web3 wallet like "
+                    , Element.newTabLink
+                        [ Font.color <| Element.rgb 0.5 0.5 1 ]
+                        { url = "https://metamask.io/"
+                        , label = Element.text "Metamask"
+                        }
+                    , Element.text " and "
+                    , Element.newTabLink
+                        [ Font.color <| Element.rgb 0.5 0.5 1 ]
+                        { url = "https://www.google.com/search?q=how+to+buy+ether"
+                        , label = Element.text "ETH to burn."
+                        }
+                    ]
+            , rowElement dProfile [] <| Element.text "The more ETH you burn, the more attention the post will get."
             ]
     , rowElement
         dProfile
         []
-      <|
-        el
-            [ Font.color Theme.orange
-            , Font.semiBold
-            ]
         <|
-            Element.text
-                "Go to introductory video →"
+        Input.button
+            [ Border.rounded 4
+            , padding 10
+            , Font.size 22
+            , Font.bold
+            , Border.glow
+                (Element.rgb 0 0 1)
+                3
+            -- , Border.innerGlow
+            --     (Element.rgb 0 0 1)
+            --     2
+            ]
+            { onPress = Just <| ShowNewToSmokeSignalModal False
+            , label = Element.text "Cool, let's go!"
+            }
     ]
         |> column
             [ whiteGlowAttribute
@@ -92,12 +110,12 @@ viewNewToSmokeSignal dProfile =
                 , hover
                 , View.Attrs.sansSerifFont
                 ]
-                { onPress = Just CloseNewToSmokeSignalModal
+                { onPress = Just <| ShowNewToSmokeSignalModal False
                 , label = text "X"
                 }
                 |> Element.inFront
             ]
-        |> el [ height fill, width fill, padding 30 ]
+        |> el [ Element.centerY, width fill, padding 30 ]
 
 
 rowElement : DisplayProfile -> List (Attribute Msg) -> Element Msg -> Element Msg

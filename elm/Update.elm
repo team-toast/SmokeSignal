@@ -773,9 +773,9 @@ update msg prevModel =
                 ]
             )
 
-        CloseNewToSmokeSignalModal ->
+        ShowNewToSmokeSignalModal flag ->
             ( { prevModel
-                | newUserModal = False
+                | newUserModal = flag
               }
             , Ports.setVisited ()
             )

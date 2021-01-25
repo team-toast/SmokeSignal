@@ -155,19 +155,23 @@ viewOverview model =
             , showInput = Types.None
             }
     in
-    [ "NEW TO SMOKE SIGNAL?"
-        |> text
-        |> el
-            [ View.Attrs.sansSerifFont
-            , padding 20
-            , slightRound
-            , Background.color Theme.orange
-            , Font.bold
-            , Font.color white
-            , Font.size 30
-            , whiteGlowAttributeSmall
-            , width fill
-            ]
+    [ Input.button
+        [ View.Attrs.sansSerifFont
+        , padding 20
+        , slightRound
+        , Background.color Theme.orange
+        , Font.bold
+        , Font.color white
+        , Font.size 30
+        , whiteGlowAttributeSmall
+        , width fill
+        ]
+        { onPress = Just <| ShowNewToSmokeSignalModal True
+        , label =
+            "NEW TO SMOKE SIGNAL?"
+                |> text
+                |> Element.el [ centerX ]
+        }
     , [ [ [ "Topics"
                 |> text
                 |> el [ Font.size 35 ]
