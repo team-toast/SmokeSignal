@@ -8,6 +8,12 @@ const { Elm } = require("./elm/App.elm");
 
 const basePath = new URL(document.baseURI).pathname;
 
+/* eslint-disable no-undef */
+const smokeSignalContractAddress = SMOKE_SIGNAL_CONTRACT_ADDRESS;
+const daiContractAddress = DAI_CONTRACT_ADDRESS;
+const httpProviderUrl = HTTP_PROVIDER_URL;
+/* eslint-enable no-undef */
+
 //window.testStuff = secureComms.testStuff;
 window.web3Connected = false;
 
@@ -64,6 +70,9 @@ const init = (networkId) => {
       nowInMillis: Date.now(),
       cookieConsent: getCookieConsent(),
       newUser: !window.localStorage.getItem(HAS_VISITED),
+      smokeSignalContractAddress,
+      daiContractAddress,
+      httpProviderUrl,
     },
   });
 };

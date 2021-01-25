@@ -88,6 +88,11 @@ init flags url key =
         , demoPhaceSrc = Config.initDemoPhaceSrc
         , cookieConsentGranted = flags.cookieConsent
         , newUserModal = flags.newUser
+        , config =
+            { smokeSignalContractAddress = flags.smokeSignalContractAddress
+            , daiContractAddress = flags.daiContractAddress
+            , httpProviderUrl = flags.httpProviderUrl
+            }
       }
     , Cmd.batch
         [ initEventSentryCmd

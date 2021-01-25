@@ -55,6 +55,7 @@ emptyModel key =
     , maybeSeoDescription = Nothing
     , searchInput = ""
     , composeModal = False
+    , config = Types.ConfigData "" "" ""
 
     --, topicUXModel = Nothing
     }
