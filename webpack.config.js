@@ -60,6 +60,14 @@ module.exports = {
         exclude: [/elm-stuff/, /node_modules/],
         use: webpackPlugins,
       },
+      {
+        test: /\.(woff(2)?|ttf)$/,
+        use: ["base64-inline-loader"],
+      },
+      {
+        test: /\.css$/,
+        use: ["style-loader", "css-loader"],
+      },
     ],
   },
   plugins: [

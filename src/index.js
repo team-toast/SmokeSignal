@@ -1,3 +1,4 @@
+require("./index.css");
 const elm_ethereum_ports = require("elm-ethereum-ports");
 const networkChangeNotifier = require("./js/networkChangeNotifier");
 require("@metamask/legacy-web3");
@@ -35,7 +36,7 @@ window.addEventListener("load", function () {
 
 function startDapp() {
   return new Promise((resolve, _reject) => {
-    if (typeof web3 !== "undefined") {
+    if (web3 && web3.version && web3.version.getNetwork) {
       web3.version.getNetwork(function (e, networkId) {
         const id = (() => {
           if (e) {
