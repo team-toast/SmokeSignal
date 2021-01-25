@@ -1,3 +1,4 @@
+require("./index.css");
 const elm_ethereum_ports = require("elm-ethereum-ports");
 const networkChangeNotifier = require("./js/networkChangeNotifier");
 require("@metamask/legacy-web3");
