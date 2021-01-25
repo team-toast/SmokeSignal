@@ -1,12 +1,19 @@
 const elm_ethereum_ports = require("elm-ethereum-ports");
-const networkChangeNotifier = require("./networkChangeNotifier");
+const networkChangeNotifier = require("./js/networkChangeNotifier");
 require("@metamask/legacy-web3");
 
 const { web3 } = window;
 
-const { Elm } = require("../../elm/App.elm");
+const { Elm } = require("./elm/App.elm");
 
 const basePath = new URL(document.baseURI).pathname;
+
+/* eslint-disable no-undef */
+const smokeSignalContractAddress = SMOKE_SIGNAL_CONTRACT_ADDRESS;
+const daiContractAddress = DAI_CONTRACT_ADDRESS;
+const httpProviderUrl = HTTP_PROVIDER_URL;
+const startScanBlock = START_SCAN_BLOCK;
+/* eslint-enable no-undef */
 
 //window.testStuff = secureComms.testStuff;
 window.web3Connected = false;
@@ -64,6 +71,10 @@ const init = (networkId) => {
       nowInMillis: Date.now(),
       cookieConsent: getCookieConsent(),
       newUser: !window.localStorage.getItem(HAS_VISITED),
+      smokeSignalContractAddress,
+      daiContractAddress,
+      httpProviderUrl,
+      startScanBlock,
     },
   });
 };

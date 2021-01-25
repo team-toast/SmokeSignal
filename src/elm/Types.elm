@@ -1,4 +1,4 @@
-module Types exposing (Accounting, CheckedMaybeValidInputs, Content, Context(..), Core, Draft, EncodedDraft, FailReason(..), Flags, GTagData, Id, Metadata, Model, Msg(..), PhaceIconId(..), Post(..), PostState, PostUXId(..), Published, PublishedPostsDict, ReplyIds, Route(..), ShowInputState(..), TrackedTx, TxInfo(..), TxStatus(..), UserInfo, View(..), Wallet(..))
+module Types exposing (Accounting, CheckedMaybeValidInputs, Config, Content, Context(..), Core, Draft, EncodedDraft, FailReason(..), Flags, GTagData, Id, Metadata, Model, Msg(..), PhaceIconId(..), Post(..), PostState, PostUXId(..), Published, PublishedPostsDict, ReplyIds, Route(..), ShowInputState(..), TrackedTx, TxInfo(..), TxStatus(..), UserInfo, View(..), Wallet(..))
 
 import Browser
 import Browser.Navigation
@@ -24,6 +24,10 @@ type alias Flags =
     , nowInMillis : Int
     , cookieConsent : Bool
     , newUser : Bool
+    , smokeSignalContractAddress : String
+    , daiContractAddress : String
+    , httpProviderUrl : String
+    , startScanBlock : Int
     }
 
 
@@ -57,6 +61,7 @@ type alias Model =
     , searchInput : String
     , newUserModal : Bool
     , composeModal : Bool
+    , config : Config
 
     --, topicUXModel : Maybe TopicUX.Model
     }
@@ -105,6 +110,14 @@ type Msg
     | SubmitBurn Id TokenValue
     | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool
+
+
+type alias Config =
+    { smokeSignalContractAddress : Address
+    , daiContractAddress : Address
+    , httpProviderUrl : String
+    , startScanBlock : Int
+    }
 
 
 type alias PostState =

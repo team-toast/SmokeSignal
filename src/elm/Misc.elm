@@ -1,4 +1,4 @@
-module Misc exposing (contextReplyTo, contextTopLevel, decodePostData, defaultSeoDescription, defaultTopic, emptyModel, encodeDraft, formatPosix, getPublishedPostFromId, getTitle, justBodyContent, nullMetadata, totalBurned, txInfoToNameStr, updatePublishedPost, withBalance)
+module Misc exposing (contextReplyTo, contextTopLevel, decodePostData, defaultSeoDescription, defaultTopic, emptyModel, encodeDraft, formatPosix, getPublishedPostFromId, getTitle, initDemoPhaceSrc, justBodyContent, nullMetadata, totalBurned, txInfoToNameStr, updatePublishedPost, withBalance)
 
 import Browser.Navigation
 import Dict
@@ -49,15 +49,26 @@ emptyModel key =
     , trackedTxs = []
     , showExpandedTrackedTxs = False
     , draftModal = Nothing
-    , demoPhaceSrc = ""
+    , demoPhaceSrc = initDemoPhaceSrc
     , donateChecked = True
     , cookieConsentGranted = False
     , maybeSeoDescription = Nothing
     , searchInput = ""
     , composeModal = False
+    , config =
+        Types.Config
+            (Eth.Utils.unsafeToAddress "")
+            (Eth.Utils.unsafeToAddress "")
+            ""
+            0
 
     --, topicUXModel = Nothing
     }
+
+
+initDemoPhaceSrc : String
+initDemoPhaceSrc =
+    "2222222222222222222222222228083888c8f222"
 
 
 updateTrackedTxByTxInfo : TxInfo -> (TrackedTx -> TrackedTx) -> Model -> Model

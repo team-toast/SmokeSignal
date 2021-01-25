@@ -9,7 +9,6 @@ module Update exposing (update)
 
 import Browser
 import Browser.Navigation
-import Config
 import Contracts.SmokeSignal as SSContract
 import DemoPhaceSrcMutator
 import Dict exposing (Dict)
@@ -130,7 +129,7 @@ update msg prevModel =
                         trackedTx.status == Mining
                     )
                 |> List.map .txHash
-                |> List.map (Eth.getTxReceipt Config.httpProviderUrl)
+                |> List.map (Eth.getTxReceipt prevModel.config.httpProviderUrl)
                 |> List.map (Task.attempt TrackedTxStatusResult)
                 |> Cmd.batch
             )
@@ -257,7 +256,7 @@ update msg prevModel =
                       --)
                     , Cmd.batch
                         [ newPostCmd
-                        , getBlockTimeIfNeededCmd prevModel.blockTimes log.blockNumber
+                        , getBlockTimeIfNeededCmd prevModel.config.httpProviderUrl prevModel.blockTimes log.blockNumber
                         ]
                     )
 
@@ -663,7 +662,7 @@ update msg prevModel =
                 txParams =
                     postDraft
                         |> Misc.encodeDraft
-                        |> SSContract.burnEncodedPost
+                        |> SSContract.burnEncodedPost prevModel.config.smokeSignalContractAddress
                         |> Eth.toSend
 
                 listeners =
@@ -684,7 +683,7 @@ update msg prevModel =
         SubmitBurn postId amount ->
             let
                 txParams =
-                    SSContract.burnForPost postId.messageHash amount prevModel.donateChecked
+                    SSContract.burnForPost prevModel.config.smokeSignalContractAddress postId.messageHash amount prevModel.donateChecked
                         |> Eth.toSend
 
                 listeners =
@@ -705,7 +704,7 @@ update msg prevModel =
         SubmitTip postId amount ->
             let
                 txParams =
-                    SSContract.tipForPost postId.messageHash amount prevModel.donateChecked
+                    SSContract.tipForPost prevModel.config.smokeSignalContractAddress postId.messageHash amount prevModel.donateChecked
                         |> Eth.toSend
 
                 listeners =
@@ -892,6 +891,7 @@ addPost blockNumber publishedPost prevModel =
                     )
           }
         , SSContract.getAccountingCmd
+            prevModel.config
             publishedPost.id.messageHash
             (PostAccountingFetched publishedPost.id)
         )
@@ -997,12 +997,13 @@ updateFromPageRoute route model =
 
 
 getBlockTimeIfNeededCmd :
-    Dict Int Time.Posix
+    String
+    -> Dict Int Time.Posix
     -> Int
     -> Cmd Msg
-getBlockTimeIfNeededCmd blockTimes blockNumber =
+getBlockTimeIfNeededCmd httpProviderUrl blockTimes blockNumber =
     if Dict.get blockNumber blockTimes == Nothing then
-        getBlockTimeCmd blockNumber
+        getBlockTimeCmd httpProviderUrl blockNumber
 
     else
         Cmd.none
@@ -1048,12 +1049,10 @@ fetchDaiBalanceAndAllowanceCmd address =
         []
 
 
-getBlockTimeCmd :
-    Int
-    -> Cmd Msg
-getBlockTimeCmd blocknum =
+getBlockTimeCmd : String -> Int -> Cmd Msg
+getBlockTimeCmd httpProviderUrl blocknum =
     Eth.getBlock
-        Config.httpProviderUrl
+        httpProviderUrl
         blocknum
         |> Task.map .timestamp
         |> Task.attempt (BlockTimeFetched blocknum)

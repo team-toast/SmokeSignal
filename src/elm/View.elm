@@ -444,7 +444,6 @@ viewTrackedTxRow trackedTx =
                             , Element.Events.onClick <|
                                 GotoRoute <|
                                     RoutePost postId
-
                             ]
                             (Element.text "Post")
                         ]

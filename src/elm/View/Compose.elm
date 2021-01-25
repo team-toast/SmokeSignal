@@ -1,6 +1,5 @@
 module View.Compose exposing (view)
 
-import Config
 import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, height, padding, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -75,7 +74,7 @@ viewBox model =
         , phaceElement
             ( 50, 50 )
             False
-            Config.smokesignalContractAddress
+            model.config.smokeSignalContractAddress
             False
             ClickHappened
         ]
