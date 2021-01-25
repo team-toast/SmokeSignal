@@ -7,10 +7,11 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile, black, white)
-import Theme exposing (theme)
+import Theme exposing (orange, theme)
 import Time
 import Types exposing (Context(..), Model, Msg, Published, PublishedPostsDict, Wallet)
 import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
+import View.Img
 import View.Post
 
 
@@ -39,13 +40,7 @@ topicHeader topic =
     [ [ topic
             |> text
             |> el [ Font.size 35 ]
-      , Element.image
-            [ height <| px 50
-            , width <| px 50
-            ]
-            { src = "/img/bookmark.svg"
-            , description = ""
-            }
+      , View.Img.bookmark 30 orange
       ]
         |> row
             [ width fill

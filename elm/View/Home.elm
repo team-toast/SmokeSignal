@@ -13,12 +13,13 @@ import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Helpers.Time as TimeHelpers
 import Maybe.Extra exposing (unwrap)
 import Misc exposing (getPublishedPostFromId)
-import Theme exposing (almostWhite, theme)
+import Theme exposing (almostWhite, orange, theme)
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (Context(..), Id, Model, Msg(..), PhaceIconId(..), Post(..), PostState, Published, PublishedPostsDict, Route(..))
 import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common exposing (daiSymbol, phaceElement)
+import View.Img
 import View.Post
 import View.Topic
 import Wallet
@@ -374,13 +375,9 @@ viewTopVoices =
 
 viewBookmarkedTopics : Element Msg
 viewBookmarkedTopics =
-    [ [ Element.image
-            [ height <| px 30
-            , width <| px 30
-            ]
-            { src = "/img/bookmark.svg"
-            , description = ""
-            }
+    [ [ View.Img.bookmark 17 orange
+            |> el [ centerX, centerY ]
+            |> el [ height <| px 30, width <| px 30, Background.color black ]
       , Input.button
             [ Font.size 20
             , width fill
