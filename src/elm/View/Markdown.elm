@@ -1,4 +1,4 @@
-module ElementMarkdown exposing (renderString)
+module View.Markdown exposing (renderString)
 
 import Element exposing (Attribute, Element)
 import Element.Background

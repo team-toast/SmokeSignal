@@ -107,7 +107,7 @@ header wallet searchInput =
                 |> text
                 |> Input.placeholder []
                 |> Just
-        , text = searchInput
+        , text = ""
         }
     , [ Element.image
             [ height <| px 50

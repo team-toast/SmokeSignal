@@ -1,4 +1,4 @@
-module Update exposing (update, fetchEthPriceCmd)
+module Update exposing (fetchEthPriceCmd, update)
 
 --import PostUX.State as PostUX
 --import TopicUX.State as TopicUX
@@ -667,6 +667,20 @@ update msg prevModel =
                 | newUserModal = flag
               }
             , Ports.setVisited ()
+            )
+
+        ComposeBodyChange str ->
+            ( { prevModel
+                | searchInput = str
+              }
+            , Cmd.none
+            )
+
+        ComposeTitleChange str ->
+            ( { prevModel
+                | titleInput = str
+              }
+            , Cmd.none
             )
 
 

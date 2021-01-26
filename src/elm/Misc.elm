@@ -55,6 +55,7 @@ emptyModel key =
     , cookieConsentGranted = False
     , maybeSeoDescription = Nothing
     , searchInput = ""
+    , titleInput = ""
     , composeModal = False
     , config =
         Types.Config

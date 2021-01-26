@@ -1,4 +1,4 @@
-module View.Common exposing (appStatusMessage, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, unlockButton, viewContext, web3ConnectButton, whenAttr, whenJust, wrapModal)
+module View.Common exposing (appStatusMessage, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, unlockButton, viewContext, web3ConnectButton, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
@@ -8,13 +8,13 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import ElementMarkdown
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal)
 import Phace
 import Theme exposing (theme)
 import Types exposing (Content, Context, Id, Msg)
+import View.Markdown
 
 
 viewContext : Context -> Element Msg
@@ -202,7 +202,7 @@ renderContentOrError : Content -> Element Msg
 renderContentOrError content =
     let
         renderResult =
-            ElementMarkdown.renderString
+            View.Markdown.renderString
                 [ Element.spacing 15
                 , Font.color theme.postBodyTextColor
                 , Element.width Element.fill
@@ -231,6 +231,15 @@ unlockButton dProfile attrs =
         attrs
         [ "Unlock Dai" ]
         (EH.Action Types.UnlockDai)
+
+
+when : Bool -> Element msg -> Element msg
+when b elem =
+    if b then
+        elem
+
+    else
+        Element.none
 
 
 whenJust : (a -> Element msg) -> Maybe a -> Element msg

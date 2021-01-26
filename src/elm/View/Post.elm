@@ -17,6 +17,7 @@ import Types exposing (Context(..), Id, Msg(..), Post(..), PostState, Published,
 import View.Attrs exposing (whiteGlowAttributeSmall)
 import View.Common exposing (daiAmountInput, daiSymbol, phaceElement, whenJust)
 import View.Img
+import View.Markdown
 
 
 view :
@@ -66,11 +67,14 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet state post 
                     False
                     ClickHappened
               , [ post.core.content.title |> whenJust (text >> el [ Font.bold ])
+                , post.core.content.desc |> whenJust (text >> el [ Font.italic ])
                 , post.core.content.body
-                    |> limitedString
-                    |> text
-                    |> List.singleton
-                    |> Element.paragraph []
+                    |> View.Markdown.renderString
+                        [ height <| px 100
+                        , Element.clip
+                        ]
+                    |> Result.toMaybe
+                    |> whenJust identity
                 , [ [ ( "365 Comments", View.Img.speechBubble )
                     , ( "Bookmark", View.Img.bookmark )
                     , ( "Hide", View.Img.hide )
