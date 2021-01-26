@@ -17,15 +17,47 @@ import View.Post
 
 view : Model -> String -> Element Msg
 view model topic =
+    let
+        posts =
+            model.publishedPosts
+                |> Dict.values
+                |> List.concat
+                |> List.filter (isTopicMatch topic)
+
+        state =
+            { showAddress = False
+            , showInput = Types.None
+            }
+    in
     [ topicHeader topic
-    , viewPosts model.dProfile
-        model.donateChecked
-        False
-        topic
-        model.blockTimes
-        model.now
-        model.wallet
-        model.publishedPosts
+    , if List.isEmpty posts then
+        text "Be the first to create a post on this topic."
+            |> el
+                [ padding 10
+                , whiteGlowAttributeSmall
+                , Background.color black
+                , Font.color white
+                , centerX
+                ]
+
+      else
+        posts
+            |> List.map
+                (View.Post.view
+                    model.dProfile
+                    False
+                    model.donateChecked
+                    model.blockTimes
+                    model.now
+                    model.wallet
+                    --(Wallet.unlockStatus wallet)
+                    --(Maybe.withDefault None inputState)
+                    state
+                )
+            |> column
+                [ width fill
+                , spacing 10
+                ]
     ]
         |> column
             [ width fill
@@ -67,39 +99,6 @@ topicHeader topic =
         |> column
             [ width fill
             , whiteGlowAttributeSmall
-            ]
-
-
-viewPosts : DisplayProfile -> Bool -> Bool -> String -> Dict Int Time.Posix -> Time.Posix -> Wallet -> PublishedPostsDict -> Element Msg
-viewPosts dProfile donateChecked showAddressOnPhace topic blockTimes now wallet posts =
-    let
-        state =
-            { showAddress = False
-            , showInput = Types.None
-            }
-    in
-    posts
-        |> Dict.values
-        |> List.concat
-        |> List.filter (isTopicMatch topic)
-        |> List.map
-            (View.Post.view
-                dProfile
-                showAddressOnPhace
-                donateChecked
-                blockTimes
-                now
-                wallet
-                --(Wallet.unlockStatus wallet)
-                --(Maybe.withDefault None inputState)
-                state
-            )
-        |> column
-            [ width fill
-            , Background.color theme.blockBackground
-            , Border.width 1
-            , Border.color theme.blockBorderColor
-            , Border.rounded 5
             ]
 
 

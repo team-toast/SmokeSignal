@@ -6,10 +6,9 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile(..), white)
-import Theme exposing (blue)
+import Theme
 import Types exposing (Context(..), Msg(..), PhaceIconId(..), Post(..), Route(..))
 import View.Attrs exposing (hover, whiteGlowAttribute)
-import View.Attrs exposing (slightRound)
 
 
 viewNewToSmokeSignal : DisplayProfile -> Element Msg
@@ -75,7 +74,7 @@ viewNewToSmokeSignal dProfile =
     , rowElement
         dProfile
         []
-        <|
+      <|
         Input.button
             [ Border.rounded 4
             , padding 10
@@ -84,6 +83,7 @@ viewNewToSmokeSignal dProfile =
             , Border.glow
                 (Element.rgb 0 0 1)
                 3
+
             -- , Border.innerGlow
             --     (Element.rgb 0 0 1)
             --     2

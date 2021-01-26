@@ -9,22 +9,39 @@ import Element.Input as Input
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal, white)
+import Maybe.Extra exposing (unwrap)
+import Result.Extra
 import Theme exposing (orange, theme)
 import TokenValue exposing (TokenValue)
 import Types exposing (CheckedMaybeValidInputs, Content, Context, Draft, Id, Model, Msg(..), PhaceIconId, Route(..), UserInfo, Wallet)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
-import View.Common exposing (appStatusMessage, daiAmountInput, phaceElement, shortenedHash, viewContext, web3ConnectButton, wrapModal)
+import View.Common exposing (appStatusMessage, daiAmountInput, phaceElement, shortenedHash, viewContext, web3ConnectButton, whenJust, wrapModal)
+import View.Markdown
 import Wallet
 
 
 view : Model -> Element Msg
 view model =
-    viewBox model
+    model.wallet
+        |> Wallet.userInfo
+        |> unwrap
+            ([ text "Please connect your Metamask wallet." ]
+                |> Element.paragraph [ Font.center, centerY ]
+                |> el
+                    [ padding 10
+                    , whiteGlowAttributeSmall
+                    , Background.color black
+                    , Font.color white
+                    , height <| px 250
+                    , width fill
+                    ]
+            )
+            (viewBox model)
         |> wrapModal ComposeToggle
 
 
-viewBox : Model -> Element Msg
-viewBox model =
+viewBox : Model -> UserInfo -> Element Msg
+viewBox model userInfo =
     [ "Comment"
         |> text
         |> el [ sansSerifFont, Font.color white, centerX ]
@@ -41,15 +58,16 @@ viewBox model =
     , [ [ Input.text
             [ width fill
             , View.Attrs.whiteGlowAttributeSmall
+            , Element.alignTop
             ]
-            { onChange = always ClickHappened
+            { onChange = ComposeTitleChange
             , label = Input.labelHidden ""
             , placeholder =
                 "Post Title"
                     |> text
                     |> Input.placeholder []
                     |> Just
-            , text = model.searchInput
+            , text = model.titleInput
             }
         , [ text "🔥"
                 |> el [ Font.size 30 ]
@@ -61,6 +79,53 @@ viewBox model =
                 , Font.color orange
                 , Font.bold
                 ]
+        , [ Input.text
+                [ View.Attrs.whiteGlowAttributeSmall
+                , Background.color white
+                , width <| px 250
+                ]
+                { onChange = always ClickHappened
+                , label = Input.labelHidden ""
+                , placeholder = Nothing
+                , text = ""
+                }
+          , [ Input.checkbox
+                [ width <| px 30
+                , height <| px 30
+                , Background.color white
+                , whiteGlowAttributeSmall
+                , hover
+                ]
+                { onChange = Types.DonationCheckboxSet
+                , icon =
+                    \checked ->
+                        "✔️"
+                            |> text
+                            |> el
+                                [ centerX
+                                , centerY
+                                , Font.size 25
+                                ]
+                            |> View.Common.when checked
+                , checked = model.donateChecked
+                , label = Input.labelHidden "Donate an extra 1% to Foundry"
+                }
+            , [ text "Donate an extra 1% to "
+              , Element.newTabLink
+                    [ Font.color theme.linkTextColor, hover ]
+                    { url = "https://foundrydao.com/"
+                    , label = text "Foundry"
+                    }
+              , text " so we can build more cool stuff!"
+              ]
+                |> Element.paragraph [ spacing 5, Font.color white ]
+            ]
+                |> row
+                    [ Font.size (responsiveVal model.dProfile 14 10)
+                    , spacing 10
+                    ]
+          ]
+            |> column [ height fill, spacing 10 ]
         , [ text "💎"
                 |> el [ Font.size 30 ]
           , text "ETH"
@@ -72,41 +137,87 @@ viewBox model =
                 , Font.bold
                 ]
         , phaceElement
-            ( 50, 50 )
+            ( 75, 75 )
             False
             model.config.smokeSignalContractAddress
             False
             ClickHappened
+            |> el [ centerY ]
         ]
-            |> row [ width fill, spacing 10 ]
-      , Input.multiline
-            [ width fill
-            , height fill
-            , View.Attrs.whiteGlowAttributeSmall
-            , Background.color black
-            ]
-            { onChange = always ClickHappened
-            , label = Input.labelHidden ""
-            , placeholder =
-                "What do you want to say?"
-                    |> text
-                    |> Input.placeholder []
-                    |> Just
-            , text = model.searchInput
-            , spellcheck = False
-            }
+            |> row [ width fill, spacing 20, sansSerifFont ]
+      , [ [ Input.multiline
+                [ width fill
+                , height fill
+                , View.Attrs.whiteGlowAttributeSmall
+                , Background.color black
+                , Font.color white
+                , Input.button
+                    [ padding 10
+                    , Background.color black
+                    , Element.alignRight
+                    , View.Attrs.roundBorder
+                    , hover
+                    ]
+                    { onPress = Nothing
+                    , label = text "Comment"
+                    }
+                    |> el
+                        [ width fill
+                        , padding 10
+                        , Background.color orange
+                        , Element.alignBottom
+                        ]
+                    |> Element.inFront
+                ]
+                { onChange = Types.ComposeBodyChange
+                , label = Input.labelHidden ""
+                , placeholder =
+                    "What do you want to say?"
+                        |> text
+                        |> Input.placeholder []
+                        |> Just
+                , text = model.searchInput
+                , spellcheck = False
+                }
+          ]
+            |> column
+                [ width fill
+                , height fill
+                , spacing 20
+                ]
+        , model.searchInput
+            |> View.Markdown.renderString
+                [ height fill
+                , width fill
+                , Element.clip
+                , whiteGlowAttributeSmall
+                , Font.color white
+                , padding 10
+                ]
+            |> Result.Extra.unpack
+                (\err ->
+                    [ text err ]
+                        |> Element.paragraph [ whiteGlowAttributeSmall ]
+                )
+                identity
+        ]
+            |> row
+                [ height fill
+                , width fill
+                , spacing 30
+                , sansSerifFont
+                ]
       ]
         |> column
-            [ width fill
-            , height fill
-            , padding 30
+            [ height fill
+            , width fill
             , spacing 20
-            , sansSerifFont
+            , padding 30
             ]
     ]
         |> column
             [ width <| px 1000
-            , height <| px 450
+            , height <| px 700
             , Background.color black
             , whiteGlowAttributeSmall
             ]
@@ -425,7 +536,7 @@ actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model =
 
                             Mobile ->
                                 goBackButton dProfile
-                        , inputsElement dProfile donateChecked userInfo model
+                        , inputsElement dProfile donateChecked userInfo
                         , goButtonEl
                         ]
             in
@@ -454,8 +565,8 @@ actionFormAndMaybeErrorEl dProfile donateChecked wallet showAddressId model =
                 [ Element.centerX, Element.centerY ]
 
 
-inputsElement : EH.DisplayProfile -> Bool -> UserInfo -> Model -> Element Msg
-inputsElement dProfile donateChecked userInfo model =
+inputsElement : EH.DisplayProfile -> Bool -> UserInfo -> Element Msg
+inputsElement dProfile donateChecked userInfo =
     Element.el
         ([ Element.centerY
          , Element.centerX

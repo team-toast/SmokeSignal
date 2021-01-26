@@ -25,7 +25,6 @@ import View.Compose
 import View.Home
 import View.Modal
 import View.Post
-import View.Topic
 
 
 view : Model -> Browser.Document Msg
@@ -107,7 +106,7 @@ header wallet searchInput =
                 |> text
                 |> Input.placeholder []
                 |> Just
-        , text = searchInput
+        , text = ""
         }
     , [ Element.image
             [ height <| px 50

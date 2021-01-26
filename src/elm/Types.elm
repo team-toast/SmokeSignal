@@ -59,6 +59,7 @@ type alias Model =
     , cookieConsentGranted : Bool
     , maybeSeoDescription : Maybe String
     , searchInput : String
+    , titleInput : String
     , newUserModal : Bool
     , composeModal : Bool
     , config : Config
@@ -110,6 +111,8 @@ type Msg
     | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool
     | EthPriceFetched (Result Http.Error Float)
+    | ComposeBodyChange String
+    | ComposeTitleChange String
 
 
 type alias Config =
