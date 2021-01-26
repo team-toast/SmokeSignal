@@ -9,7 +9,7 @@ import Helpers.Eth as EthHelpers
 import Http
 import Json.Decode as Decode exposing (Decoder, succeed)
 import Json.Decode.Pipeline exposing (custom)
-import Misc
+import Post
 import Task
 import TokenValue exposing (TokenValue)
 import Types exposing (Accounting, Config, Content, Core, EncodedDraft, Id, Published)
@@ -65,14 +65,7 @@ fromMessageBurn : TxHash -> Int -> (Content -> Element.Element msg) -> MessageBu
 fromMessageBurn txHash block renderFunc messageEvent =
     let
         ( extractedMetadata, extractedMessage ) =
-            case ( String.left 12 messageEvent.message, String.dropLeft 12 messageEvent.message ) of
-                ( "!smokesignal", jsonStr ) ->
-                    Misc.decodePostData jsonStr
-
-                _ ->
-                    ( Misc.nullMetadata
-                    , Misc.justBodyContent messageEvent.message
-                    )
+            Post.decodePostData messageEvent.message
     in
     Published
         txHash

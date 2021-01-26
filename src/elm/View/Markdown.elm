@@ -5,7 +5,6 @@ import Element.Background
 import Element.Border
 import Element.Font
 import Element.Input
-import Element.Region
 import Helpers.Element as EH
 import Html
 import Html.Attributes

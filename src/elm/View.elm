@@ -25,7 +25,6 @@ import View.Compose
 import View.Home
 import View.Modal
 import View.Post
-import View.Topic
 
 
 view : Model -> Browser.Document Msg
