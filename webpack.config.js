@@ -4,7 +4,6 @@ const webpack = require("webpack");
 const {
   ENV,
   HTTP_PROVIDER_URL,
-  DAI_CONTRACT_ADDRESS,
   SMOKE_SIGNAL_CONTRACT_ADDRESS,
   START_SCAN_BLOCK,
 } = process.env;
@@ -12,7 +11,6 @@ const {
 if (
   [
     HTTP_PROVIDER_URL,
-    DAI_CONTRACT_ADDRESS,
     SMOKE_SIGNAL_CONTRACT_ADDRESS,
     START_SCAN_BLOCK,
   ].some((x) => !x)
@@ -74,7 +72,6 @@ module.exports = {
     new webpack.NoEmitOnErrorsPlugin(),
     new webpack.DefinePlugin({
       HTTP_PROVIDER_URL: JSON.stringify(HTTP_PROVIDER_URL),
-      DAI_CONTRACT_ADDRESS: JSON.stringify(DAI_CONTRACT_ADDRESS),
       SMOKE_SIGNAL_CONTRACT_ADDRESS: JSON.stringify(
         SMOKE_SIGNAL_CONTRACT_ADDRESS
       ),

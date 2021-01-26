@@ -11,7 +11,6 @@ const basePath = new URL(document.baseURI).pathname;
 
 /* eslint-disable no-undef */
 const smokeSignalContractAddress = SMOKE_SIGNAL_CONTRACT_ADDRESS;
-const daiContractAddress = DAI_CONTRACT_ADDRESS;
 const httpProviderUrl = HTTP_PROVIDER_URL;
 const startScanBlock = START_SCAN_BLOCK;
 /* eslint-enable no-undef */
@@ -73,7 +72,6 @@ const init = (networkId) => {
       cookieConsent: getCookieConsent(),
       newUser: !window.localStorage.getItem(HAS_VISITED),
       smokeSignalContractAddress,
-      daiContractAddress,
       httpProviderUrl,
       startScanBlock,
     },

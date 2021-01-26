@@ -25,7 +25,6 @@ type alias Flags =
     , cookieConsent : Bool
     , newUser : Bool
     , smokeSignalContractAddress : String
-    , daiContractAddress : String
     , httpProviderUrl : String
     , startScanBlock : Int
     }
@@ -115,7 +114,6 @@ type Msg
 
 type alias Config =
     { smokeSignalContractAddress : Address
-    , daiContractAddress : Address
     , httpProviderUrl : String
     , startScanBlock : Int
     }

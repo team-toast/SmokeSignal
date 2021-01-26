@@ -59,7 +59,6 @@ emptyModel key =
     , config =
         Types.Config
             (Eth.Utils.unsafeToAddress "")
-            (Eth.Utils.unsafeToAddress "")
             ""
             0
 

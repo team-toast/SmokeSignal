@@ -16,7 +16,7 @@ import Ports
 import Routing
 import Time
 import Types exposing (Flags, Model, Msg)
-import Update exposing (update, fetchEthPriceCmd)
+import Update exposing (fetchEthPriceCmd, update)
 import Url exposing (Url)
 import UserNotice
 import View exposing (view)
@@ -39,7 +39,6 @@ init flags url key =
     let
         config =
             { smokeSignalContractAddress = Eth.Utils.unsafeToAddress flags.smokeSignalContractAddress
-            , daiContractAddress = Eth.Utils.unsafeToAddress flags.daiContractAddress
             , httpProviderUrl = flags.httpProviderUrl
             , startScanBlock = flags.startScanBlock
             }
