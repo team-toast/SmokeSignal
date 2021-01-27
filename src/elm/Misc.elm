@@ -1,6 +1,7 @@
-module Misc exposing (..)
+module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeDraft, fetchEthPriceCmd, formatPosix, getPublishedPostFromId, getTitle, parseHttpError, totalBurned, txInfoToNameStr, updatePublishedPost, withBalance)
 
 import Browser.Navigation
+import Contracts.SmokeSignal as SSContract
 import Dict
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
@@ -43,17 +44,21 @@ emptyModel key =
     , showExpandedTrackedTxs = False
     , draftModal = Nothing
     , demoPhaceSrc = initDemoPhaceSrc
-    , donateChecked = True
     , cookieConsentGranted = False
     , maybeSeoDescription = Nothing
     , searchInput = ""
-    , titleInput = ""
-    , composeModal = False
     , config =
         Types.Config
             (Eth.Utils.unsafeToAddress "")
             ""
             0
+    , compose =
+        { title = ""
+        , dai = ""
+        , body = ""
+        , modal = False
+        , donate = False
+        }
     }
 
 
@@ -344,6 +349,13 @@ parseHttpError err =
 
         Http.BadBody e ->
             e
+
+
+fetchEthPriceCmd : Types.Config -> Cmd Msg
+fetchEthPriceCmd config =
+    SSContract.getEthPriceCmd
+        config
+        EthPriceFetched
 
 
 tryRouteToView : Route -> Result String View

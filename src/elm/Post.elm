@@ -1,4 +1,4 @@
-module Post exposing (decodePostData)
+module Post exposing (currentMetadataVersion, decodePostData, defaultTopic)
 
 {-| Helpers related to Post management.
 -}

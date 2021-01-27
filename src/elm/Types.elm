@@ -42,8 +42,8 @@ type alias Model =
     , publishedPosts : PublishedPostsDict
     , ethPrice : Maybe Float
     , replies : List ReplyIds
-
-    -- , showHalfComposeUX : Bool
+    , view : View
+    , showHalfComposeUX : Bool
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
@@ -51,14 +51,12 @@ type alias Model =
     , showExpandedTrackedTxs : Bool
     , draftModal : Maybe Draft
     , demoPhaceSrc : String
-    , donateChecked : Bool
     , cookieConsentGranted : Bool
     , maybeSeoDescription : Maybe String
     , searchInput : String
-    , titleInput : String
     , newUserModal : Bool
-    , composeModal : Bool
     , config : Config
+    , compose : ComposeModel
     }
 
 
@@ -85,10 +83,6 @@ type Msg
     -- | RestoreDraft Draft
     | DismissNotice Int
     | ClickHappened
-      --| PostUXMsg PostUXId PostUX.Msg
-      --| ComposeUXMsg ComposeUX.Msg
-      --| TopicUXMsg TopicUX.Msg
-      --| HomeMsg Home.Msg
     | ComposeToggle
     | BalanceFetched Address (Result Http.Error TokenValue)
     | CookieConsentGranted
@@ -108,12 +102,15 @@ type Msg
     | EthPriceFetched (Result Http.Error Float)
     | ComposeBodyChange String
     | ComposeTitleChange String
+    | ComposeDaiChange String
 
 
 type alias ComposeModel =
     { title : String
     , dai : String
     , body : String
+    , modal : Bool
+    , donate : Bool
     }
 
 

@@ -130,7 +130,7 @@ viewOverview model =
             model.dProfile
 
         donateChecked =
-            model.donateChecked
+            model.compose.donate
 
         blockTimes =
             model.blockTimes
