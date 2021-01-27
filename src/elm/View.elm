@@ -7,7 +7,7 @@ import Element.Border as Border
 import Element.Events
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal, white)
 import Helpers.Eth as EthHelpers
 import Helpers.Time as TimeHelpers
 import Helpers.Tuple as TupleHelpers
@@ -19,12 +19,12 @@ import Time
 import Tuple3
 import Types exposing (Context(..), FailReason(..), Metadata, Model, Msg(..), Route(..), TrackedTx, TxInfo(..), TxStatus(..), View(..), Wallet)
 import UserNotice as UN exposing (UserNotice)
-import View.Attrs exposing (cappedWidth, whiteGlowAttribute)
+import View.Attrs exposing (cappedWidth, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common exposing (appStatusMessage, viewContext)
 import View.Compose
 import View.Home
 import View.Modal
-import View.Post
+import View.PostPage
 
 
 view : Model -> Browser.Document Msg
@@ -196,17 +196,7 @@ viewBody model =
         ViewPost postId ->
             case getPublishedPostFromId model.publishedPosts postId of
                 Just post ->
-                    View.Post.view model.dProfile
-                        model.donateChecked
-                        False
-                        model.blockTimes
-                        model.now
-                        model.wallet
-                        { showAddress = False
-                        , showInput = Types.None
-                        }
-                        post
-                        |> el [ Element.centerX, View.Attrs.cappedWidth 600, padding 50 ]
+                    View.PostPage.view model post
 
                 Nothing ->
                     appStatusMessage
