@@ -11,6 +11,7 @@ import Eth.Sentry.Event as EventSentry
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address, TxHash)
 import Helpers.Element as EH exposing (DisplayProfile(..))
+import Http
 import Json.Decode
 import Json.Encode
 import List.Extra
@@ -198,7 +199,10 @@ update msg prevModel =
             case decodedEventLog.returnData of
                 Err err ->
                     ( prevModel |> addUserNotice (UN.eventDecodeError err)
-                    , Cmd.none
+                    , err
+                        |> Json.Decode.errorToString
+                        |> (++) "PostLogReceived:\n"
+                        |> Ports.log
                     )
 
                 Ok ssPost ->
@@ -255,10 +259,10 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-                Err httpErr ->
+                Err err ->
                     ( prevModel
-                        |> addUserNotice (UN.web3FetchError "DAI balance" httpErr)
-                    , Cmd.none
+                        |> addUserNotice (UN.web3FetchError "DAI balance")
+                    , logHttpError "PostAccountingFetched" err
                     )
 
         BalanceFetched address fetchResult ->
@@ -283,10 +287,10 @@ update msg prevModel =
                         , Cmd.none
                         )
 
-                    Err httpErr ->
+                    Err err ->
                         ( prevModel
-                            |> addUserNotice (UN.web3FetchError "DAI balance" httpErr)
-                        , Cmd.none
+                            |> addUserNotice (UN.web3FetchError "DAI balance")
+                        , logHttpError "BalanceFetched" err
                         )
 
         EthPriceFetched fetchResult ->
@@ -298,18 +302,18 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-                Err httpErr ->
+                Err err ->
                     ( prevModel
-                        |> addUserNotice (UN.web3FetchError "ETH price" httpErr)
-                    , Cmd.none
+                        |> addUserNotice (UN.web3FetchError "ETH price")
+                    , logHttpError "EthPriceFetched" err
                     )
 
         BlockTimeFetched blocknum timeResult ->
             case timeResult of
-                Err httpErr ->
+                Err err ->
                     ( prevModel
-                        |> addUserNotice (UN.web3FetchError "block time" httpErr)
-                    , Cmd.none
+                        |> addUserNotice (UN.web3FetchError "block time")
+                    , logHttpError "BlockTimeFetched" err
                     )
 
                 Ok time ->
@@ -494,6 +498,26 @@ update msg prevModel =
             ( prevModel |> addUserNotice userNotice
             , Cmd.none
             )
+
+        SubmitDraft ->
+            let
+                errors =
+                    []
+                        |> List.filterMap identity
+            in
+            if List.isEmpty errors then
+                ( { prevModel
+                    | userNotices = [ UN.unexpectedError "SUCCESS" ]
+                  }
+                , Cmd.none
+                )
+
+            else
+                ( { prevModel
+                    | userNotices = errors
+                  }
+                , Cmd.none
+                )
 
         SubmitPost postDraft ->
             let
@@ -752,7 +776,7 @@ handleTxReceipt txReceipt =
             ( Mining
             , Nothing
             , Just <|
-                UN.unexpectedError "Weird. I Got a transaction receipt with a success value of 'Nothing'. Depending on why this happened I might be a little confused about any mining transactions." txReceipt
+                UN.unexpectedError "Weird. I Got a transaction receipt with a success value of 'Nothing'. Depending on why this happened I might be a little confused about any mining transactions."
             )
 
 
@@ -909,3 +933,8 @@ withAnotherUpdate updateFunc ( firstModel, firstCmd ) =
                     ]
                 )
            )
+
+
+logHttpError : String -> Http.Error -> Cmd msg
+logHttpError tag =
+    Misc.parseHttpError >> (++) (tag ++ ":\n") >> Ports.log

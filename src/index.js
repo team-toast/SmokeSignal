@@ -30,6 +30,8 @@ window.addEventListener("load", function () {
     app.ports.setVisited.subscribe(() =>
       localStorage.setItem(HAS_VISITED, true)
     );
+
+    app.ports.log.subscribe((x) => console.log(x));
   });
 });
 

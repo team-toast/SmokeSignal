@@ -158,7 +158,7 @@ viewBox model userInfo =
                     , View.Attrs.roundBorder
                     , hover
                     ]
-                    { onPress = Nothing
+                    { onPress = Just SubmitDraft
                     , label = text "Comment"
                     }
                     |> el

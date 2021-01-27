@@ -2,9 +2,7 @@ module UserNotice exposing (Alignment(..), NoticeType(..), UserNotice, cantConne
 
 import Element exposing (Element)
 import Element.Font
-import Http
 import Json.Decode
-import MaybeDebugLog exposing (maybeDebugLog)
 
 
 type alias UserNotice =
@@ -94,12 +92,8 @@ wrongWeb3Network =
     }
 
 
-unexpectedError : String -> a -> UserNotice
-unexpectedError text debugObj =
-    let
-        _ =
-            maybeDebugLog text debugObj
-    in
+unexpectedError : String -> UserNotice
+unexpectedError text =
     { uniqueLabel = "unexpectedError " ++ text
     , noticeType = ShouldBeImpossible
     , mainParagraphs = [ [ Element.text text ] ]
@@ -116,12 +110,8 @@ eventDecodeError decodeErr =
     }
 
 
-web3FetchError : String -> Http.Error -> UserNotice
-web3FetchError label httpError =
-    let
-        _ =
-            maybeDebugLog "http error for web3 fetch" httpError
-    in
+web3FetchError : String -> UserNotice
+web3FetchError label =
     { uniqueLabel = "web3FetchError " ++ label
     , noticeType = Error
     , mainParagraphs =
@@ -169,7 +159,6 @@ walletError : String -> UserNotice
 walletError errStr =
     unexpectedError
         ("Error decoding JS walletSentry: " ++ errStr)
-        Nothing
 
 
 inputError : String -> UserNotice

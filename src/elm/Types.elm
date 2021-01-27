@@ -98,6 +98,8 @@ type Msg
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId
     | AddUserNotice UN.UserNotice
+    | UnlockDai
+    | SubmitDraft
     | SubmitPost Draft
     | SubmitTip PostId TokenValue
     | SubmitBurn PostId TokenValue
@@ -106,6 +108,13 @@ type Msg
     | EthPriceFetched (Result Http.Error Float)
     | ComposeBodyChange String
     | ComposeTitleChange String
+
+
+type alias ComposeModel =
+    { title : String
+    , dai : String
+    , body : String
+    }
 
 
 type alias Config =

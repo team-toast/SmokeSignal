@@ -8,6 +8,7 @@ import Eth.Types exposing (Hex, TxHash)
 import Eth.Utils
 import Helpers.Element
 import Helpers.Time
+import Http
 import Json.Encode as E
 import List.Extra
 import Maybe.Extra exposing (unwrap)
@@ -324,6 +325,25 @@ formatPosix t =
     , "(UTC)"
     ]
         |> String.join " "
+
+
+parseHttpError : Http.Error -> String
+parseHttpError err =
+    case err of
+        Http.BadUrl _ ->
+            "Bad Url"
+
+        Http.Timeout ->
+            "Timeout"
+
+        Http.NetworkError ->
+            "Network Error"
+
+        Http.BadStatus statusCode ->
+            "Status Code: " ++ String.fromInt statusCode
+
+        Http.BadBody e ->
+            e
 
 
 tryRouteToView : Route -> Result String View
