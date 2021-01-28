@@ -18,9 +18,8 @@ import Ports
 import Post
 import Routing
 import Time
-import TokenValue exposing (TokenValue)
-import Types exposing (..)
-import Update exposing (fetchEthPriceCmd, update)
+import Types exposing (Flags, Model, Msg)
+import Update exposing (update)
 import Url exposing (Url)
 import UserNotice as UN
 import View exposing (view)
@@ -33,8 +32,8 @@ main =
         , view = view
         , update = update
         , subscriptions = subscriptions
-        , onUrlRequest = LinkClicked
-        , onUrlChange = Routing.urlToRoute >> RouteChanged
+        , onUrlRequest = Types.LinkClicked
+        , onUrlChange = Routing.urlToRoute >> Types.RouteChanged
         }
 
 
@@ -56,7 +55,7 @@ init flags url key =
                     ( v, [] )
 
                 Err err ->
-                    ( ViewHome
+                    ( Types.ViewHome
                     , [ UN.routeNotFound <| Just err ]
                     )
 
@@ -113,7 +112,7 @@ init flags url key =
     , Cmd.batch
         [ initEventSentryCmd
         , secondEventSentryCmd
-        , fetchEthPriceCmd config
+        , Misc.fetchEthPriceCmd config
         ]
     )
 

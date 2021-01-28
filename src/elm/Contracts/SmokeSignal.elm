@@ -1,6 +1,5 @@
 module Contracts.SmokeSignal exposing (..)
 
- 
 import Contracts.Generated.SmokeSignal as G
 import Element
 import Eth

@@ -1,6 +1,7 @@
-module Misc exposing (..)
+module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeDraft, fetchEthPriceCmd, formatPosix, getPublishedPostFromId, getTitle, parseHttpError, totalBurned, tryRouteToView, txInfoToNameStr, updatePublishedPost, withBalance)
 
 import Browser.Navigation
+import Contracts.SmokeSignal as SSContract
 import Dict
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
@@ -8,6 +9,7 @@ import Eth.Types exposing (Hex, TxHash)
 import Eth.Utils
 import Helpers.Element
 import Helpers.Time
+import Http
 import Json.Encode as E
 import List.Extra
 import Maybe.Extra exposing (unwrap)
@@ -42,17 +44,21 @@ emptyModel key =
     , showExpandedTrackedTxs = False
     , draftModal = Nothing
     , demoPhaceSrc = initDemoPhaceSrc
-    , donateChecked = True
     , cookieConsentGranted = False
     , maybeSeoDescription = Nothing
     , searchInput = ""
-    , titleInput = ""
-    , composeModal = False
     , config =
         Types.Config
             (Eth.Utils.unsafeToAddress "")
             ""
             0
+    , compose =
+        { title = ""
+        , dai = ""
+        , body = ""
+        , modal = False
+        , donate = False
+        }
     }
 
 
@@ -145,7 +151,6 @@ getPublishedPostFromTxHash publishedPosts txHash =
                 publishedPost.txHash == txHash
             )
         |> List.head
-
 
 
 
@@ -326,6 +331,32 @@ formatPosix t =
         |> String.join " "
 
 
+parseHttpError : Http.Error -> String
+parseHttpError err =
+    case err of
+        Http.BadUrl _ ->
+            "Bad Url"
+
+        Http.Timeout ->
+            "Timeout"
+
+        Http.NetworkError ->
+            "Network Error"
+
+        Http.BadStatus statusCode ->
+            "Status Code: " ++ String.fromInt statusCode
+
+        Http.BadBody e ->
+            e
+
+
+fetchEthPriceCmd : Types.Config -> Cmd Msg
+fetchEthPriceCmd config =
+    SSContract.getEthPriceCmd
+        config
+        EthPriceFetched
+
+
 tryRouteToView : Route -> Result String View
 tryRouteToView route =
     case route of
@@ -346,4 +377,3 @@ tryRouteToView route =
 
         RouteInvalid ->
             Err "Path not found"
-

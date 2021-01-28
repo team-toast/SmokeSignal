@@ -33,7 +33,6 @@ type alias Flags =
 type alias Model =
     { navKey : Browser.Navigation.Key
     , basePath : String
-    , view : View
     , wallet : Wallet
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
@@ -42,8 +41,7 @@ type alias Model =
     , publishedPosts : PublishedPostsDict
     , ethPrice : Maybe Float
     , replies : List ReplyIds
-
-    -- , showHalfComposeUX : Bool
+    , view : View
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
@@ -51,14 +49,12 @@ type alias Model =
     , showExpandedTrackedTxs : Bool
     , draftModal : Maybe Draft
     , demoPhaceSrc : String
-    , donateChecked : Bool
     , cookieConsentGranted : Bool
     , maybeSeoDescription : Maybe String
     , searchInput : String
-    , titleInput : String
     , newUserModal : Bool
-    , composeModal : Bool
     , config : Config
+    , compose : ComposeModel
     }
 
 
@@ -82,22 +78,18 @@ type Msg
     | TxSigned TxInfo (Result String TxHash)
     | ViewDraft (Maybe Draft)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
-    -- | RestoreDraft Draft
+      -- | RestoreDraft Draft
     | DismissNotice Int
     | ClickHappened
-      --| PostUXMsg PostUXId PostUX.Msg
-      --| ComposeUXMsg ComposeUX.Msg
-      --| TopicUXMsg TopicUX.Msg
-      --| HomeMsg Home.Msg
     | ComposeToggle
     | BalanceFetched Address (Result Http.Error TokenValue)
     | CookieConsentGranted
     | StartInlineCompose Context
-    | ExitCompose
     | GotoView View
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId
     | AddUserNotice UN.UserNotice
+    | SubmitDraft
     | SubmitPost Draft
     | SubmitTip PostId TokenValue
     | SubmitBurn PostId TokenValue
@@ -106,6 +98,16 @@ type Msg
     | EthPriceFetched (Result Http.Error Float)
     | ComposeBodyChange String
     | ComposeTitleChange String
+    | ComposeDaiChange String
+
+
+type alias ComposeModel =
+    { title : String
+    , dai : String
+    , body : String
+    , modal : Bool
+    , donate : Bool
+    }
 
 
 type alias Config =

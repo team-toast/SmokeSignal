@@ -1,4 +1,4 @@
-module Update exposing (fetchEthPriceCmd, update)
+module Update exposing (update)
 
 import Browser
 import Browser.Navigation
@@ -11,13 +11,16 @@ import Eth.Sentry.Event as EventSentry
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address, TxHash)
 import Helpers.Element as EH exposing (DisplayProfile(..))
+import Http
 import Json.Decode
 import Json.Encode
 import List.Extra
-import Maybe.Extra
-import Misc exposing (..)
+import Maybe.Extra exposing (unwrap)
+import Misc exposing (defaultSeoDescription, fetchEthPriceCmd, txInfoToNameStr, updatePublishedPost)
 import Ports exposing (connectToWeb3, consentToCookies, gTagOut, setDescription)
+import Post
 import Random
+import Result.Extra exposing (unpack)
 import Routing exposing (viewToUrlString)
 import Task
 import Time
@@ -31,6 +34,12 @@ import Wallet
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg prevModel =
+    let
+        ensureUserInfo fn =
+            prevModel.wallet
+                |> Wallet.userInfo
+                |> unwrap ( prevModel, Ports.log "Missing wallet" ) fn
+    in
     case msg of
         LinkClicked urlRequest ->
             let
@@ -47,7 +56,7 @@ update msg prevModel =
         RouteChanged route ->
             let
                 ( newView, userNotices ) =
-                    case route |> tryRouteToView of
+                    case route |> Misc.tryRouteToView of
                         Ok v ->
                             ( v, [] )
 
@@ -198,7 +207,10 @@ update msg prevModel =
             case decodedEventLog.returnData of
                 Err err ->
                     ( prevModel |> addUserNotice (UN.eventDecodeError err)
-                    , Cmd.none
+                    , err
+                        |> Json.Decode.errorToString
+                        |> (++) "PostLogReceived:\n"
+                        |> Ports.log
                     )
 
                 Ok ssPost ->
@@ -255,10 +267,10 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-                Err httpErr ->
+                Err err ->
                     ( prevModel
-                        |> addUserNotice (UN.web3FetchError "DAI balance" httpErr)
-                    , Cmd.none
+                        |> addUserNotice (UN.web3FetchError "DAI balance")
+                    , logHttpError "PostAccountingFetched" err
                     )
 
         BalanceFetched address fetchResult ->
@@ -283,10 +295,10 @@ update msg prevModel =
                         , Cmd.none
                         )
 
-                    Err httpErr ->
+                    Err err ->
                         ( prevModel
-                            |> addUserNotice (UN.web3FetchError "DAI balance" httpErr)
-                        , Cmd.none
+                            |> addUserNotice (UN.web3FetchError "DAI balance")
+                        , logHttpError "BalanceFetched" err
                         )
 
         EthPriceFetched fetchResult ->
@@ -298,18 +310,18 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-                Err httpErr ->
+                Err err ->
                     ( prevModel
-                        |> addUserNotice (UN.web3FetchError "ETH price" httpErr)
-                    , Cmd.none
+                        |> addUserNotice (UN.web3FetchError "ETH price")
+                    , logHttpError "EthPriceFetched" err
                     )
 
         BlockTimeFetched blocknum timeResult ->
             case timeResult of
-                Err httpErr ->
+                Err err ->
                     ( prevModel
-                        |> addUserNotice (UN.web3FetchError "block time" httpErr)
-                    , Cmd.none
+                        |> addUserNotice (UN.web3FetchError "block time")
+                    , logHttpError "BlockTimeFetched" err
                     )
 
                 Ok time ->
@@ -446,13 +458,6 @@ update msg prevModel =
             , Cmd.none
             )
 
-        ComposeToggle ->
-            ( { prevModel
-                | composeModal = not prevModel.composeModal
-              }
-            , Cmd.none
-            )
-
         StartInlineCompose composeContext ->
             ( prevModel, Cmd.none )
 
@@ -472,13 +477,6 @@ update msg prevModel =
         --                 |> (GotoView <|
         --                         Routing.Compose composeContext
         --                    )
-        ExitCompose ->
-            ( { prevModel
-                | composeModal = False
-              }
-            , Cmd.none
-            )
-
         -- case prevModel.view of
         --     ViewCompose context ->
         --         prevModel
@@ -494,6 +492,104 @@ update msg prevModel =
             ( prevModel |> addUserNotice userNotice
             , Cmd.none
             )
+
+        SubmitDraft ->
+            ensureUserInfo
+                (\userInfo ->
+                    TokenValue.fromString prevModel.compose.dai
+                        |> Result.fromMaybe "Invalid DAI"
+                        |> Result.andThen
+                            (\burnAmount ->
+                                let
+                                    donateAmount =
+                                        if prevModel.compose.donate then
+                                            TokenValue.div burnAmount 100
+
+                                        else
+                                            TokenValue.zero
+
+                                    lowBalance =
+                                        TokenValue.compare
+                                            (TokenValue.add burnAmount donateAmount)
+                                            (userInfo.balance
+                                                |> Maybe.withDefault TokenValue.zero
+                                            )
+                                            /= LT
+
+                                    metadata =
+                                        { metadataVersion =
+                                            Post.currentMetadataVersion
+                                        , context =
+                                            prevModel.view
+                                                |> (\v ->
+                                                        case v of
+                                                            ViewTopic t ->
+                                                                t
+
+                                                            _ ->
+                                                                Post.defaultTopic
+                                                   )
+                                                |> Types.TopLevel
+                                        , maybeDecodeError = Nothing
+                                        }
+
+                                    content =
+                                        { title =
+                                            if String.isEmpty prevModel.compose.title then
+                                                Nothing
+
+                                            else
+                                                Just prevModel.compose.title
+                                        , desc = Nothing
+                                        , body = prevModel.compose.body
+                                        }
+                                in
+                                if lowBalance then
+                                    Err "Not enough funds."
+
+                                else
+                                    { donateAmount = donateAmount
+                                    , core =
+                                        { author = userInfo.address
+                                        , authorBurn = burnAmount
+                                        , content = content
+                                        , metadata = metadata
+                                        }
+                                    }
+                                        |> Ok
+                            )
+                        |> unpack
+                            (\err ->
+                                ( { prevModel
+                                    | userNotices = [ UN.unexpectedError err ]
+                                  }
+                                , Cmd.none
+                                )
+                            )
+                            (\postDraft ->
+                                let
+                                    txParams =
+                                        postDraft
+                                            |> Misc.encodeDraft
+                                            |> SSContract.burnEncodedPost prevModel.config.smokeSignalContractAddress
+                                            |> Eth.toSend
+
+                                    listeners =
+                                        { onMined = Nothing
+                                        , onSign = Just <| TxSigned <| PostTx postDraft
+                                        , onBroadcast = Nothing
+                                        }
+
+                                    ( txSentry, cmd ) =
+                                        TxSentry.customSend prevModel.txSentry listeners txParams
+                                in
+                                ( { prevModel
+                                    | txSentry = txSentry
+                                  }
+                                , cmd
+                                )
+                            )
+                )
 
         SubmitPost postDraft ->
             let
@@ -521,7 +617,7 @@ update msg prevModel =
         SubmitBurn postId amount ->
             let
                 txParams =
-                    SSContract.burnForPost prevModel.config.smokeSignalContractAddress postId.messageHash amount prevModel.donateChecked
+                    SSContract.burnForPost prevModel.config.smokeSignalContractAddress postId.messageHash amount prevModel.compose.donate
                         |> Eth.toSend
 
                 listeners =
@@ -542,7 +638,7 @@ update msg prevModel =
         SubmitTip postId amount ->
             let
                 txParams =
-                    SSContract.tipForPost prevModel.config.smokeSignalContractAddress postId.messageHash amount prevModel.donateChecked
+                    SSContract.tipForPost prevModel.config.smokeSignalContractAddress postId.messageHash amount prevModel.compose.donate
                         |> Eth.toSend
 
                 listeners =
@@ -562,7 +658,9 @@ update msg prevModel =
 
         DonationCheckboxSet flag ->
             ( { prevModel
-                | donateChecked = flag
+                | compose =
+                    prevModel.compose
+                        |> (\r -> { r | donate = flag })
               }
             , Cmd.none
             )
@@ -617,16 +715,38 @@ update msg prevModel =
             , Ports.setVisited ()
             )
 
+        ComposeToggle ->
+            ( { prevModel
+                | compose =
+                    prevModel.compose
+                        |> (\r -> { r | modal = not r.modal })
+              }
+            , Cmd.none
+            )
+
         ComposeBodyChange str ->
             ( { prevModel
-                | searchInput = str
+                | compose =
+                    prevModel.compose
+                        |> (\r -> { r | body = str })
               }
             , Cmd.none
             )
 
         ComposeTitleChange str ->
             ( { prevModel
-                | titleInput = str
+                | compose =
+                    prevModel.compose
+                        |> (\r -> { r | title = str })
+              }
+            , Cmd.none
+            )
+
+        ComposeDaiChange str ->
+            ( { prevModel
+                | compose =
+                    prevModel.compose
+                        |> (\r -> { r | dai = str })
               }
             , Cmd.none
             )
@@ -752,7 +872,7 @@ handleTxReceipt txReceipt =
             ( Mining
             , Nothing
             , Just <|
-                UN.unexpectedError "Weird. I Got a transaction receipt with a success value of 'Nothing'. Depending on why this happened I might be a little confused about any mining transactions." txReceipt
+                UN.unexpectedError "Weird. I Got a transaction receipt with a success value of 'Nothing'. Depending on why this happened I might be a little confused about any mining transactions."
             )
 
 
@@ -828,7 +948,7 @@ updateSeoDescriptionIfNeededCmd model =
         appropriateMaybeDescription =
             case model.view of
                 ViewPost postId ->
-                    getPublishedPostFromId model.publishedPosts postId
+                    Misc.getPublishedPostFromId model.publishedPosts postId
                         |> Maybe.andThen (.core >> .content >> .desc)
 
                 ViewTopic topic ->
@@ -909,3 +1029,8 @@ withAnotherUpdate updateFunc ( firstModel, firstCmd ) =
                     ]
                 )
            )
+
+
+logHttpError : String -> Http.Error -> Cmd msg
+logHttpError tag =
+    Misc.parseHttpError >> (++) (tag ++ ":\n") >> Ports.log

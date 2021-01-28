@@ -46,7 +46,7 @@ view model topic =
                 (View.Post.view
                     model.dProfile
                     False
-                    model.donateChecked
+                    model.compose.donate
                     model.blockTimes
                     model.now
                     model.wallet

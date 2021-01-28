@@ -15,7 +15,7 @@ import Theme exposing (orange, theme)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
-import View.Common exposing (appStatusMessage, daiAmountInput, phaceElement, shortenedHash, viewContext, web3ConnectButton, whenJust, wrapModal)
+import View.Common exposing (appStatusMessage, daiAmountInput, phaceElement, shortenedHash, viewContext, web3ConnectButton, whenAttr, whenJust, wrapModal)
 import View.Markdown
 import Wallet
 
@@ -42,6 +42,11 @@ view model =
 
 viewBox : Model -> UserInfo -> Element Msg
 viewBox model userInfo =
+    let
+        submitEnabled =
+            not (String.isEmpty model.compose.body)
+                && not (String.isEmpty model.compose.dai)
+    in
     [ "Comment"
         |> text
         |> el [ sansSerifFont, Font.color white, centerX ]
@@ -67,7 +72,7 @@ viewBox model userInfo =
                     |> text
                     |> Input.placeholder []
                     |> Just
-            , text = model.titleInput
+            , text = model.compose.title
             }
         , [ text "🔥"
                 |> el [ Font.size 30 ]
@@ -84,10 +89,14 @@ viewBox model userInfo =
                 , Background.color white
                 , width <| px 250
                 ]
-                { onChange = always ClickHappened
+                { onChange = ComposeDaiChange
                 , label = Input.labelHidden ""
-                , placeholder = Nothing
-                , text = ""
+                , placeholder =
+                    "0"
+                        |> text
+                        |> Input.placeholder []
+                        |> Just
+                , text = model.compose.dai
                 }
           , [ Input.checkbox
                 [ width <| px 30
@@ -107,7 +116,7 @@ viewBox model userInfo =
                                 , Font.size 25
                                 ]
                             |> View.Common.when checked
-                , checked = model.donateChecked
+                , checked = model.compose.donate
                 , label = Input.labelHidden "Donate an extra 1% to Foundry"
                 }
             , [ text "Donate an extra 1% to "
@@ -157,8 +166,14 @@ viewBox model userInfo =
                     , Element.alignRight
                     , View.Attrs.roundBorder
                     , hover
+                        |> whenAttr submitEnabled
                     ]
-                    { onPress = Nothing
+                    { onPress =
+                        if submitEnabled then
+                            Just SubmitDraft
+
+                        else
+                            Nothing
                     , label = text "Comment"
                     }
                     |> el
@@ -176,7 +191,7 @@ viewBox model userInfo =
                         |> text
                         |> Input.placeholder []
                         |> Just
-                , text = model.searchInput
+                , text = model.compose.body
                 , spellcheck = False
                 }
           ]
@@ -185,7 +200,7 @@ viewBox model userInfo =
                 , height fill
                 , spacing 20
                 ]
-        , model.searchInput
+        , model.compose.body
             |> View.Markdown.renderString
                 [ height fill
                 , width fill
@@ -238,7 +253,7 @@ viewBody dProfile donateChecked wallet showAddressId model =
                     , Element.alignRight
                     ]
                     (Element.rgb 0.3 0.3 0.3)
-                    ExitCompose
+                    ComposeToggle
             ]
     in
     case dProfile of
@@ -499,7 +514,8 @@ viewTopic topic =
             [ Font.color theme.linkTextColor
             , Element.pointer
             , Element.Events.onClick <|
-                GotoView <| ViewTopic topic
+                GotoView <|
+                    ViewTopic topic
 
             --Topic topic
             ]
