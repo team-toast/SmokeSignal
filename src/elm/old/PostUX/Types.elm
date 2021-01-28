@@ -30,8 +30,8 @@ type Msg
     | SupportBurnClicked
     | SupportTipClicked
     | AmountInputChanged String
-    | SupportTipSubmitClicked Id TokenValue
-    | SupportBurnSubmitClicked Id TokenValue
+    | SupportTipSubmitClicked Context.PostId TokenValue
+    | SupportBurnSubmitClicked Context.PostId TokenValue
     | ResetActionForm
 
 

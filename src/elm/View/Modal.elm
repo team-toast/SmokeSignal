@@ -7,7 +7,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile(..), white)
 import Theme
-import Types exposing (Context(..), Msg(..), PhaceIconId(..), Post(..), Route(..))
+import Types exposing (..)
 import View.Attrs exposing (hover, whiteGlowAttribute)
 
 

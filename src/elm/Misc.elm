@@ -1,6 +1,7 @@
-module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeDraft, formatPosix, getPublishedPostFromId, getTitle, totalBurned, txInfoToNameStr, updatePublishedPost, withBalance)
+module Misc exposing (..)
 
 import Browser.Navigation
+import Context exposing (Context)
 import Dict
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
@@ -12,16 +13,17 @@ import Json.Encode as E
 import List.Extra
 import Maybe.Extra exposing (unwrap)
 import Ports
+import Routing exposing (Route)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
-import Types exposing (Content, Context(..), Draft, EncodedDraft, Id, Metadata, Model, Msg(..), Post(..), Published, PublishedPostsDict, TrackedTx, TxInfo(..), UserInfo, View(..))
+import Types exposing (..)
 
 
 emptyModel : Browser.Navigation.Key -> Model
 emptyModel key =
     { navKey = key
     , basePath = ""
-    , route = Types.Home
+    , route = Routing.Home
     , wallet = Types.NoneDetected
     , newUserModal = False
     , now = Time.millisToPosix 0
@@ -34,13 +36,7 @@ emptyModel key =
             ""
     , eventSentry = Eth.Sentry.Event.init (always Types.ClickHappened) "" |> Tuple.first
     , publishedPosts = Dict.empty
-
-    --, postUX = Nothing
     , replies = []
-    , view = ViewHome
-    , showHalfComposeUX = False
-
-    --, composeUXModel = Nothing -- TODO ComposeUX.init now (TopLevel Post.defaultTopic)
     , blockTimes = Dict.empty
     , showAddressId = Nothing
     , userNotices = []
@@ -59,8 +55,6 @@ emptyModel key =
             (Eth.Utils.unsafeToAddress "")
             ""
             0
-
-    --, topicUXModel = Nothing
     }
 
 
@@ -98,20 +92,23 @@ getTitle model =
         defaultMain =
             "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
     in
-    case model.view of
-        ViewHome ->
+    case model.route of
+        Routing.Home ->
             defaultMain
 
-        ViewCompose ->
+        Routing.Compose _ ->
             "Compose | SmokeSignal"
 
-        ViewPost postId ->
+        Routing.ViewContext (Context.Reply postId) ->
             getPublishedPostFromId model.publishedPosts postId
                 |> Maybe.andThen (.core >> .content >> .title)
                 |> unwrap defaultMain (\contextTitle -> contextTitle ++ " | SmokeSignal")
 
-        ViewTopic topic ->
+        Routing.ViewContext (Context.TopLevel topic) ->
             "#" ++ topic ++ " | SmokeSignal"
+
+        Routing.NotFound _ ->
+            defaultMain
 
 
 withBalance :
@@ -126,7 +123,7 @@ withBalance balance userInfo =
 
 getPublishedPostFromId :
     PublishedPostsDict
-    -> Id
+    -> Context.PostId
     -> Maybe Published
 getPublishedPostFromId publishedPosts postId =
     publishedPosts
@@ -155,36 +152,42 @@ getPublishedPostFromTxHash publishedPosts txHash =
         |> List.head
 
 
+contextToMaybeDescription :
+    PublishedPostsDict
+    -> Context
+    -> Maybe String
+contextToMaybeDescription posts context =
+    case context of
+        Context.Reply postId ->
+            getPublishedPostFromId posts postId
+                |> Maybe.andThen (.core >> .content >> .desc)
 
---viewContextToMaybeDescription :
---PublishedPostsDict
----> ViewContext
----> Maybe String
---viewContextToMaybeDescription posts context =
---case context of
---ViewPost postId ->
---getPublishedPostFromId posts postId
---|> Maybe.andThen (.core >> .content >> .desc)
---Topic topic ->
---Just <| "Discussions related to #" ++ topic ++ " on SmokeSignal"
---postContextToViewContext :
---Context
----> ViewContext
---postContextToViewContext postContext =
---case postContext of
---Reply id ->
---ViewPost id
---TopLevel topicStr ->
---Topic topicStr
---viewContextToPostContext :
---ViewContext
----> Context
---viewContextToPostContext viewContext =
---case viewContext of
---ViewPost id ->
---Reply id
---Topic topicStr ->
---TopLevel topicStr
+        Context.TopLevel topic ->
+            Just <| "Discussions related to #" ++ topic ++ " on SmokeSignal"
+
+
+-- postContextToViewContext :
+--     Context
+--     -> ViewContext
+-- postContextToViewContext postContext =
+--     case postContext of
+--         Reply id ->
+--             ViewPost id
+
+--         TopLevel topicStr ->
+--             Topic topicStr
+
+
+-- viewContextToPostContext :
+--     ViewContext
+--     -> Context
+-- viewContextToPostContext viewContext =
+--     case viewContext of
+--         ViewPost id ->
+--             Reply id
+
+--         Topic topicStr ->
+--             TopLevel topicStr
 
 
 defaultSeoDescription : String
@@ -193,7 +196,7 @@ defaultSeoDescription =
 
 
 updatePublishedPost :
-    Id
+    Context.PostId
     -> (Published -> Published)
     -> PublishedPostsDict
     -> PublishedPostsDict
@@ -246,17 +249,17 @@ totalBurned post =
 contextTopLevel : Context -> Maybe String
 contextTopLevel context =
     case context of
-        Reply _ ->
-            Nothing
-
-        TopLevel topic ->
+        Context.TopLevel topic ->
             Just topic
 
+        _ ->
+            Nothing
 
-contextReplyTo : Context -> Maybe Id
+
+contextReplyTo : Context -> Maybe Context.PostId
 contextReplyTo context =
     case context of
-        Reply id ->
+        Context.Reply id ->
             Just id
 
         _ ->
@@ -286,16 +289,16 @@ encodeToString ( metadata, content ) =
 encodeContext : Context -> E.Value
 encodeContext context =
     case context of
-        Reply postId ->
+        Context.Reply postId ->
             E.object
                 [ ( "re", encodePostId postId ) ]
 
-        TopLevel topic ->
+        Context.TopLevel topic ->
             E.object
                 [ ( "topic", E.string topic ) ]
 
 
-encodePostId : Id -> E.Value
+encodePostId : Context.PostId -> E.Value
 encodePostId postId =
     E.list identity
         [ E.int postId.block

@@ -1,5 +1,6 @@
 module Contracts.SmokeSignal exposing (..)
 
+import Context exposing (Context)
 import Contracts.Generated.SmokeSignal as G
 import Element
 import Eth
@@ -12,7 +13,7 @@ import Json.Decode.Pipeline exposing (custom)
 import Post
 import Task
 import TokenValue exposing (TokenValue)
-import Types exposing (Accounting, Config, Content, Core, EncodedDraft, Id, Published)
+import Types exposing (..)
 
 
 type alias MessageBurn =
@@ -69,7 +70,7 @@ fromMessageBurn txHash block renderFunc messageEvent =
     in
     Published
         txHash
-        (Id
+        (Context.PostId
             block
             messageEvent.hash
         )

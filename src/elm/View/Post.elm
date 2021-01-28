@@ -1,5 +1,6 @@
 module View.Post exposing (view)
 
+import Context exposing (Context)
 import Dict exposing (Dict)
 import Element exposing (Attribute, Element, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
@@ -10,10 +11,11 @@ import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile, black, responsiveVal, white)
 import Helpers.Time as TimeHelpers
 import Misc
+import Routing exposing (Route)
 import Theme exposing (almostWhite, theme)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
-import Types exposing (Context(..), Id, Msg(..), Post(..), PostState, Published, ShowInputState(..), Wallet)
+import Types exposing (..)
 import View.Attrs exposing (whiteGlowAttributeSmall)
 import View.Common exposing (daiAmountInput, daiSymbol, phaceElement, whenJust)
 import View.Img
@@ -37,7 +39,7 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet state post 
         , whiteGlowAttributeSmall
         , padding 5
         ]
-        { onPress = Just <| GotoRoute <| Types.RoutePost post.id
+        { onPress = Just <| GotoRoute <| Routing.ViewContext <| Context.Reply post.id
         , label =
             [ [ viewAccounting dProfile post
               , [ post.core.metadata.context
@@ -267,10 +269,10 @@ viewContext dProfile context =
         ]
     <|
         case context of
-            Reply id ->
+            Context.Reply id ->
                 Element.text "reply"
 
-            TopLevel topic ->
+            Context.TopLevel topic ->
                 Element.text <| "#" ++ topic
 
 
@@ -278,7 +280,7 @@ viewTiming :
     DisplayProfile
     -> Dict Int Time.Posix
     -> Time.Posix
-    -> Id
+    -> Context.PostId
     -> Element Msg
 viewTiming dProfile blockTimes now id =
     let
@@ -391,7 +393,7 @@ publishedPostActionForm dProfile donateChecked publishedPost showInput =
 
 
 supportTipButton :
-    Id
+    Context.PostId
     -> Element Msg
 supportTipButton postId =
     Element.row
@@ -416,7 +418,7 @@ supportTipButton postId =
 
 
 supportBurnButton :
-    Id
+    Context.PostId
     -> Element Msg
 supportBurnButton postId =
     publishedPostActionButton
@@ -435,14 +437,14 @@ supportBurnButton postId =
             }
 
 
-replyButton : Id -> Element Msg
+replyButton : Context.PostId -> Element Msg
 replyButton postId =
     View.Img.replyArrow 14 white
         |> publishedPostActionButton
             [ EH.withTitle "Reply"
             , Background.color Theme.blue
             ]
-            (Types.StartInlineCompose <| Reply postId)
+            (Types.StartInlineCompose <| Context.Reply postId)
 
 
 publishedPostActionButton :

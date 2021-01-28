@@ -1,8 +1,9 @@
-module View.Common exposing (appStatusMessage, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, unlockButton, viewContext, web3ConnectButton, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (appStatusMessage, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, viewContext, web3ConnectButton, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
 
+import Context exposing (Context)
 import Element exposing (Attribute, Element, column, fill, height, row, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -13,17 +14,17 @@ import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal)
 import Phace
 import Theme exposing (theme)
-import Types exposing (Content, Context, Id, Msg)
+import Types exposing (..)
 import View.Markdown
 
 
 viewContext : Context -> Element Msg
 viewContext context =
     case context of
-        Types.Reply postId ->
+        Context.Reply postId ->
             viewReplyInfo postId
 
-        Types.TopLevel topic ->
+        Context.TopLevel topic ->
             viewTopic topic
 
 
@@ -54,7 +55,7 @@ viewTopic topic =
         ]
 
 
-viewReplyInfo : Id -> Element Msg
+viewReplyInfo : Context.PostId -> Element Msg
 viewReplyInfo postId =
     Element.row
         [ Element.padding 10
@@ -223,14 +224,6 @@ renderContentOrError content =
                     "Error parsing/rendering markdown: "
                         ++ errStr
 
-
-unlockButton : EH.DisplayProfile -> List (Attribute Msg) -> Element Msg
-unlockButton dProfile attrs =
-    theme.emphasizedActionButton
-        dProfile
-        attrs
-        [ "Unlock Dai" ]
-        (EH.Action Types.UnlockDai)
 
 
 when : Bool -> Element msg -> Element msg

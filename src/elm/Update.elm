@@ -1,14 +1,8 @@
 module Update exposing (fetchEthPriceCmd, update)
 
---import PostUX.State as PostUX
---import TopicUX.State as TopicUX
---import TopicUX.Types as TopicUX
---import Home.State as Home
---import ComposeUX.State as ComposeUX
---import ComposeUX.Types as ComposeUX
-
 import Browser
 import Browser.Navigation
+import Context exposing (Context)
 import Contracts.SmokeSignal as SSContract
 import DemoPhaceSrcMutator
 import Dict exposing (Dict)
@@ -22,14 +16,14 @@ import Json.Decode
 import Json.Encode
 import List.Extra
 import Maybe.Extra
-import Misc exposing (defaultSeoDescription, txInfoToNameStr, updatePublishedPost)
+import Misc exposing (contextToMaybeDescription, defaultSeoDescription, txInfoToNameStr, updatePublishedPost)
 import Ports exposing (connectToWeb3, consentToCookies, gTagOut, setDescription)
 import Random
-import Routing
+import Routing exposing (Route)
 import Task
 import Time
 import TokenValue
-import Types exposing (GTagData, Id, Model, Msg(..), Published, Route(..), TrackedTx, TxInfo(..), TxStatus(..), View(..))
+import Types exposing (..)
 import Url
 import UserNotice as UN exposing (UserNotice)
 import View.Common
@@ -57,41 +51,18 @@ update msg prevModel =
                     url
                         |> Routing.urlToRoute
             in
-            case route of
-                Home ->
-                    ( { prevModel
-                        | view = ViewHome
-                      }
-                    , Cmd.none
-                    )
+            ( { prevModel
+                | route = route
+                , userNotices =
+                    case route of
+                        Routing.NotFound err ->
+                            [ UN.routeNotFound ]
 
-                Compose context ->
-                    ( { prevModel
-                        | view = ViewCompose
-                      }
-                    , Cmd.none
-                    )
-
-                RoutePost id ->
-                    ( { prevModel
-                        | view = ViewPost id
-                      }
-                    , Cmd.none
-                    )
-
-                RouteTopic str ->
-                    ( { prevModel
-                        | view = ViewTopic str
-                      }
-                    , Cmd.none
-                    )
-
-                NotFound err ->
-                    ( { prevModel
-                        | userNotices = [ UN.routeNotFound ]
-                      }
-                    , Cmd.none
-                    )
+                        _ ->
+                            []
+              }
+            , Cmd.none
+            )
 
         Tick newTime ->
             ( { prevModel | now = newTime }, Cmd.none )
@@ -252,7 +223,7 @@ update msg prevModel =
                       --| status =
                       --Mined <|
                       --Just <|
-                      --Id
+                      --Context.PostId
                       --log.blockNumber
                       --ssPost.hash
                       --}
@@ -369,7 +340,7 @@ update msg prevModel =
                 -- TODO
                 --|> identity
             }
-                |> (gotoRoute <| Compose draft.core.metadata.context)
+                |> (gotoRoute <| Routing.Compose draft.core.metadata.context)
 
         DismissNotice id ->
             ( { prevModel
@@ -441,22 +412,17 @@ update msg prevModel =
                     )
 
         GotoRoute route ->
-            --prevModel
-            --|> gotoRoute route
-            --|> Tuple.mapSecond
-            --(\cmd ->
-            --Cmd.batch
-            --[ cmd
-            --, Browser.Navigation.pushUrl
-            --prevModel.navKey
-            --(Routing.routeToString prevModel.basePath route)
-            --]
-            --)
-            ( prevModel
-            , Browser.Navigation.pushUrl
-                prevModel.navKey
-                (Routing.routeToString prevModel.basePath route)
-            )
+            prevModel
+                |> gotoRoute route
+                |> Tuple.mapSecond
+                    (\cmd ->
+                        Cmd.batch
+                            [ cmd
+                            , Browser.Navigation.pushUrl
+                                prevModel.navKey
+                                (Routing.routeToString prevModel.basePath route)
+                            ]
+                    )
 
         ConnectToWeb3 ->
             case prevModel.wallet of
@@ -490,60 +456,40 @@ update msg prevModel =
             )
 
         StartInlineCompose composeContext ->
-            case prevModel.dProfile of
-                Desktop ->
-                    ( { prevModel
-                        | showHalfComposeUX = True
+            ( prevModel, Cmd.none )
 
-                        --, composeUXModel =
-                        --prevModel.composeUXModel
-                        -- TODO
-                        --|> ComposeUX.updateContext composeContext
-                      }
-                    , Cmd.none
-                    )
-
-                Mobile ->
-                    prevModel
-                        |> (gotoRoute <|
-                                Compose composeContext
-                           )
-
+        --     case prevModel.dProfile of
+        --         Desktop ->
+        --             ( { prevModel
+        --                 | showHalfComposeUX = True
+        --                 --, composeUXModel =
+        --                 --prevModel.composeUXModel
+        --                 -- TODO
+        --                 --|> ComposeUX.updateContext composeContext
+        --               }
+        --             , Cmd.none
+        --             )
+        --         Mobile ->
+        --             prevModel
+        --                 |> (gotoRoute <|
+        --                         Routing.Compose composeContext
+        --                    )
         ExitCompose ->
-            case prevModel.view of
-                ViewCompose ->
-                    -- TODO
+            case prevModel.route of
+                Routing.Compose context ->
+                    prevModel
+                        |> gotoRoute (Routing.ViewContext <| context)
+
+                _ ->
                     ( prevModel, Cmd.none )
 
-                --|> gotoRoute (Routing.ViewContext <| postContextToViewContext prevModel.composeUXModel.context)
-                _ ->
-                    ( { prevModel
-                        | showHalfComposeUX = False
-                      }
-                    , Cmd.none
-                    )
-
+        -- ( { prevModel
+        --     | showHalfComposeUX = False
+        --   }
+        -- , Cmd.none
+        -- )
         AddUserNotice userNotice ->
             ( prevModel |> addUserNotice userNotice
-            , Cmd.none
-            )
-
-        UnlockDai ->
-            --let
-            --txParams =
-            --Dai.unlockDaiCall
-            --|> Eth.toSend
-            --listeners =
-            --{ onMined = Nothing
-            --, onSign = Just <| TxSigned UnlockTx
-            --, onBroadcast = Nothing
-            --}
-            --( txSentry, cmd ) =
-            --TxSentry.customSend prevModel.txSentry listeners txParams
-            --in
-            ( { prevModel
-                | txSentry = prevModel.txSentry
-              }
             , Cmd.none
             )
 
@@ -698,51 +644,48 @@ encodeGTag gtag =
 
 gotoRoute : Route -> Model -> ( Model, Cmd Msg )
 gotoRoute route prevModel =
-    (case route of
-        Home ->
-            --let
-            --( homeModel, homeCmd ) =
-            --Home.init
-            --in
-            --( { prevModel
-            --| route = route
-            --, view = ModeHome homeModel
-            --, showHalfComposeUX = False
-            --}
-            --, Cmd.map HomeMsg homeCmd
-            --)
-            ( prevModel, Cmd.none )
-
-        Compose context ->
-            ( { prevModel
-                | route = route
-
-                --, view = ModeCompose
-                , showHalfComposeUX = False
-
-                --, composeUXModel =
-                --prevModel.composeUXModel
-                --|> ComposeUX.updateContext context
-                -- TODO
-              }
-            , Cmd.none
-            )
-
-        RouteTopic _ ->
-            ( prevModel, Cmd.none )
-
-        RoutePost _ ->
-            ( prevModel, Cmd.none )
-
-        NotFound err ->
-            ( { prevModel
-                | route = route
-              }
-                |> addUserNotice UN.routeNotFound
-            , Cmd.none
-            )
-    )
-        |> withAnotherUpdate updateSeoDescriptionIfNeededCmd
+    { prevModel
+        | route = route
+    }
+        -- (case route of
+        --     Routing.Home ->
+        --         let
+        --             ( homeModel, homeCmd ) =
+        --                 Home.init
+        --         in
+        --         ( { prevModel
+        --             | route = route
+        --             , view = ModeHome homeModel
+        --             , showHalfComposeUX = False
+        --           }
+        --         , Cmd.map HomeMsg homeCmd
+        --         )
+        --     -- ( prevModel, Cmd.none )
+        --     Routing.Compose context ->
+        --         ( { prevModel
+        --             | route = route
+        --             --, view = ModeCompose
+        --             , showHalfComposeUX = False
+        --             --, composeUXModel =
+        --             --prevModel.composeUXModel
+        --             --|> ComposeUX.updateContext context
+        --             -- TODO
+        --           }
+        --         , Cmd.none
+        --         )
+        --     Routing.Topic _ ->
+        --         ( prevModel, Cmd.none )
+        --     Routing.Post _ ->
+        --         ( prevModel, Cmd.none )
+        --     Routing.NotFound err ->
+        --         ( { prevModel
+        --             | route = route
+        --           }
+        --             |> addUserNotice UN.routeNotFound
+        --         , Cmd.none
+        --         )
+        -- )
+        |> updateSeoDescriptionIfNeededCmd
 
 
 addPost :
@@ -820,7 +763,7 @@ handleTxReceipt txReceipt =
             ( Mined <|
                 Maybe.map
                     (\ssEvent ->
-                        Id
+                        Context.PostId
                             txReceipt.blockNumber
                             ssEvent.hash
                     )
@@ -886,18 +829,18 @@ updateTrackedTxStatusIfMining txHash newStatus =
     identity
 
 
-updateFromPageRoute :
-    Route
-    -> Model
-    -> ( Model, Cmd Msg )
-updateFromPageRoute route model =
-    if model.route == route then
-        ( model
-        , Cmd.none
-        )
 
-    else
-        gotoRoute route model
+-- updateFromPageRoute :
+--     Route
+--     -> Model
+--     -> ( Model, Cmd Msg )
+-- updateFromPageRoute route model =
+--     if model.route == route then
+--         ( model
+--         , Cmd.none
+--         )
+--     else
+--         gotoRoute route model
 
 
 getBlockTimeIfNeededCmd :
@@ -919,17 +862,14 @@ updateSeoDescriptionIfNeededCmd :
 updateSeoDescriptionIfNeededCmd model =
     let
         appropriateMaybeDescription =
-            case model.view of
-                ViewHome ->
-                    Nothing
+            case model.route of
+                Routing.ViewContext context ->
+                    contextToMaybeDescription model.publishedPosts context
 
-                ViewCompose ->
-                    Nothing
-
-                --ViewContext context ->
                 _ ->
-                    --viewContextToMaybeDescription model.publishedPosts context
                     Nothing
+
+        -- Nothing
     in
     if appropriateMaybeDescription /= model.maybeSeoDescription then
         ( { model

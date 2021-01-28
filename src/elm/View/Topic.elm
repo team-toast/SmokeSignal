@@ -1,5 +1,6 @@
 module View.Topic exposing (view)
 
+import Context exposing (Context)
 import Dict exposing (Dict)
 import Element exposing (Element, centerX, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
@@ -9,7 +10,7 @@ import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile, black, white)
 import Theme exposing (orange, theme)
 import Time
-import Types exposing (Context(..), Model, Msg, Published, PublishedPostsDict, Wallet)
+import Types exposing (..)
 import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Img
 import View.Post
@@ -105,8 +106,8 @@ topicHeader topic =
 isTopicMatch : String -> Published -> Bool
 isTopicMatch topicToFind post =
     case post.core.metadata.context of
-        TopLevel postTopic ->
+        Context.TopLevel postTopic ->
             postTopic == topicToFind
 
-        Reply _ ->
+        Context.Reply _ ->
             False

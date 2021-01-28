@@ -1,5 +1,6 @@
 module View.Home exposing (banner, viewOverview, viewTopic)
 
+import Context exposing (Context)
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, fillPortion, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
@@ -13,10 +14,11 @@ import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Helpers.Time as TimeHelpers
 import Maybe.Extra exposing (unwrap)
 import Misc exposing (getPublishedPostFromId)
+import Routing exposing (Route)
 import Theme exposing (almostWhite, orange, theme)
 import Time
 import TokenValue exposing (TokenValue)
-import Types exposing (Context(..), Id, Model, Msg(..), PhaceIconId(..), Post(..), PostState, Published, PublishedPostsDict, Route(..))
+import Types exposing (..)
 import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common exposing (daiSymbol, phaceElement)
 import View.Img
@@ -410,7 +412,7 @@ viewBookmarkedTopics =
       , "SmokeSignal/use-cases"
       ]
         |> List.map
-            (\txt ->
+            (\topic ->
                 Input.button
                     [ width fill
                     , whiteGlowAttributeSmall
@@ -419,9 +421,9 @@ viewBookmarkedTopics =
                     , paddingXY 15 5
                     , hover
                     ]
-                    { onPress = Just <| GotoRoute <| RouteTopic txt
+                    { onPress = Just <| GotoRoute <| Routing.ViewContext <| Context.TopLevel topic
                     , label =
-                        [ txt
+                        [ topic
                             |> text
                             |> el [ width fill, Font.size 20 ]
                         , 7
@@ -451,10 +453,10 @@ topicsColumn dProfile topicSearchStr allPosts =
                 findTopic : Published -> Maybe String
                 findTopic publishedPost =
                     case publishedPost.core.metadata.context of
-                        TopLevel topic ->
+                        Context.TopLevel topic ->
                             Just topic
 
-                        Reply postId ->
+                        Context.Reply postId ->
                             getPublishedPostFromId allPosts postId
                                 |> Maybe.andThen findTopic
             in
@@ -523,8 +525,8 @@ topicsColumn dProfile topicSearchStr allPosts =
                         (commonElStyles
                             ++ [ Element.Events.onClick <|
                                     GotoRoute <|
-                                        Compose <|
-                                            TopLevel topicSearchStr
+                                        Routing.Compose <|
+                                            Context.TopLevel topicSearchStr
                                ]
                         )
                     <|
@@ -551,7 +553,8 @@ topicsColumn dProfile topicSearchStr allPosts =
             (\( topic, ( ( totalBurned, totalTipped ), count ) ) ->
                 Input.button commonElStyles
                     { onPress =
-                        RouteTopic topic
+                        Routing.ViewContext
+                            (Context.TopLevel topic)
                             |> GotoRoute
                             |> Just
                     , label =
@@ -751,7 +754,7 @@ postFeed :
     -> Bool
     -> Dict Int Time.Posix
     -> Time.Posix
-    -> Maybe Id
+    -> Maybe Context.PostId
     -> Types.Wallet
     -> List Published
     -> PostState

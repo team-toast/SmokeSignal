@@ -1,5 +1,6 @@
 module View.Compose exposing (view)
 
+import Context exposing (Context)
 import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, height, padding, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -11,9 +12,10 @@ import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal, white)
 import Maybe.Extra exposing (unwrap)
 import Result.Extra
+import Routing exposing (Route)
 import Theme exposing (orange, theme)
 import TokenValue exposing (TokenValue)
-import Types exposing (CheckedMaybeValidInputs, Content, Context, Draft, Id, Model, Msg(..), PhaceIconId, Route(..), UserInfo, Wallet)
+import Types exposing (..)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
 import View.Common exposing (appStatusMessage, daiAmountInput, phaceElement, shortenedHash, viewContext, web3ConnectButton, whenJust, wrapModal)
 import View.Markdown
@@ -455,7 +457,7 @@ messageInputPlaceholder =
                 ]
 
 
-viewReplyInfo : Id -> Element Msg
+viewReplyInfo : Context.PostId -> Element Msg
 viewReplyInfo postId =
     Element.column
         [ Element.padding 10
@@ -471,7 +473,8 @@ viewReplyInfo postId =
             , Element.pointer
             , Element.Events.onClick <|
                 GotoRoute <|
-                    RoutePost postId
+                    Routing.ViewContext <|
+                        Context.Reply postId
 
             --ViewPost postId
             ]
@@ -500,7 +503,8 @@ viewTopic topic =
             , Element.pointer
             , Element.Events.onClick <|
                 GotoRoute <|
-                    RouteTopic topic
+                    Routing.ViewContext <|
+                        Context.TopLevel topic
 
             --Topic topic
             ]

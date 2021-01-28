@@ -11,6 +11,7 @@ import View.Attrs exposing (hover, roundBorder, sansSerifFont, whiteGlowAttribut
 import View.Common
 import View.Img
 import View.Markdown
+import Routing exposing (Route)
 
 
 view : Model -> Published -> Element Msg
@@ -24,7 +25,7 @@ view model post =
                 , Font.color white
                 ]
       , Input.button [ Background.color Theme.orange, padding 20, roundBorder, hover ]
-            { onPress = Just <| Types.GotoRoute Types.Home
+            { onPress = Just <| Types.GotoRoute Routing.Home
             , label =
                 [ View.Img.replyArrow 20 black
                 , text "Go back"

@@ -1,25 +1,30 @@
-module Routing exposing (routeParser, routeToString, urlToRoute)
+module Routing exposing (..)
 
+import Context exposing (Context)
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Result.Extra
-import Types exposing (Context(..), Id, Route(..))
 import Url exposing (Url)
 import Url.Builder as Builder
 import Url.Parser as Parser exposing ((</>), (<?>), Parser)
 import Url.Parser.Query as Query
 
 
+type Route
+    = Home
+    | Compose Context
+    | ViewContext Context
+    | NotFound String
+
+
 routeParser : Parser (Route -> a) a
 routeParser =
     Parser.oneOf
         [ Parser.map Home Parser.top
-        , Parser.s "context"
-            </> postContextParser
-            |> Parser.map (Result.Extra.unpack NotFound identity)
-
-        --, (Parser.s "compose" </> postContextParser)
-        --|> Parser.map (Result.Extra.unpack NotFound Compose)
+        , (Parser.s "context" </> contextParser)
+            |> Parser.map (Result.Extra.unpack NotFound ViewContext)
+        , (Parser.s "compose" </> contextParser)
+            |> Parser.map (Result.Extra.unpack NotFound Compose)
         ]
 
 
@@ -34,20 +39,23 @@ routeToString basePath route =
 
                 Compose context ->
                     Builder.relative
-                        ([ "#!", "compose" ] ++ encodePostContextPaths context)
+                        ([ "#!", "compose" ] ++ encodeContextPaths context)
                         (encodePostContextQueryParams context)
 
-                RouteTopic str ->
+                ViewContext context ->
                     Builder.relative
-                        [ "#!", "context", "topic", Url.percentEncode <| String.toLower str ]
-                        --(encodeViewContextQueryParams context)
-                        []
+                        ([ "#!", "context" ] ++ encodeContextPaths context)
+                        (encodeContextQueryParams context)
 
-                RoutePost id ->
-                    Builder.relative
-                        [ "#!", "context", "re" ]
-                        (encodePostIdQueryParameters id)
-
+                -- Topic str ->
+                --     Builder.relative
+                --         [ "#!", "context", "topic", Url.percentEncode <| String.toLower str ]
+                --         --(encodeViewContextQueryParams context)
+                --         []
+                -- Post id ->
+                --     Builder.relative
+                --         [ "#!", "context", "re" ]
+                --         (encodePostIdQueryParameters id)
                 NotFound _ ->
                     Builder.relative
                         [ "#!" ]
@@ -60,32 +68,25 @@ routeToFullDotEthUrlString route =
     routeToString "https://smokesignal.eth/" route
 
 
-postContextParser : Parser (Result String Route -> a) a
-postContextParser =
+contextParser : Parser (Result String Context -> a) a
+contextParser =
     Parser.oneOf
         [ (Parser.s "re" <?> postIdQueryParser)
-            |> Parser.map (Result.map RoutePost)
+            |> Parser.map (Result.map Context.Reply)
         , (Parser.s "topic" </> topicParser)
             |> Parser.map (Result.fromMaybe "Couldn't parse topic")
-            |> Parser.map (Result.map RouteTopic)
+            |> Parser.map (Result.map Context.TopLevel)
         ]
 
 
 
---encodeViewContextPaths : ViewContext -> List String
---encodeViewContextPaths context =
---context
---|> viewContextToPostContext
---|> encodePostContextPaths
-
-
-encodePostContextPaths : Context -> List String
-encodePostContextPaths context =
+encodeContextPaths : Context -> List String
+encodeContextPaths context =
     case context of
-        Reply _ ->
+        Context.Reply _ ->
             [ "re" ]
 
-        TopLevel topic ->
+        Context.TopLevel topic ->
             [ "topic", encodeTopic topic ]
 
 
@@ -103,32 +104,30 @@ topicParser =
 encodePostContextQueryParams : Context -> List Builder.QueryParameter
 encodePostContextQueryParams context =
     case context of
-        Reply postId ->
+        Context.Reply postId ->
             encodePostIdQueryParameters postId
 
-        TopLevel _ ->
+        Context.TopLevel _ ->
             []
 
 
-
---encodeViewContextQueryParams : ViewContext -> List Builder.QueryParameter
---encodeViewContextQueryParams context =
---context
---|> viewContextToPostContext
---|> encodePostContextQueryParams
+encodeContextQueryParams : Context -> List Builder.QueryParameter
+encodeContextQueryParams context =
+    context
+        |> encodePostContextQueryParams
 
 
-postIdQueryParser : Query.Parser (Result String Id)
+postIdQueryParser : Query.Parser (Result String Context.PostId)
 postIdQueryParser =
     Query.map2
-        (Result.map2 Id)
+        (Result.map2 Context.PostId)
         (Query.int "block"
             |> Query.map (Result.fromMaybe "Can't interpret 'block'")
         )
         (hexQueryParser "hash")
 
 
-encodePostIdQueryParameters : Id -> List Builder.QueryParameter
+encodePostIdQueryParameters : Context.PostId -> List Builder.QueryParameter
 encodePostIdQueryParameters postIdInfo =
     [ Builder.string "block" (String.fromInt postIdInfo.block)
     , Builder.string "hash" (Eth.Utils.hexToString postIdInfo.messageHash)

@@ -1,10 +1,11 @@
-module Types exposing (Accounting, CheckedMaybeValidInputs, Config, Content, Context(..), Core, Draft, EncodedDraft, FailReason(..), Flags, GTagData, Id, Metadata, Model, Msg(..), PhaceIconId(..), Post(..), PostState, PostUXId(..), Published, PublishedPostsDict, ReplyIds, Route(..), ShowInputState(..), TrackedTx, TxInfo(..), TxStatus(..), UserInfo, View(..), Wallet(..))
+module Types exposing (..)
 
 import Browser
 import Browser.Navigation
 import Dict exposing (Dict)
 import Eth.Net
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
+import Context exposing (Context)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
@@ -14,7 +15,7 @@ import Time
 import TokenValue exposing (TokenValue)
 import Url exposing (Url)
 import UserNotice as UN exposing (UserNotice)
-
+import Routing exposing (Route)
 
 type alias Flags =
     { basePath : String
@@ -41,13 +42,8 @@ type alias Model =
     , eventSentry : EventSentry Msg
     , publishedPosts : PublishedPostsDict
     , ethPrice : Maybe Float
-
-    --, postUX : Maybe ( PostUXId, PostUX.Model )
     , replies : List ReplyIds
-    , view : View
-    , showHalfComposeUX : Bool
-
-    --, composeUXModel : Maybe ComposeUX.Model
+    -- , showHalfComposeUX : Bool
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
@@ -63,8 +59,6 @@ type alias Model =
     , newUserModal : Bool
     , composeModal : Bool
     , config : Config
-
-    --, topicUXModel : Maybe TopicUX.Model
     }
 
 
@@ -81,7 +75,7 @@ type Msg
     | TxSentryMsg TxSentry.Msg
     | EventSentryMsg EventSentry.Msg
     | PostLogReceived Eth.Types.Log
-    | PostAccountingFetched Id (Result Http.Error Accounting)
+    | PostAccountingFetched Context.PostId (Result Http.Error Accounting)
     | ShowExpandedTrackedTxs Bool
     | CheckTrackedTxsStatus
     | TrackedTxStatusResult (Result Http.Error TxReceipt)
@@ -104,10 +98,9 @@ type Msg
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId
     | AddUserNotice UN.UserNotice
-    | UnlockDai
     | SubmitPost Draft
-    | SubmitTip Id TokenValue
-    | SubmitBurn Id TokenValue
+    | SubmitTip Context.PostId TokenValue
+    | SubmitBurn Context.PostId TokenValue
     | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool
     | EthPriceFetched (Result Http.Error Float)
@@ -129,7 +122,7 @@ type alias PostState =
 
 
 type PostUXId
-    = PublishedPostId Id
+    = PublishedPostId Context.PostId
     | DraftPreview
 
 
@@ -142,7 +135,7 @@ type ShowInputState
 type View
     = ViewHome
     | ViewCompose
-    | ViewPost Id
+    | ViewPost Context.PostId
     | ViewTopic String
 
 
@@ -164,21 +157,13 @@ type alias PublishedPostsDict =
 
 
 type alias ReplyIds =
-    { from : Id
-    , to : Id
+    { from : Context.PostId
+    , to : Context.PostId
     }
 
 
-type Route
-    = Home
-    | Compose Context
-    | RouteTopic String
-    | RoutePost Id
-    | NotFound String
-
-
 type PhaceIconId
-    = PhaceForPublishedPost Id
+    = PhaceForPublishedPost Context.PostId
     | PhaceForDraft
     | PhaceForPreview
     | UserPhace
@@ -195,14 +180,14 @@ type alias TrackedTx =
 type TxInfo
     = PostTx Draft
     | UnlockTx
-    | TipTx Id TokenValue
-    | BurnTx Id TokenValue
+    | TipTx Context.PostId TokenValue
+    | BurnTx Context.PostId TokenValue
 
 
 type TxStatus
     = Mining
     | Failed FailReason
-    | Mined (Maybe Id)
+    | Mined (Maybe Context.PostId)
 
 
 type FailReason
@@ -231,7 +216,7 @@ type alias Accounting =
 
 type alias Published =
     { txHash : TxHash
-    , id : Id
+    , id : Context.PostId
     , core : Core
     , maybeAccounting : Maybe Accounting
     }
@@ -272,17 +257,6 @@ type alias Metadata =
     { metadataVersion : Int
     , context : Context
     , maybeDecodeError : Maybe String
-    }
-
-
-type Context
-    = Reply Id
-    | TopLevel String
-
-
-type alias Id =
-    { block : Int
-    , messageHash : Hex
     }
 
 

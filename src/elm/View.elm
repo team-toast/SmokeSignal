@@ -1,6 +1,7 @@
 module View exposing (view)
 
 import Browser
+import Context exposing (Context)
 import Element exposing (Attribute, Element, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -14,10 +15,11 @@ import Helpers.Tuple as TupleHelpers
 import Html exposing (Html)
 import Maybe.Extra
 import Misc exposing (getPublishedPostFromId, getTitle)
+import Routing exposing (Route)
 import Theme exposing (theme)
 import Time
 import Tuple3
-import Types exposing (Context(..), FailReason(..), Metadata, Model, Msg(..), Route(..), TrackedTx, TxInfo(..), TxStatus(..), View(..), Wallet)
+import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import View.Attrs exposing (cappedWidth, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common exposing (appStatusMessage, viewContext)
@@ -85,7 +87,7 @@ viewPage model =
 header : Wallet -> String -> Element Msg
 header wallet searchInput =
     [ Input.button []
-        { onPress = Just <| GotoRoute Home
+        { onPress = Just <| GotoRoute Routing.Home
         , label =
             Element.image
                 [ height <| px 50
@@ -151,6 +153,7 @@ header wallet searchInput =
             ]
 
 
+
 -- footer : Element Msg
 -- footer =
 --     [ Element.image
@@ -186,14 +189,14 @@ header wallet searchInput =
 
 viewBody : Model -> Element Msg
 viewBody model =
-    case model.view of
-        ViewHome ->
+    case model.route of
+        Routing.Home ->
             View.Home.viewOverview model
 
-        ViewCompose ->
+        Routing.Compose _ ->
             View.Compose.view model
 
-        ViewPost postId ->
+        Routing.ViewContext (Context.Reply postId) ->
             case getPublishedPostFromId model.publishedPosts postId of
                 Just post ->
                     View.PostPage.view model post
@@ -203,21 +206,17 @@ viewBody model =
                         theme.appStatusTextColor
                         "Loading post..."
 
-        ViewTopic topic ->
+        Routing.ViewContext (Context.TopLevel topic) ->
             View.Home.viewTopic model topic
+
+        Routing.NotFound _ ->
+            View.Home.viewOverview model
 
 
 modals : Model -> List (Element Msg)
 modals model =
     Maybe.Extra.values
-        ([ if model.view /= ViewCompose && model.showHalfComposeUX then
-            --Just <|
-            --viewHalfComposeUX model
-            Nothing
-
-           else
-            Nothing
-         , Maybe.map
+        ([ Maybe.map
             (Element.el
                 [ Element.alignTop
                 , Element.alignRight
@@ -232,37 +231,36 @@ modals model =
                 model.showExpandedTrackedTxs
                 model.trackedTxs
             )
-         , let
-            showDraftInProgressButton =
-                case model.view of
-                    ViewCompose ->
-                        False
 
-                    _ ->
-                        --(model.showHalfComposeUX == False)
-                        --&& (not <| Post.contentIsEmpty model.composeUXModel.content)
-                        -- TODO
-                        False
-           in
-           if showDraftInProgressButton then
-            --Just <|
-            --theme.secondaryActionButton
-            --model.dProfile
-            --[ Element.alignBottom
-            --, Element.alignLeft
-            --, Element.paddingXY 20 10
-            --, Border.glow
-            --(Element.rgba 0 0 0 0.5)
-            --5
-            --]
-            --[ "Draft in Progress" ]
-            --(EH.Action <| StartInlineCompose model.composeUXModel.context)
-            -- TODO
-            Nothing
-
-           else
-            Nothing
-
+         --  ,
+         --  let
+         --     showDraftInProgressButton =
+         --         case model.route of
+         --             ViewCompose ->
+         --                 False
+         --             _ ->
+         --                 --(model.showHalfComposeUX == False)
+         --                 --&& (not <| Post.contentIsEmpty model.composeUXModel.content)
+         --                 -- TODO
+         --                 False
+         --    in
+         --    if showDraftInProgressButton then
+         --Just <|
+         --theme.secondaryActionButton
+         --model.dProfile
+         --[ Element.alignBottom
+         --, Element.alignLeft
+         --, Element.paddingXY 20 10
+         --, Border.glow
+         --(Element.rgba 0 0 0 0.5)
+         --5
+         --]
+         --[ "Draft in Progress" ]
+         --(EH.Action <| StartInlineCompose model.composeUXModel.context)
+         -- TODO
+         --     Nothing
+         --    else
+         --     Nothing
          --, maybeViewDraftModal model
          , if not model.cookieConsentGranted then
             --Just <| viewCookieConsentModal model.dProfile
@@ -432,7 +430,8 @@ viewTrackedTxRow trackedTx =
                             , Element.pointer
                             , Element.Events.onClick <|
                                 GotoRoute <|
-                                    RoutePost postId
+                                    Routing.ViewContext <|
+                                        Context.Reply postId
                             ]
                             (Element.text "Post")
                         ]
@@ -446,7 +445,8 @@ viewTrackedTxRow trackedTx =
                             , Element.pointer
                             , Element.Events.onClick <|
                                 GotoRoute <|
-                                    RoutePost postId
+                                    Routing.ViewContext <|
+                                        Context.Reply postId
                             ]
                             (Element.text "Post")
                         ]
@@ -485,7 +485,10 @@ viewTrackedTxRow trackedTx =
                                     Element.el
                                         [ Font.color theme.linkTextColor
                                         , Element.pointer
-                                        , Element.Events.onClick <| GotoRoute <| RoutePost postId
+                                        , Element.Events.onClick <|
+                                            GotoRoute <|
+                                                Routing.ViewContext <|
+                                                    Context.Reply postId
                                         ]
                                         (Element.text "Published")
 
