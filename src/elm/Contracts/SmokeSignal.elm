@@ -1,15 +1,13 @@
-module Contracts.SmokeSignal exposing (..)
+module Contracts.SmokeSignal exposing (burnEncodedPost, burnForPost, fromMessageBurn, getAccountingCmd, getEthPriceCmd, messageBurnDecoder, messageBurnEventFilter, tipForPost)
 
 import Contracts.Generated.SmokeSignal as G
-import Element
 import Eth
-import Eth.Types exposing (..)
-import Eth.Utils as U
+import Eth.Types exposing (Address, BlockId, Call, Hex, LogFilter, TxHash)
 import Helpers.Eth as EthHelpers
 import Http
-import Json.Decode as Decode exposing (Decoder, succeed)
-import Json.Decode.Pipeline exposing (custom)
-import Post
+import Json.Decode as Decode exposing (Decoder)
+import Post exposing (nullMetadata)
+import Result.Extra
 import Task
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
@@ -61,26 +59,16 @@ burnEncodedPost smokeSignalContractAddress encodedPost =
         |> EthHelpers.updateCallValue (TokenValue.getEvmValue encodedPost.burnAmount)
 
 
-fromMessageBurn : TxHash -> Int -> (Content -> Element.Element msg) -> MessageBurn -> Published
-fromMessageBurn txHash block renderFunc messageEvent =
-    let
-        ( extractedMetadata, extractedMessage ) =
-            Post.decodePostData messageEvent.message
-    in
-    Published
-        txHash
-        (PostId
-            block
-            messageEvent.hash
-        )
-        (Core
-            messageEvent.from
-            messageEvent.burnAmount
-            extractedMessage
-            extractedMetadata
-         --(renderFunc extractedMessage)
-        )
-        Nothing
+fromMessageBurn : TxHash -> Int -> MessageBurn -> Published
+fromMessageBurn txHash block messageEvent =
+    { txHash = txHash
+    , id =
+        { block = block
+        , messageHash = messageEvent.hash
+        }
+    , core = parseCore messageEvent
+    , maybeAccounting = Nothing
+    }
 
 
 toAccounting : G.StoredMessageData -> Accounting
@@ -145,3 +133,52 @@ burnForPost smokeSignalContractAddress messageHash amount donate =
             TokenValue.zero |> TokenValue.getEvmValue
         )
         |> EthHelpers.updateCallValue (TokenValue.getEvmValue amount)
+
+
+parseCore : MessageBurn -> Core
+parseCore messageEvent =
+    let
+        encoded =
+            String.dropLeft 12 messageEvent.message
+    in
+    case String.left 12 messageEvent.message of
+        "!smokesignal" ->
+            encoded
+                |> Decode.decodeString (coreDecoder messageEvent)
+                |> Result.Extra.extract
+                    (\decodeErr ->
+                        { author = messageEvent.from
+                        , authorBurn = messageEvent.burnAmount
+                        , content = Post.justBodyContent encoded
+                        , metadata =
+                            { nullMetadata
+                                | maybeDecodeError =
+                                    Decode.errorToString decodeErr
+                                        |> Just
+                            }
+                        }
+                    )
+
+        _ ->
+            { author = messageEvent.from
+            , authorBurn = messageEvent.burnAmount
+            , content = Post.justBodyContent encoded
+            , metadata = nullMetadata
+            }
+
+
+coreDecoder : MessageBurn -> Decoder Core
+coreDecoder messageBurn =
+    Post.metadataDecoder
+        |> Decode.andThen
+            (\metadata ->
+                Post.messageDataDecoder metadata.metadataVersion
+                    |> Decode.map
+                        (\content ->
+                            { author = messageBurn.from
+                            , authorBurn = messageBurn.burnAmount
+                            , content = content
+                            , metadata = metadata
+                            }
+                        )
+            )

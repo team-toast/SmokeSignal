@@ -221,7 +221,6 @@ update msg prevModel =
                                     (SSContract.fromMessageBurn
                                         log.transactionHash
                                         log.blockNumber
-                                        View.Common.renderContentOrError
                                         ssPost
                                     )
                     in
@@ -856,7 +855,6 @@ handleTxReceipt txReceipt =
                 (SSContract.fromMessageBurn
                     txReceipt.hash
                     txReceipt.blockNumber
-                    View.Common.renderContentOrError
                 )
                 maybePostEvent
             , Nothing

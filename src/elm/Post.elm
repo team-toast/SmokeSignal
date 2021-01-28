@@ -1,4 +1,4 @@
-module Post exposing (currentMetadataVersion, decodePostData, defaultTopic)
+module Post exposing (currentMetadataVersion, defaultTopic, justBodyContent, messageDataDecoder, metadataDecoder, nullMetadata)
 
 {-| Helpers related to Post management.
 -}
@@ -6,32 +6,8 @@ module Post exposing (currentMetadataVersion, decodePostData, defaultTopic)
 import Eth.Types exposing (Hex)
 import Eth.Utils
 import Json.Decode as Decode exposing (Decoder)
-import Result.Extra
 import String.Extra
 import Types exposing (..)
-
-
-decodePostData : String -> ( Metadata, Content )
-decodePostData str =
-    case ( String.left 12 str, String.dropLeft 12 str ) of
-        ( "!smokesignal", jsonStr ) ->
-            jsonStr
-                |> Decode.decodeString postDataDecoder
-                |> Result.Extra.extract
-                    (\decodeErr ->
-                        ( { nullMetadata
-                            | maybeDecodeError =
-                                Decode.errorToString decodeErr
-                                    |> Just
-                          }
-                        , justBodyContent jsonStr
-                        )
-                    )
-
-        _ ->
-            ( nullMetadata
-            , justBodyContent str
-            )
 
 
 justBodyContent : String -> Content
@@ -45,17 +21,6 @@ nullMetadata =
         0
         (TopLevel defaultTopic)
         Nothing
-
-
-postDataDecoder : Decoder ( Metadata, Content )
-postDataDecoder =
-    metadataDecoder
-        |> Decode.andThen
-            (\metadata ->
-                Decode.map
-                    (Tuple.pair metadata)
-                    (messageDataDecoder metadata.metadataVersion)
-            )
 
 
 defaultTopic : String
