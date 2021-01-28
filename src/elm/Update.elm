@@ -21,7 +21,6 @@ import Ports exposing (connectToWeb3, consentToCookies, gTagOut, setDescription)
 import Post
 import Random
 import Result.Extra exposing (unpack)
-import Routing
 import Routing exposing (viewToUrlString)
 import Task
 import Time
@@ -57,7 +56,7 @@ update msg prevModel =
         RouteChanged route ->
             let
                 ( newView, userNotices ) =
-                    case route |> tryRouteToView of
+                    case route |> Misc.tryRouteToView of
                         Ok v ->
                             ( v, [] )
 
@@ -478,13 +477,6 @@ update msg prevModel =
         --                 |> (GotoView <|
         --                         Routing.Compose composeContext
         --                    )
-        ExitCompose ->
-            ( { prevModel
-                | composeModal = False
-              }
-            , Cmd.none
-            )
-
         -- case prevModel.view of
         --     ViewCompose context ->
         --         prevModel
@@ -956,7 +948,7 @@ updateSeoDescriptionIfNeededCmd model =
         appropriateMaybeDescription =
             case model.view of
                 ViewPost postId ->
-                    getPublishedPostFromId model.publishedPosts postId
+                    Misc.getPublishedPostFromId model.publishedPosts postId
                         |> Maybe.andThen (.core >> .content >> .desc)
 
                 ViewTopic topic ->

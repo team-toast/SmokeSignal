@@ -1,4 +1,4 @@
-module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeDraft, fetchEthPriceCmd, formatPosix, getPublishedPostFromId, getTitle, parseHttpError, totalBurned, txInfoToNameStr, updatePublishedPost, withBalance)
+module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeDraft, fetchEthPriceCmd, formatPosix, getPublishedPostFromId, getTitle, parseHttpError, totalBurned, tryRouteToView, txInfoToNameStr, updatePublishedPost, withBalance)
 
 import Browser.Navigation
 import Contracts.SmokeSignal as SSContract
@@ -151,7 +151,6 @@ getPublishedPostFromTxHash publishedPosts txHash =
                 publishedPost.txHash == txHash
             )
         |> List.head
-
 
 
 
@@ -378,4 +377,3 @@ tryRouteToView route =
 
         RouteInvalid ->
             Err "Path not found"
-

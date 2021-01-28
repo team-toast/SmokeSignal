@@ -32,8 +32,8 @@ main =
         , view = view
         , update = update
         , subscriptions = subscriptions
-        , onUrlRequest = LinkClicked
-        , onUrlChange = Routing.urlToRoute >> RouteChanged
+        , onUrlRequest = Types.LinkClicked
+        , onUrlChange = Routing.urlToRoute >> Types.RouteChanged
         }
 
 
@@ -55,7 +55,7 @@ init flags url key =
                     ( v, [] )
 
                 Err err ->
-                    ( ViewHome
+                    ( Types.ViewHome
                     , [ UN.routeNotFound <| Just err ]
                     )
 

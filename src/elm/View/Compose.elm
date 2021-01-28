@@ -253,7 +253,7 @@ viewBody dProfile donateChecked wallet showAddressId model =
                     , Element.alignRight
                     ]
                     (Element.rgb 0.3 0.3 0.3)
-                    ExitCompose
+                    ComposeToggle
             ]
     in
     case dProfile of
@@ -514,7 +514,8 @@ viewTopic topic =
             [ Font.color theme.linkTextColor
             , Element.pointer
             , Element.Events.onClick <|
-                GotoView <| ViewTopic topic
+                GotoView <|
+                    ViewTopic topic
 
             --Topic topic
             ]

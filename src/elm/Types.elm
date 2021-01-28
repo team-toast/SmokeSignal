@@ -33,7 +33,6 @@ type alias Flags =
 type alias Model =
     { navKey : Browser.Navigation.Key
     , basePath : String
-    , view : View
     , wallet : Wallet
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
@@ -43,7 +42,6 @@ type alias Model =
     , ethPrice : Maybe Float
     , replies : List ReplyIds
     , view : View
-    , showHalfComposeUX : Bool
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
@@ -80,19 +78,17 @@ type Msg
     | TxSigned TxInfo (Result String TxHash)
     | ViewDraft (Maybe Draft)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
-    -- | RestoreDraft Draft
+      -- | RestoreDraft Draft
     | DismissNotice Int
     | ClickHappened
     | ComposeToggle
     | BalanceFetched Address (Result Http.Error TokenValue)
     | CookieConsentGranted
     | StartInlineCompose Context
-    | ExitCompose
     | GotoView View
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId
     | AddUserNotice UN.UserNotice
-    | UnlockDai
     | SubmitDraft
     | SubmitPost Draft
     | SubmitTip PostId TokenValue
