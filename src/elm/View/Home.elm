@@ -324,7 +324,11 @@ viewTopTrending =
                         , paddingXY 15 5
                         ]
             )
-        |> column [ width fill, height <| px 120, Element.scrollbarY ]
+        |> column
+            [ width fill
+            , height <| px 120
+            , Element.scrollbarY
+            ]
     ]
         |> column
             [ width fill
@@ -771,7 +775,6 @@ postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet list
         |> column
             [ width fill
             , height fill
-            , Element.scrollbarY
             , spacing 5
             , paddingXY 0 5
             ]

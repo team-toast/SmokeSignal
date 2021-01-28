@@ -66,6 +66,7 @@ viewPage model =
         |> el
             [ width fill
             , height fill
+            , Element.scrollbarY
             , View.Modal.viewNewToSmokeSignal model.dProfile
                 |> Element.inFront
                 |> View.Common.whenAttr model.newUserModal
@@ -73,7 +74,6 @@ viewPage model =
                 |> Element.inFront
                 |> View.Common.whenAttr model.composeModal
             ]
-    , footer
     ]
         |> column
             [ width fill
@@ -151,37 +151,37 @@ header wallet searchInput =
             ]
 
 
-footer : Element Msg
-footer =
-    [ Element.image
-        [ Element.height <| Element.px 50 ]
-        { src = "img/forged-by-foundry-white.svg"
-        , description =
-            "forged by foundry"
-        }
-    , text "ABOUT"
-    , text "NEWS"
-    , text "STATS"
-    , Element.image
-        [ Element.height <| Element.px 50
-        ]
-        { src = "img/smokesignal-logo-horizontal.svg"
-        , description = "smokesignal logo"
-        }
-    ]
-        |> row
-            [ Element.spacingXY 150 0
-            , Font.color Theme.orange
-            , Element.centerX
-            ]
-        |> el
-            [ Element.width Element.fill
-            , Element.height <| Element.px 80
-            , Background.color EH.black
-            , Element.alignBottom
-            , whiteGlowAttribute
-            , Element.paddingXY 0 15
-            ]
+-- footer : Element Msg
+-- footer =
+--     [ Element.image
+--         [ Element.height <| Element.px 50 ]
+--         { src = "img/forged-by-foundry-white.svg"
+--         , description =
+--             "forged by foundry"
+--         }
+--     , text "ABOUT"
+--     , text "NEWS"
+--     , text "STATS"
+--     , Element.image
+--         [ Element.height <| Element.px 50
+--         ]
+--         { src = "img/smokesignal-logo-horizontal.svg"
+--         , description = "smokesignal logo"
+--         }
+--     ]
+--         |> row
+--             [ Element.spacingXY 150 0
+--             , Font.color Theme.orange
+--             , Element.centerX
+--             ]
+--         |> el
+--             [ Element.width Element.fill
+--             , Element.height <| Element.px 80
+--             , Background.color EH.black
+--             , Element.alignBottom
+--             , whiteGlowAttribute
+--             , Element.paddingXY 0 15
+--             ]
 
 
 viewBody : Model -> Element Msg

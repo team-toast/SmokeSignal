@@ -43,8 +43,6 @@ view model post =
             , Background.color black
             , Font.color white
             , width fill
-            , height fill
-            , Element.scrollbarY
             ]
         |> Result.toMaybe
         |> View.Common.whenJust identity
