@@ -16,7 +16,7 @@ import Json.Decode
 import Json.Encode
 import List.Extra
 import Maybe.Extra
-import Misc exposing (contextToMaybeDescription, defaultSeoDescription, txInfoToNameStr, updatePublishedPost)
+import Misc exposing (contextToMaybeDescription, defaultSeoDescription, txInfoToNameStr, updatePublishedPost, tryRouteToView)
 import Ports exposing (connectToWeb3, consentToCookies, gTagOut, setDescription)
 import Random
 import Routing exposing (Route)
@@ -47,19 +47,18 @@ update msg prevModel =
 
         UrlChanged url ->
             let
-                route =
-                    url
-                        |> Routing.urlToRoute
+                ( newView, userNotices ) =
+                    case url |> Routing.urlToRoute |> tryRouteToView of
+                        Ok v ->
+                            ( v, [] )
+
+                        Err err ->
+                            ( ViewHome
+                            , [ UN.routeNotFound <| Just err ]
+                            )
             in
             ( { prevModel
-                | route = route
-                , userNotices =
-                    case route of
-                        Routing.NotFound err ->
-                            [ UN.routeNotFound ]
-
-                        _ ->
-                            []
+                | view = newView
               }
             , Cmd.none
             )
@@ -475,8 +474,8 @@ update msg prevModel =
         --                         Routing.Compose composeContext
         --                    )
         ExitCompose ->
-            case prevModel.route of
-                Routing.Compose context ->
+            case prevModel.view of
+                ViewCompose context ->
                     prevModel
                         |> gotoRoute (Routing.ViewContext <| context)
 
@@ -644,9 +643,21 @@ encodeGTag gtag =
 
 gotoRoute : Route -> Model -> ( Model, Cmd Msg )
 gotoRoute route prevModel =
+    let
+        ( newView, userNotices ) =
+            case tryRouteToView route of
+                Ok v ->
+                    ( v, [] )
+
+                Err err ->
+                    ( ViewHome
+                    , [ UN.routeNotFound <| Just err ]
+                    )
+    in
     { prevModel
-        | route = route
+        | view = newView
     }
+        |> addUserNotices userNotices
         -- (case route of
         --     Routing.Home ->
         --         let
@@ -862,8 +873,8 @@ updateSeoDescriptionIfNeededCmd :
 updateSeoDescriptionIfNeededCmd model =
     let
         appropriateMaybeDescription =
-            case model.route of
-                Routing.ViewContext context ->
+            case model.view of
+                ViewContext context ->
                     contextToMaybeDescription model.publishedPosts context
 
                 _ ->

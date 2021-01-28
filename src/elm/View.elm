@@ -189,14 +189,14 @@ header wallet searchInput =
 
 viewBody : Model -> Element Msg
 viewBody model =
-    case model.route of
-        Routing.Home ->
+    case model.view of
+        ViewHome ->
             View.Home.viewOverview model
 
-        Routing.Compose _ ->
+        ViewCompose _ ->
             View.Compose.view model
 
-        Routing.ViewContext (Context.Reply postId) ->
+        ViewContext (Context.Reply postId) ->
             case getPublishedPostFromId model.publishedPosts postId of
                 Just post ->
                     View.PostPage.view model post
@@ -206,11 +206,8 @@ viewBody model =
                         theme.appStatusTextColor
                         "Loading post..."
 
-        Routing.ViewContext (Context.TopLevel topic) ->
+        ViewContext (Context.TopLevel topic) ->
             View.Home.viewTopic model topic
-
-        Routing.NotFound _ ->
-            View.Home.viewOverview model
 
 
 modals : Model -> List (Element Msg)

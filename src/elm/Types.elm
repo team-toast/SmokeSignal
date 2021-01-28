@@ -34,7 +34,7 @@ type alias Flags =
 type alias Model =
     { navKey : Browser.Navigation.Key
     , basePath : String
-    , route : Route
+    , view : View
     , wallet : Wallet
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
@@ -134,9 +134,8 @@ type ShowInputState
 
 type View
     = ViewHome
-    | ViewCompose
-    | ViewPost Context.PostId
-    | ViewTopic String
+    | ViewCompose Context
+    | ViewContext Context
 
 
 type alias UserInfo =

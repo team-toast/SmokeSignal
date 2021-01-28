@@ -182,12 +182,22 @@ inputError errStr =
     }
 
 
-routeNotFound : UserNotice
-routeNotFound =
+routeNotFound : Maybe String -> UserNotice
+routeNotFound maybeErrStr =
     { uniqueLabel = "routeNotFound"
     , noticeType = Error
     , mainParagraphs =
-        [ [ Element.text "I don't understand that url..." ] ]
+        [ [ Element.text <|
+                "I don't understand that url"
+                    ++ (case maybeErrStr of
+                            Just errStr ->
+                                ": " ++ errStr
+
+                            Nothing ->
+                                ""
+                       )
+          ]
+        ]
     , align = BottomRight
     }
 

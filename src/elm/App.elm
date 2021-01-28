@@ -3,7 +3,10 @@ module App exposing (main)
 import Browser.Events
 import Browser.Hashbang
 import Browser.Navigation
+import Context exposing (Context)
 import Contracts.SmokeSignal
+import Dict
+import Eth.Defaults
 import Eth.Net
 import Eth.Sentry.Event
 import Eth.Sentry.Tx
@@ -11,14 +14,16 @@ import Eth.Sentry.Wallet
 import Eth.Types
 import Eth.Utils
 import Helpers.Element
-import Misc
+import Misc exposing (tryRouteToView)
 import Ports
+import Post
 import Routing
 import Time
-import Types exposing (Flags, Model, Msg)
+import TokenValue exposing (TokenValue)
+import Types exposing (..)
 import Update exposing (fetchEthPriceCmd, update)
 import Url exposing (Url)
-import UserNotice
+import UserNotice as UN
 import View exposing (view)
 
 
@@ -46,10 +51,20 @@ init flags url key =
         route =
             Routing.urlToRoute url
 
+        ( view, routingUserNotices ) =
+            case tryRouteToView route of
+                Ok v ->
+                    ( v, [] )
+
+                Err err ->
+                    ( ViewHome
+                    , [ UN.routeNotFound <| Just err ]
+                    )
+
         ( wallet, walletNotices ) =
             if flags.networkId == 0 then
                 ( Types.NoneDetected
-                , [ UserNotice.noWeb3Provider ]
+                , [ UN.noWeb3Provider ]
                 )
 
             else
@@ -85,7 +100,7 @@ init flags url key =
     in
     ( { model
         | basePath = flags.basePath
-        , route = route
+        , view = view
         , wallet = wallet
         , now = now
         , dProfile = Helpers.Element.screenWidthToDisplayProfile flags.width

@@ -23,7 +23,7 @@ emptyModel : Browser.Navigation.Key -> Model
 emptyModel key =
     { navKey = key
     , basePath = ""
-    , route = Routing.Home
+    , view = ViewHome
     , wallet = Types.NoneDetected
     , newUserModal = False
     , now = Time.millisToPosix 0
@@ -92,23 +92,20 @@ getTitle model =
         defaultMain =
             "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
     in
-    case model.route of
-        Routing.Home ->
+    case model.view of
+        ViewHome ->
             defaultMain
 
-        Routing.Compose _ ->
+        ViewCompose _ ->
             "Compose | SmokeSignal"
 
-        Routing.ViewContext (Context.Reply postId) ->
+        ViewContext (Context.Reply postId) ->
             getPublishedPostFromId model.publishedPosts postId
                 |> Maybe.andThen (.core >> .content >> .title)
                 |> unwrap defaultMain (\contextTitle -> contextTitle ++ " | SmokeSignal")
 
-        Routing.ViewContext (Context.TopLevel topic) ->
+        ViewContext (Context.TopLevel topic) ->
             "#" ++ topic ++ " | SmokeSignal"
-
-        Routing.NotFound _ ->
-            defaultMain
 
 
 withBalance :
@@ -166,6 +163,7 @@ contextToMaybeDescription posts context =
             Just <| "Discussions related to #" ++ topic ++ " on SmokeSignal"
 
 
+
 -- postContextToViewContext :
 --     Context
 --     -> ViewContext
@@ -173,11 +171,8 @@ contextToMaybeDescription posts context =
 --     case postContext of
 --         Reply id ->
 --             ViewPost id
-
 --         TopLevel topicStr ->
 --             Topic topicStr
-
-
 -- viewContextToPostContext :
 --     ViewContext
 --     -> Context
@@ -185,7 +180,6 @@ contextToMaybeDescription posts context =
 --     case viewContext of
 --         ViewPost id ->
 --             Reply id
-
 --         Topic topicStr ->
 --             TopLevel topicStr
 
@@ -345,3 +339,19 @@ formatPosix t =
     , "(UTC)"
     ]
         |> String.join " "
+
+
+tryRouteToView : Route -> Result String View
+tryRouteToView route =
+    case route of
+        Routing.Home ->
+            Ok ViewHome
+
+        Routing.Compose context ->
+            Ok <| ViewCompose context
+
+        Routing.ViewContext context ->
+            Ok <| ViewContext context
+
+        Routing.NotFound err ->
+            Err err
