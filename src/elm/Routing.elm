@@ -3,7 +3,6 @@ module Routing exposing (addressParser, encodePostIdQueryParameters, encodeTopic
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Maybe.Extra
-import Result.Extra
 import Types exposing (..)
 import Url exposing (Url)
 import Url.Builder as Builder

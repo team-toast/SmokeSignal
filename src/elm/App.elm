@@ -4,8 +4,6 @@ import Browser.Events
 import Browser.Hashbang
 import Browser.Navigation
 import Contracts.SmokeSignal
-import Dict
-import Eth.Defaults
 import Eth.Net
 import Eth.Sentry.Event
 import Eth.Sentry.Tx
@@ -15,7 +13,6 @@ import Eth.Utils
 import Helpers.Element
 import Misc exposing (tryRouteToView)
 import Ports
-import Post
 import Routing
 import Time
 import Types exposing (Flags, Model, Msg)
@@ -104,7 +101,7 @@ init flags url key =
         , dProfile = Helpers.Element.screenWidthToDisplayProfile flags.width
         , txSentry = txSentry
         , eventSentry = eventSentry
-        , userNotices = walletNotices
+        , userNotices = walletNotices ++ routingUserNotices
         , cookieConsentGranted = flags.cookieConsent
         , newUserModal = flags.newUser
         , config = config

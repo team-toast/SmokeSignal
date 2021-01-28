@@ -12,7 +12,6 @@ import Helpers.Element as EH
 import Http
 import Time
 import TokenValue exposing (TokenValue)
-import Url exposing (Url)
 import UserNotice as UN exposing (UserNotice)
 
 
