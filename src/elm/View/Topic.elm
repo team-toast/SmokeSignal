@@ -1,6 +1,5 @@
 module View.Topic exposing (view)
 
-import Context exposing (Context)
 import Dict exposing (Dict)
 import Element exposing (Element, centerX, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
@@ -106,8 +105,8 @@ topicHeader topic =
 isTopicMatch : String -> Published -> Bool
 isTopicMatch topicToFind post =
     case post.core.metadata.context of
-        Context.TopLevel postTopic ->
+        TopLevel postTopic ->
             postTopic == topicToFind
 
-        Context.Reply _ ->
+        Reply _ ->
             False

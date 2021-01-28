@@ -1,93 +1,75 @@
-module Routing exposing (..)
+module Routing exposing (addressParser, encodePostIdQueryParameters, encodeTopic, hexQueryParser, postIdQueryParser, routeParser, topicParser, urlToRoute, viewToUrlString)
 
-import Context exposing (Context)
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
+import Maybe.Extra
 import Result.Extra
+import Types exposing (..)
 import Url exposing (Url)
 import Url.Builder as Builder
 import Url.Parser as Parser exposing ((</>), (<?>), Parser)
 import Url.Parser.Query as Query
 
 
-type Route
-    = Home
-    | Compose Context
-    | ViewContext Context
-    | NotFound String
-
-
 routeParser : Parser (Route -> a) a
 routeParser =
     Parser.oneOf
-        [ Parser.map Home Parser.top
-        , (Parser.s "context" </> contextParser)
-            |> Parser.map (Result.Extra.unpack NotFound ViewContext)
-        , (Parser.s "compose" </> contextParser)
-            |> Parser.map (Result.Extra.unpack NotFound Compose)
+        [ Parser.map RouteHome Parser.top
+        , Parser.s "post"
+            <?> postIdQueryParser
+            |> Parser.map (Maybe.Extra.unwrap RouteMalformedPostId RouteViewPost)
+        , Parser.s "topic"
+            </> topicParser
+            |> Parser.map (Maybe.Extra.unwrap RouteMalformedTopic RouteViewTopic)
         ]
 
 
-routeToString : String -> Route -> String
-routeToString basePath route =
+viewToUrlString : String -> View -> String
+viewToUrlString basePath view =
     basePath
-        ++ (case route of
-                Home ->
+        ++ (case view of
+                ViewHome ->
                     Builder.relative
                         [ "#!" ]
                         []
 
-                Compose context ->
+                ViewPost postId ->
                     Builder.relative
-                        ([ "#!", "compose" ] ++ encodeContextPaths context)
-                        (encodePostContextQueryParams context)
+                        [ "#!", "post" ]
+                        (encodePostIdQueryParameters postId)
 
-                ViewContext context ->
+                ViewTopic topic ->
                     Builder.relative
-                        ([ "#!", "context" ] ++ encodeContextPaths context)
-                        (encodeContextQueryParams context)
+                        [ "#!", "topic", encodeTopic topic ]
+                        []
 
-                -- Topic str ->
-                --     Builder.relative
-                --         [ "#!", "context", "topic", Url.percentEncode <| String.toLower str ]
-                --         --(encodeViewContextQueryParams context)
-                --         []
-                -- Post id ->
-                --     Builder.relative
-                --         [ "#!", "context", "re" ]
-                --         (encodePostIdQueryParameters id)
-                NotFound _ ->
+                ViewCompose _ ->
                     Builder.relative
                         [ "#!" ]
                         []
            )
 
 
-routeToFullDotEthUrlString : Route -> String
-routeToFullDotEthUrlString route =
-    routeToString "https://smokesignal.eth/" route
 
-
-contextParser : Parser (Result String Context -> a) a
-contextParser =
-    Parser.oneOf
-        [ (Parser.s "re" <?> postIdQueryParser)
-            |> Parser.map (Result.map Context.Reply)
-        , (Parser.s "topic" </> topicParser)
-            |> Parser.map (Result.fromMaybe "Couldn't parse topic")
-            |> Parser.map (Result.map Context.TopLevel)
-        ]
-
-
-
-encodeContextPaths : Context -> List String
-encodeContextPaths context =
-    case context of
-        Context.Reply _ ->
-            [ "re" ]
-
-        Context.TopLevel topic ->
-            [ "topic", encodeTopic topic ]
+-- routeToFullDotEthUrlString : Route -> String
+-- routeToFullDotEthUrlString route =
+--     routeToString "https://smokesignal.eth/" route
+-- contextParser : Parser (Result String Context -> a) a
+-- contextParser =
+--     Parser.oneOf
+--         [ (Parser.s "re" <?> postIdQueryParser)
+--             |> Parser.map (Result.map Reply)
+--         , (Parser.s "topic" </> topicParser)
+--             |> Parser.map (Result.fromMaybe "Couldn't parse topic")
+--             |> Parser.map (Result.map TopLevel)
+--         ]
+-- encodeContextPaths : Context -> List String
+-- encodeContextPaths context =
+--     case context of
+--         Reply _ ->
+--             [ "re" ]
+--         TopLevel topic ->
+--             [ "topic", encodeTopic topic ]
 
 
 encodeTopic : String -> String
@@ -101,44 +83,39 @@ topicParser =
         |> Parser.map Url.percentDecode
 
 
-encodePostContextQueryParams : Context -> List Builder.QueryParameter
-encodePostContextQueryParams context =
-    case context of
-        Context.Reply postId ->
-            encodePostIdQueryParameters postId
 
-        Context.TopLevel _ ->
-            []
-
-
-encodeContextQueryParams : Context -> List Builder.QueryParameter
-encodeContextQueryParams context =
-    context
-        |> encodePostContextQueryParams
+-- encodePostContextQueryParams : Context -> List Builder.QueryParameter
+-- encodePostContextQueryParams context =
+--     case context of
+--         Reply postId ->
+--             encodePostIdQueryParameters postId
+--         TopLevel _ ->
+--             []
+-- encodeContextQueryParams : Context -> List Builder.QueryParameter
+-- encodeContextQueryParams context =
+--     context
+--         |> encodePostContextQueryParams
 
 
-postIdQueryParser : Query.Parser (Result String Context.PostId)
+postIdQueryParser : Query.Parser (Maybe PostId)
 postIdQueryParser =
     Query.map2
-        (Result.map2 Context.PostId)
-        (Query.int "block"
-            |> Query.map (Result.fromMaybe "Can't interpret 'block'")
-        )
+        (Maybe.map2 PostId)
+        (Query.int "block")
         (hexQueryParser "hash")
 
 
-encodePostIdQueryParameters : Context.PostId -> List Builder.QueryParameter
+encodePostIdQueryParameters : PostId -> List Builder.QueryParameter
 encodePostIdQueryParameters postIdInfo =
     [ Builder.string "block" (String.fromInt postIdInfo.block)
     , Builder.string "hash" (Eth.Utils.hexToString postIdInfo.messageHash)
     ]
 
 
-hexQueryParser : String -> Query.Parser (Result String Hex)
+hexQueryParser : String -> Query.Parser (Maybe Hex)
 hexQueryParser label =
     Query.string label
-        |> Query.map (Result.fromMaybe <| "Can't find '" ++ label ++ "'")
-        |> Query.map (Result.andThen Eth.Utils.toHex)
+        |> Query.map (Maybe.andThen (Eth.Utils.toHex >> Result.toMaybe))
 
 
 addressParser : Parser (Address -> a) a
@@ -150,4 +127,4 @@ addressParser =
 
 urlToRoute : Url -> Route
 urlToRoute url =
-    Maybe.withDefault (NotFound "url not found") (Parser.parse routeParser url)
+    Maybe.withDefault RouteInvalid (Parser.parse routeParser url)

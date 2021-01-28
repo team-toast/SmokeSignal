@@ -3,7 +3,6 @@ module Post exposing (decodePostData)
 {-| Helpers related to Post management.
 -}
 
-import Context exposing (Context)
 import Eth.Types exposing (Hex)
 import Eth.Utils
 import Json.Decode as Decode exposing (Decoder)
@@ -44,7 +43,7 @@ nullMetadata : Metadata
 nullMetadata =
     Metadata
         0
-        (Context.TopLevel defaultTopic)
+        (TopLevel defaultTopic)
         Nothing
 
 
@@ -105,13 +104,13 @@ versionedMetadataDecoder version =
                             Just replyTo ->
                                 Metadata
                                     version
-                                    (Context.Reply replyTo)
+                                    (Reply replyTo)
                                     Nothing
 
                             Nothing ->
                                 Metadata
                                     version
-                                    (Context.TopLevel <| defaultTopic)
+                                    (TopLevel <| defaultTopic)
                                     Nothing
                     )
 
@@ -159,15 +158,15 @@ currentMetadataVersion =
 contextDecoder : Decoder Context
 contextDecoder =
     Decode.oneOf
-        [ Decode.map Context.Reply <| Decode.field "re" postIdDecoder
-        , Decode.map Context.TopLevel <| Decode.field "topic" Decode.string
+        [ Decode.map Reply <| Decode.field "re" postIdDecoder
+        , Decode.map TopLevel <| Decode.field "topic" Decode.string
         ]
 
 
-postIdDecoder : Decoder Context.PostId
+postIdDecoder : Decoder PostId
 postIdDecoder =
     Decode.map2
-        Context.PostId
+        PostId
         (Decode.index 0 Decode.int)
         (Decode.index 1 hexDecoder)
 

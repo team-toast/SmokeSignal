@@ -1,6 +1,6 @@
 module Contracts.SmokeSignal exposing (..)
 
-import Context exposing (Context)
+ 
 import Contracts.Generated.SmokeSignal as G
 import Element
 import Eth
@@ -70,7 +70,7 @@ fromMessageBurn txHash block renderFunc messageEvent =
     in
     Published
         txHash
-        (Context.PostId
+        (PostId
             block
             messageEvent.hash
         )

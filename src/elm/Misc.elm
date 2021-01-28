@@ -1,7 +1,6 @@
 module Misc exposing (..)
 
 import Browser.Navigation
-import Context exposing (Context)
 import Dict
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
@@ -13,7 +12,6 @@ import Json.Encode as E
 import List.Extra
 import Maybe.Extra exposing (unwrap)
 import Ports
-import Routing exposing (Route)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
@@ -99,12 +97,12 @@ getTitle model =
         ViewCompose _ ->
             "Compose | SmokeSignal"
 
-        ViewContext (Context.Reply postId) ->
+        ViewPost postId ->
             getPublishedPostFromId model.publishedPosts postId
                 |> Maybe.andThen (.core >> .content >> .title)
                 |> unwrap defaultMain (\contextTitle -> contextTitle ++ " | SmokeSignal")
 
-        ViewContext (Context.TopLevel topic) ->
+        ViewTopic topic ->
             "#" ++ topic ++ " | SmokeSignal"
 
 
@@ -120,7 +118,7 @@ withBalance balance userInfo =
 
 getPublishedPostFromId :
     PublishedPostsDict
-    -> Context.PostId
+    -> PostId
     -> Maybe Published
 getPublishedPostFromId publishedPosts postId =
     publishedPosts
@@ -148,19 +146,6 @@ getPublishedPostFromTxHash publishedPosts txHash =
             )
         |> List.head
 
-
-contextToMaybeDescription :
-    PublishedPostsDict
-    -> Context
-    -> Maybe String
-contextToMaybeDescription posts context =
-    case context of
-        Context.Reply postId ->
-            getPublishedPostFromId posts postId
-                |> Maybe.andThen (.core >> .content >> .desc)
-
-        Context.TopLevel topic ->
-            Just <| "Discussions related to #" ++ topic ++ " on SmokeSignal"
 
 
 
@@ -190,7 +175,7 @@ defaultSeoDescription =
 
 
 updatePublishedPost :
-    Context.PostId
+    PostId
     -> (Published -> Published)
     -> PublishedPostsDict
     -> PublishedPostsDict
@@ -243,17 +228,17 @@ totalBurned post =
 contextTopLevel : Context -> Maybe String
 contextTopLevel context =
     case context of
-        Context.TopLevel topic ->
+        TopLevel topic ->
             Just topic
 
         _ ->
             Nothing
 
 
-contextReplyTo : Context -> Maybe Context.PostId
+contextReplyTo : Context -> Maybe PostId
 contextReplyTo context =
     case context of
-        Context.Reply id ->
+        Reply id ->
             Just id
 
         _ ->
@@ -283,16 +268,16 @@ encodeToString ( metadata, content ) =
 encodeContext : Context -> E.Value
 encodeContext context =
     case context of
-        Context.Reply postId ->
+        Reply postId ->
             E.object
                 [ ( "re", encodePostId postId ) ]
 
-        Context.TopLevel topic ->
+        TopLevel topic ->
             E.object
                 [ ( "topic", E.string topic ) ]
 
 
-encodePostId : Context.PostId -> E.Value
+encodePostId : PostId -> E.Value
 encodePostId postId =
     E.list identity
         [ E.int postId.block
@@ -344,14 +329,21 @@ formatPosix t =
 tryRouteToView : Route -> Result String View
 tryRouteToView route =
     case route of
-        Routing.Home ->
+        RouteHome ->
             Ok ViewHome
 
-        Routing.Compose context ->
-            Ok <| ViewCompose context
+        RouteViewPost postId ->
+            Ok <| ViewPost postId
 
-        Routing.ViewContext context ->
-            Ok <| ViewContext context
+        RouteViewTopic topic ->
+            Ok <| ViewTopic topic
 
-        Routing.NotFound err ->
-            Err err
+        RouteMalformedPostId ->
+            Err "Malformed post ID"
+
+        RouteMalformedTopic ->
+            Err "Malformed topic"
+
+        RouteInvalid ->
+            Err "Path not found"
+

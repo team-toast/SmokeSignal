@@ -5,7 +5,6 @@ import Browser.Navigation
 import Dict exposing (Dict)
 import Eth.Net
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
-import Context exposing (Context)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
@@ -15,7 +14,7 @@ import Time
 import TokenValue exposing (TokenValue)
 import Url exposing (Url)
 import UserNotice as UN exposing (UserNotice)
-import Routing exposing (Route)
+
 
 type alias Flags =
     { basePath : String
@@ -43,6 +42,7 @@ type alias Model =
     , publishedPosts : PublishedPostsDict
     , ethPrice : Maybe Float
     , replies : List ReplyIds
+
     -- , showHalfComposeUX : Bool
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
@@ -64,7 +64,7 @@ type alias Model =
 
 type Msg
     = LinkClicked Browser.UrlRequest
-    | UrlChanged Url
+    | RouteChanged Route
     | Tick Time.Posix
     | EveryFewSeconds
     | ChangeDemoPhaceSrc
@@ -75,14 +75,14 @@ type Msg
     | TxSentryMsg TxSentry.Msg
     | EventSentryMsg EventSentry.Msg
     | PostLogReceived Eth.Types.Log
-    | PostAccountingFetched Context.PostId (Result Http.Error Accounting)
+    | PostAccountingFetched PostId (Result Http.Error Accounting)
     | ShowExpandedTrackedTxs Bool
     | CheckTrackedTxsStatus
     | TrackedTxStatusResult (Result Http.Error TxReceipt)
     | TxSigned TxInfo (Result String TxHash)
     | ViewDraft (Maybe Draft)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
-    | RestoreDraft Draft
+    -- | RestoreDraft Draft
     | DismissNotice Int
     | ClickHappened
       --| PostUXMsg PostUXId PostUX.Msg
@@ -94,13 +94,13 @@ type Msg
     | CookieConsentGranted
     | StartInlineCompose Context
     | ExitCompose
-    | GotoRoute Route
+    | GotoView View
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId
     | AddUserNotice UN.UserNotice
     | SubmitPost Draft
-    | SubmitTip Context.PostId TokenValue
-    | SubmitBurn Context.PostId TokenValue
+    | SubmitTip PostId TokenValue
+    | SubmitBurn PostId TokenValue
     | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool
     | EthPriceFetched (Result Http.Error Float)
@@ -122,7 +122,7 @@ type alias PostState =
 
 
 type PostUXId
-    = PublishedPostId Context.PostId
+    = PublishedPostId PostId
     | DraftPreview
 
 
@@ -135,7 +135,8 @@ type ShowInputState
 type View
     = ViewHome
     | ViewCompose Context
-    | ViewContext Context
+    | ViewPost PostId
+    | ViewTopic String
 
 
 type alias UserInfo =
@@ -156,13 +157,13 @@ type alias PublishedPostsDict =
 
 
 type alias ReplyIds =
-    { from : Context.PostId
-    , to : Context.PostId
+    { from : PostId
+    , to : PostId
     }
 
 
 type PhaceIconId
-    = PhaceForPublishedPost Context.PostId
+    = PhaceForPublishedPost PostId
     | PhaceForDraft
     | PhaceForPreview
     | UserPhace
@@ -179,14 +180,14 @@ type alias TrackedTx =
 type TxInfo
     = PostTx Draft
     | UnlockTx
-    | TipTx Context.PostId TokenValue
-    | BurnTx Context.PostId TokenValue
+    | TipTx PostId TokenValue
+    | BurnTx PostId TokenValue
 
 
 type TxStatus
     = Mining
     | Failed FailReason
-    | Mined (Maybe Context.PostId)
+    | Mined (Maybe PostId)
 
 
 type FailReason
@@ -215,7 +216,7 @@ type alias Accounting =
 
 type alias Published =
     { txHash : TxHash
-    , id : Context.PostId
+    , id : PostId
     , core : Core
     , maybeAccounting : Maybe Accounting
     }
@@ -263,3 +264,23 @@ type alias CheckedMaybeValidInputs =
     { content : Maybe Content
     , burnAndDonateAmount : Maybe (Result String ( TokenValue, TokenValue ))
     }
+
+
+type Context
+    = Reply PostId
+    | TopLevel String
+
+
+type alias PostId =
+    { block : Int
+    , messageHash : Hex
+    }
+
+
+type Route
+    = RouteHome
+    | RouteViewPost PostId
+    | RouteMalformedPostId
+    | RouteViewTopic String
+    | RouteMalformedTopic
+    | RouteInvalid

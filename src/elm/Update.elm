@@ -2,7 +2,6 @@ module Update exposing (fetchEthPriceCmd, update)
 
 import Browser
 import Browser.Navigation
-import Context exposing (Context)
 import Contracts.SmokeSignal as SSContract
 import DemoPhaceSrcMutator
 import Dict exposing (Dict)
@@ -16,10 +15,10 @@ import Json.Decode
 import Json.Encode
 import List.Extra
 import Maybe.Extra
-import Misc exposing (contextToMaybeDescription, defaultSeoDescription, txInfoToNameStr, updatePublishedPost, tryRouteToView)
+import Misc exposing (..)
 import Ports exposing (connectToWeb3, consentToCookies, gTagOut, setDescription)
 import Random
-import Routing exposing (Route)
+import Routing exposing (viewToUrlString)
 import Task
 import Time
 import TokenValue
@@ -45,10 +44,10 @@ update msg prevModel =
             in
             ( prevModel, cmd )
 
-        UrlChanged url ->
+        RouteChanged route ->
             let
                 ( newView, userNotices ) =
-                    case url |> Routing.urlToRoute |> tryRouteToView of
+                    case route |> tryRouteToView of
                         Ok v ->
                             ( v, [] )
 
@@ -222,7 +221,7 @@ update msg prevModel =
                       --| status =
                       --Mined <|
                       --Just <|
-                      --Context.PostId
+                      --PostId
                       --log.blockNumber
                       --ssPost.hash
                       --}
@@ -322,25 +321,23 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-        RestoreDraft draft ->
-            { prevModel
-                | draftModal = Nothing
-
-                --, composeUXModel =
-                --prevModel.composeUXModel
-                --|> (\composeUXModel ->
-                --{ composeUXModel
-                --| content = draft.core.content
-                --, daiInput =
-                --draft.core.authorBurn
-                --|> TokenValue.toFloatString Nothing
-                --}
-                --)
-                -- TODO
-                --|> identity
-            }
-                |> (gotoRoute <| Routing.Compose draft.core.metadata.context)
-
+        -- RestoreDraft draft ->
+        --     { prevModel
+        --         | draftModal = Nothing
+        --         --, composeUXModel =
+        --         --prevModel.composeUXModel
+        --         --|> (\composeUXModel ->
+        --         --{ composeUXModel
+        --         --| content = draft.core.content
+        --         --, daiInput =
+        --         --draft.core.authorBurn
+        --         --|> TokenValue.toFloatString Nothing
+        --         --}
+        --         --)
+        --         -- TODO
+        --         --|> identity
+        --     }
+        --         |> (GotoView <| ViewCompose draft.core.metadata.context)
         DismissNotice id ->
             ( { prevModel
                 | userNotices =
@@ -392,7 +389,7 @@ update msg prevModel =
                             --{ interimModel
                             --| composeUXModel = composeUXModel
                             --}
-                            --|> gotoRoute route
+                            --|> GotoView route
                             ( interimModel, Cmd.none )
 
                         Nothing ->
@@ -410,16 +407,18 @@ update msg prevModel =
                     , Cmd.none
                     )
 
-        GotoRoute route ->
-            prevModel
-                |> gotoRoute route
+        GotoView view ->
+            { prevModel
+                | view = view
+            }
+                |> updateSeoDescriptionIfNeededCmd
                 |> Tuple.mapSecond
                     (\cmd ->
                         Cmd.batch
                             [ cmd
                             , Browser.Navigation.pushUrl
                                 prevModel.navKey
-                                (Routing.routeToString prevModel.basePath route)
+                                (Routing.viewToUrlString prevModel.basePath view)
                             ]
                     )
 
@@ -470,18 +469,22 @@ update msg prevModel =
         --             )
         --         Mobile ->
         --             prevModel
-        --                 |> (gotoRoute <|
+        --                 |> (GotoView <|
         --                         Routing.Compose composeContext
         --                    )
         ExitCompose ->
-            case prevModel.view of
-                ViewCompose context ->
-                    prevModel
-                        |> gotoRoute (Routing.ViewContext <| context)
+            ( { prevModel
+                | composeModal = False
+              }
+            , Cmd.none
+            )
 
-                _ ->
-                    ( prevModel, Cmd.none )
-
+        -- case prevModel.view of
+        --     ViewCompose context ->
+        --         prevModel
+        --             |> gotoView contextToView
+        --     _ ->
+        --         ( prevModel, Cmd.none )
         -- ( { prevModel
         --     | showHalfComposeUX = False
         --   }
@@ -641,61 +644,11 @@ encodeGTag gtag =
         ]
 
 
-gotoRoute : Route -> Model -> ( Model, Cmd Msg )
-gotoRoute route prevModel =
-    let
-        ( newView, userNotices ) =
-            case tryRouteToView route of
-                Ok v ->
-                    ( v, [] )
-
-                Err err ->
-                    ( ViewHome
-                    , [ UN.routeNotFound <| Just err ]
-                    )
-    in
+gotoView : View -> Model -> ( Model, Cmd Msg )
+gotoView view prevModel =
     { prevModel
-        | view = newView
+        | view = view
     }
-        |> addUserNotices userNotices
-        -- (case route of
-        --     Routing.Home ->
-        --         let
-        --             ( homeModel, homeCmd ) =
-        --                 Home.init
-        --         in
-        --         ( { prevModel
-        --             | route = route
-        --             , view = ModeHome homeModel
-        --             , showHalfComposeUX = False
-        --           }
-        --         , Cmd.map HomeMsg homeCmd
-        --         )
-        --     -- ( prevModel, Cmd.none )
-        --     Routing.Compose context ->
-        --         ( { prevModel
-        --             | route = route
-        --             --, view = ModeCompose
-        --             , showHalfComposeUX = False
-        --             --, composeUXModel =
-        --             --prevModel.composeUXModel
-        --             --|> ComposeUX.updateContext context
-        --             -- TODO
-        --           }
-        --         , Cmd.none
-        --         )
-        --     Routing.Topic _ ->
-        --         ( prevModel, Cmd.none )
-        --     Routing.Post _ ->
-        --         ( prevModel, Cmd.none )
-        --     Routing.NotFound err ->
-        --         ( { prevModel
-        --             | route = route
-        --           }
-        --             |> addUserNotice UN.routeNotFound
-        --         , Cmd.none
-        --         )
-        -- )
         |> updateSeoDescriptionIfNeededCmd
 
 
@@ -774,7 +727,7 @@ handleTxReceipt txReceipt =
             ( Mined <|
                 Maybe.map
                     (\ssEvent ->
-                        Context.PostId
+                        PostId
                             txReceipt.blockNumber
                             ssEvent.hash
                     )
@@ -851,7 +804,7 @@ updateTrackedTxStatusIfMining txHash newStatus =
 --         , Cmd.none
 --         )
 --     else
---         gotoRoute route model
+--         GotoView route model
 
 
 getBlockTimeIfNeededCmd :
@@ -874,8 +827,12 @@ updateSeoDescriptionIfNeededCmd model =
     let
         appropriateMaybeDescription =
             case model.view of
-                ViewContext context ->
-                    contextToMaybeDescription model.publishedPosts context
+                ViewPost postId ->
+                    getPublishedPostFromId model.publishedPosts postId
+                        |> Maybe.andThen (.core >> .content >> .desc)
+
+                ViewTopic topic ->
+                    Just <| "Discussions related to #" ++ topic ++ " on SmokeSignal"
 
                 _ ->
                     Nothing

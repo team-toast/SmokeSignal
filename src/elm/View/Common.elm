@@ -3,7 +3,6 @@ module View.Common exposing (appStatusMessage, daiAmountInput, daiSymbol, phaceE
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
 
-import Context exposing (Context)
 import Element exposing (Attribute, Element, column, fill, height, row, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -21,10 +20,10 @@ import View.Markdown
 viewContext : Context -> Element Msg
 viewContext context =
     case context of
-        Context.Reply postId ->
+        Reply postId ->
             viewReplyInfo postId
 
-        Context.TopLevel topic ->
+        TopLevel topic ->
             viewTopic topic
 
 
@@ -47,7 +46,7 @@ viewTopic topic =
             , Element.pointer
 
             --, Element.Events.onClick <|
-            --GotoRoute <|
+            --GotoView <|
             --RouteViewContext <|
             --Topic topic
             ]
@@ -55,7 +54,7 @@ viewTopic topic =
         ]
 
 
-viewReplyInfo : Context.PostId -> Element Msg
+viewReplyInfo : PostId -> Element Msg
 viewReplyInfo postId =
     Element.row
         [ Element.padding 10
@@ -74,7 +73,7 @@ viewReplyInfo postId =
                 , Element.pointer
 
                 --, Element.Events.onClick <|
-                --GotoRoute <|
+                --GotoView <|
                 --RouteViewContext <|
                 --Types.ViewPost postId
                 ]
@@ -223,7 +222,6 @@ renderContentOrError content =
                 Element.text <|
                     "Error parsing/rendering markdown: "
                         ++ errStr
-
 
 
 when : Bool -> Element msg -> Element msg

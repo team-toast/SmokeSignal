@@ -3,7 +3,6 @@ module App exposing (main)
 import Browser.Events
 import Browser.Hashbang
 import Browser.Navigation
-import Context exposing (Context)
 import Contracts.SmokeSignal
 import Dict
 import Eth.Defaults
@@ -34,8 +33,8 @@ main =
         , view = view
         , update = update
         , subscriptions = subscriptions
-        , onUrlRequest = Types.LinkClicked
-        , onUrlChange = Types.UrlChanged
+        , onUrlRequest = LinkClicked
+        , onUrlChange = Routing.urlToRoute >> RouteChanged
         }
 
 

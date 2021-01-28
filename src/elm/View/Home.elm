@@ -1,6 +1,5 @@
 module View.Home exposing (banner, viewOverview, viewTopic)
 
-import Context exposing (Context)
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, fillPortion, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
@@ -14,7 +13,6 @@ import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Helpers.Time as TimeHelpers
 import Maybe.Extra exposing (unwrap)
 import Misc exposing (getPublishedPostFromId)
-import Routing exposing (Route)
 import Theme exposing (almostWhite, orange, theme)
 import Time
 import TokenValue exposing (TokenValue)
@@ -421,7 +419,7 @@ viewBookmarkedTopics =
                     , paddingXY 15 5
                     , hover
                     ]
-                    { onPress = Just <| GotoRoute <| Routing.ViewContext <| Context.TopLevel topic
+                    { onPress = Just <| GotoView <| ViewTopic topic
                     , label =
                         [ topic
                             |> text
@@ -453,10 +451,10 @@ topicsColumn dProfile topicSearchStr allPosts =
                 findTopic : Published -> Maybe String
                 findTopic publishedPost =
                     case publishedPost.core.metadata.context of
-                        Context.TopLevel topic ->
+                        TopLevel topic ->
                             Just topic
 
-                        Context.Reply postId ->
+                        Reply postId ->
                             getPublishedPostFromId allPosts postId
                                 |> Maybe.andThen findTopic
             in
@@ -524,9 +522,9 @@ topicsColumn dProfile topicSearchStr allPosts =
                     el
                         (commonElStyles
                             ++ [ Element.Events.onClick <|
-                                    GotoRoute <|
-                                        Routing.Compose <|
-                                            Context.TopLevel topicSearchStr
+                                    GotoView <|
+                                        ViewCompose <|
+                                            TopLevel topicSearchStr
                                ]
                         )
                     <|
@@ -553,10 +551,9 @@ topicsColumn dProfile topicSearchStr allPosts =
             (\( topic, ( ( totalBurned, totalTipped ), count ) ) ->
                 Input.button commonElStyles
                     { onPress =
-                        Routing.ViewContext
-                            (Context.TopLevel topic)
-                            |> GotoRoute
-                            |> Just
+                        Just <|
+                            GotoView <|
+                                ViewTopic topic
                     , label =
                         [ [ daiSymbol theme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
                           , TokenValue.toConciseString totalBurned
@@ -754,7 +751,7 @@ postFeed :
     -> Bool
     -> Dict Int Time.Posix
     -> Time.Posix
-    -> Maybe Context.PostId
+    -> Maybe PostId
     -> Types.Wallet
     -> List Published
     -> PostState

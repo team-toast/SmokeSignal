@@ -1,7 +1,6 @@
 module View exposing (view)
 
 import Browser
-import Context exposing (Context)
 import Element exposing (Attribute, Element, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -15,7 +14,6 @@ import Helpers.Tuple as TupleHelpers
 import Html exposing (Html)
 import Maybe.Extra
 import Misc exposing (getPublishedPostFromId, getTitle)
-import Routing exposing (Route)
 import Theme exposing (theme)
 import Time
 import Tuple3
@@ -87,7 +85,7 @@ viewPage model =
 header : Wallet -> String -> Element Msg
 header wallet searchInput =
     [ Input.button []
-        { onPress = Just <| GotoRoute Routing.Home
+        { onPress = Just <| GotoView ViewHome
         , label =
             Element.image
                 [ height <| px 50
@@ -196,7 +194,7 @@ viewBody model =
         ViewCompose _ ->
             View.Compose.view model
 
-        ViewContext (Context.Reply postId) ->
+        ViewPost postId ->
             case getPublishedPostFromId model.publishedPosts postId of
                 Just post ->
                     View.PostPage.view model post
@@ -206,7 +204,7 @@ viewBody model =
                         theme.appStatusTextColor
                         "Loading post..."
 
-        ViewContext (Context.TopLevel topic) ->
+        ViewTopic topic ->
             View.Home.viewTopic model topic
 
 
@@ -426,9 +424,8 @@ viewTrackedTxRow trackedTx =
                             [ Font.color theme.linkTextColor
                             , Element.pointer
                             , Element.Events.onClick <|
-                                GotoRoute <|
-                                    Routing.ViewContext <|
-                                        Context.Reply postId
+                                GotoView <|
+                                    ViewPost postId
                             ]
                             (Element.text "Post")
                         ]
@@ -441,9 +438,8 @@ viewTrackedTxRow trackedTx =
                             [ Font.color theme.linkTextColor
                             , Element.pointer
                             , Element.Events.onClick <|
-                                GotoRoute <|
-                                    Routing.ViewContext <|
-                                        Context.Reply postId
+                                GotoView <|
+                                    ViewPost postId
                             ]
                             (Element.text "Post")
                         ]
@@ -483,9 +479,8 @@ viewTrackedTxRow trackedTx =
                                         [ Font.color theme.linkTextColor
                                         , Element.pointer
                                         , Element.Events.onClick <|
-                                            GotoRoute <|
-                                                Routing.ViewContext <|
-                                                    Context.Reply postId
+                                            GotoView <|
+                                                ViewPost postId
                                         ]
                                         (Element.text "Published")
 

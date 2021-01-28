@@ -1,6 +1,5 @@
 module View.Compose exposing (view)
 
-import Context exposing (Context)
 import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, height, padding, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -12,7 +11,6 @@ import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal, white)
 import Maybe.Extra exposing (unwrap)
 import Result.Extra
-import Routing exposing (Route)
 import Theme exposing (orange, theme)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
@@ -457,7 +455,7 @@ messageInputPlaceholder =
                 ]
 
 
-viewReplyInfo : Context.PostId -> Element Msg
+viewReplyInfo : PostId -> Element Msg
 viewReplyInfo postId =
     Element.column
         [ Element.padding 10
@@ -472,9 +470,8 @@ viewReplyInfo postId =
             [ Font.color theme.linkTextColor
             , Element.pointer
             , Element.Events.onClick <|
-                GotoRoute <|
-                    Routing.ViewContext <|
-                        Context.Reply postId
+                GotoView <|
+                    ViewPost postId
 
             --ViewPost postId
             ]
@@ -502,9 +499,7 @@ viewTopic topic =
             [ Font.color theme.linkTextColor
             , Element.pointer
             , Element.Events.onClick <|
-                GotoRoute <|
-                    Routing.ViewContext <|
-                        Context.TopLevel topic
+                GotoView <| ViewTopic topic
 
             --Topic topic
             ]
