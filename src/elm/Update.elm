@@ -16,7 +16,7 @@ import Json.Decode
 import Json.Encode
 import List.Extra
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (defaultSeoDescription, fetchEthPriceCmd, txInfoToNameStr, updatePublishedPost)
+import Misc exposing (defaultSeoDescription, fetchEthPriceCmd, txInfoToNameStr, updatePublishedPost, updateTrackedTxIf)
 import Ports exposing (connectToWeb3, consentToCookies, gTagOut, setDescription)
 import Post
 import Random
@@ -122,6 +122,9 @@ update msg prevModel =
 
                 Ok txReceipt ->
                     let
+                        _ =
+                            Debug.log "txReceipt" txReceipt
+
                         ( newStatus, maybePublishedPost, maybeUserNotice ) =
                             handleTxReceipt txReceipt
                     in
@@ -874,17 +877,16 @@ updateTrackedTxStatusIfMining :
     -> Model
     -> Model
 updateTrackedTxStatusIfMining txHash newStatus =
-    --updateTrackedTxIf
-    --(\trackedTx ->
-    --(trackedTx.txHash == txHash)
-    --&& (trackedTx.status == Mining)
-    --)
-    --(\trackedTx ->
-    --{ trackedTx
-    --| status = newStatus
-    --}
-    --)
-    identity
+    updateTrackedTxIf
+        (\trackedTx ->
+            (trackedTx.txHash == txHash)
+                && (trackedTx.status == Mining)
+        )
+        (\trackedTx ->
+            { trackedTx
+                | status = newStatus
+            }
+        )
 
 
 
