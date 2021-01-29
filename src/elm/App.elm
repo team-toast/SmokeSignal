@@ -84,7 +84,9 @@ init flags url key =
                 Nothing
                 Nothing
                 |> Eth.Sentry.Event.watch
-                    Types.PostLogReceived
+                    (Contracts.SmokeSignal.decodePost
+                        >> Types.PostLogReceived
+                    )
                     initEventSentry
 
         now =

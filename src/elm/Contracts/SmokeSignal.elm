@@ -1,8 +1,10 @@
-module Contracts.SmokeSignal exposing (burnEncodedPost, burnForPost, fromMessageBurn, getAccountingCmd, getEthPriceCmd, messageBurnDecoder, messageBurnEventFilter, tipForPost)
+module Contracts.SmokeSignal exposing (burnEncodedPost, burnForPost, decodePost, getAccountingCmd, getEthPriceCmd, messageBurnEventFilter, tipForPost)
 
 import Contracts.Generated.SmokeSignal as G
 import Eth
-import Eth.Types exposing (Address, BlockId, Call, Hex, LogFilter, TxHash)
+import Eth.Decode
+import Eth.Types exposing (Address, BlockId, Call, Hex, LogFilter)
+import Eth.Utils
 import Helpers.Eth as EthHelpers
 import Http
 import Json.Decode as Decode exposing (Decoder)
@@ -13,21 +15,27 @@ import TokenValue exposing (TokenValue)
 import Types exposing (..)
 
 
-type alias MessageBurn =
-    { hash : Hex
-    , from : Address
-    , burnAmount : TokenValue
-    , message : String
-    }
-
-
-convertBurnAmount : G.MessageBurn -> MessageBurn
-convertBurnAmount gen =
-    MessageBurn
-        gen.hash
-        gen.from
-        (TokenValue.tokenValue gen.burnAmount)
-        gen.message
+decodePost : Eth.Types.Log -> Eth.Types.Event (Result Decode.Error Published)
+decodePost log =
+    Eth.Decode.event
+        (G.messageBurnDecoder
+            |> Decode.map
+                (\messageBurn ->
+                    { txHash = log.transactionHash
+                    , key =
+                        ( String.fromInt log.blockNumber
+                        , Eth.Utils.hexToString messageBurn.hash
+                        )
+                    , id =
+                        { block = log.blockNumber
+                        , messageHash = messageBurn.hash
+                        }
+                    , core = parseCore messageBurn
+                    , maybeAccounting = Nothing
+                    }
+                )
+        )
+        log
 
 
 messageBurnEventFilter : Address -> BlockId -> BlockId -> Maybe Hex -> Maybe Address -> LogFilter
@@ -44,12 +52,6 @@ messageBurnEventFilter smokeSignalContractAddress from to maybeHash maybeAuthor 
            )
 
 
-messageBurnDecoder : Decoder MessageBurn
-messageBurnDecoder =
-    G.messageBurnDecoder
-        |> Decode.map convertBurnAmount
-
-
 burnEncodedPost : Address -> EncodedDraft -> Call Hex
 burnEncodedPost smokeSignalContractAddress encodedPost =
     G.burnMessage
@@ -57,18 +59,6 @@ burnEncodedPost smokeSignalContractAddress encodedPost =
         encodedPost.encodedContentAndMetadata
         (TokenValue.getEvmValue encodedPost.donateAmount)
         |> EthHelpers.updateCallValue (TokenValue.getEvmValue encodedPost.burnAmount)
-
-
-fromMessageBurn : TxHash -> Int -> MessageBurn -> Published
-fromMessageBurn txHash block messageEvent =
-    { txHash = txHash
-    , id =
-        { block = block
-        , messageHash = messageEvent.hash
-        }
-    , core = parseCore messageEvent
-    , maybeAccounting = Nothing
-    }
 
 
 toAccounting : G.StoredMessageData -> Accounting
@@ -135,20 +125,20 @@ burnForPost smokeSignalContractAddress messageHash amount donate =
         |> EthHelpers.updateCallValue (TokenValue.getEvmValue amount)
 
 
-parseCore : MessageBurn -> Core
-parseCore messageEvent =
+parseCore : G.MessageBurn -> Core
+parseCore messageBurn =
     let
         encoded =
-            String.dropLeft 12 messageEvent.message
+            String.dropLeft 12 messageBurn.message
     in
-    case String.left 12 messageEvent.message of
+    case String.left 12 messageBurn.message of
         "!smokesignal" ->
             encoded
-                |> Decode.decodeString (coreDecoder messageEvent)
+                |> Decode.decodeString (coreDecoder messageBurn)
                 |> Result.Extra.extract
                     (\decodeErr ->
-                        { author = messageEvent.from
-                        , authorBurn = messageEvent.burnAmount
+                        { author = messageBurn.from
+                        , authorBurn = TokenValue.tokenValue messageBurn.burnAmount
                         , content = Post.justBodyContent encoded
                         , metadata =
                             { nullMetadata
@@ -160,14 +150,14 @@ parseCore messageEvent =
                     )
 
         _ ->
-            { author = messageEvent.from
-            , authorBurn = messageEvent.burnAmount
+            { author = messageBurn.from
+            , authorBurn = TokenValue.tokenValue messageBurn.burnAmount
             , content = Post.justBodyContent encoded
             , metadata = nullMetadata
             }
 
 
-coreDecoder : MessageBurn -> Decoder Core
+coreDecoder : G.MessageBurn -> Decoder Core
 coreDecoder messageBurn =
     Post.metadataDecoder
         |> Decode.andThen
@@ -176,7 +166,7 @@ coreDecoder messageBurn =
                     |> Decode.map
                         (\content ->
                             { author = messageBurn.from
-                            , authorBurn = messageBurn.burnAmount
+                            , authorBurn = TokenValue.tokenValue messageBurn.burnAmount
                             , content = content
                             , metadata = metadata
                             }

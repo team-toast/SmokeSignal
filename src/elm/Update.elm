@@ -28,7 +28,6 @@ import TokenValue
 import Types exposing (..)
 import Url
 import UserNotice as UN exposing (UserNotice)
-import View.Common
 import Wallet
 
 
@@ -199,12 +198,8 @@ update msg prevModel =
             , cmd
             )
 
-        PostLogReceived log ->
-            let
-                decodedEventLog =
-                    Eth.Decode.event SSContract.messageBurnDecoder log
-            in
-            case decodedEventLog.returnData of
+        PostLogReceived res ->
+            case res.returnData of
                 Err err ->
                     ( prevModel |> addUserNotice (UN.eventDecodeError err)
                     , err
@@ -213,34 +208,13 @@ update msg prevModel =
                         |> Ports.log
                     )
 
-                Ok ssPost ->
-                    let
-                        ( interimModel, newPostCmd ) =
-                            prevModel
-                                |> addPost log.blockNumber
-                                    (SSContract.fromMessageBurn
-                                        log.transactionHash
-                                        log.blockNumber
-                                        ssPost
-                                    )
-                    in
-                    ( interimModel
-                      --|> updateTrackedTxByTxHash
-                      --log.transactionHash
-                      --(\trackedTx ->
-                      --{ trackedTx
-                      --| status =
-                      --Mined <|
-                      --Just <|
-                      --PostId
-                      --log.blockNumber
-                      --ssPost.hash
-                      --}
-                      --)
-                    , Cmd.batch
-                        [ newPostCmd
-                        , getBlockTimeIfNeededCmd prevModel.config.httpProviderUrl prevModel.blockTimes log.blockNumber
-                        ]
+                Ok post ->
+                    ( { prevModel
+                        | rootPosts =
+                            prevModel.rootPosts
+                                |> Dict.insert post.key post
+                      }
+                    , Cmd.none
                     )
 
         PostAccountingFetched postId fetchResult ->
@@ -836,12 +810,13 @@ handleTxReceipt txReceipt =
         Just True ->
             let
                 maybePostEvent =
-                    txReceipt.logs
-                        |> List.map (Eth.Decode.event SSContract.messageBurnDecoder)
-                        |> List.map .returnData
-                        |> List.map Result.toMaybe
-                        |> Maybe.Extra.values
-                        |> List.head
+                    --txReceipt.logs
+                    --|> List.map (Eth.Decode.event SSContract.messageBurnDecoder)
+                    --|> List.map .returnData
+                    --|> List.map Result.toMaybe
+                    --|> Maybe.Extra.values
+                    --|> List.head
+                    Nothing
             in
             ( Mined <|
                 Maybe.map
@@ -851,12 +826,13 @@ handleTxReceipt txReceipt =
                             ssEvent.hash
                     )
                     maybePostEvent
-            , Maybe.map
-                (SSContract.fromMessageBurn
-                    txReceipt.hash
-                    txReceipt.blockNumber
-                )
-                maybePostEvent
+            , Nothing
+              --, Maybe.map
+              --(SSContract.fromMessageBurn
+              --txReceipt.hash
+              --txReceipt.blockNumber
+              --)
+              --maybePostEvent
             , Nothing
             )
 

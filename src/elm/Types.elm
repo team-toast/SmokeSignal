@@ -10,6 +10,8 @@ import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
 import Helpers.Element as EH
 import Http
+import Json.Decode
+import Set exposing (Set)
 import Time
 import TokenValue exposing (TokenValue)
 import UserNotice as UN exposing (UserNotice)
@@ -54,6 +56,9 @@ type alias Model =
     , newUserModal : Bool
     , config : Config
     , compose : ComposeModel
+    , rootPosts : Dict PostKey Published
+    , replyPosts : Dict PostKey ReplyPost
+    , replyIds : Dict PostKey (Set PostKey)
     }
 
 
@@ -69,7 +74,7 @@ type Msg
     | WalletStatus (Result String WalletSentry)
     | TxSentryMsg TxSentry.Msg
     | EventSentryMsg EventSentry.Msg
-    | PostLogReceived Eth.Types.Log
+    | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error Published))
     | PostAccountingFetched PostId (Result Http.Error Accounting)
     | ShowExpandedTrackedTxs Bool
     | CheckTrackedTxsStatus
@@ -98,6 +103,37 @@ type Msg
     | ComposeBodyChange String
     | ComposeTitleChange String
     | ComposeDaiChange String
+
+
+type alias PostKey =
+    ( String, String )
+
+
+type alias RootPost =
+    { id : PostId
+    , key : PostKey
+    , txHash : TxHash
+    , topic : String
+    , core : CoreData
+    }
+
+
+type alias ReplyPost =
+    { id : PostId
+    , key : PostKey
+    , txHash : TxHash
+    , core : Core
+    }
+
+
+type alias CoreData =
+    { author : Address
+    , authorBurn : TokenValue
+    , content : Content
+    , accounting : Maybe Accounting
+    , metadataVersion : Int
+    , decodeError : Maybe String
+    }
 
 
 type alias ComposeModel =
@@ -218,6 +254,7 @@ type alias Accounting =
 type alias Published =
     { txHash : TxHash
     , id : PostId
+    , key : PostKey
     , core : Core
     , maybeAccounting : Maybe Accounting
     }
