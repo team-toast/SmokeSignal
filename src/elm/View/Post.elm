@@ -10,6 +10,7 @@ import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile, black, responsiveVal, white)
 import Helpers.Time as TimeHelpers
 import Misc
+import Set
 import Theme exposing (almostWhite, theme)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
@@ -28,14 +29,16 @@ view :
     -> Posix
     -> Wallet
     -> PostState
+    -> Set.Set Types.PostKey
     -> Published
     -> Element Msg
-view dProfile donateChecked showAddressOnPhace blockTimes now wallet state post =
+view dProfile donateChecked showAddressOnPhace blockTimes now wallet state replies post =
     Input.button
         [ Background.color black
         , Font.color white
         , whiteGlowAttributeSmall
         , padding 5
+        , width fill
         ]
         { onPress = Just <| GotoView <| ViewPost post.id
         , label =
@@ -75,7 +78,7 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet state post 
                         ]
                     |> Result.toMaybe
                     |> whenJust identity
-                , [ [ ( "365 Comments", View.Img.speechBubble )
+                , [ [ ( viewReplies replies, View.Img.speechBubble )
                     , ( "Bookmark", View.Img.bookmark )
                     , ( "Hide", View.Img.hide )
                     ]
@@ -113,6 +116,22 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet state post 
                     , spacing 5
                     ]
         }
+
+
+viewReplies : Set.Set a -> String
+viewReplies replies =
+    let
+        len =
+            Set.size replies
+
+        word =
+            if len == 1 then
+                "reply"
+
+            else
+                "replies"
+    in
+    String.fromInt len ++ " " ++ word
 
 
 view_ :

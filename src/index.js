@@ -96,7 +96,6 @@ function analyticsGtagPortStuff(app) {
 
 function seoPortStuff(app) {
   app.ports.setDescription.subscribe(function (newDescription) {
-    console.log("setting");
     document
       .querySelector('meta[name="description"]')
       .setAttribute("content", newDescription);
