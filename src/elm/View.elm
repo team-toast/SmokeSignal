@@ -62,7 +62,7 @@ render model =
 
 viewPage : Model -> Element Msg
 viewPage model =
-    [ header model.wallet model.searchInput
+    [ header model
     , viewBody model
         |> el [ height fill, cappedWidth maxContentColWidth, Element.centerX ]
         |> el
@@ -84,8 +84,8 @@ viewPage model =
             ]
 
 
-header : Wallet -> String -> Element Msg
-header wallet searchInput =
+header : Model -> Element Msg
+header model =
     [ Input.button []
         { onPress = Just <| GotoView ViewHome
         , label =
@@ -131,9 +131,11 @@ header wallet searchInput =
       , "Login"
             |> text
             |> el []
-      , "Sign Up"
-            |> text
-            |> el []
+      , maybeTxTracker
+            model.dProfile
+            model.showExpandedTrackedTxs
+            model.trackedTxs
+            |> Maybe.withDefault Element.none
       ]
         |> row [ width fill, spaceEvenly ]
     ]
@@ -213,53 +215,37 @@ viewBody model =
 modals : Model -> List (Element Msg)
 modals model =
     Maybe.Extra.values
-        ([ Maybe.map
-            (Element.el
-                [ Element.alignTop
-                , Element.alignRight
-                , Element.padding (responsiveVal model.dProfile 20 10)
-                , EH.visibility False
-                ]
-                << Element.el
-                    [ EH.visibility True ]
-            )
-            (maybeTxTracker
-                model.dProfile
-                model.showExpandedTrackedTxs
-                model.trackedTxs
-            )
-
-         --  ,
-         --  let
-         --     showDraftInProgressButton =
-         --         case model.route of
-         --             ViewCompose ->
-         --                 False
-         --             _ ->
-         --                 --(model.showHalfComposeUX == False)
-         --                 --&& (not <| Post.contentIsEmpty model.composeUXModel.content)
-         --                 -- TODO
-         --                 False
-         --    in
-         --    if showDraftInProgressButton then
-         --Just <|
-         --theme.secondaryActionButton
-         --model.dProfile
-         --[ Element.alignBottom
-         --, Element.alignLeft
-         --, Element.paddingXY 20 10
-         --, Border.glow
-         --(Element.rgba 0 0 0 0.5)
-         --5
-         --]
-         --[ "Draft in Progress" ]
-         --(EH.Action <| StartInlineCompose model.composeUXModel.context)
-         -- TODO
-         --     Nothing
-         --    else
-         --     Nothing
-         --, maybeViewDraftModal model
-         , if not model.cookieConsentGranted then
+        ([ --  ,
+           --  let
+           --     showDraftInProgressButton =
+           --         case model.route of
+           --             ViewCompose ->
+           --                 False
+           --             _ ->
+           --                 --(model.showHalfComposeUX == False)
+           --                 --&& (not <| Post.contentIsEmpty model.composeUXModel.content)
+           --                 -- TODO
+           --                 False
+           --    in
+           --    if showDraftInProgressButton then
+           --Just <|
+           --theme.secondaryActionButton
+           --model.dProfile
+           --[ Element.alignBottom
+           --, Element.alignLeft
+           --, Element.paddingXY 20 10
+           --, Border.glow
+           --(Element.rgba 0 0 0 0.5)
+           --5
+           --]
+           --[ "Draft in Progress" ]
+           --(EH.Action <| StartInlineCompose model.composeUXModel.context)
+           -- TODO
+           --     Nothing
+           --    else
+           --     Nothing
+           --, maybeViewDraftModal model
+           if not model.cookieConsentGranted then
             --Just <| viewCookieConsentModal model.dProfile
             Nothing
 
