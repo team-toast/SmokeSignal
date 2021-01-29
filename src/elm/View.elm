@@ -110,34 +110,36 @@ header model =
                 |> Just
         , text = ""
         }
-    , [ Element.image
-            [ height <| px 50
-            ]
-            { src = "/img/share.svg"
-            , description = ""
-            }
-      , Element.image
-            [ height <| px 50
-            ]
-            { src = "/img/info.svg"
-            , description = ""
-            }
-      , Element.image
+    , [ --     Element.image
+        --         [ height <| px 50
+        --         ]
+        --         { src = "/img/share.svg"
+        --         , description = ""
+        --         }
+        --   , Element.image
+        --         [ height <| px 50
+        --         ]
+        --         { src = "/img/info.svg"
+        --         , description = ""
+        --         }
+        [ maybeTxTracker
+            model.dProfile
+            model.showExpandedTrackedTxs
+            model.trackedTxs
+            |> Maybe.withDefault Element.none
+        , Element.image
             [ height <| px 50
             ]
             { src = "/img/foundry-icon.svg"
             , description = ""
             }
-      , "Login"
-            |> text
-            |> el []
-      , maybeTxTracker
-            model.dProfile
-            model.showExpandedTrackedTxs
-            model.trackedTxs
-            |> Maybe.withDefault Element.none
+        ]
+            |> row
+                [ Element.alignRight
+                , spacing 40
+                ]
       ]
-        |> row [ width fill, spaceEvenly ]
+        |> row [ width fill ]
     ]
         |> row
             [ Font.color Theme.orange
@@ -369,7 +371,9 @@ trackedTxsColumn :
     -> Element Msg
 trackedTxsColumn trackedTxs =
     Element.column
-        [ Background.color <| Theme.lightBlue
+        [ Background.color <| Element.rgb 0 0 0
+        , Border.width 1
+        , Border.color <| Element.rgb 1 1 1
         , Border.rounded 3
         , Border.glow
             (Element.rgba 0 0 0 0.2)
@@ -390,10 +394,13 @@ viewTrackedTxRow :
     -> Element Msg
 viewTrackedTxRow trackedTx =
     let
+        linkTextColor =
+            Element.rgb 0.5 0.5 1
+
         etherscanLink label =
             Element.newTabLink
                 [ Font.italic
-                , Font.color theme.linkTextColor
+                , Font.color linkTextColor
                 ]
                 { url = EthHelpers.etherscanTxUrl trackedTx.txHash
                 , label = Element.text label
@@ -409,7 +416,7 @@ viewTrackedTxRow trackedTx =
                         []
                         [ Element.text "Tip "
                         , Element.el
-                            [ Font.color theme.linkTextColor
+                            [ Font.color linkTextColor
                             , Element.pointer
                             , Element.Events.onClick <|
                                 GotoView <|
@@ -423,7 +430,7 @@ viewTrackedTxRow trackedTx =
                         []
                         [ Element.text "Burn for "
                         , Element.el
-                            [ Font.color theme.linkTextColor
+                            [ Font.color linkTextColor
                             , Element.pointer
                             , Element.Events.onClick <|
                                 GotoView <|
@@ -441,7 +448,7 @@ viewTrackedTxRow trackedTx =
                         ]
                         [ Element.text "Post"
                         , Element.el
-                            [ Font.color theme.linkTextColor
+                            [ Font.color linkTextColor
                             , Element.pointer
                             , Element.Events.onClick <| ViewDraft <| Just draft
                             ]
