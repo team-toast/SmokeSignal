@@ -7,6 +7,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile, black, white)
+import Set
 import Theme exposing (orange, theme)
 import Time
 import Types exposing (..)
@@ -53,6 +54,7 @@ view model topic =
                     --(Wallet.unlockStatus wallet)
                     --(Maybe.withDefault None inputState)
                     state
+                    Set.empty
                 )
             |> column
                 [ width fill
