@@ -13,6 +13,7 @@ import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Helpers.Time as TimeHelpers
 import Maybe.Extra exposing (unwrap)
 import Misc exposing (getPublishedPostFromId)
+import Set
 import Theme exposing (almostWhite, orange, theme)
 import Time
 import TokenValue exposing (TokenValue)
@@ -213,7 +214,31 @@ viewOverview model =
                 [ width fill
                 , whiteGlowAttributeSmall
                 ]
-      , postFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet posts state
+      , posts
+            |> List.sortBy (feedSortByFunc blockTimes now)
+            |> List.reverse
+            |> List.map
+                (\post ->
+                    View.Post.view
+                        dProfile
+                        donateChecked
+                        (maybeShowAddressForPostId == Just post.id)
+                        blockTimes
+                        now
+                        wallet
+                        state
+                        (model.replyIds
+                            |> Dict.get post.key
+                            |> Maybe.withDefault Set.empty
+                        )
+                        post
+                )
+            |> column
+                [ width fill
+                , height fill
+                , spacing 5
+                , paddingXY 0 5
+                ]
       ]
         |> column
             [ width fill
@@ -738,40 +763,6 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
         |> row
             [ width fill
             , spacing 10
-            ]
-
-
-postFeed :
-    DisplayProfile
-    -> Bool
-    -> Dict Int Time.Posix
-    -> Time.Posix
-    -> Maybe PostId
-    -> Types.Wallet
-    -> List Published
-    -> PostState
-    -> Element Msg
-postFeed dProfile donateChecked blockTimes now maybeShowAddressForId wallet listOfPosts state =
-    listOfPosts
-        |> List.sortBy (feedSortByFunc blockTimes now)
-        |> List.reverse
-        |> List.map
-            (\post ->
-                View.Post.view
-                    dProfile
-                    donateChecked
-                    (maybeShowAddressForId == Just post.id)
-                    blockTimes
-                    now
-                    wallet
-                    state
-                    post
-            )
-        |> column
-            [ width fill
-            , height fill
-            , spacing 5
-            , paddingXY 0 5
             ]
 
 
