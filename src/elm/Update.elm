@@ -122,9 +122,6 @@ update msg prevModel =
 
                 Ok txReceipt ->
                     let
-                        _ =
-                            Debug.log "txReceipt" txReceipt
-
                         ( newStatus, maybePublishedPost, maybeUserNotice ) =
                             handleTxReceipt txReceipt
                     in
