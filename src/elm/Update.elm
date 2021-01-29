@@ -204,7 +204,7 @@ update msg prevModel =
         PostLogReceived res ->
             case res.returnData of
                 Err err ->
-                    ( prevModel |> addUserNotice (UN.eventDecodeError err)
+                    ( prevModel
                     , err
                         |> Json.Decode.errorToString
                         |> (++) "PostLogReceived:\n"

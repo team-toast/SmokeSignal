@@ -19,20 +19,24 @@ decodePost : Eth.Types.Log -> Eth.Types.Event (Result Decode.Error Published)
 decodePost log =
     Eth.Decode.event
         (G.messageBurnDecoder
-            |> Decode.map
+            |> Decode.andThen
                 (\messageBurn ->
-                    { txHash = log.transactionHash
-                    , key =
-                        ( String.fromInt log.blockNumber
-                        , Eth.Utils.hexToString messageBurn.hash
-                        )
-                    , id =
-                        { block = log.blockNumber
-                        , messageHash = messageBurn.hash
-                        }
-                    , core = parseCore messageBurn
-                    , maybeAccounting = Nothing
-                    }
+                    parseCore messageBurn
+                        |> Decode.map
+                            (\core ->
+                                { txHash = log.transactionHash
+                                , key =
+                                    ( String.fromInt log.blockNumber
+                                    , Eth.Utils.hexToString messageBurn.hash
+                                    )
+                                , id =
+                                    { block = log.blockNumber
+                                    , messageHash = messageBurn.hash
+                                    }
+                                , core = core
+                                , maybeAccounting = Nothing
+                                }
+                            )
                 )
         )
         log
@@ -125,7 +129,7 @@ burnForPost smokeSignalContractAddress messageHash amount donate =
         |> EthHelpers.updateCallValue (TokenValue.getEvmValue amount)
 
 
-parseCore : G.MessageBurn -> Core
+parseCore : G.MessageBurn -> Decoder Core
 parseCore messageBurn =
     let
         encoded =
@@ -135,26 +139,10 @@ parseCore messageBurn =
         "!smokesignal" ->
             encoded
                 |> Decode.decodeString (coreDecoder messageBurn)
-                |> Result.Extra.extract
-                    (\decodeErr ->
-                        { author = messageBurn.from
-                        , authorBurn = TokenValue.tokenValue messageBurn.burnAmount
-                        , content = Post.justBodyContent encoded
-                        , metadata =
-                            { nullMetadata
-                                | maybeDecodeError =
-                                    Decode.errorToString decodeErr
-                                        |> Just
-                            }
-                        }
-                    )
+                |> Result.Extra.unpack (Decode.errorToString >> Decode.fail) Decode.succeed
 
         _ ->
-            { author = messageBurn.from
-            , authorBurn = TokenValue.tokenValue messageBurn.burnAmount
-            , content = Post.justBodyContent encoded
-            , metadata = nullMetadata
-            }
+            Decode.fail "Missing '!smokesignal'"
 
 
 coreDecoder : G.MessageBurn -> Decoder Core
