@@ -1,12 +1,14 @@
 module View exposing (view)
 
 import Browser
+import Dict
 import Element exposing (Attribute, Element, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events
 import Element.Font as Font
 import Element.Input as Input
+import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal, white)
 import Helpers.Eth as EthHelpers
 import Helpers.Time as TimeHelpers
@@ -195,7 +197,7 @@ viewBody model =
             View.Compose.view model
 
         ViewPost postId ->
-            case getPublishedPostFromId model.publishedPosts postId of
+            case Dict.get ( String.fromInt postId.block, Eth.Utils.hexToString postId.messageHash ) model.rootPosts of
                 Just post ->
                     View.PostPage.view model post
 

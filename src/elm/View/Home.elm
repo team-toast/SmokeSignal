@@ -113,10 +113,8 @@ viewFrame model elem =
 viewOverview : Model -> Element Msg
 viewOverview model =
     let
-        xs =
-            Dict.values posts
-                |> List.concat
-                |> List.take 5
+        posts =
+            Dict.values model.rootPosts
 
         maybeShowAddressForPostId =
             case showAddressId of
@@ -146,9 +144,6 @@ viewOverview model =
 
         wallet =
             model.wallet
-
-        posts =
-            model.publishedPosts
 
         state =
             { showAddress = False
@@ -218,7 +213,7 @@ viewOverview model =
                 [ width fill
                 , whiteGlowAttributeSmall
                 ]
-      , postFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet xs state
+      , postFeed dProfile donateChecked blockTimes now maybeShowAddressForPostId wallet posts state
       ]
         |> column
             [ width fill
