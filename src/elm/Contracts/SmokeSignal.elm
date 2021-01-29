@@ -21,7 +21,7 @@ decodePost log =
         (G.messageBurnDecoder
             |> Decode.andThen
                 (\messageBurn ->
-                    parseCore messageBurn
+                    coreDecoder messageBurn
                         |> Decode.map
                             (\core ->
                                 { txHash = log.transactionHash
@@ -129,34 +129,27 @@ burnForPost smokeSignalContractAddress messageHash amount donate =
         |> EthHelpers.updateCallValue (TokenValue.getEvmValue amount)
 
 
-parseCore : G.MessageBurn -> Decoder Core
-parseCore messageBurn =
-    let
-        encoded =
-            String.dropLeft 12 messageBurn.message
-    in
-    case String.left 12 messageBurn.message of
-        "!smokesignal" ->
+coreDecoder : G.MessageBurn -> Decoder Core
+coreDecoder messageBurn =
+    case String.split "!smokesignal" messageBurn.message of
+        [ _, encoded ] ->
             encoded
-                |> Decode.decodeString (coreDecoder messageBurn)
+                |> Decode.decodeString
+                    (Post.metadataDecoder
+                        |> Decode.andThen
+                            (\metadata ->
+                                Post.messageDataDecoder metadata.metadataVersion
+                                    |> Decode.map
+                                        (\content ->
+                                            { author = messageBurn.from
+                                            , authorBurn = TokenValue.tokenValue messageBurn.burnAmount
+                                            , content = content
+                                            , metadata = metadata
+                                            }
+                                        )
+                            )
+                    )
                 |> Result.Extra.unpack (Decode.errorToString >> Decode.fail) Decode.succeed
 
         _ ->
             Decode.fail "Missing '!smokesignal'"
-
-
-coreDecoder : G.MessageBurn -> Decoder Core
-coreDecoder messageBurn =
-    Post.metadataDecoder
-        |> Decode.andThen
-            (\metadata ->
-                Post.messageDataDecoder metadata.metadataVersion
-                    |> Decode.map
-                        (\content ->
-                            { author = messageBurn.from
-                            , authorBurn = TokenValue.tokenValue messageBurn.burnAmount
-                            , content = content
-                            , metadata = metadata
-                            }
-                        )
-            )

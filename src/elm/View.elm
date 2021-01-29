@@ -201,7 +201,7 @@ viewBody model =
             View.Compose.view model
 
         ViewPost postId ->
-            case Dict.get ( String.fromInt postId.block, Eth.Utils.hexToString postId.messageHash ) model.rootPosts of
+            case Dict.get (Misc.postIdToKey postId) model.rootPosts of
                 Just post ->
                     View.PostPage.view model post
 

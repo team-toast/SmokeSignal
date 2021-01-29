@@ -17,7 +17,7 @@ import Json.Encode
 import List.Extra
 import Maybe.Extra exposing (unwrap)
 import Misc exposing (defaultSeoDescription, fetchEthPriceCmd, txInfoToNameStr, updatePublishedPost, updateTrackedTxIf)
-import Ports exposing (connectToWeb3, consentToCookies, gTagOut, setDescription)
+import Ports exposing (connectToWeb3, consentToCookies, gTagOut)
 import Post
 import Random
 import Result.Extra exposing (unpack)
@@ -53,22 +53,56 @@ update msg prevModel =
             ( prevModel, cmd )
 
         RouteChanged route ->
-            let
-                ( newView, userNotices ) =
-                    case route |> Misc.tryRouteToView of
-                        Ok v ->
-                            ( v, [] )
+            case route of
+                RouteHome ->
+                    ( { prevModel
+                        | view = ViewHome
+                      }
+                    , Cmd.none
+                    )
 
-                        Err err ->
-                            ( ViewHome
-                            , [ UN.routeNotFound <| Just err ]
-                            )
-            in
-            ( { prevModel
-                | view = newView
-              }
-            , Cmd.none
-            )
+                RouteInvalid ->
+                    ( { prevModel
+                        | userNotices =
+                            [ UN.routeNotFound Nothing ]
+                      }
+                    , Cmd.none
+                    )
+
+                RouteViewPost id ->
+                    ( { prevModel
+                        | view = ViewPost id
+                      }
+                    , Dict.get (Misc.postIdToKey id) prevModel.rootPosts
+                        |> Maybe.andThen (.core >> .content >> .desc)
+                        |> unwrap Cmd.none Ports.setDescription
+                    )
+
+                RouteMalformedPostId ->
+                    ( { prevModel
+                        | userNotices =
+                            [ UN.routeNotFound Nothing ]
+                      }
+                    , Cmd.none
+                    )
+
+                RouteViewTopic topic ->
+                    ( { prevModel
+                        | view = ViewTopic topic
+                      }
+                    , "Discussions related to #"
+                        ++ topic
+                        ++ " on SmokeSignal"
+                        |> Ports.setDescription
+                    )
+
+                RouteMalformedTopic ->
+                    ( { prevModel
+                        | userNotices =
+                            [ UN.routeNotFound Nothing ]
+                      }
+                    , Cmd.none
+                    )
 
         Tick newTime ->
             ( { prevModel | now = newTime }, Cmd.none )
@@ -393,19 +427,11 @@ update msg prevModel =
                     )
 
         GotoView view ->
-            { prevModel
-                | view = view
-            }
-                |> updateSeoDescriptionIfNeededCmd
-                |> Tuple.mapSecond
-                    (\cmd ->
-                        Cmd.batch
-                            [ cmd
-                            , Browser.Navigation.pushUrl
-                                prevModel.navKey
-                                (Routing.viewToUrlString prevModel.basePath view)
-                            ]
-                    )
+            ( prevModel
+            , Browser.Navigation.pushUrl
+                prevModel.navKey
+                (Routing.viewToUrlString prevModel.basePath view)
+            )
 
         ConnectToWeb3 ->
             case prevModel.wallet of
@@ -737,14 +763,6 @@ encodeGTag gtag =
         ]
 
 
-gotoView : View -> Model -> ( Model, Cmd Msg )
-gotoView view prevModel =
-    { prevModel
-        | view = view
-    }
-        |> updateSeoDescriptionIfNeededCmd
-
-
 addPost :
     Int
     -> Published
@@ -799,7 +817,6 @@ addPost blockNumber publishedPost prevModel =
             publishedPost.id.messageHash
             (PostAccountingFetched publishedPost.id)
         )
-            |> withAnotherUpdate updateSeoDescriptionIfNeededCmd
 
 
 handleTxReceipt :
@@ -936,7 +953,7 @@ updateSeoDescriptionIfNeededCmd model =
         ( { model
             | maybeSeoDescription = appropriateMaybeDescription
           }
-        , setDescription (appropriateMaybeDescription |> Maybe.withDefault defaultSeoDescription)
+        , Ports.setDescription (appropriateMaybeDescription |> Maybe.withDefault defaultSeoDescription)
         )
 
     else

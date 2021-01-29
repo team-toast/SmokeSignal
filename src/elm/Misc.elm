@@ -1,4 +1,4 @@
-module Misc exposing (..)
+module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, fetchEthPriceCmd, formatPosix, getPublishedPostFromId, getPublishedPostFromTxHash, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, totalBurned, tryRouteToView, txInfoToNameStr, updatePublishedPost, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, withBalance)
 
 import Browser.Navigation
 import Contracts.SmokeSignal as SSContract
@@ -107,7 +107,7 @@ getTitle model =
             "Compose | SmokeSignal"
 
         ViewPost postId ->
-            getPublishedPostFromId model.publishedPosts postId
+            Dict.get (postIdToKey postId) model.rootPosts
                 |> Maybe.andThen (.core >> .content >> .title)
                 |> unwrap defaultMain (\contextTitle -> contextTitle ++ " | SmokeSignal")
 
@@ -380,3 +380,8 @@ tryRouteToView route =
 
         RouteInvalid ->
             Err "Path not found"
+
+
+postIdToKey : PostId -> PostKey
+postIdToKey id =
+    ( String.fromInt id.block, Eth.Utils.hexToString id.messageHash )
