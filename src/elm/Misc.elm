@@ -1,7 +1,6 @@
-module Misc exposing (..)
+module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getPublishedPostFromTxHash, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, totalBurned, tryRouteToView, txInfoToNameStr, updatePublishedPost, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, withBalance)
 
 import Browser.Navigation
-import Contracts.SmokeSignal as SSContract
 import Dict
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
@@ -107,7 +106,7 @@ getTitle model =
             "Compose | SmokeSignal"
 
         ViewPost postId ->
-            getPublishedPostFromId model.publishedPosts postId
+            Dict.get (postIdToKey postId) model.rootPosts
                 |> Maybe.andThen (.core >> .content >> .title)
                 |> unwrap defaultMain (\contextTitle -> contextTitle ++ " | SmokeSignal")
 
@@ -123,22 +122,6 @@ withBalance balance userInfo =
     { userInfo
         | balance = Just balance
     }
-
-
-getPublishedPostFromId :
-    PublishedPostsDict
-    -> PostId
-    -> Maybe Published
-getPublishedPostFromId publishedPosts postId =
-    publishedPosts
-        |> Dict.get postId.block
-        |> Maybe.map
-            (List.filter
-                (\post ->
-                    post.id.messageHash == postId.messageHash
-                )
-            )
-        |> Maybe.andThen List.head
 
 
 getPublishedPostFromTxHash :
@@ -353,13 +336,6 @@ parseHttpError err =
             e
 
 
-fetchEthPriceCmd : Types.Config -> Cmd Msg
-fetchEthPriceCmd config =
-    SSContract.getEthPriceCmd
-        config
-        EthPriceFetched
-
-
 tryRouteToView : Route -> Result String View
 tryRouteToView route =
     case route of
@@ -380,3 +356,8 @@ tryRouteToView route =
 
         RouteInvalid ->
             Err "Path not found"
+
+
+postIdToKey : PostId -> PostKey
+postIdToKey id =
+    ( String.fromInt id.block, Eth.Utils.hexToString id.messageHash )

@@ -48,7 +48,7 @@ renderer =
     , emphasis = \content -> Element.row [ Element.Font.italic ] content
     , codeSpan = code
     , link =
-        \{ title, destination } body ->
+        \{ destination } body ->
             Element.newTabLink
                 [ Element.htmlAttribute (Html.Attributes.style "display" "inline-flex") ]
                 { url = destination
@@ -62,7 +62,7 @@ renderer =
     , image =
         \image ->
             case image.title of
-                Just title ->
+                Just _ ->
                     Element.image [ Element.width Element.fill ] { src = image.src, description = image.alt }
 
                 Nothing ->
@@ -131,14 +131,14 @@ renderer =
     , tableBody = Element.column []
     , tableRow = Element.row []
     , tableHeaderCell =
-        \maybeAlignment children ->
+        \_ children ->
             Element.paragraph [] children
-    , tableCell = \maybeAlignment -> Element.paragraph []
+    , tableCell = \_ -> Element.paragraph []
     }
 
 
 heading : { level : Markdown.Block.HeadingLevel, rawText : String, children : List (Element msg) } -> Element msg
-heading { level, rawText, children } =
+heading { level, rawText } =
     Element.paragraph
         [ Element.Font.size
             (case level of

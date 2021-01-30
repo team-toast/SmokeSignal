@@ -111,7 +111,9 @@ init flags url key =
     , Cmd.batch
         [ initEventSentryCmd
         , secondEventSentryCmd
-        , Misc.fetchEthPriceCmd config
+        , Contracts.SmokeSignal.getEthPriceCmd
+            config
+            Types.EthPriceFetched
         ]
     )
 
@@ -130,6 +132,4 @@ subscriptions model =
             )
         , Eth.Sentry.Tx.listen model.txSentry
         , Browser.Events.onResize Types.Resize
-
-        --, Sub.map ComposeUXMsg ComposeUX.subscriptions
         ]

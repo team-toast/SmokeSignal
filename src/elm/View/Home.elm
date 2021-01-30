@@ -12,7 +12,7 @@ import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Helpers.Time as TimeHelpers
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (getPublishedPostFromId)
+import Misc
 import Set
 import Theme exposing (almostWhite, orange, theme)
 import Time
@@ -161,6 +161,7 @@ viewOverview model =
         , Font.size 30
         , whiteGlowAttributeSmall
         , width fill
+        , hover
         ]
         { onPress = Just <| ShowNewToSmokeSignalModal True
         , label =
@@ -215,7 +216,7 @@ viewOverview model =
                 , whiteGlowAttributeSmall
                 ]
       , posts
-            |> List.sortBy (feedSortByFunc blockTimes now)
+            --|> List.sortBy (feedSortByFunc blockTimes now)
             |> List.reverse
             |> List.map
                 (\post ->
@@ -475,8 +476,9 @@ topicsColumn dProfile topicSearchStr allPosts =
                             Just topic
 
                         Reply postId ->
-                            getPublishedPostFromId allPosts postId
-                                |> Maybe.andThen findTopic
+                            --getPublishedPostFromId allPosts postId
+                            --|> Maybe.andThen findTopic
+                            Nothing
             in
             allPosts
                 |> Dict.values

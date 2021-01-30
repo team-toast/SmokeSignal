@@ -2,20 +2,19 @@ module View exposing (view)
 
 import Browser
 import Dict
-import Element exposing (Attribute, Element, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
+import Element exposing (Attribute, Element, column, el, fill, height, padding, paddingXY, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events
 import Element.Font as Font
 import Element.Input as Input
-import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal, white)
 import Helpers.Eth as EthHelpers
 import Helpers.Time as TimeHelpers
 import Helpers.Tuple as TupleHelpers
 import Html exposing (Html)
 import Maybe.Extra
-import Misc exposing (getPublishedPostFromId, getTitle)
+import Misc exposing (getTitle)
 import Theme exposing (theme)
 import Time
 import Tuple3
@@ -201,7 +200,7 @@ viewBody model =
             View.Compose.view model
 
         ViewPost postId ->
-            case Dict.get ( String.fromInt postId.block, Eth.Utils.hexToString postId.messageHash ) model.rootPosts of
+            case Dict.get (Misc.postIdToKey postId) model.rootPosts of
                 Just post ->
                     View.PostPage.view model post
 

@@ -30,7 +30,7 @@ view :
     -> Wallet
     -> PostState
     -> Set.Set Types.PostKey
-    -> Published
+    -> RootPost
     -> Element Msg
 view dProfile donateChecked showAddressOnPhace blockTimes now wallet state replies post =
     Input.button
@@ -42,13 +42,10 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet state repli
         ]
         { onPress = Just <| GotoView <| ViewPost post.id
         , label =
-            [ [ viewAccounting dProfile post
-              , [ post.core.metadata.context
-                    |> Misc.contextTopLevel
-                    |> whenJust
-                        (text
-                            >> el [ Font.size 30 ]
-                        )
+            [ [ --viewAccounting dProfile post
+                [ post.topic
+                    |> text
+                    |> el [ Font.size 30 ]
                 , [ text <| "Block " ++ String.fromInt post.id.block
                   , viewTiming dProfile blockTimes now post.id
 
@@ -221,10 +218,10 @@ viewAccounting dProfile post =
     Element.row
         [ spacing 5
         ]
-        [ viewDaiBurned dProfile post
-        , Maybe.map (viewDaiTipped dProfile)
-            (post.maybeAccounting |> Maybe.map .totalTipped)
-            |> Maybe.withDefault Element.none
+        [-- viewDaiBurned dProfile post
+         --, Maybe.map (viewDaiTipped dProfile)
+         --(post.accounting |> Maybe.map .totalTipped)
+         --|> Maybe.withDefault Element.none
         ]
 
 
@@ -239,7 +236,7 @@ commonDaiElStyles =
 
 viewDaiBurned :
     DisplayProfile
-    -> Published
+    -> RootPost
     -> Element Msg
 viewDaiBurned dProfile post =
     Element.row
@@ -247,13 +244,14 @@ viewDaiBurned dProfile post =
             ++ [ Background.color theme.daiBurnedBackground ]
         )
         [ daiSymbol True [ Element.height <| Element.px 14 ]
-        , Element.el
-            [ Font.color EH.white ]
-          <|
-            Element.text <|
-                TokenValue.toConciseString <|
-                    Misc.totalBurned <|
-                        PublishedPost post
+
+        --, Element.el
+        --[ Font.color EH.white ]
+        --<|
+        --Element.text <|
+        --TokenValue.toConciseString <|
+        --Misc.totalBurned <|
+        --PublishedPost post
         ]
 
 

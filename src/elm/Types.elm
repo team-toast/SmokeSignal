@@ -56,7 +56,7 @@ type alias Model =
     , newUserModal : Bool
     , config : Config
     , compose : ComposeModel
-    , rootPosts : Dict PostKey Published
+    , rootPosts : Dict PostKey RootPost
     , replyPosts : Dict PostKey ReplyPost
     , replyIds : Dict PostKey (Set PostKey)
     }
@@ -74,7 +74,7 @@ type Msg
     | WalletStatus (Result String WalletSentry)
     | TxSentryMsg TxSentry.Msg
     | EventSentryMsg EventSentry.Msg
-    | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error Published))
+    | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error LogPost))
     | PostAccountingFetched PostId (Result Http.Error Accounting)
     | ShowExpandedTrackedTxs Bool
     | CheckTrackedTxsStatus
@@ -113,8 +113,8 @@ type alias RootPost =
     { id : PostId
     , key : PostKey
     , txHash : TxHash
-    , topic : String
     , core : CoreData
+    , topic : String
     }
 
 
@@ -122,7 +122,8 @@ type alias ReplyPost =
     { id : PostId
     , key : PostKey
     , txHash : TxHash
-    , core : Core
+    , core : CoreData
+    , parent : PostId
     }
 
 
@@ -132,7 +133,6 @@ type alias CoreData =
     , content : Content
     , accounting : Maybe Accounting
     , metadataVersion : Int
-    , decodeError : Maybe String
     }
 
 
@@ -187,6 +187,11 @@ type Wallet
     = NoneDetected
     | OnlyNetwork Eth.Net.NetworkId
     | Active UserInfo
+
+
+type LogPost
+    = LogRoot RootPost
+    | LogReply ReplyPost
 
 
 type alias PublishedPostsDict =
