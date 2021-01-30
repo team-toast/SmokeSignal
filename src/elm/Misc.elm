@@ -1,7 +1,6 @@
-module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, fetchEthPriceCmd, formatPosix, getPublishedPostFromId, getPublishedPostFromTxHash, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, totalBurned, tryRouteToView, txInfoToNameStr, updatePublishedPost, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, withBalance)
+module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getPublishedPostFromTxHash, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, totalBurned, tryRouteToView, txInfoToNameStr, updatePublishedPost, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, withBalance)
 
 import Browser.Navigation
-import Contracts.SmokeSignal as SSContract
 import Dict
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
@@ -123,22 +122,6 @@ withBalance balance userInfo =
     { userInfo
         | balance = Just balance
     }
-
-
-getPublishedPostFromId :
-    PublishedPostsDict
-    -> PostId
-    -> Maybe Published
-getPublishedPostFromId publishedPosts postId =
-    publishedPosts
-        |> Dict.get postId.block
-        |> Maybe.map
-            (List.filter
-                (\post ->
-                    post.id.messageHash == postId.messageHash
-                )
-            )
-        |> Maybe.andThen List.head
 
 
 getPublishedPostFromTxHash :
@@ -351,13 +334,6 @@ parseHttpError err =
 
         Http.BadBody e ->
             e
-
-
-fetchEthPriceCmd : Types.Config -> Cmd Msg
-fetchEthPriceCmd config =
-    SSContract.getEthPriceCmd
-        config
-        EthPriceFetched
 
 
 tryRouteToView : Route -> Result String View

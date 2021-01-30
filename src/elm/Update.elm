@@ -6,7 +6,6 @@ import Contracts.SmokeSignal as SSContract
 import DemoPhaceSrcMutator
 import Dict exposing (Dict)
 import Eth
-import Eth.Decode
 import Eth.Sentry.Event as EventSentry
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address, TxHash)
@@ -16,12 +15,13 @@ import Json.Decode
 import Json.Encode
 import List.Extra
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (defaultSeoDescription, fetchEthPriceCmd, txInfoToNameStr, updatePublishedPost, updateTrackedTxIf)
+import Misc exposing (defaultSeoDescription, txInfoToNameStr, updatePublishedPost, updateTrackedTxIf)
 import Ports exposing (connectToWeb3, consentToCookies, gTagOut)
 import Post
 import Random
 import Result.Extra exposing (unpack)
 import Routing exposing (viewToUrlString)
+import Set
 import Task
 import Time
 import TokenValue
@@ -118,7 +118,9 @@ update msg prevModel =
         EveryFewSeconds ->
             ( prevModel
             , Cmd.batch
-                [ fetchEthPriceCmd prevModel.config
+                [ SSContract.getEthPriceCmd
+                    prevModel.config
+                    EthPriceFetched
                 , Wallet.userInfo prevModel.wallet
                     |> Maybe.map
                         (\userInfo ->
@@ -238,18 +240,37 @@ update msg prevModel =
                     ( prevModel
                     , err
                         |> Json.Decode.errorToString
+                        |> String.left 200
                         |> (++) "PostLogReceived:\n"
                         |> Ports.log
                     )
 
-                Ok post ->
-                    ( { prevModel
-                        | rootPosts =
-                            prevModel.rootPosts
-                                |> Dict.insert post.key post
-                      }
-                    , Cmd.none
-                    )
+                Ok log ->
+                    case log of
+                        LogRoot post ->
+                            ( { prevModel
+                                | rootPosts =
+                                    prevModel.rootPosts
+                                        |> Dict.insert post.key post
+                              }
+                            , Cmd.none
+                            )
+
+                        LogReply post ->
+                            ( { prevModel
+                                | replyPosts =
+                                    prevModel.replyPosts
+                                        |> Dict.insert post.key post
+                                , replyIds =
+                                    prevModel.replyIds
+                                        |> Dict.update (Misc.postIdToKey post.parent)
+                                            (Maybe.withDefault Set.empty
+                                                >> Set.insert post.key
+                                                >> Just
+                                            )
+                              }
+                            , Cmd.none
+                            )
 
         PostAccountingFetched postId fetchResult ->
             case fetchResult of
@@ -519,16 +540,15 @@ update msg prevModel =
                                         { metadataVersion =
                                             Post.currentMetadataVersion
                                         , context =
-                                            prevModel.view
-                                                |> (\v ->
-                                                        case v of
-                                                            ViewTopic t ->
-                                                                t
+                                            case prevModel.view of
+                                                ViewTopic t ->
+                                                    Types.TopLevel t
 
-                                                            _ ->
-                                                                Post.defaultTopic
-                                                   )
-                                                |> Types.TopLevel
+                                                ViewPost id ->
+                                                    Types.Reply id
+
+                                                _ ->
+                                                    Types.TopLevel Post.defaultTopic
                                         , maybeDecodeError = Nothing
                                         }
 
@@ -938,8 +958,9 @@ updateSeoDescriptionIfNeededCmd model =
         appropriateMaybeDescription =
             case model.view of
                 ViewPost postId ->
-                    Misc.getPublishedPostFromId model.publishedPosts postId
-                        |> Maybe.andThen (.core >> .content >> .desc)
+                    --Misc.getPublishedPostFromId model.publishedPosts postId
+                    --|> Maybe.andThen (.core >> .content >> .desc)
+                    Nothing
 
                 ViewTopic topic ->
                     Just <| "Discussions related to #" ++ topic ++ " on SmokeSignal"
@@ -967,13 +988,6 @@ fetchEthBalanceCmd config address =
         address
         |> Task.map TokenValue.tokenValue
         |> Task.attempt (BalanceFetched address)
-
-
-fetchEthPriceCmd : Types.Config -> Cmd Msg
-fetchEthPriceCmd config =
-    SSContract.getEthPriceCmd
-        config
-        EthPriceFetched
 
 
 getBlockTimeCmd : String -> Int -> Cmd Msg
@@ -1006,19 +1020,6 @@ addUserNotices notices model =
                 notices
                 |> List.Extra.uniqueBy .uniqueLabel
     }
-
-
-withAnotherUpdate : (Model -> ( Model, Cmd Msg )) -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-withAnotherUpdate updateFunc ( firstModel, firstCmd ) =
-    updateFunc firstModel
-        |> (\( finalModel, secondCmd ) ->
-                ( finalModel
-                , Cmd.batch
-                    [ firstCmd
-                    , secondCmd
-                    ]
-                )
-           )
 
 
 logHttpError : String -> Http.Error -> Cmd msg

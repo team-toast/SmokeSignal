@@ -1,17 +1,15 @@
 module View.Topic exposing (view)
 
-import Dict exposing (Dict)
-import Element exposing (Element, centerX, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
+import Dict
+import Element exposing (Element, centerX, column, el, fill, height, padding, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Element as EH exposing (DisplayProfile, black, white)
+import Helpers.Element exposing (black, white)
 import Set
-import Theme exposing (orange, theme)
-import Time
+import Theme exposing (orange)
 import Types exposing (..)
-import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
+import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
 import View.Img
 import View.Post
 
@@ -20,10 +18,13 @@ view : Model -> String -> Element Msg
 view model topic =
     let
         posts =
-            model.publishedPosts
+            model.rootPosts
                 |> Dict.values
-                |> List.concat
-                |> List.filter (isTopicMatch topic)
+                |> List.filter
+                    (.topic
+                        >> String.toLower
+                        >> (==) (String.toLower topic)
+                    )
 
         state =
             { showAddress = False
@@ -102,13 +103,3 @@ topicHeader topic =
             [ width fill
             , whiteGlowAttributeSmall
             ]
-
-
-isTopicMatch : String -> Published -> Bool
-isTopicMatch topicToFind post =
-    case post.core.metadata.context of
-        TopLevel postTopic ->
-            postTopic == topicToFind
-
-        Reply _ ->
-            False

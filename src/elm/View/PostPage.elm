@@ -1,10 +1,13 @@
 module View.PostPage exposing (view)
 
-import Element exposing (Element, column, fill, height, padding, row, spacing, text, width)
+import Dict
+import Element exposing (Element, column, el, fill, height, padding, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (DisplayProfile(..), black, white)
+import Maybe.Extra exposing (unwrap)
+import Set
 import Theme
 import Types exposing (..)
 import View.Attrs exposing (hover, roundBorder, sansSerifFont, whiteGlowAttributeSmall)
@@ -13,7 +16,7 @@ import View.Img
 import View.Markdown
 
 
-view : Model -> Published -> Element Msg
+view : Model -> RootPost -> Element Msg
 view model post =
     [ [ [ text (post.core.content.title |> Maybe.withDefault ". . .") ]
             |> Element.paragraph
@@ -46,6 +49,48 @@ view model post =
             ]
         |> Result.toMaybe
         |> View.Common.whenJust identity
+    , model.replyIds
+        |> Dict.get post.key
+        |> unwrap [] Set.toList
+        |> List.filterMap
+            (\id ->
+                Dict.get id model.replyPosts
+            )
+        |> List.indexedMap
+            (\n p ->
+                [ n
+                    + 1
+                    |> String.fromInt
+                    |> (++) "#"
+                    |> text
+                    |> el
+                        [ Font.bold
+                        , Font.size 30
+                        ]
+                , p.core.content.body
+                    |> View.Markdown.renderString []
+                    |> Result.toMaybe
+                    |> View.Common.whenJust identity
+                ]
+                    |> column
+                        [ padding 10
+                        , spacing 10
+                        , whiteGlowAttributeSmall
+                        , Background.color black
+                        , Font.color white
+                        , width fill
+                        ]
+            )
+        |> column
+            [ width fill
+            , spacing 10
+            , Element.paddingEach
+                { left = 50
+                , right = 0
+                , top = 0
+                , bottom = 0
+                }
+            ]
     ]
         |> column
             [ height fill
@@ -53,4 +98,23 @@ view model post =
             , width fill
             , padding 20
             , sansSerifFont
+            , Input.button
+                [ Background.color Theme.orange
+                , padding 20
+                , roundBorder
+                , hover
+                ]
+                { onPress = Just ComposeToggle
+                , label =
+                    [ View.Img.replyArrow 20 black
+                    , text "Reply"
+                    ]
+                        |> row [ spacing 10 ]
+                }
+                |> el
+                    [ padding 20
+                    , Element.alignRight
+                    , Element.alignBottom
+                    ]
+                |> Element.inFront
             ]

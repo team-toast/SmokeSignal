@@ -1,4 +1,4 @@
-module Post exposing (currentMetadataVersion, defaultTopic, justBodyContent, messageDataDecoder, metadataDecoder, nullMetadata)
+module Post exposing (currentMetadataVersion, defaultTopic, justBodyContent, messageDataDecoder, metadataDecoder)
 
 {-| Helpers related to Post management.
 -}

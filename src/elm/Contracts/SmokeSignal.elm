@@ -4,18 +4,18 @@ import Contracts.Generated.SmokeSignal as G
 import Eth
 import Eth.Decode
 import Eth.Types exposing (Address, BlockId, Call, Hex, LogFilter)
-import Eth.Utils
 import Helpers.Eth as EthHelpers
 import Http
 import Json.Decode as Decode exposing (Decoder)
-import Post exposing (nullMetadata)
+import Misc
+import Post
 import Result.Extra
 import Task
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
 
 
-decodePost : Eth.Types.Log -> Eth.Types.Event (Result Decode.Error Published)
+decodePost : Eth.Types.Log -> Eth.Types.Event (Result Decode.Error LogPost)
 decodePost log =
     Eth.Decode.event
         (G.messageBurnDecoder
@@ -24,18 +24,41 @@ decodePost log =
                     coreDecoder messageBurn
                         |> Decode.map
                             (\core ->
-                                { txHash = log.transactionHash
-                                , key =
-                                    ( String.fromInt log.blockNumber
-                                    , Eth.Utils.hexToString messageBurn.hash
-                                    )
-                                , id =
-                                    { block = log.blockNumber
-                                    , messageHash = messageBurn.hash
-                                    }
-                                , core = core
-                                , maybeAccounting = Nothing
-                                }
+                                let
+                                    id =
+                                        { block = log.blockNumber
+                                        , messageHash = messageBurn.hash
+                                        }
+
+                                    key =
+                                        Misc.postIdToKey id
+
+                                    core_ =
+                                        { author = core.author
+                                        , authorBurn = core.authorBurn
+                                        , content = core.content
+                                        , accounting = Nothing
+                                        , metadataVersion = core.metadata.metadataVersion
+                                        }
+                                in
+                                case core.metadata.context of
+                                    TopLevel topic ->
+                                        { id = id
+                                        , key = key
+                                        , txHash = log.transactionHash
+                                        , core = core_
+                                        , topic = topic
+                                        }
+                                            |> Types.LogRoot
+
+                                    Reply parent ->
+                                        { id = id
+                                        , key = key
+                                        , txHash = log.transactionHash
+                                        , core = core_
+                                        , parent = parent
+                                        }
+                                            |> Types.LogReply
                             )
                 )
         )
@@ -149,7 +172,9 @@ coreDecoder messageBurn =
                                         )
                             )
                     )
-                |> Result.Extra.unpack (Decode.errorToString >> Decode.fail) Decode.succeed
+                |> Result.Extra.unpack
+                    (Decode.errorToString >> Decode.fail)
+                    Decode.succeed
 
         _ ->
             Decode.fail "Missing '!smokesignal'"
