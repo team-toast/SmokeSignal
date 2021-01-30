@@ -32,12 +32,12 @@ import Wallet
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg prevModel =
+update msg model =
     let
         ensureUserInfo fn =
-            prevModel.wallet
+            model.wallet
                 |> Wallet.userInfo
-                |> unwrap ( prevModel, Ports.log "Missing wallet" ) fn
+                |> unwrap ( model, Ports.log "Missing wallet" ) fn
     in
     case msg of
         LinkClicked urlRequest ->
@@ -45,24 +45,24 @@ update msg prevModel =
                 cmd =
                     case urlRequest of
                         Browser.Internal url ->
-                            Browser.Navigation.pushUrl prevModel.navKey (Url.toString url)
+                            Browser.Navigation.pushUrl model.navKey (Url.toString url)
 
                         Browser.External href ->
                             Browser.Navigation.load href
             in
-            ( prevModel, cmd )
+            ( model, cmd )
 
         RouteChanged route ->
             case route of
                 RouteHome ->
-                    ( { prevModel
+                    ( { model
                         | view = ViewHome
                       }
                     , Cmd.none
                     )
 
                 RouteInvalid ->
-                    ( { prevModel
+                    ( { model
                         | userNotices =
                             [ UN.routeNotFound Nothing ]
                       }
@@ -70,16 +70,16 @@ update msg prevModel =
                     )
 
                 RouteViewPost id ->
-                    ( { prevModel
+                    ( { model
                         | view = ViewPost id
                       }
-                    , Dict.get (Misc.postIdToKey id) prevModel.rootPosts
+                    , Dict.get (Misc.postIdToKey id) model.rootPosts
                         |> Maybe.andThen (.core >> .content >> .desc)
                         |> unwrap Cmd.none Ports.setDescription
                     )
 
                 RouteMalformedPostId ->
-                    ( { prevModel
+                    ( { model
                         | userNotices =
                             [ UN.routeNotFound Nothing ]
                       }
@@ -87,7 +87,7 @@ update msg prevModel =
                     )
 
                 RouteViewTopic topic ->
-                    ( { prevModel
+                    ( { model
                         | view = ViewTopic topic
                       }
                     , "Discussions related to #"
@@ -97,7 +97,7 @@ update msg prevModel =
                     )
 
                 RouteMalformedTopic ->
-                    ( { prevModel
+                    ( { model
                         | userNotices =
                             [ UN.routeNotFound Nothing ]
                       }
@@ -105,10 +105,10 @@ update msg prevModel =
                     )
 
         Tick newTime ->
-            ( { prevModel | now = newTime }, Cmd.none )
+            ( { model | now = newTime }, Cmd.none )
 
         Resize width _ ->
-            ( { prevModel
+            ( { model
                 | dProfile =
                     EH.screenWidthToDisplayProfile width
               }
@@ -116,36 +116,36 @@ update msg prevModel =
             )
 
         EveryFewSeconds ->
-            ( prevModel
+            ( model
             , Cmd.batch
                 [ SSContract.getEthPriceCmd
-                    prevModel.config
+                    model.config
                     EthPriceFetched
-                , Wallet.userInfo prevModel.wallet
+                , Wallet.userInfo model.wallet
                     |> Maybe.map
                         (\userInfo ->
-                            fetchEthBalanceCmd prevModel.config userInfo.address
+                            fetchEthBalanceCmd model.config userInfo.address
                         )
                     |> Maybe.withDefault Cmd.none
                 ]
             )
 
         ShowExpandedTrackedTxs flag ->
-            ( { prevModel
+            ( { model
                 | showExpandedTrackedTxs = flag
               }
             , Cmd.none
             )
 
         CheckTrackedTxsStatus ->
-            ( prevModel
-            , prevModel.trackedTxs
+            ( model
+            , model.trackedTxs
                 |> List.filter
                     (\trackedTx ->
                         trackedTx.status == Mining
                     )
                 |> List.map .txHash
-                |> List.map (Eth.getTxReceipt prevModel.config.httpProviderUrl)
+                |> List.map (Eth.getTxReceipt model.config.httpProviderUrl)
                 |> List.map (Task.attempt TrackedTxStatusResult)
                 |> Cmd.batch
             )
@@ -154,14 +154,14 @@ update msg prevModel =
             case txReceiptResult of
                 Err errStr ->
                     -- Hasn't yet been mined; make no change
-                    ( prevModel, Cmd.none )
+                    ( model, Cmd.none )
 
                 Ok txReceipt ->
                     let
                         ( newStatus, maybePublishedPost, maybeUserNotice ) =
                             handleTxReceipt txReceipt
                     in
-                    prevModel
+                    model
                         |> updateTrackedTxStatusIfMining
                             txReceipt.hash
                             newStatus
@@ -183,8 +183,8 @@ update msg prevModel =
                         ( newWallet, cmd ) =
                             case walletSentry.account of
                                 Just newAddress ->
-                                    if (prevModel.wallet |> Wallet.userInfo |> Maybe.map .address) == Just newAddress then
-                                        ( prevModel.wallet
+                                    if (model.wallet |> Wallet.userInfo |> Maybe.map .address) == Just newAddress then
+                                        ( model.wallet
                                         , Cmd.none
                                         )
 
@@ -194,7 +194,7 @@ update msg prevModel =
                                                 walletSentry.networkId
                                                 newAddress
                                                 Nothing
-                                        , fetchEthBalanceCmd prevModel.config newAddress
+                                        , fetchEthBalanceCmd model.config newAddress
                                         )
 
                                 Nothing ->
@@ -202,32 +202,32 @@ update msg prevModel =
                                     , Cmd.none
                                     )
                     in
-                    ( { prevModel
+                    ( { model
                         | wallet = newWallet
                       }
                     , cmd
                     )
 
                 Err errStr ->
-                    ( prevModel |> addUserNotice (UN.walletError errStr)
+                    ( model |> addUserNotice (UN.walletError errStr)
                     , Cmd.none
                     )
 
         TxSentryMsg subMsg ->
             let
                 ( newTxSentry, subCmd ) =
-                    TxSentry.update subMsg prevModel.txSentry
+                    TxSentry.update subMsg model.txSentry
             in
-            ( { prevModel | txSentry = newTxSentry }, subCmd )
+            ( { model | txSentry = newTxSentry }, subCmd )
 
         EventSentryMsg eventMsg ->
             let
                 ( newEventSentry, cmd ) =
                     EventSentry.update
                         eventMsg
-                        prevModel.eventSentry
+                        model.eventSentry
             in
-            ( { prevModel
+            ( { model
                 | eventSentry =
                     newEventSentry
               }
@@ -237,7 +237,7 @@ update msg prevModel =
         PostLogReceived res ->
             case res.returnData of
                 Err err ->
-                    ( prevModel
+                    ( model
                     , err
                         |> Json.Decode.errorToString
                         |> String.left 200
@@ -248,21 +248,24 @@ update msg prevModel =
                 Ok log ->
                     case log of
                         LogRoot post ->
-                            ( { prevModel
+                            ( { model
                                 | rootPosts =
-                                    prevModel.rootPosts
+                                    model.rootPosts
                                         |> Dict.insert post.key post
                               }
-                            , Cmd.none
+                            , SSContract.getAccountingCmd
+                                model.config
+                                post.id.messageHash
+                                (PostAccountingFetched post.id)
                             )
 
                         LogReply post ->
-                            ( { prevModel
+                            ( { model
                                 | replyPosts =
-                                    prevModel.replyPosts
+                                    model.replyPosts
                                         |> Dict.insert post.key post
                                 , replyIds =
-                                    prevModel.replyIds
+                                    model.replyIds
                                         |> Dict.update (Misc.postIdToKey post.parent)
                                             (Maybe.withDefault Set.empty
                                                 >> Set.insert post.key
@@ -275,9 +278,9 @@ update msg prevModel =
         PostAccountingFetched postId fetchResult ->
             case fetchResult of
                 Ok accounting ->
-                    ( { prevModel
+                    ( { model
                         | publishedPosts =
-                            prevModel.publishedPosts
+                            model.publishedPosts
                                 |> updatePublishedPost postId
                                     (\publishedPost ->
                                         { publishedPost
@@ -296,7 +299,7 @@ update msg prevModel =
                     )
 
                 Err err ->
-                    ( prevModel
+                    ( model
                         |> addUserNotice (UN.web3FetchError "DAI balance")
                     , logHttpError "PostAccountingFetched" err
                     )
@@ -304,27 +307,27 @@ update msg prevModel =
         BalanceFetched address fetchResult ->
             let
                 maybeCurrentAddress =
-                    Wallet.userInfo prevModel.wallet
+                    Wallet.userInfo model.wallet
                         |> Maybe.map .address
             in
             if maybeCurrentAddress /= Just address then
-                ( prevModel, Cmd.none )
+                ( model, Cmd.none )
 
             else
                 case fetchResult of
                     Ok balance ->
                         let
                             newWallet =
-                                prevModel.wallet |> Wallet.withFetchedBalance balance
+                                model.wallet |> Wallet.withFetchedBalance balance
                         in
-                        ( { prevModel
+                        ( { model
                             | wallet = newWallet
                           }
                         , Cmd.none
                         )
 
                     Err err ->
-                        ( prevModel
+                        ( model
                             |> addUserNotice (UN.web3FetchError "DAI balance")
                         , logHttpError "BalanceFetched" err
                         )
@@ -332,14 +335,14 @@ update msg prevModel =
         EthPriceFetched fetchResult ->
             case fetchResult of
                 Ok price ->
-                    ( { prevModel
+                    ( { model
                         | ethPrice = Just price
                       }
                     , Cmd.none
                     )
 
                 Err err ->
-                    ( prevModel
+                    ( model
                         |> addUserNotice (UN.web3FetchError "ETH price")
                     , logHttpError "EthPriceFetched" err
                     )
@@ -347,25 +350,25 @@ update msg prevModel =
         BlockTimeFetched blocknum timeResult ->
             case timeResult of
                 Err err ->
-                    ( prevModel
+                    ( model
                         |> addUserNotice (UN.web3FetchError "block time")
                     , logHttpError "BlockTimeFetched" err
                     )
 
                 Ok time ->
-                    ( { prevModel
+                    ( { model
                         | blockTimes =
-                            prevModel.blockTimes
+                            model.blockTimes
                                 |> Dict.insert blocknum time
                       }
                     , Cmd.none
                     )
 
         -- RestoreDraft draft ->
-        --     { prevModel
+        --     { model
         --         | draftModal = Nothing
         --         --, composeUXModel =
-        --         --prevModel.composeUXModel
+        --         --model.composeUXModel
         --         --|> (\composeUXModel ->
         --         --{ composeUXModel
         --         --| content = draft.core.content
@@ -379,9 +382,9 @@ update msg prevModel =
         --     }
         --         |> (GotoView <| ViewCompose draft.core.metadata.context)
         DismissNotice id ->
-            ( { prevModel
+            ( { model
                 | userNotices =
-                    prevModel.userNotices |> List.Extra.removeAt id
+                    model.userNotices |> List.Extra.removeAt id
               }
             , Cmd.none
             )
@@ -395,8 +398,8 @@ update msg prevModel =
                                 PostTx draft ->
                                     -- TODO
                                     --Just <|
-                                    --( Routing.ViewContext <| postContextToViewContext prevModel.composeUXModel.context
-                                    --, prevModel.composeUXModel |> ComposeUX.resetModel
+                                    --( Routing.ViewContext <| postContextToViewContext model.composeUXModel.context
+                                    --, model.composeUXModel |> ComposeUX.resetModel
                                     --)
                                     Nothing
 
@@ -412,11 +415,11 @@ update msg prevModel =
                                     Nothing
 
                                 _ ->
-                                    --prevModel.postUX
+                                    --model.postUX
                                     Nothing
 
                         interimModel =
-                            { prevModel
+                            { model
                                 | showExpandedTrackedTxs = True
 
                                 --, postUX = newPostUX
@@ -438,7 +441,7 @@ update msg prevModel =
                             )
 
                 Err errStr ->
-                    ( prevModel
+                    ( model
                         |> addUserNotice
                             (UN.web3SigError
                                 (txInfoToNameStr txInfo)
@@ -448,28 +451,28 @@ update msg prevModel =
                     )
 
         GotoView view ->
-            ( prevModel
+            ( model
             , Browser.Navigation.pushUrl
-                prevModel.navKey
-                (Routing.viewToUrlString prevModel.basePath view)
+                model.navKey
+                (Routing.viewToUrlString model.basePath view)
             )
 
         ConnectToWeb3 ->
-            case prevModel.wallet of
+            case model.wallet of
                 Types.NoneDetected ->
-                    ( prevModel |> addUserNotice UN.cantConnectNoWeb3
+                    ( model |> addUserNotice UN.cantConnectNoWeb3
                     , Cmd.none
                     )
 
                 _ ->
-                    ( prevModel
+                    ( model
                     , connectToWeb3 ()
                     )
 
         ShowOrHideAddress phaceId ->
-            ( { prevModel
+            ( { model
                 | showAddressId =
-                    if prevModel.showAddressId == Just phaceId then
+                    if model.showAddressId == Just phaceId then
                         Nothing
 
                     else
@@ -479,50 +482,50 @@ update msg prevModel =
             )
 
         StartInlineCompose composeContext ->
-            ( prevModel, Cmd.none )
+            ( model, Cmd.none )
 
-        --     case prevModel.dProfile of
+        --     case model.dProfile of
         --         Desktop ->
-        --             ( { prevModel
+        --             ( { model
         --                 | showHalfComposeUX = True
         --                 --, composeUXModel =
-        --                 --prevModel.composeUXModel
+        --                 --model.composeUXModel
         --                 -- TODO
         --                 --|> ComposeUX.updateContext composeContext
         --               }
         --             , Cmd.none
         --             )
         --         Mobile ->
-        --             prevModel
+        --             model
         --                 |> (GotoView <|
         --                         Routing.Compose composeContext
         --                    )
-        -- case prevModel.view of
+        -- case model.view of
         --     ViewCompose context ->
-        --         prevModel
+        --         model
         --             |> gotoView contextToView
         --     _ ->
-        --         ( prevModel, Cmd.none )
-        -- ( { prevModel
+        --         ( model, Cmd.none )
+        -- ( { model
         --     | showHalfComposeUX = False
         --   }
         -- , Cmd.none
         -- )
         AddUserNotice userNotice ->
-            ( prevModel |> addUserNotice userNotice
+            ( model |> addUserNotice userNotice
             , Cmd.none
             )
 
         SubmitDraft ->
             ensureUserInfo
                 (\userInfo ->
-                    TokenValue.fromString prevModel.compose.dai
+                    TokenValue.fromString model.compose.dai
                         |> Result.fromMaybe "Invalid DAI"
                         |> Result.andThen
                             (\burnAmount ->
                                 let
                                     donateAmount =
-                                        if prevModel.compose.donate then
+                                        if model.compose.donate then
                                             TokenValue.div burnAmount 100
 
                                         else
@@ -540,7 +543,7 @@ update msg prevModel =
                                         { metadataVersion =
                                             Post.currentMetadataVersion
                                         , context =
-                                            case prevModel.view of
+                                            case model.view of
                                                 ViewTopic t ->
                                                     Types.TopLevel t
 
@@ -554,13 +557,13 @@ update msg prevModel =
 
                                     content =
                                         { title =
-                                            if String.isEmpty prevModel.compose.title then
+                                            if String.isEmpty model.compose.title then
                                                 Nothing
 
                                             else
-                                                Just prevModel.compose.title
+                                                Just model.compose.title
                                         , desc = Nothing
-                                        , body = prevModel.compose.body
+                                        , body = model.compose.body
                                         }
                                 in
                                 if lowBalance then
@@ -579,7 +582,7 @@ update msg prevModel =
                             )
                         |> unpack
                             (\err ->
-                                ( { prevModel
+                                ( { model
                                     | userNotices = [ UN.unexpectedError err ]
                                   }
                                 , Cmd.none
@@ -590,7 +593,7 @@ update msg prevModel =
                                     txParams =
                                         postDraft
                                             |> Misc.encodeDraft
-                                            |> SSContract.burnEncodedPost prevModel.config.smokeSignalContractAddress
+                                            |> SSContract.burnEncodedPost model.config.smokeSignalContractAddress
                                             |> Eth.toSend
 
                                     listeners =
@@ -600,9 +603,9 @@ update msg prevModel =
                                         }
 
                                     ( txSentry, cmd ) =
-                                        TxSentry.customSend prevModel.txSentry listeners txParams
+                                        TxSentry.customSend model.txSentry listeners txParams
                                 in
-                                ( { prevModel
+                                ( { model
                                     | txSentry = txSentry
                                   }
                                 , cmd
@@ -615,7 +618,7 @@ update msg prevModel =
                 txParams =
                     postDraft
                         |> Misc.encodeDraft
-                        |> SSContract.burnEncodedPost prevModel.config.smokeSignalContractAddress
+                        |> SSContract.burnEncodedPost model.config.smokeSignalContractAddress
                         |> Eth.toSend
 
                 listeners =
@@ -625,9 +628,9 @@ update msg prevModel =
                     }
 
                 ( txSentry, cmd ) =
-                    TxSentry.customSend prevModel.txSentry listeners txParams
+                    TxSentry.customSend model.txSentry listeners txParams
             in
-            ( { prevModel
+            ( { model
                 | txSentry = txSentry
               }
             , cmd
@@ -636,7 +639,7 @@ update msg prevModel =
         SubmitBurn postId amount ->
             let
                 txParams =
-                    SSContract.burnForPost prevModel.config.smokeSignalContractAddress postId.messageHash amount prevModel.compose.donate
+                    SSContract.burnForPost model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
                         |> Eth.toSend
 
                 listeners =
@@ -646,9 +649,9 @@ update msg prevModel =
                     }
 
                 ( txSentry, cmd ) =
-                    TxSentry.customSend prevModel.txSentry listeners txParams
+                    TxSentry.customSend model.txSentry listeners txParams
             in
-            ( { prevModel
+            ( { model
                 | txSentry = txSentry
               }
             , cmd
@@ -657,7 +660,7 @@ update msg prevModel =
         SubmitTip postId amount ->
             let
                 txParams =
-                    SSContract.tipForPost prevModel.config.smokeSignalContractAddress postId.messageHash amount prevModel.compose.donate
+                    SSContract.tipForPost model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
                         |> Eth.toSend
 
                 listeners =
@@ -667,43 +670,43 @@ update msg prevModel =
                     }
 
                 ( txSentry, cmd ) =
-                    TxSentry.customSend prevModel.txSentry listeners txParams
+                    TxSentry.customSend model.txSentry listeners txParams
             in
-            ( { prevModel
+            ( { model
                 | txSentry = txSentry
               }
             , cmd
             )
 
         DonationCheckboxSet flag ->
-            ( { prevModel
+            ( { model
                 | compose =
-                    prevModel.compose
+                    model.compose
                         |> (\r -> { r | donate = flag })
               }
             , Cmd.none
             )
 
         ViewDraft maybeDraft ->
-            ( { prevModel
+            ( { model
                 | draftModal = maybeDraft
               }
             , Cmd.none
             )
 
         ChangeDemoPhaceSrc ->
-            ( prevModel
+            ( model
               --, Random.generate MutateDemoSrcWith mutateInfoGenerator
             , Random.generate NewDemoSrc DemoPhaceSrcMutator.addressSrcGenerator
             )
 
         NewDemoSrc src ->
-            ( { prevModel | demoPhaceSrc = src }
+            ( { model | demoPhaceSrc = src }
             , Cmd.none
             )
 
         ClickHappened ->
-            ( { prevModel
+            ( { model
                 | showAddressId = Nothing
                 , showExpandedTrackedTxs = False
                 , draftModal = Nothing
@@ -712,7 +715,7 @@ update msg prevModel =
             )
 
         CookieConsentGranted ->
-            ( { prevModel
+            ( { model
                 | cookieConsentGranted = True
               }
             , Cmd.batch
@@ -728,43 +731,43 @@ update msg prevModel =
             )
 
         ShowNewToSmokeSignalModal flag ->
-            ( { prevModel
+            ( { model
                 | newUserModal = flag
               }
             , Ports.setVisited ()
             )
 
         ComposeToggle ->
-            ( { prevModel
+            ( { model
                 | compose =
-                    prevModel.compose
+                    model.compose
                         |> (\r -> { r | modal = not r.modal })
               }
             , Cmd.none
             )
 
         ComposeBodyChange str ->
-            ( { prevModel
+            ( { model
                 | compose =
-                    prevModel.compose
+                    model.compose
                         |> (\r -> { r | body = str })
               }
             , Cmd.none
             )
 
         ComposeTitleChange str ->
-            ( { prevModel
+            ( { model
                 | compose =
-                    prevModel.compose
+                    model.compose
                         |> (\r -> { r | title = str })
               }
             , Cmd.none
             )
 
         ComposeDaiChange str ->
-            ( { prevModel
+            ( { model
                 | compose =
-                    prevModel.compose
+                    model.compose
                         |> (\r -> { r | dai = str })
               }
             , Cmd.none
