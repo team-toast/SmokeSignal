@@ -200,14 +200,24 @@ viewBody model =
             View.Compose.view model
 
         ViewPost postId ->
-            case Dict.get (Misc.postIdToKey postId) model.rootPosts of
-                Just post ->
-                    View.PostPage.view model post
-
-                Nothing ->
-                    appStatusMessage
+            let
+                key =
+                    Misc.postIdToKey postId
+            in
+            model.rootPosts
+                |> Dict.get key
+                |> Maybe.Extra.unwrap
+                    (model.replyPosts
+                        |> Dict.get key
+                        |> Maybe.map .core
+                    )
+                    (.core >> Just)
+                |> Maybe.Extra.unwrap
+                    (appStatusMessage
                         theme.appStatusTextColor
                         "Loading post..."
+                    )
+                    (View.PostPage.view model)
 
         ViewTopic topic ->
             View.Home.viewTopic model topic

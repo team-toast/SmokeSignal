@@ -14,11 +14,12 @@ import View.Attrs exposing (hover, roundBorder, sansSerifFont, whiteGlowAttribut
 import View.Common
 import View.Img
 import View.Markdown
+import View.Post
 
 
-view : Model -> RootPost -> Element Msg
+view : Model -> CoreData -> Element Msg
 view model post =
-    [ [ [ text (post.core.content.title |> Maybe.withDefault ". . .") ]
+    [ [ [ text (post.content.title |> Maybe.withDefault ". . .") ]
             |> Element.paragraph
                 [ Font.size 50
                 , whiteGlowAttributeSmall
@@ -39,7 +40,7 @@ view model post =
             [ spacing 20
             , width fill
             ]
-    , post.core.content.body
+    , post.content.body
         |> View.Markdown.renderString
             [ padding 10
             , whiteGlowAttributeSmall
@@ -56,30 +57,23 @@ view model post =
             (\id ->
                 Dict.get id model.replyPosts
             )
-        |> List.indexedMap
-            (\n p ->
-                [ n
-                    + 1
-                    |> String.fromInt
-                    |> (++) "#"
-                    |> text
-                    |> el
-                        [ Font.bold
-                        , Font.size 30
-                        ]
-                , p.core.content.body
-                    |> View.Markdown.renderString []
-                    |> Result.toMaybe
-                    |> View.Common.whenJust identity
-                ]
-                    |> column
-                        [ padding 10
-                        , spacing 10
-                        , whiteGlowAttributeSmall
-                        , Background.color black
-                        , Font.color white
-                        , width fill
-                        ]
+        |> List.map
+            (\reply ->
+                View.Post.view
+                    model.dProfile
+                    (model.blockTimes
+                        |> Dict.get reply.core.id.block
+                    )
+                    model.now
+                    (model.replyIds
+                        |> Dict.get reply.core.key
+                        |> Maybe.withDefault Set.empty
+                    )
+                    (model.accounting
+                        |> Dict.get reply.core.key
+                    )
+                    ". . ."
+                    reply.core
             )
         |> column
             [ width fill

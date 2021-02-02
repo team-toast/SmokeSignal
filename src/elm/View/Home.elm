@@ -1,25 +1,23 @@
 module View.Home exposing (banner, viewOverview, viewTopic)
 
 import Dict exposing (Dict)
-import Dict.Extra
-import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, fillPortion, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
+import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
-import Element.Events
 import Element.Font as Font
 import Element.Input as Input
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Helpers.Time as TimeHelpers
-import Maybe.Extra exposing (unwrap)
+import Maybe.Extra
 import Misc
-import Set
-import Theme exposing (almostWhite, orange, theme)
+import Set exposing (Set)
+import Theme exposing (almostWhite, orange)
 import Time
-import TokenValue exposing (TokenValue)
+import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
-import View.Common exposing (daiSymbol, phaceElement)
+import View.Common exposing (phaceElement)
 import View.Img
 import View.Post
 import View.Topic
@@ -83,7 +81,7 @@ viewFrame model elem =
     [ banner model.dProfile
     , [ elem
       , [ walletUXPane model.dProfile model.showAddressId model.demoPhaceSrc model.wallet
-        , topicsUX model.dProfile model.searchInput model.publishedPosts
+        , viewTopics model.topics
         ]
             |> column
                 [ cappedWidth 400
@@ -128,9 +126,6 @@ viewOverview model =
         dProfile =
             model.dProfile
 
-        donateChecked =
-            model.compose.donate
-
         blockTimes =
             model.blockTimes
 
@@ -142,9 +137,6 @@ viewOverview model =
 
         demoPhaceSrc =
             model.demoPhaceSrc
-
-        wallet =
-            model.wallet
 
         state =
             { showAddress = False
@@ -222,17 +214,19 @@ viewOverview model =
                 (\post ->
                     View.Post.view
                         dProfile
-                        donateChecked
-                        (maybeShowAddressForPostId == Just post.id)
-                        blockTimes
+                        (model.blockTimes
+                            |> Dict.get post.core.id.block
+                        )
                         now
-                        wallet
-                        state
                         (model.replyIds
-                            |> Dict.get post.key
+                            |> Dict.get post.core.key
                             |> Maybe.withDefault Set.empty
                         )
-                        post
+                        (model.accounting
+                            |> Dict.get post.core.key
+                        )
+                        post.topic
+                        post.core
                 )
             |> column
                 [ width fill
@@ -249,7 +243,7 @@ viewOverview model =
     ]
         |> column
             [ spacing 10
-            , width <| fillPortion 2
+            , width fill
             , height fill
             ]
         |> viewFrame model
@@ -285,8 +279,8 @@ orangeBannerEl dProfile attributes fontSize paddingVal bannerText =
         Element.text bannerText
 
 
-topicsUX : DisplayProfile -> String -> PublishedPostsDict -> Element Msg
-topicsUX dProfile topicsSearchInput posts =
+topicsUX : DisplayProfile -> String -> Element Msg
+topicsUX dProfile topicsSearchInput =
     [ Input.button
         [ padding 5
         , slightRound
@@ -463,180 +457,48 @@ viewBookmarkedTopics =
             ]
 
 
-topicsColumn : EH.DisplayProfile -> String -> PublishedPostsDict -> Element Msg
-topicsColumn dProfile topicSearchStr allPosts =
-    let
-        talliedTopics : List ( String, ( ( TokenValue, TokenValue ), Int ) )
-        talliedTopics =
-            let
-                findTopic : Published -> Maybe String
-                findTopic publishedPost =
-                    case publishedPost.core.metadata.context of
-                        TopLevel topic ->
-                            Just topic
-
-                        Reply postId ->
-                            --getPublishedPostFromId allPosts postId
-                            --|> Maybe.andThen findTopic
-                            Nothing
-            in
-            allPosts
-                |> Dict.values
-                |> List.concat
-                |> Dict.Extra.filterGroupBy findTopic
-                -- This ignores any replies that lead eventually to a postId not in 'posts'
-                |> Dict.map
-                    (\_ posts ->
-                        ( List.foldl
-                            (\thisPost ( accBurn, accTip ) ->
-                                case thisPost.maybeAccounting of
-                                    Just accounting ->
-                                        ( TokenValue.add
-                                            accounting.totalBurned
-                                            accBurn
-                                        , TokenValue.add
-                                            accounting.totalTipped
-                                            accTip
-                                        )
-
-                                    Nothing ->
-                                        ( TokenValue.add
-                                            thisPost.core.authorBurn
-                                            accBurn
-                                        , accTip
-                                        )
-                            )
-                            ( TokenValue.zero, TokenValue.zero )
-                            posts
-                        , List.length posts
-                        )
-                    )
-                |> Dict.toList
-                |> List.sortBy (Tuple.second >> Tuple.first >> Tuple.first >> TokenValue.toFloatWithWarning >> negate)
-
-        filteredTalliedTopics =
-            talliedTopics
-                |> List.filter
-                    (\( topic, _ ) ->
-                        String.contains topicSearchStr topic
-                    )
-
-        commonElStyles =
-            [ Element.spacing 5
-            , padding 5
-            , Border.width 1
-            , Border.color Theme.almostWhite
-            , width fill
-            , Element.pointer
-            , Element.height <| Element.px 40
-            , whiteGlowAttributeSmall
-            , Font.color EH.white
-            , Background.color EH.black
+viewTopics : Set String -> Element Msg
+viewTopics topics =
+    [ [ View.Img.bookmark 17 orange
+            |> el [ centerX, centerY ]
+            |> el [ height <| px 30, width <| px 30, Background.color black ]
+      , text "Topics"
+            |> el [ centerX ]
+      ]
+        |> row
+            [ width fill
+            , height <| px 30
+            , Background.color Theme.orange
+            , slightRound
             ]
-
-        exactTopicFound =
-            talliedTopics
-                |> List.any (Tuple.first >> (==) topicSearchStr)
-
-        maybeCreateTopicEl =
-            if topicSearchStr /= "" && not exactTopicFound then
-                Just <|
-                    el
-                        (commonElStyles
-                            ++ [ Element.Events.onClick <|
-                                    GotoView <|
-                                        ViewCompose <|
-                                            TopLevel topicSearchStr
-                               ]
-                        )
-                    <|
-                        row
-                            [ Element.centerY
-                            ]
-                            [ Element.text "Start new topic "
-                            , el
-                                [ Font.italic
-                                , Font.bold
-                                ]
-                              <|
-                                Element.text topicSearchStr
-                            ]
-
-            else
-                Nothing
-
-        _ =
-            List.length filteredTalliedTopics
-    in
-    filteredTalliedTopics
+    , topics
+        |> Set.toList
         |> List.map
-            (\( topic, ( ( totalBurned, totalTipped ), count ) ) ->
-                Input.button commonElStyles
-                    { onPress =
-                        Just <|
-                            GotoView <|
-                                ViewTopic topic
+            (\topic ->
+                Input.button
+                    [ width fill
+                    , whiteGlowAttributeSmall
+                    , Background.color black
+                    , Font.color white
+                    , paddingXY 15 5
+                    , hover
+                    ]
+                    { onPress = Just <| GotoView <| ViewTopic topic
                     , label =
-                        [ [ daiSymbol theme.daiBurnedTextIsWhite [ Element.height <| Element.px 18 ]
-                          , TokenValue.toConciseString totalBurned
-                                |> (if TokenValue.compare totalBurned (TokenValue.fromIntTokenValue 1) == LT then
-                                        String.left 5
-
-                                    else
-                                        identity
-                                   )
-                                |> text
-                          ]
-                            |> row
-                                [ Element.spacing 3
-                                , padding 5
-                                , Border.rounded 5
-                                , Background.color theme.daiBurnedBackground
-                                , Font.color
-                                    (if theme.daiBurnedTextIsWhite then
-                                        EH.white
-
-                                     else
-                                        EH.black
-                                    )
-                                ]
-                            |> el
-                                [ width <| px 100
-                                ]
-                        , [ text topic
-                                |> el
-                                    [ Font.color EH.white
-                                    ]
-                          , el
-                                [ Element.alignRight
-                                , Font.color EH.white
-                                ]
-                            <|
-                                Element.text <|
-                                    String.fromInt count
-                          ]
-                            |> row [ spaceEvenly, width fill ]
+                        [ topic
+                            |> text
+                            |> el [ width fill, Font.size 20 ]
                         ]
-                            |> row [ width fill ]
+                            |> row
+                                [ width fill
+                                ]
                     }
             )
-        |> (++)
-            (maybeCreateTopicEl
-                |> unwrap [] List.singleton
-            )
+        |> column [ width fill ]
+    ]
         |> column
-            [ Border.roundEach
-                { topRight = 0
-                , topLeft = 0
-                , bottomRight = 5
-                , bottomLeft = 5
-                }
-            , width (fill |> Element.maximum 530)
-            , padding 5
-            , Element.spacing 5
-            , Background.color EH.black
-            , Element.scrollbarY
-            , height fill
+            [ width fill
+            , whiteGlowAttributeSmall
             ]
 
 

@@ -23,16 +23,14 @@ import View.Markdown
 
 view :
     DisplayProfile
-    -> Bool
-    -> Bool
-    -> Dict Int Posix
+    -> Maybe Posix
     -> Posix
-    -> Wallet
-    -> PostState
     -> Set.Set Types.PostKey
-    -> RootPost
+    -> Maybe Accounting
+    -> String
+    -> CoreData
     -> Element Msg
-view dProfile donateChecked showAddressOnPhace blockTimes now wallet state replies post =
+view dProfile timestamp now replies accounting title post =
     Input.button
         [ Background.color black
         , Font.color white
@@ -42,12 +40,13 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet state repli
         ]
         { onPress = Just <| GotoView <| ViewPost post.id
         , label =
-            [ [ --viewAccounting dProfile post
-                [ post.topic
+            [ [ accounting
+                    |> whenJust (viewAccounting dProfile)
+              , [ title
                     |> text
                     |> el [ Font.size 30 ]
                 , [ text <| "Block " ++ String.fromInt post.id.block
-                  , viewTiming dProfile blockTimes now post.id
+                  , viewTiming dProfile timestamp now post.id
 
                   --, viewContext dProfile post.core.metadata.context
                   ]
@@ -63,12 +62,12 @@ view dProfile donateChecked showAddressOnPhace blockTimes now wallet state repli
             , [ phaceElement
                     ( 60, 60 )
                     False
-                    post.core.author
+                    post.author
                     False
                     ClickHappened
-              , [ post.core.content.title |> whenJust (text >> el [ Font.bold ])
-                , post.core.content.desc |> whenJust (text >> el [ Font.italic ])
-                , post.core.content.body
+              , [ post.content.title |> whenJust (text >> el [ Font.bold ])
+                , post.content.desc |> whenJust (text >> el [ Font.italic ])
+                , post.content.body
                     |> View.Markdown.renderString
                         [ height <| px 100
                         , Element.clip
@@ -131,47 +130,6 @@ viewReplies replies =
     String.fromInt len ++ " " ++ word
 
 
-view_ :
-    DisplayProfile
-    -> Bool
-    -> Bool
-    -> Dict Int Time.Posix
-    -> Time.Posix
-    -> Wallet
-    -> Types.PostState
-    -> Published
-    -> Element Msg
-view_ dProfile donateChecked showAddressOnPhace blockTimes now wallet state post =
-    [ mainPreviewPane
-        dProfile
-        showAddressOnPhace
-        donateChecked
-        blockTimes
-        now
-        --maybeUXModel
-        Nothing
-        post
-    , publishedPostActionForm
-        dProfile
-        donateChecked
-        post
-        --(maybeUXModel
-        --|> Maybe.andThen .showInput
-        --|> Maybe.withDefault None
-        --)
-        Types.None
-    ]
-        |> row
-            [ Element.width Element.fill
-            , Element.height <| Element.px <| 120
-            , Background.color theme.blockBackground
-            , Element.Border.width 1
-            , Element.Border.color theme.blockBorderColor
-            , Element.Border.rounded 5
-            , Element.padding 1
-            ]
-
-
 mainPreviewPane :
     DisplayProfile
     -> Bool
@@ -204,24 +162,19 @@ previewMetadata dProfile blockTimes now post =
         , Element.width <| Element.px 300
         , Element.spacing 40
         ]
-        [ viewAccounting dProfile post
-        , viewTiming dProfile blockTimes now post.id
-        , viewContext dProfile post.core.metadata.context
+        [ -- viewAccounting dProfile post
+          --viewTiming dProfile blockTimes now post.id
+          viewContext dProfile post.core.metadata.context
         ]
 
 
-viewAccounting :
-    DisplayProfile
-    -> Published
-    -> Element Msg
-viewAccounting dProfile post =
+viewAccounting : DisplayProfile -> Accounting -> Element Msg
+viewAccounting dProfile accounting =
     Element.row
         [ spacing 5
         ]
-        [-- viewDaiBurned dProfile post
-         --, Maybe.map (viewDaiTipped dProfile)
-         --(post.accounting |> Maybe.map .totalTipped)
-         --|> Maybe.withDefault Element.none
+        [ -- viewDaiBurned dProfile post
+          viewDaiTipped dProfile accounting.totalTipped
         ]
 
 
@@ -293,16 +246,12 @@ viewContext dProfile context =
 
 viewTiming :
     DisplayProfile
-    -> Dict Int Time.Posix
+    -> Maybe Time.Posix
     -> Time.Posix
     -> PostId
     -> Element Msg
-viewTiming dProfile blockTimes now id =
+viewTiming dProfile maybePostTime now id =
     let
-        maybePostTime =
-            blockTimes
-                |> Dict.get id.block
-
         maybeTimePassed =
             maybePostTime
                 |> Maybe.map
