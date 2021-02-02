@@ -39,9 +39,7 @@ type alias Model =
     , dProfile : EH.DisplayProfile
     , txSentry : TxSentry Msg
     , eventSentry : EventSentry Msg
-    , publishedPosts : PublishedPostsDict
     , ethPrice : Maybe Float
-    , replies : List ReplyIds
     , view : View
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
@@ -59,6 +57,7 @@ type alias Model =
     , rootPosts : Dict PostKey RootPost
     , replyPosts : Dict PostKey ReplyPost
     , replyIds : Dict PostKey (Set PostKey)
+    , accounting : Dict PostKey Accounting
     }
 
 
@@ -131,7 +130,6 @@ type alias CoreData =
     { author : Address
     , authorBurn : TokenValue
     , content : Content
-    , accounting : Maybe Accounting
     , metadataVersion : Int
     }
 
@@ -192,10 +190,6 @@ type Wallet
 type LogPost
     = LogRoot RootPost
     | LogReply ReplyPost
-
-
-type alias PublishedPostsDict =
-    Dict Int (List Published)
 
 
 type alias ReplyIds =

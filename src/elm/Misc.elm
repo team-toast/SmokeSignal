@@ -1,4 +1,4 @@
-module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getPublishedPostFromTxHash, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, totalBurned, tryRouteToView, txInfoToNameStr, updatePublishedPost, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, withBalance)
+module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, totalBurned, tryRouteToView, txInfoToNameStr, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, withBalance)
 
 import Browser.Navigation
 import Dict
@@ -34,8 +34,6 @@ emptyModel key =
             TxSentryMsg
             ""
     , eventSentry = Eth.Sentry.Event.init (always Types.ClickHappened) "" |> Tuple.first
-    , publishedPosts = Dict.empty
-    , replies = []
     , blockTimes = Dict.empty
     , showAddressId = Nothing
     , userNotices = []
@@ -61,6 +59,7 @@ emptyModel key =
     , rootPosts = Dict.empty
     , replyPosts = Dict.empty
     , replyIds = Dict.empty
+    , accounting = Dict.empty
     }
 
 
@@ -124,21 +123,6 @@ withBalance balance userInfo =
     }
 
 
-getPublishedPostFromTxHash :
-    PublishedPostsDict
-    -> TxHash
-    -> Maybe Published
-getPublishedPostFromTxHash publishedPosts txHash =
-    publishedPosts
-        |> Dict.values
-        |> List.concat
-        |> List.filter
-            (\publishedPost ->
-                publishedPost.txHash == txHash
-            )
-        |> List.head
-
-
 
 -- postContextToViewContext :
 --     Context
@@ -163,26 +147,6 @@ getPublishedPostFromTxHash publishedPosts txHash =
 defaultSeoDescription : String
 defaultSeoDescription =
     "SmokeSignal - Uncensorable, Global, Immutable chat. Burn crypto to cement your writing on the blockchain. Grant your ideas immortality."
-
-
-updatePublishedPost :
-    PostId
-    -> (Published -> Published)
-    -> PublishedPostsDict
-    -> PublishedPostsDict
-updatePublishedPost postId updateFunc posts =
-    posts
-        |> Dict.update postId.block
-            (Maybe.map <|
-                List.map
-                    (\thisPost ->
-                        if thisPost.id == postId then
-                            updateFunc thisPost
-
-                        else
-                            thisPost
-                    )
-            )
 
 
 txInfoToNameStr : TxInfo -> String

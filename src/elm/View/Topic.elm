@@ -45,17 +45,23 @@ view model topic =
       else
         posts
             |> List.map
-                (View.Post.view
-                    model.dProfile
-                    False
-                    model.compose.donate
-                    model.blockTimes
-                    model.now
-                    model.wallet
-                    --(Wallet.unlockStatus wallet)
-                    --(Maybe.withDefault None inputState)
-                    state
-                    Set.empty
+                (\post ->
+                    View.Post.view
+                        model.dProfile
+                        (model.blockTimes
+                            |> Dict.get post.id.block
+                        )
+                        model.now
+                        --(Wallet.unlockStatus wallet)
+                        --(Maybe.withDefault None inputState)
+                        (model.replyIds
+                            |> Dict.get post.key
+                            |> Maybe.withDefault Set.empty
+                        )
+                        (model.accounting
+                            |> Dict.get post.key
+                        )
+                        post
                 )
             |> column
                 [ width fill

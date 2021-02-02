@@ -15,7 +15,7 @@ import Json.Decode
 import Json.Encode
 import List.Extra
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (defaultSeoDescription, txInfoToNameStr, updatePublishedPost, updateTrackedTxIf)
+import Misc exposing (defaultSeoDescription, txInfoToNameStr, updateTrackedTxIf)
 import Ports exposing (connectToWeb3, consentToCookies, gTagOut)
 import Post
 import Random
@@ -169,7 +169,9 @@ update msg model =
                             ([ maybeUserNotice ] |> Maybe.Extra.values)
                         |> (case maybePublishedPost of
                                 Just post ->
-                                    addPost txReceipt.blockNumber post
+                                    --addPost txReceipt.blockNumber post
+                                    \m ->
+                                        ( m, Cmd.none )
 
                                 Nothing ->
                                     \m ->
@@ -253,10 +255,7 @@ update msg model =
                                     model.rootPosts
                                         |> Dict.insert post.key post
                               }
-                            , SSContract.getAccountingCmd
-                                model.config
-                                post.id.messageHash
-                                (PostAccountingFetched post.id)
+                            , fetchPostInfo model.blockTimes model.config post.id
                             )
 
                         LogReply post ->
@@ -272,28 +271,16 @@ update msg model =
                                                 >> Just
                                             )
                               }
-                            , Cmd.none
+                            , fetchPostInfo model.blockTimes model.config post.id
                             )
 
-        PostAccountingFetched postId fetchResult ->
-            case fetchResult of
+        PostAccountingFetched postId res ->
+            case res of
                 Ok accounting ->
                     ( { model
-                        | publishedPosts =
-                            model.publishedPosts
-                                |> updatePublishedPost postId
-                                    (\publishedPost ->
-                                        { publishedPost
-                                            | maybeAccounting = Just accounting
-                                            , core =
-                                                publishedPost.core
-                                                    |> (\c ->
-                                                            { c
-                                                                | author = accounting.firstAuthor
-                                                            }
-                                                       )
-                                        }
-                                    )
+                        | accounting =
+                            model.accounting
+                                |> Dict.insert (Misc.postIdToKey postId) accounting
                       }
                     , Cmd.none
                     )
@@ -786,62 +773,6 @@ encodeGTag gtag =
         ]
 
 
-addPost :
-    Int
-    -> Published
-    -> Model
-    -> ( Model, Cmd Msg )
-addPost blockNumber publishedPost prevModel =
-    let
-        alreadyHavePost =
-            prevModel.publishedPosts
-                |> Dict.get blockNumber
-                |> Maybe.map
-                    (List.any
-                        (\listedPost ->
-                            listedPost.id == publishedPost.id
-                        )
-                    )
-                |> Maybe.withDefault False
-    in
-    if alreadyHavePost then
-        ( prevModel, Cmd.none )
-
-    else
-        ( { prevModel
-            | publishedPosts =
-                prevModel.publishedPosts
-                    |> Dict.update blockNumber
-                        (\maybePostsForBlock ->
-                            Just <|
-                                case maybePostsForBlock of
-                                    Nothing ->
-                                        [ publishedPost ]
-
-                                    Just posts ->
-                                        List.append posts [ publishedPost ]
-                        )
-            , replies =
-                List.append
-                    prevModel.replies
-                    (case Misc.contextReplyTo publishedPost.core.metadata.context of
-                        Just replyTo ->
-                            [ { from = publishedPost.id
-                              , to = replyTo
-                              }
-                            ]
-
-                        Nothing ->
-                            []
-                    )
-          }
-        , SSContract.getAccountingCmd
-            prevModel.config
-            publishedPost.id.messageHash
-            (PostAccountingFetched publishedPost.id)
-        )
-
-
 handleTxReceipt :
     Eth.Types.TxReceipt
     -> ( TxStatus, Maybe Published, Maybe UserNotice )
@@ -849,23 +780,23 @@ handleTxReceipt txReceipt =
     case txReceipt.status of
         Just True ->
             let
-                maybePostEvent =
-                    --txReceipt.logs
-                    --|> List.map (Eth.Decode.event SSContract.messageBurnDecoder)
-                    --|> List.map .returnData
-                    --|> List.map Result.toMaybe
-                    --|> Maybe.Extra.values
-                    --|> List.head
-                    Nothing
+                post =
+                    txReceipt.logs
+                        |> List.map (SSContract.decodePost >> .returnData)
+                        |> List.filterMap Result.toMaybe
+                        |> List.head
             in
-            ( Mined <|
-                Maybe.map
-                    (\ssEvent ->
-                        PostId
-                            txReceipt.blockNumber
-                            ssEvent.hash
+            ( post
+                |> Maybe.map
+                    (\p ->
+                        case p of
+                            LogReply x ->
+                                x.id
+
+                            LogRoot x ->
+                                x.id
                     )
-                    maybePostEvent
+                |> Mined
             , Nothing
               --, Maybe.map
               --(SSContract.fromMessageBurn
@@ -926,31 +857,23 @@ updateTrackedTxStatusIfMining txHash newStatus =
         )
 
 
-
--- updateFromPageRoute :
---     Route
---     -> Model
---     -> ( Model, Cmd Msg )
--- updateFromPageRoute route model =
---     if model.route == route then
---         ( model
---         , Cmd.none
---         )
---     else
---         GotoView route model
-
-
-getBlockTimeIfNeededCmd :
-    String
-    -> Dict Int Time.Posix
-    -> Int
-    -> Cmd Msg
-getBlockTimeIfNeededCmd httpProviderUrl blockTimes blockNumber =
-    if Dict.get blockNumber blockTimes == Nothing then
-        getBlockTimeCmd httpProviderUrl blockNumber
-
-    else
+fetchPostInfo : Dict Int Time.Posix -> Config -> PostId -> Cmd Msg
+fetchPostInfo blockTimes config id =
+    [ SSContract.getAccountingCmd
+        config
+        id.messageHash
+        (PostAccountingFetched id)
+    , if Dict.member id.block blockTimes then
         Cmd.none
+
+      else
+        Eth.getBlock
+            config.httpProviderUrl
+            id.block
+            |> Task.map .timestamp
+            |> Task.attempt (BlockTimeFetched id.block)
+    ]
+        |> Cmd.batch
 
 
 updateSeoDescriptionIfNeededCmd :

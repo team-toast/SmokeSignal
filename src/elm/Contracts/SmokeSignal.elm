@@ -37,7 +37,6 @@ decodePost log =
                                         { author = core.author
                                         , authorBurn = core.authorBurn
                                         , content = core.content
-                                        , accounting = Nothing
                                         , metadataVersion = core.metadata.metadataVersion
                                         }
                                 in
