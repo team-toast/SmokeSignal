@@ -148,7 +148,7 @@ viewBox model userInfo =
         , phaceElement
             ( 75, 75 )
             False
-            model.config.smokeSignalContractAddress
+            userInfo.address
             False
             ClickHappened
             |> el [ centerY ]

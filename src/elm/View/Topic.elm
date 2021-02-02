@@ -25,11 +25,6 @@ view model topic =
                         >> String.toLower
                         >> (==) (String.toLower topic)
                     )
-
-        state =
-            { showAddress = False
-            , showInput = Types.None
-            }
     in
     [ topicHeader topic
     , if List.isEmpty posts then
@@ -49,19 +44,18 @@ view model topic =
                     View.Post.view
                         model.dProfile
                         (model.blockTimes
-                            |> Dict.get post.id.block
+                            |> Dict.get post.core.id.block
                         )
                         model.now
-                        --(Wallet.unlockStatus wallet)
-                        --(Maybe.withDefault None inputState)
                         (model.replyIds
-                            |> Dict.get post.key
+                            |> Dict.get post.core.key
                             |> Maybe.withDefault Set.empty
                         )
                         (model.accounting
-                            |> Dict.get post.key
+                            |> Dict.get post.core.key
                         )
-                        post
+                        topic
+                        post.core
                 )
             |> column
                 [ width fill

@@ -253,28 +253,28 @@ update msg model =
                             ( { model
                                 | rootPosts =
                                     model.rootPosts
-                                        |> Dict.insert post.key post
+                                        |> Dict.insert post.core.key post
                                 , topics =
                                     model.topics
                                         |> Set.insert post.topic
                               }
-                            , fetchPostInfo model.blockTimes model.config post.id
+                            , fetchPostInfo model.blockTimes model.config post.core.id
                             )
 
                         LogReply post ->
                             ( { model
                                 | replyPosts =
                                     model.replyPosts
-                                        |> Dict.insert post.key post
+                                        |> Dict.insert post.core.key post
                                 , replyIds =
                                     model.replyIds
                                         |> Dict.update (Misc.postIdToKey post.parent)
                                             (Maybe.withDefault Set.empty
-                                                >> Set.insert post.key
+                                                >> Set.insert post.core.key
                                                 >> Just
                                             )
                               }
-                            , fetchPostInfo model.blockTimes model.config post.id
+                            , fetchPostInfo model.blockTimes model.config post.core.id
                             )
 
         PostAccountingFetched postId res ->
@@ -794,10 +794,10 @@ handleTxReceipt txReceipt =
                     (\p ->
                         case p of
                             LogReply x ->
-                                x.id
+                                x.core.id
 
                             LogRoot x ->
-                                x.id
+                                x.core.id
                     )
                 |> Mined
             , Nothing

@@ -1,25 +1,23 @@
 module View.Home exposing (banner, viewOverview, viewTopic)
 
 import Dict exposing (Dict)
-import Dict.Extra
 import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
-import Element.Events
 import Element.Font as Font
 import Element.Input as Input
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Helpers.Time as TimeHelpers
-import Maybe.Extra exposing (unwrap)
+import Maybe.Extra
 import Misc
 import Set exposing (Set)
-import Theme exposing (almostWhite, orange, theme)
+import Theme exposing (almostWhite, orange)
 import Time
-import TokenValue exposing (TokenValue)
+import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
-import View.Common exposing (daiSymbol, phaceElement)
+import View.Common exposing (phaceElement)
 import View.Img
 import View.Post
 import View.Topic
@@ -217,17 +215,18 @@ viewOverview model =
                     View.Post.view
                         dProfile
                         (model.blockTimes
-                            |> Dict.get post.id.block
+                            |> Dict.get post.core.id.block
                         )
                         now
                         (model.replyIds
-                            |> Dict.get post.key
+                            |> Dict.get post.core.key
                             |> Maybe.withDefault Set.empty
                         )
                         (model.accounting
-                            |> Dict.get post.key
+                            |> Dict.get post.core.key
                         )
-                        post
+                        post.topic
+                        post.core
                 )
             |> column
                 [ width fill
@@ -489,10 +488,6 @@ viewTopics topics =
                         [ topic
                             |> text
                             |> el [ width fill, Font.size 20 ]
-                        , 7
-                            |> String.fromInt
-                            |> text
-                            |> el [ Font.size 30, Font.bold ]
                         ]
                             |> row
                                 [ width fill

@@ -110,25 +110,22 @@ type alias PostKey =
 
 
 type alias RootPost =
-    { id : PostId
-    , key : PostKey
-    , txHash : TxHash
-    , core : CoreData
+    { core : CoreData
     , topic : String
     }
 
 
 type alias ReplyPost =
-    { id : PostId
-    , key : PostKey
-    , txHash : TxHash
-    , core : CoreData
+    { core : CoreData
     , parent : PostId
     }
 
 
 type alias CoreData =
-    { author : Address
+    { id : PostId
+    , key : PostKey
+    , txHash : TxHash
+    , author : Address
     , authorBurn : TokenValue
     , content : Content
     , metadataVersion : Int

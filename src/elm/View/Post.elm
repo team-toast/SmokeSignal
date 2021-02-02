@@ -27,9 +27,10 @@ view :
     -> Posix
     -> Set.Set Types.PostKey
     -> Maybe Accounting
-    -> RootPost
+    -> String
+    -> CoreData
     -> Element Msg
-view dProfile timestamp now replies accounting post =
+view dProfile timestamp now replies accounting title post =
     Input.button
         [ Background.color black
         , Font.color white
@@ -41,7 +42,7 @@ view dProfile timestamp now replies accounting post =
         , label =
             [ [ accounting
                     |> whenJust (viewAccounting dProfile)
-              , [ post.topic
+              , [ title
                     |> text
                     |> el [ Font.size 30 ]
                 , [ text <| "Block " ++ String.fromInt post.id.block
@@ -61,12 +62,12 @@ view dProfile timestamp now replies accounting post =
             , [ phaceElement
                     ( 60, 60 )
                     False
-                    post.core.author
+                    post.author
                     False
                     ClickHappened
-              , [ post.core.content.title |> whenJust (text >> el [ Font.bold ])
-                , post.core.content.desc |> whenJust (text >> el [ Font.italic ])
-                , post.core.content.body
+              , [ post.content.title |> whenJust (text >> el [ Font.bold ])
+                , post.content.desc |> whenJust (text >> el [ Font.italic ])
+                , post.content.body
                     |> View.Markdown.renderString
                         [ height <| px 100
                         , Element.clip
@@ -127,47 +128,6 @@ viewReplies replies =
                 "replies"
     in
     String.fromInt len ++ " " ++ word
-
-
-view_ :
-    DisplayProfile
-    -> Bool
-    -> Bool
-    -> Dict Int Time.Posix
-    -> Time.Posix
-    -> Wallet
-    -> Types.PostState
-    -> Published
-    -> Element Msg
-view_ dProfile donateChecked showAddressOnPhace blockTimes now wallet state post =
-    [ mainPreviewPane
-        dProfile
-        showAddressOnPhace
-        donateChecked
-        blockTimes
-        now
-        --maybeUXModel
-        Nothing
-        post
-    , publishedPostActionForm
-        dProfile
-        donateChecked
-        post
-        --(maybeUXModel
-        --|> Maybe.andThen .showInput
-        --|> Maybe.withDefault None
-        --)
-        Types.None
-    ]
-        |> row
-            [ Element.width Element.fill
-            , Element.height <| Element.px <| 120
-            , Background.color theme.blockBackground
-            , Element.Border.width 1
-            , Element.Border.color theme.blockBorderColor
-            , Element.Border.rounded 5
-            , Element.padding 1
-            ]
 
 
 mainPreviewPane :

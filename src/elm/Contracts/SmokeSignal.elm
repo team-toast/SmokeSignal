@@ -34,7 +34,10 @@ decodePost log =
                                         Misc.postIdToKey id
 
                                     core_ =
-                                        { author = core.author
+                                        { id = id
+                                        , key = key
+                                        , txHash = log.transactionHash
+                                        , author = core.author
                                         , authorBurn = core.authorBurn
                                         , content = core.content
                                         , metadataVersion = core.metadata.metadataVersion
@@ -42,19 +45,13 @@ decodePost log =
                                 in
                                 case core.metadata.context of
                                     TopLevel topic ->
-                                        { id = id
-                                        , key = key
-                                        , txHash = log.transactionHash
-                                        , core = core_
+                                        { core = core_
                                         , topic = topic
                                         }
                                             |> Types.LogRoot
 
                                     Reply parent ->
-                                        { id = id
-                                        , key = key
-                                        , txHash = log.transactionHash
-                                        , core = core_
+                                        { core = core_
                                         , parent = parent
                                         }
                                             |> Types.LogReply
