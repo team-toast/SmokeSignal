@@ -13,6 +13,7 @@ import Json.Encode as E
 import List.Extra
 import Maybe.Extra exposing (unwrap)
 import Ports
+import Set
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
@@ -60,6 +61,7 @@ emptyModel key =
     , replyPosts = Dict.empty
     , replyIds = Dict.empty
     , accounting = Dict.empty
+    , topics = Set.empty
     }
 
 

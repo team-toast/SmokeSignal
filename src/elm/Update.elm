@@ -254,6 +254,9 @@ update msg model =
                                 | rootPosts =
                                     model.rootPosts
                                         |> Dict.insert post.key post
+                                , topics =
+                                    model.topics
+                                        |> Set.insert post.topic
                               }
                             , fetchPostInfo model.blockTimes model.config post.id
                             )

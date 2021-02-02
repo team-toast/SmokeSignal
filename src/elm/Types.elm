@@ -58,6 +58,7 @@ type alias Model =
     , replyPosts : Dict PostKey ReplyPost
     , replyIds : Dict PostKey (Set PostKey)
     , accounting : Dict PostKey Accounting
+    , topics : Set String
     }
 
 

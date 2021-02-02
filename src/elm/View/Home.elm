@@ -2,7 +2,7 @@ module View.Home exposing (banner, viewOverview, viewTopic)
 
 import Dict exposing (Dict)
 import Dict.Extra
-import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, fillPortion, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
+import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events
@@ -13,7 +13,7 @@ import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Helpers.Time as TimeHelpers
 import Maybe.Extra exposing (unwrap)
 import Misc
-import Set
+import Set exposing (Set)
 import Theme exposing (almostWhite, orange, theme)
 import Time
 import TokenValue exposing (TokenValue)
@@ -83,7 +83,7 @@ viewFrame model elem =
     [ banner model.dProfile
     , [ elem
       , [ walletUXPane model.dProfile model.showAddressId model.demoPhaceSrc model.wallet
-        , topicsUX model.dProfile model.searchInput
+        , viewTopics model.topics
         ]
             |> column
                 [ cappedWidth 400
@@ -244,7 +244,7 @@ viewOverview model =
     ]
         |> column
             [ spacing 10
-            , width <| fillPortion 2
+            , width fill
             , height fill
             ]
         |> viewFrame model
@@ -451,6 +451,55 @@ viewBookmarkedTopics =
                     }
             )
         |> column [ width fill, height <| px 120, Element.scrollbarY ]
+    ]
+        |> column
+            [ width fill
+            , whiteGlowAttributeSmall
+            ]
+
+
+viewTopics : Set String -> Element Msg
+viewTopics topics =
+    [ [ View.Img.bookmark 17 orange
+            |> el [ centerX, centerY ]
+            |> el [ height <| px 30, width <| px 30, Background.color black ]
+      , text "Topics"
+            |> el [ centerX ]
+      ]
+        |> row
+            [ width fill
+            , height <| px 30
+            , Background.color Theme.orange
+            , slightRound
+            ]
+    , topics
+        |> Set.toList
+        |> List.map
+            (\topic ->
+                Input.button
+                    [ width fill
+                    , whiteGlowAttributeSmall
+                    , Background.color black
+                    , Font.color white
+                    , paddingXY 15 5
+                    , hover
+                    ]
+                    { onPress = Just <| GotoView <| ViewTopic topic
+                    , label =
+                        [ topic
+                            |> text
+                            |> el [ width fill, Font.size 20 ]
+                        , 7
+                            |> String.fromInt
+                            |> text
+                            |> el [ Font.size 30, Font.bold ]
+                        ]
+                            |> row
+                                [ width fill
+                                ]
+                    }
+            )
+        |> column [ width fill ]
     ]
         |> column
             [ width fill
