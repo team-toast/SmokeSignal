@@ -20,7 +20,7 @@ import Time
 import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
-import View.Attrs exposing (cappedWidth, whiteGlowAttribute, whiteGlowAttributeSmall)
+import View.Attrs exposing (cappedWidth, hover, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common exposing (appStatusMessage, viewContext)
 import View.Compose
 import View.Home
@@ -126,11 +126,13 @@ header model =
             model.showExpandedTrackedTxs
             model.trackedTxs
             |> Maybe.withDefault Element.none
-        , Element.image
-            [ height <| px 50
-            ]
-            { src = "/img/foundry-icon.svg"
-            , description = ""
+        , Element.newTabLink [ hover ]
+            { url = "https://foundrydao.com/"
+            , label =
+                Element.image [ height <| px 50 ]
+                    { src = "/img/foundry-icon.svg"
+                    , description = ""
+                    }
             }
         ]
             |> row
