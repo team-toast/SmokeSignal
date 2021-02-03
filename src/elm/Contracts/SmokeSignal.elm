@@ -10,7 +10,7 @@ import Json.Decode as Decode exposing (Decoder)
 import Misc
 import Post
 import Result.Extra
-import Task
+import Task exposing (Task)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
 
@@ -84,24 +84,21 @@ burnEncodedPost smokeSignalContractAddress encodedPost =
         |> EthHelpers.updateCallValue (TokenValue.getEvmValue encodedPost.burnAmount)
 
 
-toAccounting : G.StoredMessageData -> Accounting
-toAccounting storedMessageData =
-    Accounting
-        storedMessageData.firstAuthor
-        (TokenValue.tokenValue storedMessageData.nativeBurned)
-        (TokenValue.tokenValue storedMessageData.nativeTipped)
-
-
-getAccountingCmd : Config -> Hex -> (Result Http.Error Accounting -> msg) -> Cmd msg
-getAccountingCmd config msgHash msgConstructor =
+getAccountingCmd : Config -> Hex -> Task Http.Error Accounting
+getAccountingCmd config msgHash =
     Eth.call
         config.httpProviderUrl
         (G.storedMessageData
             config.smokeSignalContractAddress
             msgHash
         )
-        |> Task.map toAccounting
-        |> Task.attempt msgConstructor
+        |> Task.map
+            (\storedMessageData ->
+                { firstAuthor = storedMessageData.firstAuthor
+                , totalBurned = TokenValue.tokenValue storedMessageData.nativeBurned
+                , totalTipped = TokenValue.tokenValue storedMessageData.nativeTipped
+                }
+            )
 
 
 getEthPriceCmd : Config -> (Result Http.Error Float -> msg) -> Cmd msg

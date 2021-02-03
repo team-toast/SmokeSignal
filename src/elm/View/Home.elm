@@ -14,7 +14,7 @@ import Misc
 import Set exposing (Set)
 import Theme exposing (almostWhite, orange)
 import Time
-import TokenValue
+import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common exposing (phaceElement)
@@ -457,7 +457,7 @@ viewBookmarkedTopics =
             ]
 
 
-viewTopics : Set String -> Element Msg
+viewTopics : Dict String TokenValue -> Element Msg
 viewTopics topics =
     [ [ View.Img.bookmark 17 orange
             |> el [ centerX, centerY ]
@@ -472,9 +472,14 @@ viewTopics topics =
             , slightRound
             ]
     , topics
-        |> Set.toList
+        |> Dict.toList
+        |> List.sortBy
+            (Tuple.second
+                >> TokenValue.toFloatWithWarning
+                >> negate
+            )
         |> List.map
-            (\topic ->
+            (\( topic, totalBurned ) ->
                 Input.button
                     [ width fill
                     , whiteGlowAttributeSmall
@@ -488,6 +493,10 @@ viewTopics topics =
                         [ topic
                             |> text
                             |> el [ width fill, Font.size 20 ]
+                        , totalBurned
+                            |> TokenValue.toConciseString
+                            |> text
+                            |> el [ Font.size 30, Font.bold ]
                         ]
                             |> row
                                 [ width fill

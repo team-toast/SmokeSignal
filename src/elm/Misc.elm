@@ -61,7 +61,7 @@ emptyModel key =
     , replyPosts = Dict.empty
     , replyIds = Dict.empty
     , accounting = Dict.empty
-    , topics = Set.empty
+    , topics = Dict.empty
     }
 
 
