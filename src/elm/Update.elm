@@ -677,26 +677,32 @@ update msg model =
             , cmd
             )
 
-        SubmitTip postId amount ->
-            let
-                txParams =
-                    SSContract.tipForPost model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
-                        |> Eth.toSend
+        SubmitTip postId ->
+            model.compose.dai
+                |> TokenValue.fromString
+                |> unwrap ( model, Cmd.none )
+                    (\amount ->
+                        let
+                            txParams =
+                                SSContract.tipForPost model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
+                                    |> Eth.toSend
 
-                listeners =
-                    { onMined = Nothing
-                    , onSign = Just <| TxSigned <| TipTx postId amount
-                    , onBroadcast = Nothing
-                    }
+                            listeners =
+                                { onMined = Nothing
+                                , onSign = Just <| TxSigned <| TipTx postId amount
+                                , onBroadcast = Nothing
+                                }
 
-                ( txSentry, cmd ) =
-                    TxSentry.customSend model.txSentry listeners txParams
-            in
-            ( { model
-                | txSentry = txSentry
-              }
-            , cmd
-            )
+                            ( txSentry, cmd ) =
+                                TxSentry.customSend model.txSentry listeners txParams
+                        in
+                        ( { model
+                            | txSentry = txSentry
+                            , tipOpen = Nothing
+                          }
+                        , cmd
+                        )
+                    )
 
         DonationCheckboxSet flag ->
             ( { model
@@ -710,6 +716,18 @@ update msg model =
         ViewDraft maybeDraft ->
             ( { model
                 | draftModal = maybeDraft
+              }
+            , Cmd.none
+            )
+
+        SetTipOpen id ->
+            ( { model
+                | tipOpen =
+                    if model.tipOpen == Just id then
+                        Nothing
+
+                    else
+                        Just id
               }
             , Cmd.none
             )

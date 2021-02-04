@@ -57,6 +57,7 @@ emptyModel key =
         , modal = False
         , donate = False
         }
+    , tipOpen = Nothing
     , rootPosts = Dict.empty
     , replyPosts = Dict.empty
     , replyIds = Dict.empty

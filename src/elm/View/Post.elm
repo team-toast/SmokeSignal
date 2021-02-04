@@ -1,7 +1,7 @@
 module View.Post exposing (view)
 
 import Dict exposing (Dict)
-import Element exposing (Attribute, Element, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
+import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border
 import Element.Events
@@ -15,7 +15,7 @@ import Theme exposing (almostWhite, theme)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
-import View.Attrs exposing (whiteGlowAttributeSmall)
+import View.Attrs exposing (hover, whiteGlowAttributeSmall)
 import View.Common exposing (daiAmountInput, daiSymbol, phaceElement, whenJust)
 import View.Img
 import View.Markdown
@@ -31,85 +31,95 @@ view :
     -> CoreData
     -> Element Msg
 view dProfile timestamp now replies accounting title post =
-    Input.button
-        [ Background.color black
-        , Font.color white
-        , whiteGlowAttributeSmall
-        , padding 5
-        , width fill
+    [ [ accounting
+            |> whenJust (viewAccounting dProfile)
+      , [ title
+            |> text
+            |> el [ Font.size 30 ]
+        , [ text <| "Block " ++ String.fromInt post.id.block
+          , viewTiming dProfile timestamp now post.id
+
+          --, viewContext dProfile post.core.metadata.context
+          ]
+            |> row
+                [ spacing 20
+                , Font.size 17
+                , Font.color theme.subtleTextColor
+                ]
         ]
+            |> row [ width fill, spaceEvenly ]
+      ]
+        |> row [ width fill, spacing 10 ]
+    , [ phaceElement
+            ( 60, 60 )
+            False
+            post.author
+            False
+            ClickHappened
+      , [ viewContent post
+        , [ [ ( viewReplies replies, View.Img.speechBubble )
+
+            --, ( "Bookmark", View.Img.bookmark )
+            --, ( "Hide", View.Img.hide )
+            ]
+                |> List.map
+                    (\( txt, icn ) ->
+                        [ icn 17 almostWhite
+                        , text txt
+                        ]
+                            |> row [ spacing 10, Font.size 23 ]
+                    )
+                |> row [ spacing 10, Font.color almostWhite, Font.size 17 ]
+          , [ supportTipButton post.id
+            , supportBurnButton post.id
+            , replyButton post.id
+            ]
+                |> row [ spacing 10 ]
+          ]
+            |> row
+                [ spacing 10
+                , Element.alignRight
+                ]
+        ]
+            |> column
+                [ spacing 10
+                , width fill
+                ]
+      ]
+        |> row [ width fill, spacing 10 ]
+    ]
+        |> column
+            [ width fill
+            , spacing 5
+            ]
+        |> el
+            [ Background.color black
+            , Font.color white
+            , whiteGlowAttributeSmall
+            , padding 5
+            , width fill
+            ]
+
+
+viewContent : CoreData -> Element Msg
+viewContent post =
+    Input.button [ width fill ]
         { onPress = Just <| GotoView <| ViewPost post.id
         , label =
-            [ [ accounting
-                    |> whenJust (viewAccounting dProfile)
-              , [ title
-                    |> text
-                    |> el [ Font.size 30 ]
-                , [ text <| "Block " ++ String.fromInt post.id.block
-                  , viewTiming dProfile timestamp now post.id
-
-                  --, viewContext dProfile post.core.metadata.context
-                  ]
-                    |> row
-                        [ spacing 20
-                        , Font.size 17
-                        , Font.color theme.subtleTextColor
-                        ]
-                ]
-                    |> row [ width fill, spaceEvenly ]
-              ]
-                |> row [ width fill, spacing 10 ]
-            , [ phaceElement
-                    ( 60, 60 )
-                    False
-                    post.author
-                    False
-                    ClickHappened
-              , [ post.content.title |> whenJust (text >> el [ Font.bold ])
-                , post.content.desc |> whenJust (text >> el [ Font.italic ])
-                , post.content.body
-                    |> View.Markdown.renderString
-                        [ height <| px 100
-                        , Element.clip
-                        ]
-                    |> Result.toMaybe
-                    |> whenJust identity
-                , [ [ ( viewReplies replies, View.Img.speechBubble )
-                    , ( "Bookmark", View.Img.bookmark )
-                    , ( "Hide", View.Img.hide )
+            [ post.content.title |> whenJust (text >> el [ Font.bold ])
+            , post.content.desc |> whenJust (text >> el [ Font.italic ])
+            , post.content.body
+                |> View.Markdown.renderString
+                    [ height <| px 100
+                    , Element.clip
                     ]
-                        |> List.map
-                            (\( txt, icn ) ->
-                                [ icn 17 almostWhite
-                                , text txt
-                                ]
-                                    |> row [ spacing 5 ]
-                            )
-                        |> row [ spacing 10, Font.color almostWhite, Font.size 17 ]
-                  , [ supportTipButton post.id
-                    , supportBurnButton post.id
-                    , replyButton post.id
-                    ]
-                        |> row
-                            [ spacing 5
-                            ]
-                  ]
-                    |> row
-                        [ spacing 10
-                        , Element.alignRight
-                        ]
-                ]
-                    |> column
-                        [ spacing 10
-                        , View.Attrs.sansSerifFont
-                        , width fill
-                        ]
-              ]
-                |> row [ width fill, spacing 10 ]
+                |> Result.toMaybe
+                |> whenJust identity
             ]
                 |> column
                     [ width fill
-                    , spacing 5
+                    , View.Attrs.sansSerifFont
+                    , spacing 10
                     ]
         }
 
@@ -360,25 +370,18 @@ supportTipButton :
     PostId
     -> Element Msg
 supportTipButton postId =
-    Element.row
-        [ Element.width Element.fill
-        , Element.height Element.fill
+    Input.button
+        [ height <| px 40
+        , Background.color theme.daiTippedBackground
+        , width <| px 40
+        , EH.withTitle "Tip DAI for this post, rewarding the author"
+        , hover
         ]
-        [ publishedPostActionButton
-            [ EH.withTitle "Tip DAI for this post, rewarding the author"
-            , Background.color theme.daiTippedBackground
-            ]
-            --SupportTipClicked
-            ClickHappened
-          <|
-            Element.image
-                [ Element.height <| Element.px 14
-                , Element.centerX
-                ]
-                { src = "img/dai-unit-char-white.svg"
-                , description = "support tip"
-                }
-        ]
+        { onPress = Just <| SetTipOpen postId
+        , label =
+            View.Img.dollar 30 white
+                |> el [ centerX, centerY ]
+        }
 
 
 supportBurnButton :

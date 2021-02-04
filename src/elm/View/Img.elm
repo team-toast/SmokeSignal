@@ -1,8 +1,24 @@
-module View.Img exposing (bookmark, hide, replyArrow, speechBubble)
+module View.Img exposing (bookmark, dollar, hide, replyArrow, speechBubble)
 
 import Element exposing (Color, Element)
 import Svg exposing (Svg, g, path, svg)
 import Svg.Attributes exposing (d, fill, height, stroke, strokeLinejoin, strokeWidth, viewBox, width)
+
+
+dollar : Int -> Color -> Element msg
+dollar size color =
+    svg
+        [ viewBox "0 0 67.2 97.1"
+        , height <| String.fromInt size
+        , width <| String.fromInt size
+        ]
+        [ Svg.path
+            [ fill <| rgb color
+            , d "M31.1 80.6h-.6A20.9 20.9 0 0116.8 76q-5.6-4.6-5.6-10.9a9.2 9.2 0 012-6.1 6.4 6.4 0 015.1-2.3 5.5 5.5 0 014 1.7 5.7 5.7 0 011.8 4.2 6.2 6.2 0 01-2.7 5.1c-1.7 1.4-2.6 2.2-2.6 2.6q0 2.1 3.7 4a18 18 0 008.6 2V48.7q-9.3-2.1-13.7-6.7T13 29.6a16.1 16.1 0 014.9-12.2q5-4.7 13.2-5.4V6.3H36v5.6c5.2.4 9.4 1.9 12.6 4.4s4.8 5.7 4.8 9.3a7.2 7.2 0 01-1.7 5 6 6 0 01-4.7 1.9 5.6 5.6 0 01-4.1-1.6 5.7 5.7 0 01-1.6-4.1 4.8 4.8 0 012.1-4.2c1.4-1 2.2-1.7 2.2-2 0-1-1-2-3-3A14.9 14.9 0 0036 16v24q10.8 2.8 15.4 7.5T56 60a19.3 19.3 0 01-5.4 14q-5.4 5.6-14.7 6.6V93H31zm0-42.1V16a13.7 13.7 0 00-8.7 3.4 10.1 10.1 0 00-3.2 7.8 9.5 9.5 0 003 7.2c2 1.8 5 3.2 9 4zM36 76.3a14.8 14.8 0 009.5-4.2 12.6 12.6 0 003.5-9.2q0-5.3-2.7-8T36 50.1z"
+            ]
+            []
+        ]
+        |> wrap
 
 
 speechBubble : Int -> Color -> Element msg
