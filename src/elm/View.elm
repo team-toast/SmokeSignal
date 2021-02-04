@@ -20,8 +20,8 @@ import Time
 import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
-import View.Attrs exposing (cappedWidth, whiteGlowAttribute, whiteGlowAttributeSmall)
-import View.Common exposing (appStatusMessage, viewContext)
+import View.Attrs exposing (cappedWidth, hover, roundBorder, whiteGlowAttribute, whiteGlowAttributeSmall)
+import View.Common exposing (appStatusMessage, viewContext, whenJust)
 import View.Compose
 import View.Home
 import View.Modal
@@ -74,6 +74,56 @@ viewPage model =
             , View.Compose.view model
                 |> Element.inFront
                 |> View.Common.whenAttr model.compose.modal
+            , model.tipOpen
+                |> whenJust
+                    (\id ->
+                        [ "Tip DAI for this post, rewarding the author"
+                            |> text
+                        , Input.text
+                            [ width fill
+                            , Background.color black
+                            , View.Attrs.whiteGlowAttributeSmall
+                            ]
+                            { onChange = ComposeDaiChange
+                            , label = Input.labelHidden ""
+                            , placeholder =
+                                "0"
+                                    |> text
+                                    |> Input.placeholder []
+                                    |> Just
+                            , text = model.compose.dai
+                            }
+                        , [ Input.button
+                                [ Font.underline
+                                , hover
+                                ]
+                                { onPress = Just <| SetTipOpen id
+                                , label = text "Cancel"
+                                }
+                          , Input.button
+                                [ Background.color Theme.orange
+                                , padding 10
+                                , roundBorder
+                                , hover
+                                , Font.color black
+                                ]
+                                { onPress = Just <| SubmitTip id
+                                , label = text "Reply"
+                                }
+                          ]
+                            |> row [ Element.alignRight, spacing 20 ]
+                        ]
+                            |> column
+                                [ Background.color black
+                                , View.Attrs.whiteGlowAttributeSmall
+                                , spacing 20
+                                , padding 20
+                                , width fill
+                                , Font.color white
+                                ]
+                            |> View.Common.wrapModal (SetTipOpen id)
+                    )
+                |> Element.inFront
             ]
     ]
         |> column
@@ -126,11 +176,13 @@ header model =
             model.showExpandedTrackedTxs
             model.trackedTxs
             |> Maybe.withDefault Element.none
-        , Element.image
-            [ height <| px 50
-            ]
-            { src = "/img/foundry-icon.svg"
-            , description = ""
+        , Element.newTabLink [ hover ]
+            { url = "https://foundrydao.com/"
+            , label =
+                Element.image [ height <| px 50 ]
+                    { src = "/img/foundry-icon.svg"
+                    , description = ""
+                    }
             }
         ]
             |> row

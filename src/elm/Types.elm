@@ -52,13 +52,14 @@ type alias Model =
     , maybeSeoDescription : Maybe String
     , searchInput : String
     , newUserModal : Bool
+    , tipOpen : Maybe PostId
     , config : Config
     , compose : ComposeModel
     , rootPosts : Dict PostKey RootPost
     , replyPosts : Dict PostKey ReplyPost
     , replyIds : Dict PostKey (Set PostKey)
     , accounting : Dict PostKey Accounting
-    , topics : Set String
+    , topics : Dict String TokenValue
     }
 
 
@@ -95,7 +96,7 @@ type Msg
     | AddUserNotice UN.UserNotice
     | SubmitDraft
     | SubmitPost Draft
-    | SubmitTip PostId TokenValue
+    | SubmitTip PostId
     | SubmitBurn PostId TokenValue
     | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool
@@ -103,6 +104,7 @@ type Msg
     | ComposeBodyChange String
     | ComposeTitleChange String
     | ComposeDaiChange String
+    | SetTipOpen PostId
 
 
 type alias PostKey =

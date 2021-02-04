@@ -256,7 +256,11 @@ update msg model =
                                         |> Dict.insert post.core.key post
                                 , topics =
                                     model.topics
-                                        |> Set.insert post.topic
+                                        |> Dict.update
+                                            post.topic
+                                            (Maybe.withDefault TokenValue.zero
+                                                >> Just
+                                            )
                               }
                             , fetchPostInfo model.blockTimes model.config post.core.id
                             )
@@ -280,10 +284,36 @@ update msg model =
         PostAccountingFetched postId res ->
             case res of
                 Ok accounting ->
+                    let
+                        key =
+                            Misc.postIdToKey postId
+
+                        maybeTopic =
+                            model.rootPosts
+                                |> Dict.get key
+                                |> Maybe.map .topic
+
+                        updateTopics =
+                            maybeTopic
+                                |> unwrap identity
+                                    (\topic ->
+                                        Dict.update
+                                            topic
+                                            (unwrap accounting.totalBurned
+                                                (TokenValue.add
+                                                    accounting.totalBurned
+                                                )
+                                                >> Just
+                                            )
+                                    )
+                    in
                     ( { model
                         | accounting =
                             model.accounting
-                                |> Dict.insert (Misc.postIdToKey postId) accounting
+                                |> Dict.insert key accounting
+                        , topics =
+                            model.topics
+                                |> updateTopics
                       }
                     , Cmd.none
                     )
@@ -647,26 +677,32 @@ update msg model =
             , cmd
             )
 
-        SubmitTip postId amount ->
-            let
-                txParams =
-                    SSContract.tipForPost model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
-                        |> Eth.toSend
+        SubmitTip postId ->
+            model.compose.dai
+                |> TokenValue.fromString
+                |> unwrap ( model, Cmd.none )
+                    (\amount ->
+                        let
+                            txParams =
+                                SSContract.tipForPost model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
+                                    |> Eth.toSend
 
-                listeners =
-                    { onMined = Nothing
-                    , onSign = Just <| TxSigned <| TipTx postId amount
-                    , onBroadcast = Nothing
-                    }
+                            listeners =
+                                { onMined = Nothing
+                                , onSign = Just <| TxSigned <| TipTx postId amount
+                                , onBroadcast = Nothing
+                                }
 
-                ( txSentry, cmd ) =
-                    TxSentry.customSend model.txSentry listeners txParams
-            in
-            ( { model
-                | txSentry = txSentry
-              }
-            , cmd
-            )
+                            ( txSentry, cmd ) =
+                                TxSentry.customSend model.txSentry listeners txParams
+                        in
+                        ( { model
+                            | txSentry = txSentry
+                            , tipOpen = Nothing
+                          }
+                        , cmd
+                        )
+                    )
 
         DonationCheckboxSet flag ->
             ( { model
@@ -680,6 +716,18 @@ update msg model =
         ViewDraft maybeDraft ->
             ( { model
                 | draftModal = maybeDraft
+              }
+            , Cmd.none
+            )
+
+        SetTipOpen id ->
+            ( { model
+                | tipOpen =
+                    if model.tipOpen == Just id then
+                        Nothing
+
+                    else
+                        Just id
               }
             , Cmd.none
             )
@@ -865,7 +913,7 @@ fetchPostInfo blockTimes config id =
     [ SSContract.getAccountingCmd
         config
         id.messageHash
-        (PostAccountingFetched id)
+        |> Task.attempt (PostAccountingFetched id)
     , if Dict.member id.block blockTimes then
         Cmd.none
 
