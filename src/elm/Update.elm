@@ -356,7 +356,7 @@ update msg model =
             case fetchResult of
                 Ok price ->
                     ( { model
-                        | ethPrice = Just price
+                        | ethPrice = price
                       }
                     , Cmd.none
                     )
@@ -656,26 +656,31 @@ update msg model =
             , cmd
             )
 
-        SubmitBurn postId amount ->
-            let
-                txParams =
-                    SSContract.burnForPost model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
-                        |> Eth.toSend
+        SubmitBurn postId ->
+            model.compose.dai
+                |> TokenValue.fromString
+                |> unwrap ( model, Cmd.none )
+                    (\amount ->
+                        let
+                            txParams =
+                                SSContract.burnForPost model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
+                                    |> Eth.toSend
 
-                listeners =
-                    { onMined = Nothing
-                    , onSign = Just <| TxSigned <| BurnTx postId amount
-                    , onBroadcast = Nothing
-                    }
+                            listeners =
+                                { onMined = Nothing
+                                , onSign = Just <| TxSigned <| BurnTx postId amount
+                                , onBroadcast = Nothing
+                                }
 
-                ( txSentry, cmd ) =
-                    TxSentry.customSend model.txSentry listeners txParams
-            in
-            ( { model
-                | txSentry = txSentry
-              }
-            , cmd
-            )
+                            ( txSentry, cmd ) =
+                                TxSentry.customSend model.txSentry listeners txParams
+                        in
+                        ( { model
+                            | txSentry = txSentry
+                          }
+                        , cmd
+                        )
+                    )
 
         SubmitTip postId ->
             model.compose.dai
@@ -720,14 +725,16 @@ update msg model =
             , Cmd.none
             )
 
-        SetTipOpen id ->
+        SetTipOpen state ->
             ( { model
-                | tipOpen =
-                    if model.tipOpen == Just id then
-                        Nothing
+                | tipOpen = Just state
+              }
+            , Cmd.none
+            )
 
-                    else
-                        Just id
+        CancelTipOpen ->
+            ( { model
+                | tipOpen = Nothing
               }
             , Cmd.none
             )

@@ -1,4 +1,4 @@
-module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, totalBurned, tryRouteToView, txInfoToNameStr, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, withBalance)
+module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, tokenToDollar, totalBurned, tryRouteToView, txInfoToNameStr, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, withBalance)
 
 import Browser.Navigation
 import Dict
@@ -28,7 +28,7 @@ emptyModel key =
     , newUserModal = False
     , now = Time.millisToPosix 0
     , dProfile = Helpers.Element.Desktop
-    , ethPrice = Nothing
+    , ethPrice = 1.0
     , txSentry =
         TxSentry.init
             ( Ports.txOut, Ports.txIn )
@@ -328,3 +328,9 @@ tryRouteToView route =
 postIdToKey : PostId -> PostKey
 postIdToKey id =
     ( String.fromInt id.block, Eth.Utils.hexToString id.messageHash )
+
+
+tokenToDollar : Float -> TokenValue -> String
+tokenToDollar eth tv =
+    TokenValue.mulFloatWithWarning tv eth
+        |> TokenValue.toFloatString (Just 2)
