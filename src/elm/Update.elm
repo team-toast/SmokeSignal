@@ -356,7 +356,7 @@ update msg model =
             case fetchResult of
                 Ok price ->
                     ( { model
-                        | ethPrice = Just price
+                        | ethPrice = price
                       }
                     , Cmd.none
                     )

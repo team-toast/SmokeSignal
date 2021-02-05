@@ -39,7 +39,7 @@ type alias Model =
     , dProfile : EH.DisplayProfile
     , txSentry : TxSentry Msg
     , eventSentry : EventSentry Msg
-    , ethPrice : Maybe Float
+    , ethPrice : Float
     , view : View
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId

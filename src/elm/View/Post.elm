@@ -29,13 +29,14 @@ view :
     -> Set.Set Types.PostKey
     -> Maybe Accounting
     -> Maybe ShowInputState
+    -> Float
     -> String
     -> String
     -> CoreData
     -> Element Msg
-view dProfile timestamp now replies accounting state input title post =
+view dProfile timestamp now replies accounting state ethPrice input title post =
     [ [ accounting
-            |> whenJust (viewAccounting dProfile)
+            |> whenJust (viewAccounting dProfile ethPrice)
       , [ title
             |> text
             |> el [ Font.size 30 ]
@@ -190,13 +191,13 @@ previewMetadata dProfile blockTimes now post =
         ]
 
 
-viewAccounting : DisplayProfile -> Accounting -> Element Msg
-viewAccounting dProfile accounting =
+viewAccounting : DisplayProfile -> Float -> Accounting -> Element Msg
+viewAccounting dProfile ethPrice accounting =
     Element.row
         [ spacing 5
         ]
-        [ viewDaiBurned dProfile accounting.totalBurned
-        , viewDaiTipped dProfile accounting.totalTipped
+        [ viewDaiBurned dProfile accounting.totalBurned ethPrice
+        , viewDaiTipped dProfile accounting.totalTipped ethPrice
         ]
 
 
@@ -209,8 +210,8 @@ commonDaiElStyles =
     ]
 
 
-viewDaiBurned : DisplayProfile -> TokenValue -> Element Msg
-viewDaiBurned dProfile amount =
+viewDaiBurned : DisplayProfile -> TokenValue -> Float -> Element Msg
+viewDaiBurned dProfile amount ethPrice =
     Element.row
         (commonDaiElStyles
             ++ [ Background.color theme.daiBurnedBackground ]
@@ -220,13 +221,12 @@ viewDaiBurned dProfile amount =
             [ Font.color EH.white ]
           <|
             Element.text <|
-                TokenValue.toConciseString <|
-                    amount
+                Misc.tokenToDollar ethPrice amount
         ]
 
 
-viewDaiTipped : DisplayProfile -> TokenValue -> Element Msg
-viewDaiTipped dProfile amount =
+viewDaiTipped : DisplayProfile -> TokenValue -> Float -> Element Msg
+viewDaiTipped dProfile amount ethPrice =
     Element.row
         (commonDaiElStyles
             ++ [ Background.color theme.daiTippedBackground ]
@@ -236,7 +236,7 @@ viewDaiTipped dProfile amount =
             [ Font.color EH.white ]
           <|
             Element.text <|
-                TokenValue.toConciseString amount
+                Misc.tokenToDollar ethPrice amount
         ]
 
 

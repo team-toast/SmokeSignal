@@ -64,6 +64,7 @@ view model topic =
                                         Nothing
                                 )
                         )
+                        model.ethPrice
                         model.compose.dai
                         topic
                         post.core

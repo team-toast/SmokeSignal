@@ -82,6 +82,7 @@ view model post =
                                     Nothing
                             )
                     )
+                    model.ethPrice
                     model.compose.dai
                     ". . ."
                     reply.core

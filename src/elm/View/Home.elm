@@ -81,7 +81,7 @@ viewFrame model elem =
     [ banner model.dProfile
     , [ elem
       , [ walletUXPane model.dProfile model.showAddressId model.demoPhaceSrc model.wallet
-        , viewTopics model.topics
+        , viewTopics model.ethPrice model.topics
         ]
             |> column
                 [ cappedWidth 400
@@ -240,6 +240,7 @@ viewPost model post =
                         Nothing
                 )
         )
+        model.ethPrice
         model.compose.dai
         post.topic
         post.core
@@ -453,8 +454,8 @@ viewBookmarkedTopics =
             ]
 
 
-viewTopics : Dict String TokenValue -> Element Msg
-viewTopics topics =
+viewTopics : Float -> Dict String TokenValue -> Element Msg
+viewTopics ethPrice topics =
     [ [ View.Img.bookmark 17 orange
             |> el [ centerX, centerY ]
             |> el [ height <| px 30, width <| px 30, Background.color black ]
@@ -490,7 +491,7 @@ viewTopics topics =
                             |> text
                             |> el [ width fill, Font.size 20 ]
                         , totalBurned
-                            |> TokenValue.toConciseString
+                            |> Misc.tokenToDollar ethPrice
                             |> text
                             |> el [ Font.size 30, Font.bold ]
                         ]
