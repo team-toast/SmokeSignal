@@ -334,3 +334,11 @@ tokenToDollar : Float -> TokenValue -> String
 tokenToDollar eth tv =
     TokenValue.mulFloatWithWarning tv eth
         |> TokenValue.toFloatString (Just 2)
+        |> (\str ->
+                -- Should be handled in TokenValue.elm?
+                if String.length str == 1 then
+                    str ++ ".00"
+
+                else
+                    str
+           )

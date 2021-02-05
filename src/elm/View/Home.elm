@@ -489,11 +489,14 @@ viewTopics ethPrice topics =
                     , label =
                         [ topic
                             |> text
-                            |> el [ width fill, Font.size 20 ]
-                        , totalBurned
-                            |> Misc.tokenToDollar ethPrice
-                            |> text
-                            |> el [ Font.size 30, Font.bold ]
+                            |> el [ width fill, Font.size 30 ]
+                        , [ View.Img.dollar 25 white
+                          , totalBurned
+                                |> Misc.tokenToDollar ethPrice
+                                |> text
+                                |> el [ Font.size 25, Font.bold ]
+                          ]
+                            |> row []
                         ]
                             |> row
                                 [ width fill
