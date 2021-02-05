@@ -9,13 +9,14 @@ import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile, black, responsiveVal, white)
 import Helpers.Time as TimeHelpers
+import Maybe.Extra
 import Misc
-import Set
+import Set exposing (Set)
 import Theme exposing (almostWhite, theme)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
-import View.Attrs exposing (hover, whiteGlowAttributeSmall)
+import View.Attrs exposing (hover, roundBorder, whiteGlowAttributeSmall)
 import View.Common exposing (daiAmountInput, daiSymbol, phaceElement, whenJust)
 import View.Img
 import View.Markdown
@@ -27,10 +28,12 @@ view :
     -> Posix
     -> Set.Set Types.PostKey
     -> Maybe Accounting
+    -> Maybe ShowInputState
+    -> String
     -> String
     -> CoreData
     -> Element Msg
-view dProfile timestamp now replies accounting title post =
+view dProfile timestamp now replies accounting state input title post =
     [ [ accounting
             |> whenJust (viewAccounting dProfile)
       , [ title
@@ -57,24 +60,10 @@ view dProfile timestamp now replies accounting title post =
             False
             ClickHappened
       , [ viewContent post
-        , [ [ ( viewReplies replies, View.Img.speechBubble )
-
-            --, ( "Bookmark", View.Img.bookmark )
-            --, ( "Hide", View.Img.hide )
-            ]
-                |> List.map
-                    (\( txt, icn ) ->
-                        [ icn 17 almostWhite
-                        , text txt
-                        ]
-                            |> row [ spacing 10, Font.size 23 ]
-                    )
-                |> row [ spacing 10, Font.color almostWhite, Font.size 17 ]
-          , [ supportTipButton post.id
-            , supportBurnButton post.id
-            , replyButton post.id
-            ]
-                |> row [ spacing 10 ]
+        , [ state
+                |> Maybe.Extra.unwrap
+                    (viewActions replies post)
+                    (viewInput dProfile post input)
           ]
             |> row
                 [ spacing 10
@@ -124,7 +113,30 @@ viewContent post =
         }
 
 
-viewReplies : Set.Set a -> String
+viewActions : Set PostKey -> CoreData -> Element Msg
+viewActions replies post =
+    [ [ ( viewReplies replies, View.Img.speechBubble )
+
+      --, ( "Bookmark", View.Img.bookmark )
+      --, ( "Hide", View.Img.hide )
+      ]
+        |> List.map
+            (\( txt, icn ) ->
+                [ icn 17 almostWhite
+                , text txt
+                ]
+                    |> row [ spacing 10, Font.size 23 ]
+            )
+        |> row [ spacing 10, Font.color almostWhite, Font.size 17 ]
+    , supportTipButton post.id
+    , supportBurnButton post.id
+
+    --, replyButton post.id
+    ]
+        |> row [ spacing 10 ]
+
+
+viewReplies : Set a -> String
 viewReplies replies =
     let
         len =
@@ -146,7 +158,7 @@ mainPreviewPane :
     -> Bool
     -> Dict Int Time.Posix
     -> Time.Posix
-    -> Maybe PostState
+    -> Maybe Int
     -> Published
     -> Element Msg
 mainPreviewPane dProfile showAddress donateChecked blockTimes now maybeUXModel post =
@@ -183,8 +195,8 @@ viewAccounting dProfile accounting =
     Element.row
         [ spacing 5
         ]
-        [ -- viewDaiBurned dProfile post
-          viewDaiTipped dProfile accounting.totalTipped
+        [ viewDaiBurned dProfile accounting.totalBurned
+        , viewDaiTipped dProfile accounting.totalTipped
         ]
 
 
@@ -197,31 +209,23 @@ commonDaiElStyles =
     ]
 
 
-viewDaiBurned :
-    DisplayProfile
-    -> RootPost
-    -> Element Msg
-viewDaiBurned dProfile post =
+viewDaiBurned : DisplayProfile -> TokenValue -> Element Msg
+viewDaiBurned dProfile amount =
     Element.row
         (commonDaiElStyles
             ++ [ Background.color theme.daiBurnedBackground ]
         )
         [ daiSymbol True [ Element.height <| Element.px 14 ]
-
-        --, Element.el
-        --[ Font.color EH.white ]
-        --<|
-        --Element.text <|
-        --TokenValue.toConciseString <|
-        --Misc.totalBurned <|
-        --PublishedPost post
+        , Element.el
+            [ Font.color EH.white ]
+          <|
+            Element.text <|
+                TokenValue.toConciseString <|
+                    amount
         ]
 
 
-viewDaiTipped :
-    DisplayProfile
-    -> TokenValue
-    -> Element Msg
+viewDaiTipped : DisplayProfile -> TokenValue -> Element Msg
 viewDaiTipped dProfile amount =
     Element.row
         (commonDaiElStyles
@@ -327,43 +331,65 @@ previewBody dProfile showAddress post =
         ]
 
 
-publishedPostActionForm :
-    DisplayProfile
-    -> Bool
-    -> Published
-    -> Types.ShowInputState
-    -> Element Msg
-publishedPostActionForm dProfile donateChecked publishedPost showInput =
-    case showInput of
-        None ->
-            Element.column
-                [ Element.spacing 5
-                , Element.alignRight
-                ]
-                [ supportTipButton publishedPost.id
-                , supportBurnButton publishedPost.id
-                , replyButton publishedPost.id
-                ]
+viewInput : DisplayProfile -> CoreData -> String -> ShowInputState -> Element Msg
+viewInput dProfile post input showInput =
+    let
+        title =
+            case showInput of
+                Tip _ ->
+                    "Tip DAI for this post, rewarding the author"
 
-        Tip input ->
-            unlockOrInputForm
-                dProfile
-                donateChecked
-                (Element.rgba 0 1 0 0.1)
-                input
-                "Tip"
-                --(SupportTipSubmitClicked publishedPost.id)
-                (always ClickHappened)
+                Burn _ ->
+                    "Burn DAI to increase this post's visibility"
 
-        Burn input ->
-            unlockOrInputForm
-                dProfile
-                donateChecked
-                (Element.rgba 1 0 0 0.1)
-                input
-                "Burn"
-                --(SupportBurnSubmitClicked publishedPost.id)
-                (always ClickHappened)
+        msg =
+            case showInput of
+                Tip _ ->
+                    SubmitTip post.id
+
+                Burn _ ->
+                    --"Burn DAI to increase this post's visibility"
+                    SubmitBurn post.id
+    in
+    [ text title
+    , Input.text [ Font.color black ]
+        { onChange = ComposeDaiChange
+        , label = Input.labelHidden ""
+        , placeholder =
+            "0"
+                |> text
+                |> Input.placeholder []
+                |> Just
+        , text = input
+        }
+    , [ Input.button
+            [ Font.underline
+            , hover
+            ]
+            { onPress = Just CancelTipOpen
+            , label = text "Cancel"
+            }
+      , Input.button
+            [ Background.color Theme.orange
+            , padding 10
+            , roundBorder
+            , hover
+            , Font.color black
+            ]
+            { onPress = Just msg
+            , label = text "Submit"
+            }
+      ]
+        |> row [ Element.alignRight, spacing 20 ]
+    ]
+        |> column
+            [ Background.color black
+            , spacing 20
+            , padding 20
+            , width fill
+            , Font.color white
+            , View.Attrs.sansSerifFont
+            ]
 
 
 supportTipButton :
@@ -377,7 +403,7 @@ supportTipButton postId =
         , EH.withTitle "Tip DAI for this post, rewarding the author"
         , hover
         ]
-        { onPress = Just <| SetTipOpen postId
+        { onPress = Just <| SetTipOpen <| PostState postId (Types.Tip "")
         , label =
             View.Img.dollar 30 white
                 |> el [ centerX, centerY ]
@@ -388,20 +414,18 @@ supportBurnButton :
     PostId
     -> Element Msg
 supportBurnButton postId =
-    publishedPostActionButton
-        [ EH.withTitle "Burn DAI to increase this post's visibility"
+    Input.button
+        [ height <| px 40
         , Background.color theme.daiBurnedBackground
+        , width <| px 40
+        , EH.withTitle "Burn DAI to increase this post's visibility"
+        , hover
         ]
-        --SupportBurnClicked
-        ClickHappened
-    <|
-        Element.image
-            [ Element.height <| Element.px 14
-            , Element.centerX
-            ]
-            { src = "img/dai-unit-char-white.svg"
-            , description = "support burn"
-            }
+        { onPress = Just <| SetTipOpen <| PostState postId (Types.Burn "")
+        , label =
+            View.Img.dollar 30 white
+                |> el [ centerX, centerY ]
+        }
 
 
 replyButton : PostId -> Element Msg

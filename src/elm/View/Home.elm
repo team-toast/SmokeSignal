@@ -123,25 +123,8 @@ viewOverview model =
                 _ ->
                     Nothing
 
-        dProfile =
-            model.dProfile
-
-        blockTimes =
-            model.blockTimes
-
-        now =
-            model.now
-
         showAddressId =
             model.showAddressId
-
-        demoPhaceSrc =
-            model.demoPhaceSrc
-
-        state =
-            { showAddress = False
-            , showInput = Types.None
-            }
     in
     [ Input.button
         [ View.Attrs.sansSerifFont
@@ -208,26 +191,9 @@ viewOverview model =
                 , whiteGlowAttributeSmall
                 ]
       , posts
-            --|> List.sortBy (feedSortByFunc blockTimes now)
+            |> List.sortBy (feedSortByFunc model.blockTimes model.now)
             |> List.reverse
-            |> List.map
-                (\post ->
-                    View.Post.view
-                        dProfile
-                        (model.blockTimes
-                            |> Dict.get post.core.id.block
-                        )
-                        now
-                        (model.replyIds
-                            |> Dict.get post.core.key
-                            |> Maybe.withDefault Set.empty
-                        )
-                        (model.accounting
-                            |> Dict.get post.core.key
-                        )
-                        post.topic
-                        post.core
-                )
+            |> List.map (viewPost model)
             |> column
                 [ width fill
                 , height fill
@@ -247,6 +213,36 @@ viewOverview model =
             , height fill
             ]
         |> viewFrame model
+
+
+viewPost : Model -> RootPost -> Element Msg
+viewPost model post =
+    View.Post.view
+        model.dProfile
+        (model.blockTimes
+            |> Dict.get post.core.id.block
+        )
+        model.now
+        (model.replyIds
+            |> Dict.get post.core.key
+            |> Maybe.withDefault Set.empty
+        )
+        (model.accounting
+            |> Dict.get post.core.key
+        )
+        (model.tipOpen
+            |> Maybe.andThen
+                (\x ->
+                    if x.id == post.core.id then
+                        Just x.showInput
+
+                    else
+                        Nothing
+                )
+        )
+        model.compose.dai
+        post.topic
+        post.core
 
 
 viewTopic : Model -> String -> Element Msg
@@ -639,34 +635,31 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
             ]
 
 
-feedSortByFunc : Dict Int Time.Posix -> Time.Posix -> (Published -> Float)
-feedSortByFunc blockTimes now =
-    \post ->
-        let
-            postTimeDefaultZero =
-                blockTimes
-                    |> Dict.get post.id.block
-                    |> Maybe.withDefault (Time.millisToPosix 0)
+feedSortByFunc : Dict Int Time.Posix -> Time.Posix -> RootPost -> Float
+feedSortByFunc blockTimes now post =
+    let
+        postTimeDefaultZero =
+            blockTimes
+                |> Dict.get post.core.id.block
+                |> Maybe.withDefault (Time.millisToPosix 0)
 
-            age =
-                TimeHelpers.sub now postTimeDefaultZero
+        age =
+            TimeHelpers.sub now postTimeDefaultZero
 
-            --ageFactor =
-            _ =
-                -- 1 at age zero, falls to 0 when 3 days old
-                TimeHelpers.getRatio
-                    age
-                    (TimeHelpers.mul TimeHelpers.oneDay 90)
-                    |> clamp 0 1
-                    |> (\ascNum -> 1 - ascNum)
+        ageFactor =
+            -- 1 at age zero, falls to 0 when 3 days old
+            TimeHelpers.getRatio
+                age
+                (TimeHelpers.mul TimeHelpers.oneDay 90)
+                |> clamp 0 1
+                |> (\ascNum -> 1 - ascNum)
 
-            totalBurned =
-                Misc.totalBurned (PublishedPost post)
-                    |> TokenValue.toFloatWithWarning
+        totalBurned =
+            --Misc.totalBurned (PublishedPost post)
+            post.core.authorBurn
+                |> TokenValue.toFloatWithWarning
 
-            newnessMultiplier =
-                1
-
-            -- (ageFactor * 4.0) + 1
-        in
-        totalBurned * newnessMultiplier
+        newnessMultiplier =
+            (ageFactor * 4.0) + 1
+    in
+    totalBurned * newnessMultiplier

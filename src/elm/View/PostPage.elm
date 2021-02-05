@@ -72,6 +72,17 @@ view model post =
                     (model.accounting
                         |> Dict.get reply.core.key
                     )
+                    (model.tipOpen
+                        |> Maybe.andThen
+                            (\x ->
+                                if x.id == reply.core.id then
+                                    Just x.showInput
+
+                                else
+                                    Nothing
+                            )
+                    )
+                    model.compose.dai
                     ". . ."
                     reply.core
             )

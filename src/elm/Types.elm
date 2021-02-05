@@ -52,7 +52,7 @@ type alias Model =
     , maybeSeoDescription : Maybe String
     , searchInput : String
     , newUserModal : Bool
-    , tipOpen : Maybe PostId
+    , tipOpen : Maybe PostState
     , config : Config
     , compose : ComposeModel
     , rootPosts : Dict PostKey RootPost
@@ -97,14 +97,15 @@ type Msg
     | SubmitDraft
     | SubmitPost Draft
     | SubmitTip PostId
-    | SubmitBurn PostId TokenValue
+    | SubmitBurn PostId
     | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool
     | EthPriceFetched (Result Http.Error Float)
     | ComposeBodyChange String
     | ComposeTitleChange String
     | ComposeDaiChange String
-    | SetTipOpen PostId
+    | SetTipOpen PostState
+    | CancelTipOpen
 
 
 type alias PostKey =
@@ -151,7 +152,7 @@ type alias Config =
 
 
 type alias PostState =
-    { showAddress : Bool
+    { id : PostId
     , showInput : ShowInputState
     }
 
@@ -162,8 +163,7 @@ type PostUXId
 
 
 type ShowInputState
-    = None
-    | Burn String
+    = Burn String
     | Tip String
 
 
