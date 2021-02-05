@@ -1,7 +1,7 @@
 module View.Post exposing (view)
 
 import Dict exposing (Dict)
-import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
+import Element exposing (Attribute, Color, Element, centerX, centerY, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border
 import Element.Events
@@ -16,7 +16,7 @@ import Theme exposing (almostWhite, theme)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
-import View.Attrs exposing (hover, roundBorder, whiteGlowAttributeSmall)
+import View.Attrs exposing (hover, roundBorder, typeFont, whiteGlowAttributeSmall)
 import View.Common exposing (daiAmountInput, daiSymbol, phaceElement, whenJust)
 import View.Img
 import View.Markdown
@@ -61,6 +61,7 @@ view dProfile timestamp now replies accounting state ethPrice input title post =
             False
             ClickHappened
       , [ viewContent post
+            |> linkToPost post.id
         , [ state
                 |> Maybe.Extra.unwrap
                     (viewActions replies post)
@@ -80,38 +81,43 @@ view dProfile timestamp now replies accounting state ethPrice input title post =
     ]
         |> column
             [ width fill
-            , spacing 5
+            , spacing 10
             ]
         |> el
             [ Background.color black
             , Font.color white
             , whiteGlowAttributeSmall
-            , padding 5
+            , padding 10
             , width fill
+            , typeFont
             ]
+
+
+linkToPost : PostId -> Element Msg -> Element Msg
+linkToPost id elem =
+    Input.button [ width fill, hover ]
+        { onPress = Just <| GotoView <| ViewPost id
+        , label = elem
+        }
 
 
 viewContent : CoreData -> Element Msg
 viewContent post =
-    Input.button [ width fill ]
-        { onPress = Just <| GotoView <| ViewPost post.id
-        , label =
-            [ post.content.title |> whenJust (text >> el [ Font.bold ])
-            , post.content.desc |> whenJust (text >> el [ Font.italic ])
-            , post.content.body
-                |> View.Markdown.renderString
-                    [ height <| px 100
-                    , Element.clip
-                    ]
-                |> Result.toMaybe
-                |> whenJust identity
+    [ post.content.title |> whenJust (text >> el [ Font.bold ])
+    , post.content.desc |> whenJust (text >> el [ Font.italic ])
+    , post.content.body
+        |> View.Markdown.renderString
+            [ height <| px 100
+            , Element.clip
             ]
-                |> column
-                    [ width fill
-                    , View.Attrs.sansSerifFont
-                    , spacing 10
-                    ]
-        }
+        |> Result.toMaybe
+        |> whenJust identity
+    ]
+        |> column
+            [ width fill
+            , View.Attrs.sansSerifFont
+            , spacing 10
+            ]
 
 
 viewActions : Set PostKey -> CoreData -> Element Msg
@@ -127,6 +133,7 @@ viewActions replies post =
                 , text txt
                 ]
                     |> row [ spacing 10, Font.size 23 ]
+                    |> linkToPost post.id
             )
         |> row [ spacing 10, Font.color almostWhite, Font.size 17 ]
     , supportTipButton post.id
@@ -196,48 +203,24 @@ viewAccounting dProfile ethPrice accounting =
     Element.row
         [ spacing 5
         ]
-        [ viewDaiBurned dProfile accounting.totalBurned ethPrice
-        , viewDaiTipped dProfile accounting.totalTipped ethPrice
+        [ viewAmount theme.daiTippedBackground accounting.totalTipped ethPrice
+        , viewAmount theme.daiBurnedBackground accounting.totalBurned ethPrice
         ]
 
 
-commonDaiElStyles : List (Element.Attribute Msg)
-commonDaiElStyles =
-    [ Element.spacing 3
-    , Element.padding 3
-    , Element.Border.rounded 3
-    , Font.size 14
+viewAmount : Color -> TokenValue -> Float -> Element Msg
+viewAmount color amount ethPrice =
+    [ View.Img.dollar 22 white
+    , Misc.tokenToDollar ethPrice amount
+        |> text
     ]
-
-
-viewDaiBurned : DisplayProfile -> TokenValue -> Float -> Element Msg
-viewDaiBurned dProfile amount ethPrice =
-    Element.row
-        (commonDaiElStyles
-            ++ [ Background.color theme.daiBurnedBackground ]
-        )
-        [ daiSymbol True [ Element.height <| Element.px 14 ]
-        , Element.el
-            [ Font.color EH.white ]
-          <|
-            Element.text <|
-                Misc.tokenToDollar ethPrice amount
-        ]
-
-
-viewDaiTipped : DisplayProfile -> TokenValue -> Float -> Element Msg
-viewDaiTipped dProfile amount ethPrice =
-    Element.row
-        (commonDaiElStyles
-            ++ [ Background.color theme.daiTippedBackground ]
-        )
-        [ daiSymbol True [ Element.height <| Element.px 14 ]
-        , Element.el
-            [ Font.color EH.white ]
-          <|
-            Element.text <|
-                Misc.tokenToDollar ethPrice amount
-        ]
+        |> row
+            [ Element.padding 3
+            , Element.Border.rounded 3
+            , Font.size 22
+            , Font.color white
+            , Background.color color
+            ]
 
 
 viewContext :
@@ -337,10 +320,10 @@ viewInput dProfile post input showInput =
         title =
             case showInput of
                 Tip _ ->
-                    "Tip DAI for this post, rewarding the author"
+                    "Tip Ether for this post, rewarding the author."
 
                 Burn _ ->
-                    "Burn DAI to increase this post's visibility"
+                    "Burn Ether to increase the visibility of this post."
 
         msg =
             case showInput of
@@ -356,7 +339,7 @@ viewInput dProfile post input showInput =
         { onChange = ComposeDaiChange
         , label = Input.labelHidden ""
         , placeholder =
-            "0"
+            "0.0"
                 |> text
                 |> Input.placeholder []
                 |> Just
