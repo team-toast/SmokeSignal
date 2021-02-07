@@ -1,4 +1,4 @@
-module View.Home exposing (banner, viewOverview, viewTopic)
+module View.Home exposing (view)
 
 import Dict exposing (Dict)
 import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
@@ -9,122 +9,32 @@ import Element.Input as Input
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Helpers.Time as TimeHelpers
-import Maybe.Extra
-import Misc
-import Set exposing (Set)
-import Theme exposing (almostWhite, orange)
+import Set
+import Theme exposing (orange)
 import Time
-import TokenValue exposing (TokenValue)
+import TokenValue
 import Types exposing (..)
-import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
+import View.Attrs exposing (hover, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common exposing (phaceElement)
 import View.Img
 import View.Post
-import View.Topic
-import Wallet
 
 
 view : Model -> Element Msg
 view model =
     case model.dProfile of
         Desktop ->
-            --viewDesktop model
-            text "mobile view"
+            viewDesktop model
 
         Mobile ->
             text "mobile view"
 
 
-viewModals : DisplayProfile -> Bool -> List (Element Msg)
-viewModals dProfile showNewToSmokeSignalModal =
-    Maybe.Extra.values
-        [ if showNewToSmokeSignalModal == True then
-            --Just <|
-            --EH.modal
-            --(Element.rgba 0 0 0 0.25)
-            --False
-            --CloseNewToSmokeSignalModal
-            --CloseNewToSmokeSignalModal
-            --<|
-            --viewNewToSmokeSignalModal dProfile
-            Nothing
-
-          else
-            Nothing
-        ]
-
-
-banner : DisplayProfile -> Element Msg
-banner dProfile =
-    [ text "REAL FREE SPEECH."
-    , text "ETERNALLY UNMUTABLE."
-    ]
-        |> column
-            [ spacing 10
-            , centerX
-            , centerY
-            , Font.color EH.white
-            , View.Attrs.sansSerifFont
-            , Font.bold
-            , Font.size 30
-            ]
-        |> el
-            [ width fill
-            , Element.height <| Element.px 120
-            , Background.color EH.black
-            , whiteGlowAttribute
-            ]
-
-
-viewFrame : Model -> Element Msg -> Element Msg
-viewFrame model elem =
-    [ banner model.dProfile
-    , [ elem
-      , [ walletUXPane model.dProfile model.showAddressId model.demoPhaceSrc model.wallet
-        , viewTopics model.ethPrice model.topics
-        ]
-            |> column
-                [ cappedWidth 400
-                , spacing 10
-                , height fill
-                ]
-      ]
-        |> row
-            [ width fill
-            , height fill
-            , spacing 10
-            ]
-    ]
-        |> column
-            ([ width fill
-             , height fill
-             , spacing 10
-             ]
-                ++ (List.map Element.inFront <|
-                        viewModals
-                            model.dProfile
-                            --model.showNewToSmokeSignalModal
-                            False
-                   )
-            )
-
-
-viewOverview : Model -> Element Msg
-viewOverview model =
+viewDesktop : Model -> Element Msg
+viewDesktop model =
     let
         posts =
             Dict.values model.rootPosts
-
-        maybeShowAddressForPostId =
-            case showAddressId of
-                Just (PhaceForPublishedPost id) ->
-                    Just id
-
-                _ ->
-                    Nothing
-
-        showAddressId =
-            model.showAddressId
     in
     [ Input.button
         [ View.Attrs.sansSerifFont
@@ -144,67 +54,15 @@ viewOverview model =
                 |> text
                 |> Element.el [ centerX ]
         }
-    , [ [ [ "Topics"
-                |> text
-                |> el [ Font.size 35 ]
-          , Input.text
-                [ width fill
-                , Background.color EH.black
-                , Border.color Theme.almostWhite
-                , whiteGlowAttributeSmall
-                , Font.color EH.white
-                ]
-                { onChange = always ClickHappened
-                , text = ""
-                , placeholder =
-                    Just <|
-                        Input.placeholder
-                            [ Font.color EH.white
-                            , Font.italic
-                            ]
-                            (Element.text "Find or Create Topic...")
-                , label = Input.labelHidden "topic"
-                }
-          ]
-            |> row
-                [ width fill
-                , Background.color black
-                , spacing 50
-                , Font.color white
-                , padding 15
-                ]
-        , "MORE RECENT POSTS..."
-            |> text
-            |> el
-                [ View.Attrs.sansSerifFont
-                , padding 10
-                , slightRound
-                , Background.color Theme.orange
-                , Font.bold
-                , Font.color white
-                , Font.size 20
-                , width fill
-                ]
-        ]
-            |> column
-                [ width fill
-                , whiteGlowAttributeSmall
-                ]
-      , posts
-            |> List.sortBy (feedSortByFunc model.blockTimes model.now)
-            |> List.reverse
-            |> List.map (viewPost model)
-            |> column
-                [ width fill
-                , height fill
-                , spacing 5
-                , paddingXY 0 5
-                ]
-      ]
+    , posts
+        |> List.sortBy (feedSortByFunc model.blockTimes model.now)
+        |> List.reverse
+        |> List.map (viewPost model)
         |> column
             [ width fill
-            , Element.spacing 3
             , height fill
+            , spacing 5
+            , paddingXY 0 5
             ]
     ]
         |> column
@@ -212,7 +70,6 @@ viewOverview model =
             , width fill
             , height fill
             ]
-        |> viewFrame model
 
 
 viewPost : Model -> RootPost -> Element Msg
@@ -244,12 +101,6 @@ viewPost model post =
         model.compose.dai
         post.topic
         post.core
-
-
-viewTopic : Model -> String -> Element Msg
-viewTopic model topic =
-    View.Topic.view model topic
-        |> viewFrame model
 
 
 orangeBannerEl :
@@ -451,191 +302,6 @@ viewBookmarkedTopics =
         |> column
             [ width fill
             , whiteGlowAttributeSmall
-            ]
-
-
-viewTopics : Float -> Dict String TokenValue -> Element Msg
-viewTopics ethPrice topics =
-    [ [ View.Img.bookmark 17 orange
-            |> el [ centerX, centerY ]
-            |> el [ height <| px 30, width <| px 30, Background.color black ]
-      , text "Topics"
-            |> el [ centerX ]
-      ]
-        |> row
-            [ width fill
-            , height <| px 30
-            , Background.color Theme.orange
-            , slightRound
-            ]
-    , topics
-        |> Dict.toList
-        |> List.sortBy
-            (Tuple.second
-                >> TokenValue.toFloatWithWarning
-                >> negate
-            )
-        |> List.map
-            (\( topic, totalBurned ) ->
-                Input.button
-                    [ width fill
-                    , whiteGlowAttributeSmall
-                    , Background.color black
-                    , Font.color white
-                    , paddingXY 15 5
-                    , hover
-                    ]
-                    { onPress = Just <| GotoView <| ViewTopic topic
-                    , label =
-                        [ topic
-                            |> text
-                            |> el [ width fill, Font.size 30 ]
-                        , [ View.Img.dollar 25 white
-                          , totalBurned
-                                |> Misc.tokenToDollar ethPrice
-                                |> text
-                                |> el [ Font.size 25, Font.bold ]
-                          ]
-                            |> row []
-                        ]
-                            |> row
-                                [ width fill
-                                ]
-                    }
-            )
-        |> column [ width fill ]
-    ]
-        |> column
-            [ width fill
-            , whiteGlowAttributeSmall
-            ]
-
-
-walletUXPane :
-    DisplayProfile
-    -> Maybe PhaceIconId
-    -> String
-    -> Types.Wallet
-    -> Element Msg
-walletUXPane dProfile showAddressId demoPhaceSrc wallet =
-    let
-        phaceEl =
-            case Wallet.userInfo wallet of
-                Nothing ->
-                    phaceElement
-                        ( 80, 80 )
-                        True
-                        (Eth.Utils.unsafeToAddress demoPhaceSrc)
-                        (showAddressId == Just DemoPhace)
-                        (ShowOrHideAddress DemoPhace)
-                        |> el
-                            [ Border.rounded 10
-                            , Border.glow
-                                (Element.rgba 1 0 1 0.3)
-                                9
-                            ]
-
-                Just userInfo ->
-                    phaceElement
-                        ( 100, 100 )
-                        True
-                        userInfo.address
-                        (showAddressId == Just UserPhace)
-                        (ShowOrHideAddress UserPhace)
-                        |> el
-                            [ Border.rounded 10
-                            , Border.glow
-                                (Element.rgba 0 0.5 1 0.4)
-                                9
-                            ]
-
-        ( buttonText, maybeButtonAction, maybeExplainerText ) =
-            case wallet of
-                Types.NoneDetected ->
-                    ( "Install Metamask"
-                    , Just <| EH.NewTabLink "https://metamask.io/"
-                    , Just "Then come back to try on some phaces!"
-                    )
-
-                Types.OnlyNetwork _ ->
-                    ( "Connect Wallet"
-                    , Just <| EH.Action ConnectToWeb3
-                    , Just "Each address has a unique phace!"
-                    )
-
-                Types.Active userInfo ->
-                    let
-                        userHasNoEth =
-                            userInfo.balance
-                                |> Maybe.map TokenValue.isZero
-                                |> Maybe.withDefault False
-                    in
-                    if userHasNoEth then
-                        ( "Compose Post"
-                        , Nothing
-                        , Just "That address has no ETH! You need ETH to post on SmokeSignal."
-                        )
-
-                    else
-                        ( "Compose Post"
-                        , Just <| EH.Action <| ComposeToggle
-                        , Nothing
-                        )
-
-        button =
-            let
-                attributes =
-                    [ paddingXY 10 5
-                    , width fill
-                    ]
-                        ++ (case maybeExplainerText of
-                                Nothing ->
-                                    [ Element.centerY
-                                    ]
-
-                                _ ->
-                                    []
-                           )
-            in
-            case maybeButtonAction of
-                Just buttonAction ->
-                    Theme.unscaryButton
-                        dProfile
-                        attributes
-                        [ buttonText ]
-                        buttonAction
-
-                Nothing ->
-                    Theme.disabledButton
-                        dProfile
-                        attributes
-                        buttonText
-
-        explainerParagraphOrNone =
-            maybeExplainerText
-                |> Maybe.map
-                    (\text ->
-                        Element.paragraph
-                            [ Font.color EH.white
-                            , Font.size 16
-                            ]
-                            [ Element.text text ]
-                    )
-                |> Maybe.withDefault Element.none
-    in
-    [ phaceEl
-    , column
-        [ width fill
-        , spaceEvenly
-        , height fill
-        ]
-        [ button
-        , explainerParagraphOrNone
-        ]
-    ]
-        |> row
-            [ width fill
-            , spacing 10
             ]
 
 

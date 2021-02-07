@@ -50,7 +50,7 @@ type alias Model =
     , demoPhaceSrc : String
     , cookieConsentGranted : Bool
     , maybeSeoDescription : Maybe String
-    , searchInput : String
+    , topicInput : String
     , newUserModal : Bool
     , tipOpen : Maybe PostState
     , config : Config
@@ -104,6 +104,7 @@ type Msg
     | ComposeBodyChange String
     | ComposeTitleChange String
     | ComposeDaiChange String
+    | TopicInputChange String
     | SetTipOpen PostState
     | CancelTipOpen
 
@@ -172,6 +173,7 @@ type View
     | ViewCompose Context
     | ViewPost PostId
     | ViewTopic String
+    | ViewTopics
 
 
 type alias UserInfo =
@@ -321,3 +323,4 @@ type Route
     | RouteViewTopic String
     | RouteMalformedTopic
     | RouteInvalid
+    | RouteTopics

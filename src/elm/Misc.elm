@@ -1,7 +1,7 @@
-module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, tokenToDollar, totalBurned, tryRouteToView, txInfoToNameStr, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, withBalance)
+module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, totalBurned, tryRouteToView, txInfoToNameStr, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, withBalance)
 
 import Browser.Navigation
-import Dict
+import Dict exposing (Dict)
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Hex, TxHash)
@@ -44,7 +44,7 @@ emptyModel key =
     , demoPhaceSrc = initDemoPhaceSrc
     , cookieConsentGranted = False
     , maybeSeoDescription = Nothing
-    , searchInput = ""
+    , topicInput = ""
     , config =
         Types.Config
             (Eth.Utils.unsafeToAddress "")
@@ -102,6 +102,9 @@ getTitle model =
     in
     case model.view of
         ViewHome ->
+            defaultMain
+
+        ViewTopics ->
             defaultMain
 
         ViewCompose _ ->
@@ -309,6 +312,9 @@ tryRouteToView route =
         RouteHome ->
             Ok ViewHome
 
+        RouteTopics ->
+            Ok ViewHome
+
         RouteViewPost postId ->
             Ok <| ViewPost postId
 
@@ -342,3 +348,13 @@ tokenToDollar eth tv =
                 else
                     str
            )
+
+
+sortTopics : Dict String TokenValue -> List ( String, TokenValue )
+sortTopics =
+    Dict.toList
+        >> List.sortBy
+            (Tuple.second
+                >> TokenValue.toFloatWithWarning
+                >> negate
+            )

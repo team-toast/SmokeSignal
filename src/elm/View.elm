@@ -2,7 +2,7 @@ module View exposing (view)
 
 import Browser
 import Dict
-import Element exposing (Attribute, Element, column, el, fill, height, padding, paddingXY, px, row, spacing, text, width)
+import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events
@@ -20,12 +20,15 @@ import Time
 import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
-import View.Attrs exposing (cappedWidth, hover, roundBorder, whiteGlowAttribute, whiteGlowAttributeSmall)
-import View.Common exposing (appStatusMessage, viewContext, whenJust)
+import View.Attrs exposing (cappedWidth, hover, whiteGlowAttribute, whiteGlowAttributeSmall)
+import View.Common exposing (appStatusMessage, viewContext)
 import View.Compose
 import View.Home
 import View.Modal
 import View.PostPage
+import View.Sidebar
+import View.Topic
+import View.Topics
 
 
 view : Model -> Browser.Document Msg
@@ -85,7 +88,7 @@ viewPage model =
 
 header : Model -> Element Msg
 header model =
-    [ Input.button []
+    [ Input.button [ hover ]
         { onPress = Just <| GotoView ViewHome
         , label =
             Element.image
@@ -109,6 +112,7 @@ header model =
                 |> Just
         , text = ""
         }
+        |> View.Common.when False
     , [ --     Element.image
         --         [ height <| px 50
         --         ]
@@ -196,7 +200,12 @@ viewBody : Model -> Element Msg
 viewBody model =
     case model.view of
         ViewHome ->
-            View.Home.viewOverview model
+            View.Home.view model
+                |> viewFrame model
+
+        ViewTopics ->
+            View.Topics.view model
+                |> viewFrame model
 
         ViewCompose _ ->
             View.Compose.view model
@@ -220,9 +229,78 @@ viewBody model =
                         "Loading post..."
                     )
                     (View.PostPage.view model)
+                |> viewFrame model
 
         ViewTopic topic ->
-            View.Home.viewTopic model topic
+            View.Topic.view model topic
+                |> viewFrame model
+
+
+viewFrame : Model -> Element Msg -> Element Msg
+viewFrame model elem =
+    [ banner model.dProfile
+    , [ elem
+      , View.Sidebar.view model
+      ]
+        |> row
+            [ width fill
+            , height fill
+            , spacing 10
+            ]
+    ]
+        |> column
+            ([ width fill
+             , height fill
+             , spacing 10
+             ]
+                ++ (List.map Element.inFront <|
+                        viewModals
+                            model.dProfile
+                            --model.showNewToSmokeSignalModal
+                            False
+                   )
+            )
+
+
+banner : DisplayProfile -> Element Msg
+banner dProfile =
+    [ text "REAL FREE SPEECH."
+    , text "ETERNALLY UNMUTABLE."
+    ]
+        |> column
+            [ spacing 10
+            , centerX
+            , centerY
+            , Font.color EH.white
+            , View.Attrs.sansSerifFont
+            , Font.bold
+            , Font.size 30
+            ]
+        |> el
+            [ width fill
+            , Element.height <| Element.px 120
+            , Background.color EH.black
+            , whiteGlowAttribute
+            ]
+
+
+viewModals : DisplayProfile -> Bool -> List (Element Msg)
+viewModals dProfile showNewToSmokeSignalModal =
+    Maybe.Extra.values
+        [ if showNewToSmokeSignalModal == True then
+            --Just <|
+            --EH.modal
+            --(Element.rgba 0 0 0 0.25)
+            --False
+            --CloseNewToSmokeSignalModal
+            --CloseNewToSmokeSignalModal
+            --<|
+            --viewNewToSmokeSignalModal dProfile
+            Nothing
+
+          else
+            Nothing
+        ]
 
 
 modals : Model -> List (Element Msg)

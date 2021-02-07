@@ -20,6 +20,8 @@ routeParser =
         , Parser.s "topic"
             </> topicParser
             |> Parser.map (Maybe.Extra.unwrap RouteMalformedTopic RouteViewTopic)
+        , Parser.s "topics"
+            |> Parser.map RouteTopics
         ]
 
 
@@ -28,25 +30,28 @@ viewToUrlString basePath view =
     basePath
         ++ (case view of
                 ViewHome ->
-                    Builder.relative
-                        [ "#!" ]
-                        []
+                    hashBangPath [] []
+
+                ViewTopics ->
+                    hashBangPath [ "topics" ] []
 
                 ViewPost postId ->
-                    Builder.relative
-                        [ "#!", "post" ]
+                    hashBangPath [ "post" ]
                         (encodePostIdQueryParameters postId)
 
                 ViewTopic topic ->
-                    Builder.relative
-                        [ "#!", "topic", encodeTopic topic ]
-                        []
+                    hashBangPath [ "topic", encodeTopic topic ] []
 
                 ViewCompose _ ->
-                    Builder.relative
-                        [ "#!" ]
-                        []
+                    hashBangPath [] []
            )
+
+
+hashBangPath : List String -> List Builder.QueryParameter -> String
+hashBangPath parts queryParams =
+    Builder.relative
+        ("#!" :: parts)
+        queryParams
 
 
 

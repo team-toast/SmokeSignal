@@ -29,15 +29,11 @@ view model post =
                 ]
       , Input.button [ Background.color Theme.orange, padding 20, roundBorder, hover ]
             { onPress = Just <| GotoView ViewHome
-            , label =
-                [ View.Img.replyArrow 20 black
-                , text "Go back"
-                ]
-                    |> row [ spacing 10 ]
+            , label = text "Go back"
             }
       ]
         |> row
-            [ spacing 20
+            [ spacing 10
             , width fill
             ]
     , post.content.body
@@ -102,7 +98,6 @@ view model post =
             [ height fill
             , spacing 20
             , width fill
-            , padding 20
             , sansSerifFont
             , Input.button
                 [ Background.color Theme.orange
@@ -118,9 +113,9 @@ view model post =
                         |> row [ spacing 10 ]
                 }
                 |> el
-                    [ padding 20
-                    , Element.alignRight
+                    [ Element.alignRight
                     , Element.alignBottom
+                    , Element.moveUp 20
                     ]
                 |> Element.inFront
             ]
