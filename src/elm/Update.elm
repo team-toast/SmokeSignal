@@ -54,6 +54,13 @@ update msg model =
 
         RouteChanged route ->
             case route of
+                RouteTopics ->
+                    ( { model
+                        | view = ViewTopics
+                      }
+                    , Cmd.none
+                    )
+
                 RouteHome ->
                     ( { model
                         | view = ViewHome
@@ -571,7 +578,7 @@ update msg model =
                                                     Types.Reply id
 
                                                 _ ->
-                                                    Types.TopLevel Post.defaultTopic
+                                                    Types.TopLevel model.topicInput
                                         , maybeDecodeError = Nothing
                                         }
 
@@ -787,6 +794,17 @@ update msg model =
                 | compose =
                     model.compose
                         |> (\r -> { r | modal = not r.modal })
+                , topicInput =
+                    case model.view of
+                        ViewTopic t ->
+                            t
+
+                        _ ->
+                            if String.isEmpty model.topicInput then
+                                Post.defaultTopic
+
+                            else
+                                model.topicInput
               }
             , Cmd.none
             )
@@ -814,6 +832,13 @@ update msg model =
                 | compose =
                     model.compose
                         |> (\r -> { r | dai = str })
+              }
+            , Cmd.none
+            )
+
+        TopicInputChange str ->
+            ( { model
+                | topicInput = str
               }
             , Cmd.none
             )

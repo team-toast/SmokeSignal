@@ -60,20 +60,26 @@ viewBox model userInfo =
             , Font.size 20
             , width fill
             ]
-    , [ [ Input.text
-            [ width fill
-            , View.Attrs.whiteGlowAttributeSmall
-            , Element.alignTop
-            ]
-            { onChange = ComposeTitleChange
-            , label = Input.labelHidden ""
-            , placeholder =
-                "Post Title"
-                    |> text
-                    |> Input.placeholder []
-                    |> Just
-            , text = model.compose.title
-            }
+    , [ [ [ Input.text
+                [ width fill
+                , View.Attrs.whiteGlowAttributeSmall
+                ]
+                { onChange = ComposeTitleChange
+                , label = Input.labelHidden ""
+                , placeholder =
+                    "Post Title"
+                        |> text
+                        |> Input.placeholder []
+                        |> Just
+                , text = model.compose.title
+                }
+          , model.topicInput
+                |> (++) "#"
+                |> text
+                |> el [ Font.color orange, centerY ]
+                |> el [ height fill, Font.size 25, Font.bold ]
+          ]
+            |> column [ width fill, height fill ]
         , [ text "🔥"
                 |> el [ Font.size 30 ]
           , text "BURN"
