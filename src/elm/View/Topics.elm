@@ -34,6 +34,7 @@ view model =
             , Border.color Theme.almostWhite
             , whiteGlowAttributeSmall
             , Font.color white
+            , View.Attrs.onKeydown [ View.Attrs.onEnter ComposeOpen ]
             ]
             { onChange = TopicInputChange
             , text = model.topicInput
