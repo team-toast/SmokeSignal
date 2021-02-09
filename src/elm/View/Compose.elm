@@ -16,6 +16,7 @@ import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
 import View.Common exposing (appStatusMessage, daiAmountInput, phaceElement, shortenedHash, viewContext, web3ConnectButton, whenAttr, whenJust, wrapModal)
+import View.Img
 import View.Markdown
 import Wallet
 
@@ -37,7 +38,7 @@ view model =
                     ]
             )
             (viewBox model)
-        |> wrapModal ComposeToggle
+        |> wrapModal ComposeClose
 
 
 viewBox : Model -> UserInfo -> Element Msg
@@ -73,11 +74,17 @@ viewBox model userInfo =
                         |> Just
                 , text = model.compose.title
                 }
-          , model.topicInput
-                |> (++) "#"
-                |> text
-                |> el [ Font.color orange, centerY ]
-                |> el [ height fill, Font.size 25, Font.bold ]
+          , case model.compose.context of
+                TopLevel topic ->
+                    "#"
+                        ++ topic
+                        |> text
+                        |> el [ Font.color orange, centerY ]
+                        |> el [ height fill, Font.size 25, Font.bold ]
+
+                Reply _ ->
+                    View.Img.replyArrow 25 orange
+                        |> el [ centerY ]
           ]
             |> column [ width fill, height fill ]
         , [ text "🔥"
@@ -259,7 +266,7 @@ viewBody dProfile donateChecked wallet showAddressId model =
                     , Element.alignRight
                     ]
                     (Element.rgb 0.3 0.3 0.3)
-                    ComposeToggle
+                    ComposeOpen
             ]
     in
     case dProfile of

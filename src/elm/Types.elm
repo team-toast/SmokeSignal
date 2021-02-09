@@ -86,7 +86,8 @@ type Msg
       -- | RestoreDraft Draft
     | DismissNotice Int
     | ClickHappened
-    | ComposeToggle
+    | ComposeOpen
+    | ComposeClose
     | BalanceFetched Address (Result Http.Error TokenValue)
     | CookieConsentGranted
     | StartInlineCompose Context
@@ -142,6 +143,7 @@ type alias ComposeModel =
     , body : String
     , modal : Bool
     , donate : Bool
+    , context : Context
     }
 
 
@@ -321,6 +323,5 @@ type Route
     | RouteViewPost PostId
     | RouteMalformedPostId
     | RouteViewTopic String
-    | RouteMalformedTopic
     | RouteInvalid
     | RouteTopics

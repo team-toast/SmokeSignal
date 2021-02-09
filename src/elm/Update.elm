@@ -94,22 +94,26 @@ update msg model =
                     )
 
                 RouteViewTopic topic ->
-                    ( { model
-                        | view = ViewTopic topic
-                      }
-                    , "Discussions related to #"
-                        ++ topic
-                        ++ " on SmokeSignal"
-                        |> Ports.setDescription
-                    )
-
-                RouteMalformedTopic ->
-                    ( { model
-                        | userNotices =
-                            [ UN.routeNotFound Nothing ]
-                      }
-                    , Cmd.none
-                    )
+                    topic
+                        |> Misc.validateTopic
+                        |> unwrap
+                            ( { model
+                                | userNotices =
+                                    [ UN.routeNotFound Nothing ]
+                                , view = ViewHome
+                              }
+                            , Cmd.none
+                            )
+                            (\t ->
+                                ( { model
+                                    | view = ViewTopic t
+                                  }
+                                , "Discussions related to #"
+                                    ++ topic
+                                    ++ " on SmokeSignal"
+                                    |> Ports.setDescription
+                                )
+                            )
 
         Tick newTime ->
             ( { model | now = newTime }, Cmd.none )
@@ -569,16 +573,7 @@ update msg model =
                                     metadata =
                                         { metadataVersion =
                                             Post.currentMetadataVersion
-                                        , context =
-                                            case model.view of
-                                                ViewTopic t ->
-                                                    Types.TopLevel t
-
-                                                ViewPost id ->
-                                                    Types.Reply id
-
-                                                _ ->
-                                                    Types.TopLevel model.topicInput
+                                        , context = model.compose.context
                                         , maybeDecodeError = Nothing
                                         }
 
@@ -789,22 +784,42 @@ update msg model =
             , Ports.setVisited ()
             )
 
-        ComposeToggle ->
+        ComposeOpen ->
             ( { model
                 | compose =
                     model.compose
-                        |> (\r -> { r | modal = not r.modal })
-                , topicInput =
-                    case model.view of
-                        ViewTopic t ->
-                            t
+                        |> (\r ->
+                                { r
+                                    | modal = True
+                                    , context =
+                                        case model.view of
+                                            ViewTopic t ->
+                                                Types.TopLevel t
 
-                        _ ->
-                            if String.isEmpty model.topicInput then
-                                Post.defaultTopic
+                                            ViewPost id ->
+                                                Types.Reply id
 
-                            else
-                                model.topicInput
+                                            _ ->
+                                                model.topicInput
+                                                    |> Misc.validateTopic
+                                                    |> Maybe.withDefault Post.defaultTopic
+                                                    |> Types.TopLevel
+                                }
+                           )
+                , topicInput = ""
+              }
+            , Cmd.none
+            )
+
+        ComposeClose ->
+            ( { model
+                | compose =
+                    model.compose
+                        |> (\r ->
+                                { r
+                                    | modal = False
+                                }
+                           )
               }
             , Cmd.none
             )
@@ -997,15 +1012,6 @@ fetchEthBalanceCmd config address =
         address
         |> Task.map TokenValue.tokenValue
         |> Task.attempt (BalanceFetched address)
-
-
-getBlockTimeCmd : String -> Int -> Cmd Msg
-getBlockTimeCmd httpProviderUrl blocknum =
-    Eth.getBlock
-        httpProviderUrl
-        blocknum
-        |> Task.map .timestamp
-        |> Task.attempt (BlockTimeFetched blocknum)
 
 
 addUserNotice :

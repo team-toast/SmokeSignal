@@ -105,7 +105,7 @@ view model post =
                 , roundBorder
                 , hover
                 ]
-                { onPress = Just ComposeToggle
+                { onPress = Just ComposeOpen
                 , label =
                     [ View.Img.replyArrow 20 black
                     , text "Reply"

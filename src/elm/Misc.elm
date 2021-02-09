@@ -1,4 +1,4 @@
-module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, totalBurned, tryRouteToView, txInfoToNameStr, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, withBalance)
+module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, totalBurned, tryRouteToView, txInfoToNameStr, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, validateTopic, withBalance)
 
 import Browser.Navigation
 import Dict exposing (Dict)
@@ -13,7 +13,8 @@ import Json.Encode as E
 import List.Extra
 import Maybe.Extra exposing (unwrap)
 import Ports
-import Set
+import Post
+import String.Extra
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
@@ -56,6 +57,7 @@ emptyModel key =
         , body = ""
         , modal = False
         , donate = False
+        , context = TopLevel Post.defaultTopic
         }
     , tipOpen = Nothing
     , rootPosts = Dict.empty
@@ -164,10 +166,10 @@ txInfoToNameStr txInfo =
         PostTx _ ->
             "Post Submit"
 
-        TipTx postId amount ->
+        TipTx _ _ ->
             "Tip"
 
-        BurnTx postId amount ->
+        BurnTx _ _ ->
             "Burn"
 
 
@@ -313,19 +315,19 @@ tryRouteToView route =
             Ok ViewHome
 
         RouteTopics ->
-            Ok ViewHome
+            Ok ViewTopics
 
         RouteViewPost postId ->
             Ok <| ViewPost postId
 
         RouteViewTopic topic ->
-            Ok <| ViewTopic topic
+            topic
+                |> validateTopic
+                |> Maybe.map ViewTopic
+                |> Result.fromMaybe "Malformed topic"
 
         RouteMalformedPostId ->
             Err "Malformed post ID"
-
-        RouteMalformedTopic ->
-            Err "Malformed topic"
 
         RouteInvalid ->
             Err "Path not found"
@@ -358,3 +360,17 @@ sortTopics =
                 >> TokenValue.toFloatWithWarning
                 >> negate
             )
+
+
+validateTopic : String -> Maybe String
+validateTopic =
+    String.toLower
+        >> String.Extra.clean
+        >> String.replace " " "-"
+        >> (\str ->
+                if String.isEmpty str then
+                    Nothing
+
+                else
+                    Just str
+           )

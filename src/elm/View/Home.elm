@@ -1,22 +1,18 @@
 module View.Home exposing (view)
 
 import Dict exposing (Dict)
-import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
+import Element exposing (Element, centerX, column, el, fill, height, padding, paddingXY, spacing, text, width)
 import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
+import Helpers.Element exposing (DisplayProfile(..), white)
 import Helpers.Time as TimeHelpers
 import Set
 import Theme exposing (orange)
 import Time
 import TokenValue
 import Types exposing (..)
-import View.Attrs exposing (hover, slightRound, whiteGlowAttribute, whiteGlowAttributeSmall)
-import View.Common exposing (phaceElement)
-import View.Img
+import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
 import View.Post
 
 
@@ -101,208 +97,6 @@ viewPost model post =
         model.compose.dai
         post.topic
         post.core
-
-
-orangeBannerEl :
-    DisplayProfile
-    -> List (Attribute Msg)
-    -> Int
-    -> Int
-    -> String
-    -> Element Msg
-orangeBannerEl dProfile attributes fontSize paddingVal bannerText =
-    el
-        ([ width fill
-         , padding paddingVal
-         , Font.size fontSize
-         , Background.color Theme.orange
-         , Font.semiBold
-         , Font.color EH.white
-         , whiteGlowAttribute
-         , Border.rounded 10
-         ]
-            ++ attributes
-        )
-    <|
-        Element.text bannerText
-
-
-topicsUX : DisplayProfile -> String -> Element Msg
-topicsUX dProfile topicsSearchInput =
-    [ Input.button
-        [ padding 5
-        , slightRound
-        , Background.color Theme.orange
-        , Font.size 20
-        , width fill
-        , whiteGlowAttributeSmall
-        , hover
-        ]
-        { onPress = Nothing
-        , label =
-            text "See All Topics"
-                |> el [ centerX ]
-        }
-    , viewBookmarkedTopics
-    , viewTopTrending
-    , viewTopVoices
-    ]
-        |> column
-            [ spacing 10
-            , width fill
-            , height fill
-            ]
-
-
-viewTopTrending : Element msg
-viewTopTrending =
-    [ text "Top 3 Trending"
-        |> el [ centerX ]
-        |> el
-            [ Font.size 20
-            , width fill
-            , Background.color Theme.orange
-            , slightRound
-            , padding 5
-            ]
-    , [ "Misc"
-      , "Sovereign-Network"
-      , "Censorship"
-      ]
-        |> List.map
-            (\txt ->
-                [ txt
-                    |> text
-                    |> el [ width fill, Font.size 20 ]
-                , 7
-                    |> String.fromInt
-                    |> text
-                    |> el [ Font.size 30, Font.bold ]
-                ]
-                    |> row
-                        [ width fill
-                        , whiteGlowAttributeSmall
-                        , Background.color black
-                        , Font.color white
-                        , paddingXY 15 5
-                        ]
-            )
-        |> column
-            [ width fill
-            , height <| px 120
-            , Element.scrollbarY
-            ]
-    ]
-        |> column
-            [ width fill
-            , whiteGlowAttributeSmall
-            ]
-
-
-viewTopVoices : Element Msg
-viewTopVoices =
-    [ text "Top 3 Voices"
-        |> el [ centerX ]
-        |> el
-            [ Font.size 20
-            , width fill
-            , Background.color Theme.orange
-            , slightRound
-            , padding 5
-            ]
-    , List.range 0 2
-        |> List.map
-            ([ phaceElement
-                ( 50, 50 )
-                False
-                (Eth.Utils.unsafeToAddress "5257af4ab3b9d719897195658da427dcbbebf048")
-                False
-                (ShowOrHideAddress DemoPhace)
-             , [ "0x10c4...f736"
-                    |> text
-                    |> el [ Font.size 17 ]
-               , "(.eth permalink)"
-                    |> text
-                    |> el [ Font.size 13 ]
-               ]
-                |> row [ width fill, spaceEvenly, paddingXY 10 0 ]
-             ]
-                |> row
-                    [ width fill
-                    , spaceEvenly
-                    , whiteGlowAttributeSmall
-                    , Background.color black
-                    , Font.color white
-                    ]
-                |> always
-            )
-        |> column [ width fill ]
-    ]
-        |> column
-            [ width fill
-            , whiteGlowAttributeSmall
-            ]
-
-
-viewBookmarkedTopics : Element Msg
-viewBookmarkedTopics =
-    [ [ View.Img.bookmark 17 orange
-            |> el [ centerX, centerY ]
-            |> el [ height <| px 30, width <| px 30, Background.color black ]
-      , Input.button
-            [ Font.size 20
-            , width fill
-            ]
-            { onPress = Nothing
-            , label =
-                text "Bookmarked Topics"
-                    |> el [ centerX ]
-            }
-      ]
-        |> row
-            [ width fill
-            , height <| px 30
-            , Background.color Theme.orange
-            , slightRound
-            ]
-    , [ "Games"
-      , "Misc"
-      , "Sovereign-Network"
-      , "Meta"
-      , "Censorship"
-      , "SmokeSignal/use-cases"
-      ]
-        |> List.map
-            (\topic ->
-                Input.button
-                    [ width fill
-                    , whiteGlowAttributeSmall
-                    , Background.color black
-                    , Font.color white
-                    , paddingXY 15 5
-                    , hover
-                    ]
-                    { onPress = Just <| GotoView <| ViewTopic topic
-                    , label =
-                        [ topic
-                            |> text
-                            |> el [ width fill, Font.size 20 ]
-                        , 7
-                            |> String.fromInt
-                            |> text
-                            |> el [ Font.size 30, Font.bold ]
-                        ]
-                            |> row
-                                [ width fill
-                                ]
-                    }
-            )
-        |> column [ width fill, height <| px 120, Element.scrollbarY ]
-    ]
-        |> column
-            [ width fill
-            , whiteGlowAttributeSmall
-            ]
 
 
 feedSortByFunc : Dict Int Time.Posix -> Time.Posix -> RootPost -> Float

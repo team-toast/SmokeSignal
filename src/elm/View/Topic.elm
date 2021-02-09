@@ -107,7 +107,7 @@ topicHeader topic =
         , width fill
         , hover
         ]
-        { onPress = Just Types.ComposeToggle
+        { onPress = Just Types.ComposeOpen
         , label = text "Comment..."
         }
     ]

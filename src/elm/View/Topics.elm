@@ -53,7 +53,7 @@ view model =
             , hover
             , Element.alignRight
             ]
-            { onPress = Just ComposeToggle
+            { onPress = Just ComposeOpen
             , label = text "Compose"
             }
         ]
