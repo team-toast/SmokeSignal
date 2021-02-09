@@ -8,14 +8,15 @@ import Dict exposing (Dict)
 import Eth
 import Eth.Sentry.Event as EventSentry
 import Eth.Sentry.Tx as TxSentry
-import Eth.Types exposing (Address, TxHash)
+import Eth.Types exposing (Address)
+import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..))
 import Http
 import Json.Decode
 import Json.Encode
 import List.Extra
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (defaultSeoDescription, txInfoToNameStr, updateTrackedTxIf)
+import Misc exposing (defaultSeoDescription, txInfoToNameStr)
 import Ports exposing (connectToWeb3, consentToCookies, gTagOut)
 import Post
 import Random
@@ -151,6 +152,7 @@ update msg model =
         CheckTrackedTxsStatus ->
             ( model
             , model.trackedTxs
+                |> Dict.values
                 |> List.filter
                     (\trackedTx ->
                         trackedTx.status == Mining
@@ -171,23 +173,32 @@ update msg model =
                     let
                         ( newStatus, maybePublishedPost, maybeUserNotice ) =
                             handleTxReceipt txReceipt
-                    in
-                    model
-                        |> updateTrackedTxStatusIfMining
-                            txReceipt.hash
-                            newStatus
-                        |> addUserNotices
-                            ([ maybeUserNotice ] |> Maybe.Extra.values)
-                        |> (case maybePublishedPost of
-                                Just post ->
-                                    --addPost txReceipt.blockNumber post
-                                    \m ->
-                                        ( m, Cmd.none )
 
-                                Nothing ->
-                                    \m ->
-                                        ( m, Cmd.none )
-                           )
+                        newModel =
+                            { model
+                                | trackedTxs =
+                                    model.trackedTxs
+                                        |> Dict.update
+                                            (Eth.Utils.txHashToString txReceipt.hash)
+                                            (Maybe.map
+                                                (\info ->
+                                                    if info.status == Mining then
+                                                        { info | status = newStatus }
+
+                                                    else
+                                                        info
+                                                )
+                                            )
+                                , userNotices =
+                                    model.userNotices
+                                        ++ (maybeUserNotice
+                                                |> unwrap [] List.singleton
+                                           )
+                            }
+                    in
+                    maybePublishedPost
+                        |> unwrap ( newModel, Cmd.none )
+                            (addPost newModel)
 
         WalletStatus walletSentryResult ->
             case walletSentryResult of
@@ -259,38 +270,19 @@ update msg model =
                     )
 
                 Ok log ->
-                    case log of
-                        LogRoot post ->
-                            ( { model
-                                | rootPosts =
-                                    model.rootPosts
-                                        |> Dict.insert post.core.key post
-                                , topics =
-                                    model.topics
-                                        |> Dict.update
-                                            post.topic
-                                            (Maybe.withDefault TokenValue.zero
-                                                >> Just
-                                            )
-                              }
-                            , fetchPostInfo model.blockTimes model.config post.core.id
-                            )
-
-                        LogReply post ->
-                            ( { model
-                                | replyPosts =
-                                    model.replyPosts
-                                        |> Dict.insert post.core.key post
-                                , replyIds =
-                                    model.replyIds
-                                        |> Dict.update (Misc.postIdToKey post.parent)
-                                            (Maybe.withDefault Set.empty
-                                                >> Set.insert post.core.key
-                                                >> Just
-                                            )
-                              }
-                            , fetchPostInfo model.blockTimes model.config post.core.id
-                            )
+                    --|> updateTrackedTxByTxHash
+                    --log.transactionHash
+                    --(\trackedTx ->
+                    --{ trackedTx
+                    --| status =
+                    --Mined <|
+                    --Just <|
+                    --Post.Id
+                    --log.blockNumber
+                    --ssPost.hash
+                    --}
+                    --)
+                    addPost model log
 
         PostAccountingFetched postId res ->
             case res of
@@ -420,56 +412,21 @@ update msg model =
             , Cmd.none
             )
 
-        TxSigned txInfo txHashResult ->
-            case txHashResult of
+        TxSigned txInfo res ->
+            case res of
                 Ok txHash ->
-                    let
-                        maybeNewRouteAndComposeModel =
-                            case txInfo of
-                                PostTx draft ->
-                                    -- TODO
-                                    --Just <|
-                                    --( Routing.ViewContext <| postContextToViewContext model.composeUXModel.context
-                                    --, model.composeUXModel |> ComposeUX.resetModel
-                                    --)
-                                    Nothing
-
-                                _ ->
-                                    Nothing
-
-                        newPostUX =
-                            case txInfo of
-                                TipTx _ _ ->
-                                    Nothing
-
-                                BurnTx _ _ ->
-                                    Nothing
-
-                                _ ->
-                                    --model.postUX
-                                    Nothing
-
-                        interimModel =
-                            { model
-                                | showExpandedTrackedTxs = True
-
-                                --, postUX = newPostUX
-                                --, wallet = newWallet
-                            }
-                                |> addTrackedTx txHash txInfo
-                    in
-                    case maybeNewRouteAndComposeModel of
-                        Just ( route, composeUXModel ) ->
-                            --{ interimModel
-                            --| composeUXModel = composeUXModel
-                            --}
-                            --|> GotoView route
-                            ( interimModel, Cmd.none )
-
-                        Nothing ->
-                            ( interimModel
-                            , Cmd.none
-                            )
+                    ( { model
+                        | showExpandedTrackedTxs = True
+                        , trackedTxs =
+                            model.trackedTxs
+                                |> Dict.insert (Eth.Utils.txHashToString txHash)
+                                    { txHash = txHash
+                                    , txInfo = txInfo
+                                    , status = Mining
+                                    }
+                      }
+                    , Cmd.none
+                    )
 
                 Err errStr ->
                     ( model
@@ -635,29 +592,6 @@ update msg model =
                                 )
                             )
                 )
-
-        SubmitPost postDraft ->
-            let
-                txParams =
-                    postDraft
-                        |> Misc.encodeDraft
-                        |> SSContract.burnEncodedPost model.config.smokeSignalContractAddress
-                        |> Eth.toSend
-
-                listeners =
-                    { onMined = Nothing
-                    , onSign = Just <| TxSigned <| PostTx postDraft
-                    , onBroadcast = Nothing
-                    }
-
-                ( txSentry, cmd ) =
-                    TxSentry.customSend model.txSentry listeners txParams
-            in
-            ( { model
-                | txSentry = txSentry
-              }
-            , cmd
-            )
 
         SubmitBurn postId ->
             model.compose.dollar
@@ -870,6 +804,42 @@ update msg model =
             )
 
 
+addPost : Model -> LogPost -> ( Model, Cmd Msg )
+addPost model log =
+    case log of
+        LogRoot post ->
+            ( { model
+                | rootPosts =
+                    model.rootPosts
+                        |> Dict.insert post.core.key post
+                , topics =
+                    model.topics
+                        |> Dict.update
+                            post.topic
+                            (Maybe.withDefault TokenValue.zero
+                                >> Just
+                            )
+              }
+            , fetchPostInfo model.blockTimes model.config post.core.id
+            )
+
+        LogReply post ->
+            ( { model
+                | replyPosts =
+                    model.replyPosts
+                        |> Dict.insert post.core.key post
+                , replyIds =
+                    model.replyIds
+                        |> Dict.update (Misc.postIdToKey post.parent)
+                            (Maybe.withDefault Set.empty
+                                >> Set.insert post.core.key
+                                >> Just
+                            )
+              }
+            , fetchPostInfo model.blockTimes model.config post.core.id
+            )
+
+
 encodeGTag :
     GTagData
     -> Json.Decode.Value
@@ -884,7 +854,7 @@ encodeGTag gtag =
 
 handleTxReceipt :
     Eth.Types.TxReceipt
-    -> ( TxStatus, Maybe Published, Maybe UserNotice )
+    -> ( TxStatus, Maybe LogPost, Maybe UserNotice )
 handleTxReceipt txReceipt =
     case txReceipt.status of
         Just True ->
@@ -906,13 +876,7 @@ handleTxReceipt txReceipt =
                                 x.core.id
                     )
                 |> Mined
-            , Nothing
-              --, Maybe.map
-              --(SSContract.fromMessageBurn
-              --txReceipt.hash
-              --txReceipt.blockNumber
-              --)
-              --maybePostEvent
+            , post
             , Nothing
             )
 
@@ -928,42 +892,6 @@ handleTxReceipt txReceipt =
             , Just <|
                 UN.unexpectedError "Weird. I Got a transaction receipt with a success value of 'Nothing'. Depending on why this happened I might be a little confused about any mining transactions."
             )
-
-
-addTrackedTx :
-    TxHash
-    -> TxInfo
-    -> Model
-    -> Model
-addTrackedTx txHash txInfo prevModel =
-    { prevModel
-        | trackedTxs =
-            prevModel.trackedTxs
-                |> List.append
-                    [ TrackedTx
-                        txHash
-                        txInfo
-                        Mining
-                    ]
-    }
-
-
-updateTrackedTxStatusIfMining :
-    TxHash
-    -> TxStatus
-    -> Model
-    -> Model
-updateTrackedTxStatusIfMining txHash newStatus =
-    updateTrackedTxIf
-        (\trackedTx ->
-            (trackedTx.txHash == txHash)
-                && (trackedTx.status == Mining)
-        )
-        (\trackedTx ->
-            { trackedTx
-                | status = newStatus
-            }
-        )
 
 
 fetchPostInfo : Dict Int Time.Posix -> Config -> PostId -> Cmd Msg

@@ -15,7 +15,7 @@ import Theme exposing (orange, theme)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
-import View.Common exposing (appStatusMessage, daiAmountInput, phaceElement, shortenedHash, viewContext, web3ConnectButton, whenAttr, whenJust, wrapModal)
+import View.Common exposing (appStatusMessage, daiAmountInput, phaceElement, shortenedHash, viewContext, web3ConnectButton, whenAttr, wrapModal)
 import View.Img
 import View.Markdown
 import Wallet
@@ -796,12 +796,12 @@ commonActionButtonStyles dProfile =
 maybeGoButton : EH.DisplayProfile -> Maybe Draft -> Element Msg
 maybeGoButton dProfile maybeDraft =
     case maybeDraft of
-        Just draft ->
+        Just _ ->
             theme.emphasizedActionButton
                 dProfile
                 (commonActionButtonStyles dProfile)
                 [ "GO" ]
-                (EH.Action <| SubmitPost draft)
+                (EH.Action <| SubmitDraft)
 
         Nothing ->
             theme.disabledActionButton

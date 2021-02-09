@@ -1,16 +1,15 @@
-module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, dollarStringToToken, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, totalBurned, tryRouteToView, txInfoToNameStr, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, validateTopic, withBalance)
+module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, dollarStringToToken, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, totalBurned, tryRouteToView, txInfoToNameStr, validateTopic, withBalance)
 
 import Browser.Navigation
 import Dict exposing (Dict)
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
-import Eth.Types exposing (Hex, TxHash)
+import Eth.Types exposing (Hex)
 import Eth.Utils
 import Helpers.Element
 import Helpers.Time
 import Http
 import Json.Encode as E
-import List.Extra
 import Maybe.Extra exposing (unwrap)
 import Ports
 import Post
@@ -39,7 +38,7 @@ emptyModel key =
     , blockTimes = Dict.empty
     , showAddressId = Nothing
     , userNotices = []
-    , trackedTxs = []
+    , trackedTxs = Dict.empty
     , showExpandedTrackedTxs = False
     , draftModal = Nothing
     , demoPhaceSrc = initDemoPhaceSrc
@@ -71,29 +70,6 @@ emptyModel key =
 initDemoPhaceSrc : String
 initDemoPhaceSrc =
     "2222222222222222222222222228083888c8f222"
-
-
-updateTrackedTxByTxInfo : TxInfo -> (TrackedTx -> TrackedTx) -> Model -> Model
-updateTrackedTxByTxInfo txInfo =
-    updateTrackedTxIf
-        (.txInfo >> (==) txInfo)
-
-
-updateTrackedTxByTxHash : TxHash -> (TrackedTx -> TrackedTx) -> Model -> Model
-updateTrackedTxByTxHash txHash =
-    updateTrackedTxIf
-        (.txHash >> (==) txHash)
-
-
-updateTrackedTxIf : (TrackedTx -> Bool) -> (TrackedTx -> TrackedTx) -> Model -> Model
-updateTrackedTxIf test update model =
-    { model
-        | trackedTxs =
-            model.trackedTxs
-                |> List.Extra.updateIf
-                    test
-                    update
-    }
 
 
 getTitle : Model -> String
@@ -160,9 +136,6 @@ defaultSeoDescription =
 txInfoToNameStr : TxInfo -> String
 txInfoToNameStr txInfo =
     case txInfo of
-        UnlockTx ->
-            "Unlock DAI"
-
         PostTx _ ->
             "Post Submit"
 

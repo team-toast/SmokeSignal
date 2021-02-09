@@ -44,7 +44,7 @@ type alias Model =
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
-    , trackedTxs : List TrackedTx -- Can't use TxHash as a key; Elm is silly with what is and is not comparable
+    , trackedTxs : Dict String TrackedTx -- Keyed by (Eth.Utils.txHashToString hash)
     , showExpandedTrackedTxs : Bool
     , draftModal : Maybe Draft
     , demoPhaceSrc : String
@@ -96,7 +96,6 @@ type Msg
     | ShowOrHideAddress PhaceIconId
     | AddUserNotice UN.UserNotice
     | SubmitDraft
-    | SubmitPost Draft
     | SubmitTip PostId
     | SubmitBurn PostId
     | DonationCheckboxSet Bool
@@ -219,7 +218,6 @@ type alias TrackedTx =
 
 type TxInfo
     = PostTx Draft
-    | UnlockTx
     | TipTx PostId TokenValue
     | BurnTx PostId TokenValue
 
