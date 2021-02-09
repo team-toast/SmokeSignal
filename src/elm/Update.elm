@@ -550,8 +550,9 @@ update msg model =
         SubmitDraft ->
             ensureUserInfo
                 (\userInfo ->
-                    TokenValue.fromString model.compose.dai
-                        |> Result.fromMaybe "Invalid DAI"
+                    model.compose.dollar
+                        |> Misc.dollarStringToToken model.ethPrice
+                        |> Result.fromMaybe "Invalid input"
                         |> Result.andThen
                             (\burnAmount ->
                                 let
@@ -659,9 +660,14 @@ update msg model =
             )
 
         SubmitBurn postId ->
-            model.compose.dai
-                |> TokenValue.fromString
-                |> unwrap ( model, Cmd.none )
+            model.compose.dollar
+                |> Misc.dollarStringToToken model.ethPrice
+                |> unwrap
+                    ( { model
+                        | userNotices = [ UN.unexpectedError "Invalid input" ]
+                      }
+                    , Cmd.none
+                    )
                     (\amount ->
                         let
                             txParams =
@@ -685,9 +691,14 @@ update msg model =
                     )
 
         SubmitTip postId ->
-            model.compose.dai
-                |> TokenValue.fromString
-                |> unwrap ( model, Cmd.none )
+            model.compose.dollar
+                |> Misc.dollarStringToToken model.ethPrice
+                |> unwrap
+                    ( { model
+                        | userNotices = [ UN.unexpectedError "Invalid input" ]
+                      }
+                    , Cmd.none
+                    )
                     (\amount ->
                         let
                             txParams =
@@ -842,11 +853,11 @@ update msg model =
             , Cmd.none
             )
 
-        ComposeDaiChange str ->
+        ComposeDollarChange str ->
             ( { model
                 | compose =
                     model.compose
-                        |> (\r -> { r | dai = str })
+                        |> (\r -> { r | dollar = str })
               }
             , Cmd.none
             )

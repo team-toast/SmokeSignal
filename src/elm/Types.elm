@@ -104,7 +104,7 @@ type Msg
     | EthPriceFetched (Result Http.Error Float)
     | ComposeBodyChange String
     | ComposeTitleChange String
-    | ComposeDaiChange String
+    | ComposeDollarChange String
     | TopicInputChange String
     | SetTipOpen PostState
     | CancelTipOpen
@@ -139,7 +139,7 @@ type alias CoreData =
 
 type alias ComposeModel =
     { title : String
-    , dai : String
+    , dollar : String
     , body : String
     , modal : Bool
     , donate : Bool

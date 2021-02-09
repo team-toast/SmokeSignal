@@ -1,4 +1,4 @@
-module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, totalBurned, tryRouteToView, txInfoToNameStr, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, validateTopic, withBalance)
+module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, dollarStringToToken, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, totalBurned, tryRouteToView, txInfoToNameStr, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, validateTopic, withBalance)
 
 import Browser.Navigation
 import Dict exposing (Dict)
@@ -53,7 +53,7 @@ emptyModel key =
             0
     , compose =
         { title = ""
-        , dai = ""
+        , dollar = ""
         , body = ""
         , modal = False
         , donate = False
@@ -350,6 +350,15 @@ tokenToDollar eth tv =
                 else
                     str
            )
+
+
+dollarStringToToken : Float -> String -> Maybe TokenValue
+dollarStringToToken ethPrice =
+    String.toFloat
+        >> Maybe.map
+            (\dollarValue ->
+                TokenValue.fromFloatWithWarning (dollarValue / ethPrice)
+            )
 
 
 sortTopics : Dict String TokenValue -> List ( String, TokenValue )

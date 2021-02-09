@@ -46,7 +46,7 @@ viewBox model userInfo =
     let
         submitEnabled =
             not (String.isEmpty model.compose.body)
-                && not (String.isEmpty model.compose.dai)
+                && not (String.isEmpty model.compose.dollar)
     in
     [ "Comment"
         |> text
@@ -97,20 +97,23 @@ viewBox model userInfo =
                 , Font.color orange
                 , Font.bold
                 ]
-        , [ Input.text
+        , [ [ View.Img.dollar 30 white
+            , Input.text
                 [ View.Attrs.whiteGlowAttributeSmall
                 , Background.color white
                 , width <| px 250
                 ]
-                { onChange = ComposeDaiChange
+                { onChange = ComposeDollarChange
                 , label = Input.labelHidden ""
                 , placeholder =
-                    "0"
+                    "00.00"
                         |> text
                         |> Input.placeholder []
                         |> Just
-                , text = model.compose.dai
+                , text = model.compose.dollar
                 }
+            ]
+                |> row [ spacing 5 ]
           , [ Input.checkbox
                 [ width <| px 30
                 , height <| px 30

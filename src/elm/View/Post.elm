@@ -335,16 +335,19 @@ viewInput dProfile post input showInput =
                     SubmitBurn post.id
     in
     [ text title
-    , Input.text [ Font.color black ]
-        { onChange = ComposeDaiChange
-        , label = Input.labelHidden ""
-        , placeholder =
-            "0.0"
-                |> text
-                |> Input.placeholder []
-                |> Just
-        , text = input
-        }
+    , [ View.Img.dollar 30 white
+      , Input.text [ Font.color black ]
+            { onChange = ComposeDollarChange
+            , label = Input.labelHidden ""
+            , placeholder =
+                "00.00"
+                    |> text
+                    |> Input.placeholder []
+                    |> Just
+            , text = input
+            }
+      ]
+        |> row [ spacing 5, width fill ]
     , [ Input.button
             [ Font.underline
             , hover

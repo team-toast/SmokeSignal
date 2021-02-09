@@ -65,7 +65,7 @@ view model topic =
                                 )
                         )
                         model.ethPrice
-                        model.compose.dai
+                        model.compose.dollar
                         topic
                         post.core
                 )

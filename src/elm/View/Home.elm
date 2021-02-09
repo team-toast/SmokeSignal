@@ -94,7 +94,7 @@ viewPost model post =
                 )
         )
         model.ethPrice
-        model.compose.dai
+        model.compose.dollar
         post.topic
         post.core
 
