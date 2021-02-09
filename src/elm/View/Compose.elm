@@ -15,7 +15,8 @@ import Theme exposing (orange, theme)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
-import View.Common exposing (appStatusMessage, daiAmountInput, phaceElement, shortenedHash, viewContext, web3ConnectButton, whenAttr, whenJust, wrapModal)
+import View.Common exposing (appStatusMessage, daiAmountInput, phaceElement, shortenedHash, viewContext, web3ConnectButton, whenAttr, wrapModal)
+import View.Img
 import View.Markdown
 import Wallet
 
@@ -37,7 +38,7 @@ view model =
                     ]
             )
             (viewBox model)
-        |> wrapModal ComposeToggle
+        |> wrapModal ComposeClose
 
 
 viewBox : Model -> UserInfo -> Element Msg
@@ -45,7 +46,7 @@ viewBox model userInfo =
     let
         submitEnabled =
             not (String.isEmpty model.compose.body)
-                && not (String.isEmpty model.compose.dai)
+                && not (String.isEmpty model.compose.dollar)
     in
     [ "Comment"
         |> text
@@ -73,11 +74,17 @@ viewBox model userInfo =
                         |> Just
                 , text = model.compose.title
                 }
-          , model.topicInput
-                |> (++) "#"
-                |> text
-                |> el [ Font.color orange, centerY ]
-                |> el [ height fill, Font.size 25, Font.bold ]
+          , case model.compose.context of
+                TopLevel topic ->
+                    "#"
+                        ++ topic
+                        |> text
+                        |> el [ Font.color orange, centerY ]
+                        |> el [ height fill, Font.size 25, Font.bold ]
+
+                Reply _ ->
+                    View.Img.replyArrow 25 orange
+                        |> el [ centerY ]
           ]
             |> column [ width fill, height fill ]
         , [ text "🔥"
@@ -90,20 +97,23 @@ viewBox model userInfo =
                 , Font.color orange
                 , Font.bold
                 ]
-        , [ Input.text
+        , [ [ View.Img.dollar 30 white
+            , Input.text
                 [ View.Attrs.whiteGlowAttributeSmall
                 , Background.color white
                 , width <| px 250
                 ]
-                { onChange = ComposeDaiChange
+                { onChange = ComposeDollarChange
                 , label = Input.labelHidden ""
                 , placeholder =
-                    "0"
+                    "00.00"
                         |> text
                         |> Input.placeholder []
                         |> Just
-                , text = model.compose.dai
+                , text = model.compose.dollar
                 }
+            ]
+                |> row [ spacing 5 ]
           , [ Input.checkbox
                 [ width <| px 30
                 , height <| px 30
@@ -259,7 +269,7 @@ viewBody dProfile donateChecked wallet showAddressId model =
                     , Element.alignRight
                     ]
                     (Element.rgb 0.3 0.3 0.3)
-                    ComposeToggle
+                    ComposeOpen
             ]
     in
     case dProfile of
@@ -786,12 +796,12 @@ commonActionButtonStyles dProfile =
 maybeGoButton : EH.DisplayProfile -> Maybe Draft -> Element Msg
 maybeGoButton dProfile maybeDraft =
     case maybeDraft of
-        Just draft ->
+        Just _ ->
             theme.emphasizedActionButton
                 dProfile
                 (commonActionButtonStyles dProfile)
                 [ "GO" ]
-                (EH.Action <| SubmitPost draft)
+                (EH.Action <| SubmitDraft)
 
         Nothing ->
             theme.disabledActionButton

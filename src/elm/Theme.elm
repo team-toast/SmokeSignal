@@ -1,4 +1,4 @@
-module Theme exposing (..)
+module Theme exposing (almostWhite, blue, blueButton, commonShadow, darkBlue, darkGray, darkGreen, darkRed, darkYellow, darkerBlue, disabledButton, green, inverseBlueButton, lightBlue, lightBlueButton, lightGray, lightGreen, lightRed, orange, redButton, softRed, theme, unscaryButton, veryDarkGray, yellow)
 
 import Element exposing (Attribute, Color, Element)
 import Element.Background
@@ -83,70 +83,87 @@ theme =
 --     }
 
 
+orange : Color
 orange =
     Element.rgb255 247 155 48
 
 
+softRed : Color
 softRed =
     Element.rgb255 255 0 110
 
 
+darkRed : Color
 darkRed =
     Element.rgb 0.7 0 0
 
 
+darkGray : Color
 darkGray =
     Element.rgb255 150 150 150
 
 
+blue : Color
 blue =
     Element.rgb 0 0 1
 
 
+darkBlue : Color
 darkBlue =
     Element.rgb255 7 27 92
 
 
+darkerBlue : Color
 darkerBlue =
     Element.rgb255 7 20 60
 
 
+lightGray : Color
 lightGray =
     Element.rgb255 233 237 242
 
 
+lightBlue : Color
 lightBlue =
     Element.rgb 0.8 0.8 1
 
 
+almostWhite : Color
 almostWhite =
     Element.rgb 0.8 0.8 0.8
 
 
+lightRed : Color
 lightRed =
     Element.rgb 1 0.8 0.8
 
 
+lightGreen : Color
 lightGreen =
     Element.rgb 0.8 1 0.8
 
 
+veryDarkGray : Color
 veryDarkGray =
     Element.rgb 0.1 0.1 0.1
 
 
+green : Color
 green =
     Element.rgb255 51 183 2
 
 
+darkGreen : Color
 darkGreen =
     Element.rgb255 0 120 0
 
 
+yellow : Color
 yellow =
     Element.rgb 1 1 0
 
 
+darkYellow : Color
 darkYellow =
     Element.rgb 0.6 0.6 0
 

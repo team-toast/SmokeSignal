@@ -65,7 +65,7 @@ view model topic =
                                 )
                         )
                         model.ethPrice
-                        model.compose.dai
+                        model.compose.dollar
                         topic
                         post.core
                 )
@@ -107,7 +107,7 @@ topicHeader topic =
         , width fill
         , hover
         ]
-        { onPress = Just Types.ComposeToggle
+        { onPress = Just Types.ComposeOpen
         , label = text "Comment..."
         }
     ]

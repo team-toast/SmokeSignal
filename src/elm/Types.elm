@@ -44,7 +44,7 @@ type alias Model =
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
-    , trackedTxs : List TrackedTx -- Can't use TxHash as a key; Elm is silly with what is and is not comparable
+    , trackedTxs : Dict String TrackedTx -- Keyed by (Eth.Utils.txHashToString hash)
     , showExpandedTrackedTxs : Bool
     , draftModal : Maybe Draft
     , demoPhaceSrc : String
@@ -86,7 +86,8 @@ type Msg
       -- | RestoreDraft Draft
     | DismissNotice Int
     | ClickHappened
-    | ComposeToggle
+    | ComposeOpen
+    | ComposeClose
     | BalanceFetched Address (Result Http.Error TokenValue)
     | CookieConsentGranted
     | StartInlineCompose Context
@@ -95,7 +96,6 @@ type Msg
     | ShowOrHideAddress PhaceIconId
     | AddUserNotice UN.UserNotice
     | SubmitDraft
-    | SubmitPost Draft
     | SubmitTip PostId
     | SubmitBurn PostId
     | DonationCheckboxSet Bool
@@ -103,7 +103,7 @@ type Msg
     | EthPriceFetched (Result Http.Error Float)
     | ComposeBodyChange String
     | ComposeTitleChange String
-    | ComposeDaiChange String
+    | ComposeDollarChange String
     | TopicInputChange String
     | SetTipOpen PostState
     | CancelTipOpen
@@ -138,10 +138,11 @@ type alias CoreData =
 
 type alias ComposeModel =
     { title : String
-    , dai : String
+    , dollar : String
     , body : String
     , modal : Bool
     , donate : Bool
+    , context : Context
     }
 
 
@@ -217,7 +218,6 @@ type alias TrackedTx =
 
 type TxInfo
     = PostTx Draft
-    | UnlockTx
     | TipTx PostId TokenValue
     | BurnTx PostId TokenValue
 
@@ -321,6 +321,5 @@ type Route
     | RouteViewPost PostId
     | RouteMalformedPostId
     | RouteViewTopic String
-    | RouteMalformedTopic
     | RouteInvalid
     | RouteTopics

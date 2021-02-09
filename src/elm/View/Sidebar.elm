@@ -151,7 +151,7 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
 
                     else
                         ( "Compose Post"
-                        , Just <| EH.Action <| ComposeToggle
+                        , Just <| EH.Action <| ComposeOpen
                         , Nothing
                         )
 

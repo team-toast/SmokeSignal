@@ -34,6 +34,7 @@ view model =
             , Border.color Theme.almostWhite
             , whiteGlowAttributeSmall
             , Font.color white
+            , View.Attrs.onKeydown [ View.Attrs.onEnter ComposeOpen ]
             ]
             { onChange = TopicInputChange
             , text = model.topicInput
@@ -53,7 +54,7 @@ view model =
             , hover
             , Element.alignRight
             ]
-            { onPress = Just ComposeToggle
+            { onPress = Just ComposeOpen
             , label = text "Compose"
             }
         ]

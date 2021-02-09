@@ -351,9 +351,9 @@ modals model =
         )
 
 
-maybeTxTracker : DisplayProfile -> Bool -> List TrackedTx -> Maybe (Element Msg)
-maybeTxTracker dProfile showExpanded trackedTxs =
-    if List.isEmpty trackedTxs then
+maybeTxTracker : DisplayProfile -> Bool -> Dict.Dict String TrackedTx -> Maybe (Element Msg)
+maybeTxTracker dProfile showExpanded trackedTxs_ =
+    if Dict.isEmpty trackedTxs_ then
         Nothing
 
     else
@@ -369,6 +369,10 @@ maybeTxTracker dProfile showExpanded trackedTxs =
 
                     Failed _ ->
                         Tuple3.mapThird ((+) 1) totals
+
+            trackedTxs =
+                trackedTxs_
+                    |> Dict.values
 
             tallies =
                 trackedTxs
@@ -497,9 +501,6 @@ viewTrackedTxRow trackedTx =
 
         titleEl =
             case ( trackedTx.txInfo, trackedTx.status ) of
-                ( UnlockTx, _ ) ->
-                    Element.text "Unlock DAI"
-
                 ( TipTx postId amount, _ ) ->
                     Element.row
                         []

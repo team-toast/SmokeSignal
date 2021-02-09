@@ -8,14 +8,15 @@ import Dict exposing (Dict)
 import Eth
 import Eth.Sentry.Event as EventSentry
 import Eth.Sentry.Tx as TxSentry
-import Eth.Types exposing (Address, TxHash)
+import Eth.Types exposing (Address)
+import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..))
 import Http
 import Json.Decode
 import Json.Encode
 import List.Extra
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (defaultSeoDescription, txInfoToNameStr, updateTrackedTxIf)
+import Misc exposing (defaultSeoDescription, txInfoToNameStr)
 import Ports exposing (connectToWeb3, consentToCookies, gTagOut)
 import Post
 import Random
@@ -94,22 +95,26 @@ update msg model =
                     )
 
                 RouteViewTopic topic ->
-                    ( { model
-                        | view = ViewTopic topic
-                      }
-                    , "Discussions related to #"
-                        ++ topic
-                        ++ " on SmokeSignal"
-                        |> Ports.setDescription
-                    )
-
-                RouteMalformedTopic ->
-                    ( { model
-                        | userNotices =
-                            [ UN.routeNotFound Nothing ]
-                      }
-                    , Cmd.none
-                    )
+                    topic
+                        |> Misc.validateTopic
+                        |> unwrap
+                            ( { model
+                                | userNotices =
+                                    [ UN.routeNotFound Nothing ]
+                                , view = ViewHome
+                              }
+                            , Cmd.none
+                            )
+                            (\t ->
+                                ( { model
+                                    | view = ViewTopic t
+                                  }
+                                , "Discussions related to #"
+                                    ++ topic
+                                    ++ " on SmokeSignal"
+                                    |> Ports.setDescription
+                                )
+                            )
 
         Tick newTime ->
             ( { model | now = newTime }, Cmd.none )
@@ -147,6 +152,7 @@ update msg model =
         CheckTrackedTxsStatus ->
             ( model
             , model.trackedTxs
+                |> Dict.values
                 |> List.filter
                     (\trackedTx ->
                         trackedTx.status == Mining
@@ -167,23 +173,32 @@ update msg model =
                     let
                         ( newStatus, maybePublishedPost, maybeUserNotice ) =
                             handleTxReceipt txReceipt
-                    in
-                    model
-                        |> updateTrackedTxStatusIfMining
-                            txReceipt.hash
-                            newStatus
-                        |> addUserNotices
-                            ([ maybeUserNotice ] |> Maybe.Extra.values)
-                        |> (case maybePublishedPost of
-                                Just post ->
-                                    --addPost txReceipt.blockNumber post
-                                    \m ->
-                                        ( m, Cmd.none )
 
-                                Nothing ->
-                                    \m ->
-                                        ( m, Cmd.none )
-                           )
+                        newModel =
+                            { model
+                                | trackedTxs =
+                                    model.trackedTxs
+                                        |> Dict.update
+                                            (Eth.Utils.txHashToString txReceipt.hash)
+                                            (Maybe.map
+                                                (\info ->
+                                                    if info.status == Mining then
+                                                        { info | status = newStatus }
+
+                                                    else
+                                                        info
+                                                )
+                                            )
+                                , userNotices =
+                                    model.userNotices
+                                        ++ (maybeUserNotice
+                                                |> unwrap [] List.singleton
+                                           )
+                            }
+                    in
+                    maybePublishedPost
+                        |> unwrap ( newModel, Cmd.none )
+                            (addPost newModel)
 
         WalletStatus walletSentryResult ->
             case walletSentryResult of
@@ -255,38 +270,19 @@ update msg model =
                     )
 
                 Ok log ->
-                    case log of
-                        LogRoot post ->
-                            ( { model
-                                | rootPosts =
-                                    model.rootPosts
-                                        |> Dict.insert post.core.key post
-                                , topics =
-                                    model.topics
-                                        |> Dict.update
-                                            post.topic
-                                            (Maybe.withDefault TokenValue.zero
-                                                >> Just
-                                            )
-                              }
-                            , fetchPostInfo model.blockTimes model.config post.core.id
-                            )
-
-                        LogReply post ->
-                            ( { model
-                                | replyPosts =
-                                    model.replyPosts
-                                        |> Dict.insert post.core.key post
-                                , replyIds =
-                                    model.replyIds
-                                        |> Dict.update (Misc.postIdToKey post.parent)
-                                            (Maybe.withDefault Set.empty
-                                                >> Set.insert post.core.key
-                                                >> Just
-                                            )
-                              }
-                            , fetchPostInfo model.blockTimes model.config post.core.id
-                            )
+                    --|> updateTrackedTxByTxHash
+                    --log.transactionHash
+                    --(\trackedTx ->
+                    --{ trackedTx
+                    --| status =
+                    --Mined <|
+                    --Just <|
+                    --Post.Id
+                    --log.blockNumber
+                    --ssPost.hash
+                    --}
+                    --)
+                    addPost model log
 
         PostAccountingFetched postId res ->
             case res of
@@ -416,56 +412,21 @@ update msg model =
             , Cmd.none
             )
 
-        TxSigned txInfo txHashResult ->
-            case txHashResult of
+        TxSigned txInfo res ->
+            case res of
                 Ok txHash ->
-                    let
-                        maybeNewRouteAndComposeModel =
-                            case txInfo of
-                                PostTx draft ->
-                                    -- TODO
-                                    --Just <|
-                                    --( Routing.ViewContext <| postContextToViewContext model.composeUXModel.context
-                                    --, model.composeUXModel |> ComposeUX.resetModel
-                                    --)
-                                    Nothing
-
-                                _ ->
-                                    Nothing
-
-                        newPostUX =
-                            case txInfo of
-                                TipTx _ _ ->
-                                    Nothing
-
-                                BurnTx _ _ ->
-                                    Nothing
-
-                                _ ->
-                                    --model.postUX
-                                    Nothing
-
-                        interimModel =
-                            { model
-                                | showExpandedTrackedTxs = True
-
-                                --, postUX = newPostUX
-                                --, wallet = newWallet
-                            }
-                                |> addTrackedTx txHash txInfo
-                    in
-                    case maybeNewRouteAndComposeModel of
-                        Just ( route, composeUXModel ) ->
-                            --{ interimModel
-                            --| composeUXModel = composeUXModel
-                            --}
-                            --|> GotoView route
-                            ( interimModel, Cmd.none )
-
-                        Nothing ->
-                            ( interimModel
-                            , Cmd.none
-                            )
+                    ( { model
+                        | showExpandedTrackedTxs = True
+                        , trackedTxs =
+                            model.trackedTxs
+                                |> Dict.insert (Eth.Utils.txHashToString txHash)
+                                    { txHash = txHash
+                                    , txInfo = txInfo
+                                    , status = Mining
+                                    }
+                      }
+                    , Cmd.none
+                    )
 
                 Err errStr ->
                     ( model
@@ -546,8 +507,9 @@ update msg model =
         SubmitDraft ->
             ensureUserInfo
                 (\userInfo ->
-                    TokenValue.fromString model.compose.dai
-                        |> Result.fromMaybe "Invalid DAI"
+                    model.compose.dollar
+                        |> Misc.dollarStringToToken model.ethPrice
+                        |> Result.fromMaybe "Invalid input"
                         |> Result.andThen
                             (\burnAmount ->
                                 let
@@ -569,16 +531,7 @@ update msg model =
                                     metadata =
                                         { metadataVersion =
                                             Post.currentMetadataVersion
-                                        , context =
-                                            case model.view of
-                                                ViewTopic t ->
-                                                    Types.TopLevel t
-
-                                                ViewPost id ->
-                                                    Types.Reply id
-
-                                                _ ->
-                                                    Types.TopLevel model.topicInput
+                                        , context = model.compose.context
                                         , maybeDecodeError = Nothing
                                         }
 
@@ -640,33 +593,15 @@ update msg model =
                             )
                 )
 
-        SubmitPost postDraft ->
-            let
-                txParams =
-                    postDraft
-                        |> Misc.encodeDraft
-                        |> SSContract.burnEncodedPost model.config.smokeSignalContractAddress
-                        |> Eth.toSend
-
-                listeners =
-                    { onMined = Nothing
-                    , onSign = Just <| TxSigned <| PostTx postDraft
-                    , onBroadcast = Nothing
-                    }
-
-                ( txSentry, cmd ) =
-                    TxSentry.customSend model.txSentry listeners txParams
-            in
-            ( { model
-                | txSentry = txSentry
-              }
-            , cmd
-            )
-
         SubmitBurn postId ->
-            model.compose.dai
-                |> TokenValue.fromString
-                |> unwrap ( model, Cmd.none )
+            model.compose.dollar
+                |> Misc.dollarStringToToken model.ethPrice
+                |> unwrap
+                    ( { model
+                        | userNotices = [ UN.unexpectedError "Invalid input" ]
+                      }
+                    , Cmd.none
+                    )
                     (\amount ->
                         let
                             txParams =
@@ -690,9 +625,14 @@ update msg model =
                     )
 
         SubmitTip postId ->
-            model.compose.dai
-                |> TokenValue.fromString
-                |> unwrap ( model, Cmd.none )
+            model.compose.dollar
+                |> Misc.dollarStringToToken model.ethPrice
+                |> unwrap
+                    ( { model
+                        | userNotices = [ UN.unexpectedError "Invalid input" ]
+                      }
+                    , Cmd.none
+                    )
                     (\amount ->
                         let
                             txParams =
@@ -789,22 +729,42 @@ update msg model =
             , Ports.setVisited ()
             )
 
-        ComposeToggle ->
+        ComposeOpen ->
             ( { model
                 | compose =
                     model.compose
-                        |> (\r -> { r | modal = not r.modal })
-                , topicInput =
-                    case model.view of
-                        ViewTopic t ->
-                            t
+                        |> (\r ->
+                                { r
+                                    | modal = True
+                                    , context =
+                                        case model.view of
+                                            ViewTopic t ->
+                                                Types.TopLevel t
 
-                        _ ->
-                            if String.isEmpty model.topicInput then
-                                Post.defaultTopic
+                                            ViewPost id ->
+                                                Types.Reply id
 
-                            else
-                                model.topicInput
+                                            _ ->
+                                                model.topicInput
+                                                    |> Misc.validateTopic
+                                                    |> Maybe.withDefault Post.defaultTopic
+                                                    |> Types.TopLevel
+                                }
+                           )
+                , topicInput = ""
+              }
+            , Cmd.none
+            )
+
+        ComposeClose ->
+            ( { model
+                | compose =
+                    model.compose
+                        |> (\r ->
+                                { r
+                                    | modal = False
+                                }
+                           )
               }
             , Cmd.none
             )
@@ -827,11 +787,11 @@ update msg model =
             , Cmd.none
             )
 
-        ComposeDaiChange str ->
+        ComposeDollarChange str ->
             ( { model
                 | compose =
                     model.compose
-                        |> (\r -> { r | dai = str })
+                        |> (\r -> { r | dollar = str })
               }
             , Cmd.none
             )
@@ -841,6 +801,42 @@ update msg model =
                 | topicInput = str
               }
             , Cmd.none
+            )
+
+
+addPost : Model -> LogPost -> ( Model, Cmd Msg )
+addPost model log =
+    case log of
+        LogRoot post ->
+            ( { model
+                | rootPosts =
+                    model.rootPosts
+                        |> Dict.insert post.core.key post
+                , topics =
+                    model.topics
+                        |> Dict.update
+                            post.topic
+                            (Maybe.withDefault TokenValue.zero
+                                >> Just
+                            )
+              }
+            , fetchPostInfo model.blockTimes model.config post.core.id
+            )
+
+        LogReply post ->
+            ( { model
+                | replyPosts =
+                    model.replyPosts
+                        |> Dict.insert post.core.key post
+                , replyIds =
+                    model.replyIds
+                        |> Dict.update (Misc.postIdToKey post.parent)
+                            (Maybe.withDefault Set.empty
+                                >> Set.insert post.core.key
+                                >> Just
+                            )
+              }
+            , fetchPostInfo model.blockTimes model.config post.core.id
             )
 
 
@@ -858,7 +854,7 @@ encodeGTag gtag =
 
 handleTxReceipt :
     Eth.Types.TxReceipt
-    -> ( TxStatus, Maybe Published, Maybe UserNotice )
+    -> ( TxStatus, Maybe LogPost, Maybe UserNotice )
 handleTxReceipt txReceipt =
     case txReceipt.status of
         Just True ->
@@ -880,13 +876,7 @@ handleTxReceipt txReceipt =
                                 x.core.id
                     )
                 |> Mined
-            , Nothing
-              --, Maybe.map
-              --(SSContract.fromMessageBurn
-              --txReceipt.hash
-              --txReceipt.blockNumber
-              --)
-              --maybePostEvent
+            , post
             , Nothing
             )
 
@@ -902,42 +892,6 @@ handleTxReceipt txReceipt =
             , Just <|
                 UN.unexpectedError "Weird. I Got a transaction receipt with a success value of 'Nothing'. Depending on why this happened I might be a little confused about any mining transactions."
             )
-
-
-addTrackedTx :
-    TxHash
-    -> TxInfo
-    -> Model
-    -> Model
-addTrackedTx txHash txInfo prevModel =
-    { prevModel
-        | trackedTxs =
-            prevModel.trackedTxs
-                |> List.append
-                    [ TrackedTx
-                        txHash
-                        txInfo
-                        Mining
-                    ]
-    }
-
-
-updateTrackedTxStatusIfMining :
-    TxHash
-    -> TxStatus
-    -> Model
-    -> Model
-updateTrackedTxStatusIfMining txHash newStatus =
-    updateTrackedTxIf
-        (\trackedTx ->
-            (trackedTx.txHash == txHash)
-                && (trackedTx.status == Mining)
-        )
-        (\trackedTx ->
-            { trackedTx
-                | status = newStatus
-            }
-        )
 
 
 fetchPostInfo : Dict Int Time.Posix -> Config -> PostId -> Cmd Msg
@@ -997,15 +951,6 @@ fetchEthBalanceCmd config address =
         address
         |> Task.map TokenValue.tokenValue
         |> Task.attempt (BalanceFetched address)
-
-
-getBlockTimeCmd : String -> Int -> Cmd Msg
-getBlockTimeCmd httpProviderUrl blocknum =
-    Eth.getBlock
-        httpProviderUrl
-        blocknum
-        |> Task.map .timestamp
-        |> Task.attempt (BlockTimeFetched blocknum)
 
 
 addUserNotice :

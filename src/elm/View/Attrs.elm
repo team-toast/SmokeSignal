@@ -1,4 +1,4 @@
-module View.Attrs exposing (cappedHeight, cappedWidth, fade, hover, roundBorder, sansSerifFont, slightRound, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
+module View.Attrs exposing (cappedHeight, cappedWidth, fade, hover, onEnter, onKeydown, roundBorder, sansSerifFont, slightRound, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
 
 {-| A module for managing elm-ui 'Attribute' values and related functions.
 -}
@@ -6,6 +6,8 @@ module View.Attrs exposing (cappedHeight, cappedWidth, fade, hover, roundBorder,
 import Element exposing (Attribute)
 import Element.Border as Border
 import Element.Font as Font
+import Html.Events
+import Json.Decode as Decode exposing (Decoder)
 
 
 hover : Attribute msg
@@ -64,3 +66,41 @@ whiteGlowAttributeSmall =
     Border.glow
         (Element.rgba 1 1 1 0.4)
         2
+
+
+onEnter : msg -> Decoder msg
+onEnter msg =
+    Decode.field "key" Decode.string
+        |> Decode.andThen
+            (\key ->
+                if key == "Enter" then
+                    Decode.succeed msg
+
+                else
+                    Decode.fail ""
+            )
+
+
+onKeydown : List (Decoder msg) -> Attribute msg
+onKeydown decoders =
+    -- Can be replaced by a Decode.oneOf when this is fixed
+    -- https://github.com/elm/json/issues/13
+    Decode.value
+        |> Decode.andThen
+            (\val ->
+                let
+                    matchKeydown ds =
+                        case ds of
+                            decoder :: tail ->
+                                val
+                                    |> Decode.decodeValue decoder
+                                    |> Result.map Decode.succeed
+                                    |> Result.withDefault (matchKeydown tail)
+
+                            [] ->
+                                Decode.fail "No match"
+                in
+                matchKeydown decoders
+            )
+        |> Html.Events.on "keydown"
+        |> Element.htmlAttribute

@@ -1,19 +1,19 @@
-module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, totalBurned, tryRouteToView, txInfoToNameStr, updateTrackedTxByTxHash, updateTrackedTxByTxInfo, updateTrackedTxIf, withBalance)
+module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, dollarStringToToken, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, totalBurned, tryRouteToView, txInfoToNameStr, validateTopic, withBalance)
 
 import Browser.Navigation
 import Dict exposing (Dict)
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
-import Eth.Types exposing (Hex, TxHash)
+import Eth.Types exposing (Hex)
 import Eth.Utils
 import Helpers.Element
 import Helpers.Time
 import Http
 import Json.Encode as E
-import List.Extra
 import Maybe.Extra exposing (unwrap)
 import Ports
-import Set
+import Post
+import String.Extra
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
@@ -38,7 +38,7 @@ emptyModel key =
     , blockTimes = Dict.empty
     , showAddressId = Nothing
     , userNotices = []
-    , trackedTxs = []
+    , trackedTxs = Dict.empty
     , showExpandedTrackedTxs = False
     , draftModal = Nothing
     , demoPhaceSrc = initDemoPhaceSrc
@@ -52,10 +52,11 @@ emptyModel key =
             0
     , compose =
         { title = ""
-        , dai = ""
+        , dollar = ""
         , body = ""
         , modal = False
         , donate = False
+        , context = TopLevel Post.defaultTopic
         }
     , tipOpen = Nothing
     , rootPosts = Dict.empty
@@ -69,29 +70,6 @@ emptyModel key =
 initDemoPhaceSrc : String
 initDemoPhaceSrc =
     "2222222222222222222222222228083888c8f222"
-
-
-updateTrackedTxByTxInfo : TxInfo -> (TrackedTx -> TrackedTx) -> Model -> Model
-updateTrackedTxByTxInfo txInfo =
-    updateTrackedTxIf
-        (.txInfo >> (==) txInfo)
-
-
-updateTrackedTxByTxHash : TxHash -> (TrackedTx -> TrackedTx) -> Model -> Model
-updateTrackedTxByTxHash txHash =
-    updateTrackedTxIf
-        (.txHash >> (==) txHash)
-
-
-updateTrackedTxIf : (TrackedTx -> Bool) -> (TrackedTx -> TrackedTx) -> Model -> Model
-updateTrackedTxIf test update model =
-    { model
-        | trackedTxs =
-            model.trackedTxs
-                |> List.Extra.updateIf
-                    test
-                    update
-    }
 
 
 getTitle : Model -> String
@@ -158,16 +136,13 @@ defaultSeoDescription =
 txInfoToNameStr : TxInfo -> String
 txInfoToNameStr txInfo =
     case txInfo of
-        UnlockTx ->
-            "Unlock DAI"
-
         PostTx _ ->
             "Post Submit"
 
-        TipTx postId amount ->
+        TipTx _ _ ->
             "Tip"
 
-        BurnTx postId amount ->
+        BurnTx _ _ ->
             "Burn"
 
 
@@ -313,19 +288,19 @@ tryRouteToView route =
             Ok ViewHome
 
         RouteTopics ->
-            Ok ViewHome
+            Ok ViewTopics
 
         RouteViewPost postId ->
             Ok <| ViewPost postId
 
         RouteViewTopic topic ->
-            Ok <| ViewTopic topic
+            topic
+                |> validateTopic
+                |> Maybe.map ViewTopic
+                |> Result.fromMaybe "Malformed topic"
 
         RouteMalformedPostId ->
             Err "Malformed post ID"
-
-        RouteMalformedTopic ->
-            Err "Malformed topic"
 
         RouteInvalid ->
             Err "Path not found"
@@ -350,6 +325,15 @@ tokenToDollar eth tv =
            )
 
 
+dollarStringToToken : Float -> String -> Maybe TokenValue
+dollarStringToToken ethPrice =
+    String.toFloat
+        >> Maybe.map
+            (\dollarValue ->
+                TokenValue.fromFloatWithWarning (dollarValue / ethPrice)
+            )
+
+
 sortTopics : Dict String TokenValue -> List ( String, TokenValue )
 sortTopics =
     Dict.toList
@@ -358,3 +342,17 @@ sortTopics =
                 >> TokenValue.toFloatWithWarning
                 >> negate
             )
+
+
+validateTopic : String -> Maybe String
+validateTopic =
+    String.toLower
+        >> String.Extra.clean
+        >> String.replace " " "-"
+        >> (\str ->
+                if String.isEmpty str then
+                    Nothing
+
+                else
+                    Just str
+           )
