@@ -21,7 +21,7 @@ import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import View.Attrs exposing (cappedWidth, hover, whiteGlowAttribute, whiteGlowAttributeSmall)
-import View.Common exposing (appStatusMessage, viewContext)
+import View.Common exposing (appStatusMessage, viewContext, whenAttr)
 import View.Compose
 import View.Home
 import View.Modal
@@ -64,6 +64,10 @@ render model =
 
 viewPage : Model -> Element Msg
 viewPage model =
+    let
+        isDesktop =
+            model.dProfile == EH.Desktop
+    in
     [ header model
     , viewBody model
         |> el [ height fill, cappedWidth maxContentColWidth, Element.centerX ]
@@ -72,12 +76,14 @@ viewPage model =
             , height fill
             , Element.scrollbarY
             , View.Modal.viewNewToSmokeSignal model.dProfile
+                |> View.Common.when isDesktop
                 |> Element.inFront
                 |> View.Common.whenAttr model.newUserModal
             , View.Compose.view model
                 |> Element.inFront
                 |> View.Common.whenAttr model.compose.modal
             , View.Modal.viewCookieConsent
+                |> View.Common.when isDesktop
                 |> Element.inFront
                 |> View.Common.whenAttr (not model.cookieConsentGranted)
             ]
@@ -91,6 +97,14 @@ viewPage model =
 
 header : Model -> Element Msg
 header model =
+    let
+        sidePadding =
+            if model.dProfile == EH.Mobile then
+                paddingXY 30 0
+
+            else
+                paddingXY 100 0
+    in
     [ Input.button [ hover ]
         { onPress = Just <| GotoView ViewHome
         , label =
@@ -116,12 +130,12 @@ header model =
         , text = ""
         }
         |> View.Common.when False
-    , [ [ maybeTxTracker
+    , [ maybeTxTracker
             model.dProfile
             model.showExpandedTrackedTxs
             model.trackedTxs
             |> Maybe.withDefault Element.none
-        , Element.newTabLink [ hover ]
+      , Element.newTabLink [ hover ]
             { url = "https://foundrydao.com/"
             , label =
                 Element.image [ height <| px 50 ]
@@ -129,23 +143,18 @@ header model =
                     , description = ""
                     }
             }
-        ]
-            |> row
-                [ Element.alignRight
-                , spacing 40
-                ]
       ]
-        |> row [ width fill ]
+        |> row [ spacing 40 ]
     ]
         |> row
             [ Font.color Theme.orange
             , width fill
+            , Element.spaceEvenly
             , Element.centerY
-            , spacing 50
             ]
         |> el
             [ width fill
-            , paddingXY 100 0
+            , sidePadding
             , height <| px 80
             , Background.color EH.black
             , whiteGlowAttribute
@@ -195,28 +204,32 @@ viewBody model =
 
 viewFrame : Model -> Element Msg -> Element Msg
 viewFrame model elem =
-    [ banner model.dProfile
-    , [ elem
-      , View.Sidebar.view model
-      ]
-        |> row
-            [ width fill
-            , height fill
-            , spacing 10
-            ]
-    ]
-        |> column
-            ([ width fill
-             , height fill
-             , spacing 10
-             ]
-                ++ (List.map Element.inFront <|
-                        viewModals
-                            model.dProfile
-                            --model.showNewToSmokeSignalModal
-                            False
-                   )
-            )
+    if model.dProfile == EH.Mobile then
+        elem
+
+    else
+        [ banner model.dProfile
+        , [ elem
+          , View.Sidebar.view model
+          ]
+            |> row
+                [ width fill
+                , height fill
+                , spacing 10
+                ]
+        ]
+            |> column
+                ([ width fill
+                 , height fill
+                 , spacing 10
+                 ]
+                    ++ (List.map Element.inFront <|
+                            viewModals
+                                model.dProfile
+                                --model.showNewToSmokeSignalModal
+                                False
+                       )
+                )
 
 
 banner : DisplayProfile -> Element Msg
