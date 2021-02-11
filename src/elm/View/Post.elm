@@ -17,7 +17,7 @@ import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import View.Attrs exposing (hover, roundBorder, typeFont, whiteGlowAttributeSmall)
-import View.Common exposing (daiAmountInput, daiSymbol, phaceElement, whenJust)
+import View.Common exposing (daiAmountInput, phaceElement, whenJust)
 import View.Img
 import View.Markdown
 
@@ -493,9 +493,9 @@ inputForm dProfile donateChecked currentString buttonLabel onSubmit =
             [ Element.spacing 10
             , Element.centerX
             ]
-            [ daiSymbol False
-                [ Element.height <| Element.px 22 ]
-            , daiAmountInput
+            [ --daiSymbol False
+              --[ Element.height <| Element.px 22 ]
+              daiAmountInput
                 dProfile
                 currentString
                 --AmountInputChanged

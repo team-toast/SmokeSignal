@@ -1,4 +1,4 @@
-module View.Common exposing (appStatusMessage, daiAmountInput, daiSymbol, phaceElement, renderContentOrError, shortenedHash, viewContext, web3ConnectButton, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (appStatusMessage, daiAmountInput, phaceElement, renderContentOrError, shortenedHash, viewContext, web3ConnectButton, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
@@ -168,19 +168,6 @@ phaceElement ( width, height ) addressHangToRight fromAddress showAddress onClic
         <|
             Element.html
                 (Phace.fromEthAddress fromAddress width height)
-
-
-daiSymbol : Bool -> List (Attribute Msg) -> Element Msg
-daiSymbol isWhite attributes =
-    Element.image attributes
-        { src =
-            if isWhite then
-                "img/dai-unit-char-white.svg"
-
-            else
-                "img/dai-unit-char-black.svg"
-        , description = ""
-        }
 
 
 daiAmountInput : DisplayProfile -> String -> (String -> Msg) -> Element Msg

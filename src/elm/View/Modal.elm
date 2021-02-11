@@ -21,7 +21,7 @@ viewNewToSmokeSignal dProfile =
         Element.image
             [ width <| Element.px 100
             ]
-            { src = "img/smokesignal-logo-vertical.svg"
+            { src = "./img/smokesignal-logo-vertical.svg"
             , description =
                 "smokesignal logo"
             }
