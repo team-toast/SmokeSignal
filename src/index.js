@@ -81,7 +81,7 @@ const init = (networkId) => {
 };
 
 function analyticsGtagPortStuff(app) {
-  app.ports.gTagOut.subscribe(function (data) {
+  app.ports.gTagOutPort.subscribe(function (data) {
     gtag("event", data.event, {
       event_category: data.category,
       event_label: data.label,
