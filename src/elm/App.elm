@@ -11,6 +11,7 @@ import Eth.Sentry.Wallet
 import Eth.Types
 import Eth.Utils
 import Helpers.Element
+import Maybe.Extra
 import Misc exposing (tryRouteToView)
 import Ports
 import Routing
@@ -37,14 +38,58 @@ main =
 init : Flags -> Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
+        route =
+            Routing.urlToRoute url
+
+        redirectDomain =
+            (case route of
+                Types.RouteViewPost id ->
+                    if id.block >= flags.startScanBlock then
+                        Nothing
+
+                    else
+                        Just id
+
+                _ ->
+                    Nothing
+            )
+                |> Maybe.andThen
+                    (\postId ->
+                        case url.host of
+                            "smokesignal.eth.link" ->
+                                Just "alpha.smokesignal.eth.link"
+
+                            "smokesignal.eth" ->
+                                Just "alpha.smokesignal.eth"
+
+                            _ ->
+                                Nothing
+                    )
+                |> Maybe.map
+                    (\newHost ->
+                        { url | host = newHost }
+                            |> Url.toString
+                            |> Browser.Navigation.load
+                    )
+    in
+    redirectDomain
+        |> Maybe.Extra.unwrap
+            (startApp flags url key route)
+            (\redirect ->
+                ( Misc.emptyModel key
+                , redirect
+                )
+            )
+
+
+startApp : Flags -> Url -> Browser.Navigation.Key -> Types.Route -> ( Model, Cmd Msg )
+startApp flags url key route =
+    let
         config =
             { smokeSignalContractAddress = Eth.Utils.unsafeToAddress flags.smokeSignalContractAddress
             , httpProviderUrl = flags.httpProviderUrl
             , startScanBlock = flags.startScanBlock
             }
-
-        route =
-            Routing.urlToRoute url
 
         ( view, routingUserNotices ) =
             case tryRouteToView route of
