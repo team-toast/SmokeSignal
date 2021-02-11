@@ -82,7 +82,7 @@ viewPage model =
         |> column
             [ width fill
             , height fill
-            , Background.image "/img/smoke-bg.jpg"
+            , Background.image "./img/smoke-bg.jpg"
             ]
 
 
@@ -94,7 +94,7 @@ header model =
             Element.image
                 [ height <| px 50
                 ]
-                { src = "img/smokesignal-logo-horizontal.svg"
+                { src = "./img/smokesignal-logo-horizontal.svg"
                 , description = "smokesignal logo"
                 }
         }
@@ -113,19 +113,7 @@ header model =
         , text = ""
         }
         |> View.Common.when False
-    , [ --     Element.image
-        --         [ height <| px 50
-        --         ]
-        --         { src = "/img/share.svg"
-        --         , description = ""
-        --         }
-        --   , Element.image
-        --         [ height <| px 50
-        --         ]
-        --         { src = "/img/info.svg"
-        --         , description = ""
-        --         }
-        [ maybeTxTracker
+    , [ [ maybeTxTracker
             model.dProfile
             model.showExpandedTrackedTxs
             model.trackedTxs
@@ -134,7 +122,7 @@ header model =
             { url = "https://foundrydao.com/"
             , label =
                 Element.image [ height <| px 50 ]
-                    { src = "/img/foundry-icon.svg"
+                    { src = "./img/foundry-icon.svg"
                     , description = ""
                     }
             }
@@ -160,40 +148,6 @@ header model =
             , whiteGlowAttribute
             , EH.moveToFront
             ]
-
-
-
--- footer : Element Msg
--- footer =
---     [ Element.image
---         [ Element.height <| Element.px 50 ]
---         { src = "img/forged-by-foundry-white.svg"
---         , description =
---             "forged by foundry"
---         }
---     , text "ABOUT"
---     , text "NEWS"
---     , text "STATS"
---     , Element.image
---         [ Element.height <| Element.px 50
---         ]
---         { src = "img/smokesignal-logo-horizontal.svg"
---         , description = "smokesignal logo"
---         }
---     ]
---         |> row
---             [ Element.spacingXY 150 0
---             , Font.color Theme.orange
---             , Element.centerX
---             ]
---         |> el
---             [ Element.width Element.fill
---             , Element.height <| Element.px 80
---             , Background.color EH.black
---             , Element.alignBottom
---             , whiteGlowAttribute
---             , Element.paddingXY 0 15
---             ]
 
 
 viewBody : Model -> Element Msg
