@@ -18,7 +18,7 @@ import Json.Encode
 import List.Extra
 import Maybe.Extra exposing (unwrap)
 import Misc exposing (defaultSeoDescription, txInfoToNameStr)
-import Ports exposing (connectToWeb3, consentToCookies)
+import Ports
 import Post
 import Random
 import Result.Extra exposing (unpack)
@@ -455,7 +455,7 @@ update msg model =
 
                 _ ->
                     ( model
-                    , connectToWeb3 ()
+                    , Ports.connectToWeb3 ()
                     )
 
         ShowOrHideAddress phaceId ->
@@ -712,7 +712,7 @@ update msg model =
                 | cookieConsentGranted = True
               }
             , Cmd.batch
-                [ consentToCookies ()
+                [ Ports.consentToCookies ()
                 , gTagOut <|
                     GTagData
                         "accept cookies"

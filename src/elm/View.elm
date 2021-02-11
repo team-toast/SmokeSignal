@@ -77,6 +77,9 @@ viewPage model =
             , View.Compose.view model
                 |> Element.inFront
                 |> View.Common.whenAttr model.compose.modal
+            , View.Modal.viewCookieConsent
+                |> Element.inFront
+                |> View.Common.whenAttr (not model.cookieConsentGranted)
             ]
     ]
         |> column
@@ -260,42 +263,36 @@ viewModals dProfile showNewToSmokeSignalModal =
 modals : Model -> List (Element Msg)
 modals model =
     Maybe.Extra.values
-        ([ --  ,
-           --  let
-           --     showDraftInProgressButton =
-           --         case model.route of
-           --             ViewCompose ->
-           --                 False
-           --             _ ->
-           --                 --(model.showHalfComposeUX == False)
-           --                 --&& (not <| Post.contentIsEmpty model.composeUXModel.content)
-           --                 -- TODO
-           --                 False
-           --    in
-           --    if showDraftInProgressButton then
-           --Just <|
-           --theme.secondaryActionButton
-           --model.dProfile
-           --[ Element.alignBottom
-           --, Element.alignLeft
-           --, Element.paddingXY 20 10
-           --, Border.glow
-           --(Element.rgba 0 0 0 0.5)
-           --5
-           --]
-           --[ "Draft in Progress" ]
-           --(EH.Action <| StartInlineCompose model.composeUXModel.context)
-           -- TODO
-           --     Nothing
-           --    else
-           --     Nothing
-           --, maybeViewDraftModal model
-           if not model.cookieConsentGranted then
-            --Just <| viewCookieConsentModal model.dProfile
-            Nothing
-
-           else
-            Nothing
+        ([--  ,
+          --  let
+          --     showDraftInProgressButton =
+          --         case model.route of
+          --             ViewCompose ->
+          --                 False
+          --             _ ->
+          --                 --(model.showHalfComposeUX == False)
+          --                 --&& (not <| Post.contentIsEmpty model.composeUXModel.content)
+          --                 -- TODO
+          --                 False
+          --    in
+          --    if showDraftInProgressButton then
+          --Just <|
+          --theme.secondaryActionButton
+          --model.dProfile
+          --[ Element.alignBottom
+          --, Element.alignLeft
+          --, Element.paddingXY 20 10
+          --, Border.glow
+          --(Element.rgba 0 0 0 0.5)
+          --5
+          --]
+          --[ "Draft in Progress" ]
+          --(EH.Action <| StartInlineCompose model.composeUXModel.context)
+          -- TODO
+          --     Nothing
+          --    else
+          --     Nothing
+          --, maybeViewDraftModal model
          ]
             ++ List.map Just
                 (userNoticeEls

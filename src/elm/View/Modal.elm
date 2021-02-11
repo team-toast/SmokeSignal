@@ -1,14 +1,14 @@
-module View.Modal exposing (viewNewToSmokeSignal)
+module View.Modal exposing (viewCookieConsent, viewNewToSmokeSignal)
 
-import Element exposing (Element, centerX, column, el, fill, height, padding, px, row, spacing, text, width)
+import Element exposing (Element, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile(..), white)
-import Theme
+import Theme exposing (blue)
 import Types exposing (..)
-import View.Attrs exposing (hover, whiteGlowAttribute)
+import View.Attrs exposing (cappedWidth, hover, roundBorder, sansSerifFont, whiteGlowAttribute)
 import View.Common
 import View.Img
 
@@ -83,3 +83,44 @@ viewNewToSmokeSignal _ =
                 |> Element.inFront
             ]
         |> View.Common.wrapModal (ShowNewToSmokeSignalModal False)
+
+
+viewCookieConsent : Element Msg
+viewCookieConsent =
+    [ [ Element.newTabLink [ Font.bold, hover ]
+            { url = "https://foundrydao.com/"
+            , label = text "Foundry"
+            }
+      , text " products use cookies and analytics to track behavior patterns, to help zero in on effective marketing strategies. To avoid being tracked in this way, we recommend using the "
+      , Element.newTabLink [ Font.bold, hover ]
+            { url = "https://brave.com/"
+            , label = text "Brave browser"
+            }
+      , text " or installing the "
+      , Element.newTabLink [ Font.bold, hover ]
+            { url = "https://tools.google.com/dlpage/gaoptout"
+            , label = text "Google Analytics Opt-Out browser addon"
+            }
+      , text "."
+      ]
+        |> paragraph [ Font.color white, sansSerifFont ]
+    , Input.button [ Background.color Theme.orange, padding 20, roundBorder, hover ]
+        { onPress = Just CookieConsentGranted
+        , label = text "Understood"
+        }
+    ]
+        |> row
+            [ Background.color blue
+            , Element.alignBottom
+            , cappedWidth 900
+            , centerX
+            , sansSerifFont
+            , padding 20
+            , spacing 20
+            , Border.roundEach
+                { bottomLeft = 0
+                , bottomRight = 0
+                , topLeft = 20
+                , topRight = 20
+                }
+            ]
