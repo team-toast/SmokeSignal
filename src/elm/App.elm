@@ -142,8 +142,7 @@ startApp flags key route =
             Misc.emptyModel key
     in
     ( { model
-        | basePath = flags.basePath
-        , view = view
+        | view = view
         , wallet = wallet
         , now = now
         , dProfile = Helpers.Element.screenWidthToDisplayProfile flags.width

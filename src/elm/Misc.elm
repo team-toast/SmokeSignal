@@ -22,7 +22,6 @@ import Types exposing (..)
 emptyModel : Browser.Navigation.Key -> Model
 emptyModel key =
     { navKey = key
-    , basePath = ""
     , view = ViewHome
     , wallet = Types.NoneDetected
     , newUserModal = False

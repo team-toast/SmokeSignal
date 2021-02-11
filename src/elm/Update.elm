@@ -443,7 +443,7 @@ update msg model =
             ( model
             , Browser.Navigation.pushUrl
                 model.navKey
-                (Routing.viewToUrlString model.basePath view)
+                (Routing.viewToUrlString view)
             )
 
         ConnectToWeb3 ->
