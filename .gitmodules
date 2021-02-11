@@ -7,3 +7,6 @@
 [submodule "elm-submodules/routing"]
 	path = elm-submodules/routing
 	url = https://github.com/team-toast/elm-hashbang-routing
+[submodule "elm-submodules/gtags"]
+	path = elm-submodules/gtags
+	url = https://github.com/team-toast/elm-gtags

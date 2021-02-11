@@ -4,7 +4,8 @@
         "src/elm",
         "elm-submodules/routing",
         "elm-submodules/helpers",
-        "elm-submodules/tokenvalue"
+        "elm-submodules/tokenvalue",
+        "elm-submodules/gtags"
     ],
     "elm-version": "0.19.1",
     "dependencies": {
