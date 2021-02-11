@@ -7,23 +7,22 @@
     "url": ""
   },
   "scripts": {
-    "dev": "parcel static/index.html",
-    "devhttps": "parcel static/index.html --https",
-    "devbuild": "parcel static/index.html --public-url ./",
-    "build": "parcel build static/index.html --public-url ./"
+    "build": "webpack",
+    "dev": "webpack serve --watch"
   },
   "devDependencies": {
-    "cssnano": "^4.1.10",
-    "elm": "^0.19.1-3",
-    "elm-hot": "^1.1.4",
-    "node-elm-compiler": "^5.0.4",
-    "parcel-bundler": "^1.12.4",
-    "parcel-plugin-asset-copier": "^1.0.0",
-    "rimraf": "^2.6.3"
+    "elm-hot-webpack-loader": "^1.1.7",
+    "webpack-dev-server": "^3.11.2"
   },
   "dependencies": {
-    "@metamask/legacy-web3": "^1.0.2",
-    "elm-ethereum-ports": "^1.0.1"
-  },
-  "assetsPath": "./static/assets"
+    "@metamask/legacy-web3": "^2.0.0",
+    "base64-inline-loader": "^1.1.1",
+    "css-loader": "^5.0.1",
+    "elm": "^0.19.1-3",
+    "elm-ethereum-ports": "^1.0.1",
+    "elm-webpack-loader": "^7.0.1",
+    "style-loader": "^2.0.0",
+    "webpack": "^5.15.0",
+    "webpack-cli": "^4.3.1"
+  }
 }
