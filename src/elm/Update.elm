@@ -10,6 +10,7 @@ import Eth.Sentry.Event as EventSentry
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address)
 import Eth.Utils
+import GTag exposing (GTagData, gTagOut)
 import Helpers.Element as EH exposing (DisplayProfile(..))
 import Http
 import Json.Decode
@@ -17,7 +18,7 @@ import Json.Encode
 import List.Extra
 import Maybe.Extra exposing (unwrap)
 import Misc exposing (defaultSeoDescription, txInfoToNameStr)
-import Ports exposing (connectToWeb3, consentToCookies, gTagOut)
+import Ports exposing (connectToWeb3, consentToCookies)
 import Post
 import Random
 import Result.Extra exposing (unpack)
@@ -713,12 +714,11 @@ update msg model =
             , Cmd.batch
                 [ consentToCookies ()
                 , gTagOut <|
-                    encodeGTag <|
-                        GTagData
-                            "accept cookies"
-                            ""
-                            ""
-                            0
+                    GTagData
+                        "accept cookies"
+                        Nothing
+                        Nothing
+                        Nothing
                 ]
             )
 
@@ -838,18 +838,6 @@ addPost model log =
               }
             , fetchPostInfo model.blockTimes model.config post.core.id
             )
-
-
-encodeGTag :
-    GTagData
-    -> Json.Decode.Value
-encodeGTag gtag =
-    Json.Encode.object
-        [ ( "event", Json.Encode.string gtag.event )
-        , ( "category", Json.Encode.string gtag.category )
-        , ( "label", Json.Encode.string gtag.label )
-        , ( "value", Json.Encode.int gtag.value )
-        ]
 
 
 handleTxReceipt :

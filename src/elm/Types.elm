@@ -232,14 +232,6 @@ type FailReason
     = MinedButExecutionFailed
 
 
-type alias GTagData =
-    { event : String
-    , category : String
-    , label : String
-    , value : Int
-    }
-
-
 type Post
     = PublishedPost Published
     | PostDraft Draft
