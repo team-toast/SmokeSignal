@@ -1,4 +1,4 @@
-module View.Post exposing (view)
+module View.Post exposing (view, viewTiming)
 
 import Dict exposing (Dict)
 import Element exposing (Attribute, Color, Element, centerX, centerY, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
@@ -221,8 +221,8 @@ viewAccounting dProfile ethPrice accounting =
     Element.row
         [ spacing 5
         ]
-        [ viewAmount theme.daiTippedBackground accounting.totalTipped ethPrice
-        , viewAmount theme.daiBurnedBackground accounting.totalBurned ethPrice
+        [ viewAmount theme.daiBurnedBackground accounting.totalBurned ethPrice
+        , viewAmount theme.daiTippedBackground accounting.totalTipped ethPrice
         ]
 
 
@@ -283,9 +283,6 @@ viewTiming dProfile maybePostTime now id =
                     |> (\s -> s ++ " ago")
                     --|> Maybe.withDefault "..."
                     |> text
-                    |> el
-                        [ Font.color theme.subtleTextColor
-                        ]
 
                 --, maybeTimePassed
                 --|> Maybe.map TimeHelpers.roundToSingleUnit

@@ -6,6 +6,8 @@ import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (DisplayProfile(..), black, white)
+import Helpers.Eth
+import Helpers.Time
 import Maybe.Extra exposing (unwrap)
 import Set
 import Theme
@@ -19,11 +21,34 @@ import View.Post
 
 view : Model -> CoreData -> Element Msg
 view model post =
-    [ [ [ text (post.content.title |> Maybe.withDefault ". . .") ]
+    [ [ [ [ text (post.content.title |> Maybe.withDefault ". . .") ]
             |> Element.paragraph
                 [ Font.size 50
-                , whiteGlowAttributeSmall
+                ]
+        , [ model.blockTimes
+                |> Dict.get post.id.block
+                |> View.Common.whenJust
+                    (\time ->
+                        Helpers.Time.sub model.now time
+                            |> Helpers.Time.roundToSingleUnit
+                            |> (\s -> s ++ " ago")
+                            |> text
+                    )
+          , Element.newTabLink [ hover ]
+                { url = Helpers.Eth.etherscanTxUrl post.txHash
+                , label = text "View on Etherscan 🌐"
+                }
+          ]
+            |> row
+                [ width fill
+                , Element.spaceEvenly
+                ]
+        ]
+            |> column
+                [ spacing 10
+                , width fill
                 , padding 10
+                , whiteGlowAttributeSmall
                 , Background.color black
                 , Font.color white
                 ]
