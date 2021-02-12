@@ -736,6 +736,9 @@ update msg model =
                         |> (\r ->
                                 { r
                                     | modal = True
+                                    , title = ""
+                                    , body = ""
+                                    , dollar = ""
                                     , context =
                                         case model.view of
                                             ViewTopic t ->
