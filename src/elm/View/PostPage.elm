@@ -61,16 +61,36 @@ view model post =
             [ spacing 10
             , width fill
             ]
-    , post.content.body
-        |> View.Markdown.renderString
-        |> el
-            [ padding 10
+    , [ post.content.body
+            |> View.Markdown.renderString
+            |> el
+                [ width fill
+                , height fill
+                , Font.color white
+                , Element.scrollbarY
+                ]
+      , Input.button
+            [ Background.color Theme.orange
+            , padding 10
+            , roundBorder
+            , hover
+            , Element.alignRight
+            ]
+            { onPress = Just ComposeOpen
+            , label =
+                [ View.Img.replyArrow 15 black
+                , text "Reply"
+                ]
+                    |> row [ spacing 10, Font.size 20 ]
+            }
+      ]
+        |> column
+            [ width fill
+            , View.Attrs.cappedHeight 500
+            , padding 10
+            , spacing 10
             , whiteGlowAttributeSmall
             , Background.color black
-            , Font.color white
-            , width fill
-            , height <| px 500
-            , Element.scrollbarY
             ]
     , model.replyIds
         |> Dict.get post.key
@@ -125,23 +145,4 @@ view model post =
             , spacing 20
             , width fill
             , sansSerifFont
-            , Input.button
-                [ Background.color Theme.orange
-                , padding 20
-                , roundBorder
-                , hover
-                ]
-                { onPress = Just ComposeOpen
-                , label =
-                    [ View.Img.replyArrow 20 black
-                    , text "Reply"
-                    ]
-                        |> row [ spacing 10 ]
-                }
-                |> el
-                    [ Element.alignRight
-                    , Element.alignBottom
-                    , Element.moveUp 20
-                    ]
-                |> Element.inFront
             ]

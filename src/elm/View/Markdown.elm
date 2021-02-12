@@ -1,6 +1,6 @@
 module View.Markdown exposing (renderString)
 
-import Element exposing (Attribute, Element, column, row, spacing)
+import Element exposing (Attribute, Element, column, fill, height, row, spacing, width)
 import Element.Background
 import Element.Border
 import Element.Font
@@ -33,7 +33,7 @@ renderString src =
                 >> Result.mapError (always ())
             )
         |> Result.withDefault [ Element.text "There has been a problem." ]
-        |> column [ spacing 10 ]
+        |> column [ spacing 10, height fill, width fill ]
 
 
 
