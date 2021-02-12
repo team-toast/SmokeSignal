@@ -125,11 +125,10 @@ viewContent post =
     , post.content.desc |> whenJust (text >> el [ Font.italic ])
     , post.content.body
         |> View.Markdown.renderString
+        |> el
             [ height <| px 100
             , Element.clip
             ]
-        |> Result.toMaybe
-        |> whenJust identity
     ]
         |> column
             [ width fill

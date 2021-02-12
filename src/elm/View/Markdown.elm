@@ -1,6 +1,6 @@
 module View.Markdown exposing (renderString)
 
-import Element exposing (Attribute, Element)
+import Element exposing (Attribute, Element, column, row, spacing)
 import Element.Background
 import Element.Border
 import Element.Font
@@ -12,22 +12,32 @@ import Markdown.Block
 import Markdown.Html
 import Markdown.Parser
 import Markdown.Renderer exposing (Renderer)
+import View.Attrs exposing (hover)
 
 
 
 -- Largely taken from https://github.com/dillonkearns/elm-markdown/blob/master/examples/src/ElmUi.elm
 
 
-renderString : List (Attribute msg) -> String -> Result String (Element msg)
-renderString attributes src =
+renderString : String -> Element msg
+renderString src =
     src
         |> Markdown.Parser.parse
-        |> Result.mapError
-            (List.map Markdown.Parser.deadEndToString
-                >> String.join "\n"
+        |> Result.mapError (always ())
+        --|> Result.mapError
+        --(List.map Markdown.Parser.deadEndToString
+        -->> String.join "\n"
+        --)
+        |> Result.andThen
+            (Markdown.Renderer.render renderer
+                >> Result.mapError (always ())
             )
-        |> Result.andThen (Markdown.Renderer.render renderer)
-        |> Result.map (Element.column attributes)
+        |> Result.withDefault [ Element.text "There has been a problem." ]
+        |> column [ spacing 10 ]
+
+
+
+--|> Result.map (Element.column attributes)
 
 
 renderer : Renderer (Element msg)
@@ -44,13 +54,15 @@ renderer =
         <|
             EH.thinHRuler (Element.rgba 0 0 0 0.5)
     , text = Element.text
-    , strong = \content -> Element.row [ Element.Font.bold ] content
-    , emphasis = \content -> Element.row [ Element.Font.italic ] content
+    , strong = \content -> row [ Element.Font.bold ] content
+    , emphasis = \content -> row [ Element.Font.italic ] content
     , codeSpan = code
     , link =
         \{ destination } body ->
             Element.newTabLink
-                [ Element.htmlAttribute (Html.Attributes.style "display" "inline-flex") ]
+                [ Element.htmlAttribute (Html.Attributes.style "display" "inline-flex")
+                , hover
+                ]
                 { url = destination
                 , label =
                     Element.paragraph
@@ -82,7 +94,7 @@ renderer =
                 (items
                     |> List.map
                         (\(Markdown.Block.ListItem task children) ->
-                            Element.row [ Element.spacing 5 ]
+                            row [ Element.spacing 5 ]
                                 [ Element.row
                                     [ Element.alignTop
                                     , Element.width Element.fill

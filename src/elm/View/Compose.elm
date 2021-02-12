@@ -218,6 +218,7 @@ viewBox model userInfo =
                 ]
         , model.compose.body
             |> View.Markdown.renderString
+            |> el
                 [ height fill
                 , width fill
                 , Element.clip
@@ -225,12 +226,6 @@ viewBox model userInfo =
                 , Font.color white
                 , padding 10
                 ]
-            |> Result.Extra.unpack
-                (\err ->
-                    [ text err ]
-                        |> Element.paragraph [ whiteGlowAttributeSmall ]
-                )
-                identity
         ]
             |> row
                 [ height fill

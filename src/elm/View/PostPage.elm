@@ -1,7 +1,7 @@
 module View.PostPage exposing (view)
 
 import Dict
-import Element exposing (Element, column, el, fill, height, padding, row, spacing, text, width)
+import Element exposing (Element, column, el, fill, height, padding, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
@@ -63,14 +63,15 @@ view model post =
             ]
     , post.content.body
         |> View.Markdown.renderString
+        |> el
             [ padding 10
             , whiteGlowAttributeSmall
             , Background.color black
             , Font.color white
             , width fill
+            , height <| px 500
+            , Element.scrollbarY
             ]
-        |> Result.toMaybe
-        |> View.Common.whenJust identity
     , model.replyIds
         |> Dict.get post.key
         |> unwrap [] Set.toList
