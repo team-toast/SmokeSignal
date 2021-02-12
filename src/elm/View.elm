@@ -208,8 +208,7 @@ viewFrame model elem =
         elem
 
     else
-        [ --banner model.dProfile
-          el [ height <| px 20, width fill ] Element.none
+        [ banner model.dProfile
         , [ elem
           , View.Sidebar.view model
           ]
@@ -235,24 +234,15 @@ viewFrame model elem =
 
 banner : DisplayProfile -> Element Msg
 banner dProfile =
-    [ text "REAL FREE SPEECH."
-    , text "ETERNALLY UNMUTABLE."
-    ]
-        |> column
-            [ spacing 10
-            , centerX
-            , centerY
-            , Font.color EH.white
-            , View.Attrs.sansSerifFont
-            , Font.bold
-            , Font.size 30
-            ]
-        |> el
-            [ width fill
-            , Element.height <| Element.px 120
-            , Background.color EH.black
-            , whiteGlowAttribute
-            ]
+    Element.image
+        [ height <| px 175
+        , Background.color EH.black
+        , whiteGlowAttribute
+        , centerX
+        ]
+        { src = "./img/banner.png"
+        , description = "Never be silenced"
+        }
 
 
 viewModals : DisplayProfile -> Bool -> List (Element Msg)
