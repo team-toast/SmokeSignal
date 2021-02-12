@@ -18,8 +18,7 @@ import UserNotice as UN exposing (UserNotice)
 
 
 type alias Flags =
-    { basePath : String
-    , networkId : Int
+    { networkId : Int
     , width : Int
     , height : Int
     , nowInMillis : Int
@@ -33,7 +32,6 @@ type alias Flags =
 
 type alias Model =
     { navKey : Browser.Navigation.Key
-    , basePath : String
     , wallet : Wallet
     , now : Time.Posix
     , dProfile : EH.DisplayProfile

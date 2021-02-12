@@ -25,26 +25,24 @@ routeParser =
         ]
 
 
-viewToUrlString : String -> View -> String
-viewToUrlString basePath view =
-    basePath
-        ++ (case view of
-                ViewHome ->
-                    hashBangPath [] []
+viewToUrlString : View -> String
+viewToUrlString view =
+    case view of
+        ViewHome ->
+            hashBangPath [] []
 
-                ViewTopics ->
-                    hashBangPath [ "topics" ] []
+        ViewTopics ->
+            hashBangPath [ "topics" ] []
 
-                ViewPost postId ->
-                    hashBangPath [ "post" ]
-                        (encodePostIdQueryParameters postId)
+        ViewPost postId ->
+            hashBangPath [ "post" ]
+                (encodePostIdQueryParameters postId)
 
-                ViewTopic topic ->
-                    hashBangPath [ "topic", encodeTopic topic ] []
+        ViewTopic topic ->
+            hashBangPath [ "topic", encodeTopic topic ] []
 
-                ViewCompose _ ->
-                    hashBangPath [] []
-           )
+        ViewCompose _ ->
+            hashBangPath [] []
 
 
 hashBangPath : List String -> List Builder.QueryParameter -> String

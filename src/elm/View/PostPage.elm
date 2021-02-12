@@ -1,11 +1,13 @@
 module View.PostPage exposing (view)
 
 import Dict
-import Element exposing (Element, column, el, fill, height, padding, row, spacing, text, width)
+import Element exposing (Element, column, el, fill, height, padding, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (DisplayProfile(..), black, white)
+import Helpers.Eth
+import Helpers.Time
 import Maybe.Extra exposing (unwrap)
 import Set
 import Theme
@@ -19,11 +21,34 @@ import View.Post
 
 view : Model -> CoreData -> Element Msg
 view model post =
-    [ [ [ text (post.content.title |> Maybe.withDefault ". . .") ]
+    [ [ [ [ text (post.content.title |> Maybe.withDefault ". . .") ]
             |> Element.paragraph
                 [ Font.size 50
-                , whiteGlowAttributeSmall
+                ]
+        , [ model.blockTimes
+                |> Dict.get post.id.block
+                |> View.Common.whenJust
+                    (\time ->
+                        Helpers.Time.sub model.now time
+                            |> Helpers.Time.roundToSingleUnit
+                            |> (\s -> s ++ " ago")
+                            |> text
+                    )
+          , Element.newTabLink [ hover ]
+                { url = Helpers.Eth.etherscanTxUrl post.txHash
+                , label = text "View on Etherscan 🌐"
+                }
+          ]
+            |> row
+                [ width fill
+                , Element.spaceEvenly
+                ]
+        ]
+            |> column
+                [ spacing 10
+                , width fill
                 , padding 10
+                , whiteGlowAttributeSmall
                 , Background.color black
                 , Font.color white
                 ]
@@ -36,16 +61,37 @@ view model post =
             [ spacing 10
             , width fill
             ]
-    , post.content.body
-        |> View.Markdown.renderString
-            [ padding 10
+    , [ post.content.body
+            |> View.Markdown.renderString
+            |> el
+                [ width fill
+                , height fill
+                , Font.color white
+                , Element.scrollbarY
+                ]
+      , Input.button
+            [ Background.color Theme.orange
+            , padding 10
+            , roundBorder
+            , hover
+            , Element.alignRight
+            ]
+            { onPress = Just ComposeOpen
+            , label =
+                [ View.Img.replyArrow 15 black
+                , text "Reply"
+                ]
+                    |> row [ spacing 10, Font.size 20 ]
+            }
+      ]
+        |> column
+            [ width fill
+            , View.Attrs.cappedHeight 500
+            , padding 10
+            , spacing 10
             , whiteGlowAttributeSmall
             , Background.color black
-            , Font.color white
-            , width fill
             ]
-        |> Result.toMaybe
-        |> View.Common.whenJust identity
     , model.replyIds
         |> Dict.get post.key
         |> unwrap [] Set.toList
@@ -99,23 +145,4 @@ view model post =
             , spacing 20
             , width fill
             , sansSerifFont
-            , Input.button
-                [ Background.color Theme.orange
-                , padding 20
-                , roundBorder
-                , hover
-                ]
-                { onPress = Just ComposeOpen
-                , label =
-                    [ View.Img.replyArrow 20 black
-                    , text "Reply"
-                    ]
-                        |> row [ spacing 10 ]
-                }
-                |> el
-                    [ Element.alignRight
-                    , Element.alignBottom
-                    , Element.moveUp 20
-                    ]
-                |> Element.inFront
             ]

@@ -1,4 +1,4 @@
-module View.Post exposing (view)
+module View.Post exposing (view, viewTiming)
 
 import Dict exposing (Dict)
 import Element exposing (Attribute, Color, Element, centerX, centerY, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
@@ -17,7 +17,7 @@ import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import View.Attrs exposing (hover, roundBorder, typeFont, whiteGlowAttributeSmall)
-import View.Common exposing (daiAmountInput, phaceElement, whenJust)
+import View.Common exposing (daiAmountInput, phaceElement, when, whenJust)
 import View.Img
 import View.Markdown
 
@@ -35,12 +35,24 @@ view :
     -> CoreData
     -> Element Msg
 view dProfile timestamp now replies accounting state ethPrice input title post =
+    let
+        isMobile =
+            dProfile == EH.Mobile
+
+        block =
+            "Block "
+                ++ String.fromInt post.id.block
+                |> text
+
+        timing =
+            viewTiming dProfile timestamp now post.id
+    in
     [ [ accounting
             |> whenJust (viewAccounting dProfile ethPrice)
       , [ title
             |> text
             |> el [ Font.size 30 ]
-        , [ text <| "Block " ++ String.fromInt post.id.block
+        , [ block
           , viewTiming dProfile timestamp now post.id
 
           --, viewContext dProfile post.core.metadata.context
@@ -50,10 +62,16 @@ view dProfile timestamp now replies accounting state ethPrice input title post =
                 , Font.size 17
                 , Font.color theme.subtleTextColor
                 ]
+            |> when (not isMobile)
         ]
             |> row [ width fill, spaceEvenly ]
       ]
         |> row [ width fill, spacing 10 ]
+    , [ block
+      , timing
+      ]
+        |> column [ width fill, spacing 10 ]
+        |> when isMobile
     , [ phaceElement
             ( 60, 60 )
             False
@@ -107,11 +125,10 @@ viewContent post =
     , post.content.desc |> whenJust (text >> el [ Font.italic ])
     , post.content.body
         |> View.Markdown.renderString
+        |> el
             [ height <| px 100
             , Element.clip
             ]
-        |> Result.toMaybe
-        |> whenJust identity
     ]
         |> column
             [ width fill
@@ -203,8 +220,8 @@ viewAccounting dProfile ethPrice accounting =
     Element.row
         [ spacing 5
         ]
-        [ viewAmount theme.daiTippedBackground accounting.totalTipped ethPrice
-        , viewAmount theme.daiBurnedBackground accounting.totalBurned ethPrice
+        [ viewAmount theme.daiBurnedBackground accounting.totalBurned ethPrice
+        , viewAmount theme.daiTippedBackground accounting.totalTipped ethPrice
         ]
 
 
@@ -265,9 +282,6 @@ viewTiming dProfile maybePostTime now id =
                     |> (\s -> s ++ " ago")
                     --|> Maybe.withDefault "..."
                     |> text
-                    |> el
-                        [ Font.color theme.subtleTextColor
-                        ]
 
                 --, maybeTimePassed
                 --|> Maybe.map TimeHelpers.roundToSingleUnit

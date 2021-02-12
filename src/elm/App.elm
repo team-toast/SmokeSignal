@@ -41,40 +41,21 @@ init flags url key =
         route =
             Routing.urlToRoute url
 
-        redirectDomain =
-            (case route of
+        redirectCmd =
+            case route of
                 Types.RouteViewPost id ->
-                    if id.block >= flags.startScanBlock then
-                        Nothing
+                    if id.block < flags.startScanBlock then
+                        redirectDomain url
 
                     else
-                        Just id
+                        Nothing
 
                 _ ->
                     Nothing
-            )
-                |> Maybe.andThen
-                    (\postId ->
-                        case url.host of
-                            "smokesignal.eth.link" ->
-                                Just "alpha.smokesignal.eth.link"
-
-                            "smokesignal.eth" ->
-                                Just "alpha.smokesignal.eth"
-
-                            _ ->
-                                Nothing
-                    )
-                |> Maybe.map
-                    (\newHost ->
-                        { url | host = newHost }
-                            |> Url.toString
-                            |> Browser.Navigation.load
-                    )
     in
-    redirectDomain
+    redirectCmd
         |> Maybe.Extra.unwrap
-            (startApp flags url key route)
+            (startApp flags key route)
             (\redirect ->
                 ( Misc.emptyModel key
                 , redirect
@@ -82,8 +63,28 @@ init flags url key =
             )
 
 
-startApp : Flags -> Url -> Browser.Navigation.Key -> Types.Route -> ( Model, Cmd Msg )
-startApp flags url key route =
+redirectDomain : Url -> Maybe (Cmd msg)
+redirectDomain url =
+    (case url.host of
+        "smokesignal.eth.link" ->
+            Just "alpha.smokesignal.eth.link"
+
+        "smokesignal.eth" ->
+            Just "alpha.smokesignal.eth"
+
+        _ ->
+            Nothing
+    )
+        |> Maybe.map
+            (\newHost ->
+                { url | host = newHost }
+                    |> Url.toString
+                    |> Browser.Navigation.load
+            )
+
+
+startApp : Flags -> Browser.Navigation.Key -> Types.Route -> ( Model, Cmd Msg )
+startApp flags key route =
     let
         config =
             { smokeSignalContractAddress = Eth.Utils.unsafeToAddress flags.smokeSignalContractAddress
@@ -141,8 +142,7 @@ startApp flags url key route =
             Misc.emptyModel key
     in
     ( { model
-        | basePath = flags.basePath
-        , view = view
+        | view = view
         , wallet = wallet
         , now = now
         , dProfile = Helpers.Element.screenWidthToDisplayProfile flags.width

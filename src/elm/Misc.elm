@@ -22,7 +22,6 @@ import Types exposing (..)
 emptyModel : Browser.Navigation.Key -> Model
 emptyModel key =
     { navKey = key
-    , basePath = ""
     , view = ViewHome
     , wallet = Types.NoneDetected
     , newUserModal = False
@@ -55,7 +54,7 @@ emptyModel key =
         , dollar = ""
         , body = ""
         , modal = False
-        , donate = False
+        , donate = True
         , context = TopLevel Post.defaultTopic
         }
     , tipOpen = Nothing

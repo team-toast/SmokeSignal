@@ -23,7 +23,16 @@ view model =
             viewDesktop model
 
         Mobile ->
-            text "mobile view"
+            Dict.values model.rootPosts
+                |> List.sortBy (feedSortByFunc model.blockTimes model.now)
+                |> List.reverse
+                |> List.map (viewPost model)
+                |> column
+                    [ width fill
+                    , height fill
+                    , spacing 5
+                    , padding 5
+                    ]
 
 
 viewDesktop : Model -> Element Msg

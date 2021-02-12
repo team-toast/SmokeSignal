@@ -1,4 +1,4 @@
-module View.Common exposing (appStatusMessage, daiAmountInput, phaceElement, renderContentOrError, shortenedHash, viewContext, web3ConnectButton, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (appStatusMessage, daiAmountInput, phaceElement, shortenedHash, viewContext, web3ConnectButton, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
@@ -183,32 +183,6 @@ daiAmountInput dProfile currentInput onChange =
         , placeholder = Nothing
         , label = Input.labelHidden "dai amount"
         }
-
-
-renderContentOrError : Content -> Element Msg
-renderContentOrError content =
-    let
-        renderResult =
-            View.Markdown.renderString
-                [ Element.spacing 15
-                , Font.color theme.postBodyTextColor
-                , Element.width Element.fill
-                ]
-                content.body
-    in
-    case renderResult of
-        Ok rendered ->
-            rendered
-
-        Err errStr ->
-            Element.el
-                [ Font.color theme.errorTextColor
-                , Font.italic
-                ]
-            <|
-                Element.text <|
-                    "Error parsing/rendering markdown: "
-                        ++ errStr
 
 
 when : Bool -> Element msg -> Element msg

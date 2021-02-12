@@ -8,7 +8,7 @@ import Element.Input as Input
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Misc
-import Theme exposing (orange)
+import Theme exposing (orange, softRed)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttributeSmall)
@@ -68,11 +68,17 @@ viewTopics ethPrice =
                     [ topic
                         |> text
                         |> el [ width fill, Font.size 30 ]
-                    , [ View.Img.dollar 25 white
+                    , [ Element.image
+                            [ height <| px 25
+                            ]
+                            { src = "./favicon.svg"
+                            , description = "smokesignal logo"
+                            }
+                      , View.Img.dollar 25 softRed
                       , totalBurned
                             |> Misc.tokenToDollar ethPrice
                             |> text
-                            |> el [ Font.size 25, Font.bold ]
+                            |> el [ Font.size 25, Font.bold, Font.color softRed ]
                       ]
                         |> row []
                     ]

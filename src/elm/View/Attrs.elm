@@ -1,4 +1,4 @@
-module View.Attrs exposing (cappedHeight, cappedWidth, fade, hover, onEnter, onKeydown, roundBorder, sansSerifFont, slightRound, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
+module View.Attrs exposing (cappedHeight, cappedWidth, fade, hover, onEnter, onKeydown, roundBorder, sansSerifFont, slightRound, style, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
 
 {-| A module for managing elm-ui 'Attribute' values and related functions.
 -}
@@ -6,8 +6,15 @@ module View.Attrs exposing (cappedHeight, cappedWidth, fade, hover, onEnter, onK
 import Element exposing (Attribute)
 import Element.Border as Border
 import Element.Font as Font
+import Html.Attributes
 import Html.Events
 import Json.Decode as Decode exposing (Decoder)
+
+
+style : String -> String -> Attribute msg
+style k v =
+    Html.Attributes.style k v
+        |> Element.htmlAttribute
 
 
 hover : Attribute msg

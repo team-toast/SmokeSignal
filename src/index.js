@@ -82,11 +82,13 @@ const init = (networkId) => {
 
 function analyticsGtagPortStuff(app) {
   app.ports.gTagOutPort.subscribe(function (data) {
-    gtag("event", data.event, {
-      event_category: data.category,
-      event_label: data.label,
-      value: data.value,
-    });
+    if (window.gtag) {
+      window.gtag("event", data.event, {
+        event_category: data.category,
+        event_label: data.label,
+        value: data.value,
+      });
+    }
   });
 
   app.ports.consentToCookies.subscribe(function () {
