@@ -208,7 +208,8 @@ viewFrame model elem =
         elem
 
     else
-        [ banner model.dProfile
+        [ --banner model.dProfile
+          el [ height <| px 20, width fill ] Element.none
         , [ elem
           , View.Sidebar.view model
           ]
