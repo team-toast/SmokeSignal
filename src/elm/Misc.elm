@@ -54,7 +54,7 @@ emptyModel key =
         , dollar = ""
         , body = ""
         , modal = False
-        , donate = False
+        , donate = True
         , context = TopLevel Post.defaultTopic
         }
     , tipOpen = Nothing
