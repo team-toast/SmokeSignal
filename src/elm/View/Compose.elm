@@ -170,58 +170,36 @@ viewBox model userInfo =
             |> el [ centerY ]
         ]
             |> row [ width fill, spacing 20, sansSerifFont ]
-      , [ [ Input.multiline
-                [ width fill
-                , height fill
-                , View.Attrs.whiteGlowAttributeSmall
-                , Background.color black
-                , Font.color white
-                , Input.button
-                    [ padding 10
-                    , Background.color black
-                    , Element.alignRight
-                    , View.Attrs.roundBorder
-                    , hover
-                        |> whenAttr submitEnabled
-                    ]
-                    { onPress =
-                        if submitEnabled then
-                            Just SubmitDraft
+      , [ Input.multiline
+            [ width <| px 500
+            , height <| px 500
+            , View.Attrs.whiteGlowAttributeSmall
+            , Background.color black
+            , Font.color white
+            , Element.scrollbarY
 
-                        else
-                            Nothing
-                    , label = text "Comment"
-                    }
-                    |> el
-                        [ width fill
-                        , padding 10
-                        , Background.color orange
-                        , Element.alignBottom
-                        ]
-                    |> Element.inFront
-                ]
-                { onChange = Types.ComposeBodyChange
-                , label = Input.labelHidden ""
-                , placeholder =
-                    "What do you want to say?"
-                        |> text
-                        |> Input.placeholder []
-                        |> Just
-                , text = model.compose.body
-                , spellcheck = False
-                }
-          ]
-            |> column
-                [ width fill
-                , height fill
-                , spacing 20
-                ]
+            --, View.Attrs.style "min-height" "auto"
+            ]
+            { onChange = Types.ComposeBodyChange
+            , label = Input.labelHidden ""
+            , placeholder =
+                "What do you want to say?"
+                    |> text
+                    |> Input.placeholder []
+                    |> Just
+            , text = model.compose.body
+            , spellcheck = False
+            }
         , model.compose.body
             |> View.Markdown.renderString
             |> el
-                [ height fill
-                , width fill
-                , Element.clip
+                [ width <| px 500
+
+                --, height fill
+                , Element.scrollbarY
+                , height <| px 500
+
+                --, View.Attrs.style "min-height" "auto"
                 , whiteGlowAttributeSmall
                 , Font.color white
                 , padding 10
@@ -233,17 +211,36 @@ viewBox model userInfo =
                 , spacing 30
                 , sansSerifFont
                 ]
+      , Input.button
+            [ padding 10
+            , Background.color orange
+            , Element.alignRight
+            , View.Attrs.roundBorder
+            , hover
+                |> whenAttr submitEnabled
+            , Font.color white
+            , sansSerifFont
+            ]
+            { onPress =
+                if submitEnabled then
+                    Just SubmitDraft
+
+                else
+                    Nothing
+            , label = text "Comment"
+            }
       ]
         |> column
             [ height fill
             , width fill
             , spacing 20
-            , padding 30
+            , padding 20
             ]
     ]
         |> column
             [ width <| px 1000
-            , height <| px 700
+
+            --, height <| px 700
             , Background.color black
             , whiteGlowAttributeSmall
             ]

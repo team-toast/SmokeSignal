@@ -36,10 +36,6 @@ renderString src =
         |> column [ spacing 10, height fill, width fill ]
 
 
-
---|> Result.map (Element.column attributes)
-
-
 renderer : Renderer (Element msg)
 renderer =
     { heading = heading
