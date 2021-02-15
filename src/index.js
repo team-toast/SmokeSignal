@@ -7,8 +7,6 @@ const { web3 } = window;
 
 const { Elm } = require("./elm/App.elm");
 
-const basePath = new URL(document.baseURI).pathname;
-
 /* eslint-disable no-undef */
 const smokeSignalContractAddress = SMOKE_SIGNAL_CONTRACT_ADDRESS;
 const httpProviderUrl = HTTP_PROVIDER_URL;
@@ -66,7 +64,6 @@ const init = (networkId) => {
   return Elm.App.init({
     node: document.getElementById("elm"),
     flags: {
-      basePath: basePath,
       networkId,
       width: window.innerWidth,
       height: window.innerHeight,
