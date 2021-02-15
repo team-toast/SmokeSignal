@@ -16,14 +16,11 @@ import View.Img
 
 view : Model -> Element Msg
 view model =
-    [ [ [ "Topics"
+    [ [ "Topics"
             |> text
             |> el [ Font.size 35, Font.color black ]
-        , View.Img.bookmark 30 black
-        ]
-            |> row
+            |> el
                 [ width fill
-                , spaceEvenly
                 , Background.color orange
                 , Font.color white
                 , padding 15
