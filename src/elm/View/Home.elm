@@ -51,7 +51,9 @@ viewDesktop model =
         , Font.size 30
         , whiteGlowAttributeSmall
         , width fill
-        , hover
+        , Element.mouseOver
+            [ Background.color Theme.darkRed
+            ]
         ]
         { onPress = Just <| ShowNewToSmokeSignalModal True
         , label =
