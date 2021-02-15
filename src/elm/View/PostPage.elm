@@ -53,7 +53,7 @@ view model post =
                 , Font.color white
                 ]
       , Input.button [ Background.color Theme.orange, padding 20, roundBorder, hover ]
-            { onPress = Just <| GotoView ViewHome
+            { onPress = Just GoBack
             , label = text "Go back"
             }
       ]
