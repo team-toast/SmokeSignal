@@ -64,6 +64,7 @@ emptyModel key =
     , replyIds = Dict.empty
     , accounting = Dict.empty
     , topics = Dict.empty
+    , hasNavigated = False
     }
 
 
