@@ -66,7 +66,7 @@ view model topic =
                         )
                         model.ethPrice
                         model.compose.dollar
-                        topic
+                        (Just topic)
                         post.core
                 )
             |> column

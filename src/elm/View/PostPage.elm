@@ -126,7 +126,7 @@ view model post =
                     )
                     model.ethPrice
                     model.compose.dollar
-                    ". . ."
+                    Nothing
                     reply.core
             )
         |> column
