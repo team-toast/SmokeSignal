@@ -23,14 +23,11 @@ view model =
     , [ Input.button [ height <| px 30, width fill, hover ]
             { onPress = Just <| GotoView ViewTopics
             , label =
-                [ View.Img.bookmark 17 orange
+                text "Topics"
                     |> el [ centerX, centerY ]
-                    |> el [ height <| px 30, width <| px 30, Background.color black ]
-                , text "Topics"
-                    |> el [ centerX ]
-                ]
-                    |> row
+                    |> el
                         [ width fill
+                        , height <| px 30
                         , Background.color Theme.orange
                         ]
             }

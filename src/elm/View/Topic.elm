@@ -84,14 +84,11 @@ view model topic =
 
 topicHeader : String -> Element Msg
 topicHeader topic =
-    [ [ topic
-            |> text
-            |> el [ Font.size 35 ]
-      , View.Img.bookmark 30 orange
-      ]
-        |> row
+    [ topic
+        |> text
+        |> el [ Font.size 35 ]
+        |> el
             [ width fill
-            , spaceEvenly
             , Background.color black
             , Font.color white
             , padding 15
