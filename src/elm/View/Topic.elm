@@ -89,9 +89,7 @@ topicHeader topic =
         |> el [ Font.size 35 ]
         |> el
             [ width fill
-            , Background.color black
             , Font.color white
-            , padding 15
             ]
     , Input.button
         [ View.Attrs.sansSerifFont
@@ -101,14 +99,17 @@ topicHeader topic =
         , Font.bold
         , Font.color white
         , Font.size 20
-        , width fill
         , hover
         ]
         { onPress = Just Types.ComposeOpen
-        , label = text "Comment..."
+        , label =
+            [ text "+" |> el [ Font.size 30 ], text "New Post" ]
+                |> row [ spacing 5 ]
         }
     ]
-        |> column
+        |> row
             [ width fill
             , whiteGlowAttributeSmall
+            , padding 15
+            , Background.color black
             ]
