@@ -42,16 +42,15 @@ init flags url key =
             Routing.urlToRoute url
 
         redirectCmd =
-            case route of
-                Types.RouteViewPost id ->
-                    if id.block < flags.startScanBlock then
-                        redirectDomain url
+            Routing.blockParser url
+                |> Maybe.andThen
+                    (\block ->
+                        if block < flags.startScanBlock then
+                            redirectDomain url
 
-                    else
-                        Nothing
-
-                _ ->
-                    Nothing
+                        else
+                            Nothing
+                    )
     in
     redirectCmd
         |> Maybe.Extra.unwrap
