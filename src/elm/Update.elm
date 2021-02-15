@@ -55,67 +55,7 @@ update msg model =
             ( model, cmd )
 
         RouteChanged route ->
-            case route of
-                RouteTopics ->
-                    ( { model
-                        | view = ViewTopics
-                      }
-                    , Cmd.none
-                    )
-
-                RouteHome ->
-                    ( { model
-                        | view = ViewHome
-                      }
-                    , Cmd.none
-                    )
-
-                RouteInvalid ->
-                    ( { model
-                        | userNotices =
-                            [ UN.routeNotFound Nothing ]
-                      }
-                    , Cmd.none
-                    )
-
-                RouteViewPost id ->
-                    ( { model
-                        | view = ViewPost id
-                      }
-                    , Dict.get (Misc.postIdToKey id) model.rootPosts
-                        |> Maybe.andThen (.core >> .content >> .desc)
-                        |> unwrap Cmd.none Ports.setDescription
-                    )
-
-                RouteMalformedPostId ->
-                    ( { model
-                        | userNotices =
-                            [ UN.routeNotFound Nothing ]
-                      }
-                    , Cmd.none
-                    )
-
-                RouteViewTopic topic ->
-                    topic
-                        |> Misc.validateTopic
-                        |> unwrap
-                            ( { model
-                                | userNotices =
-                                    [ UN.routeNotFound Nothing ]
-                                , view = ViewHome
-                              }
-                            , Cmd.none
-                            )
-                            (\t ->
-                                ( { model
-                                    | view = ViewTopic t
-                                  }
-                                , "Discussions related to #"
-                                    ++ topic
-                                    ++ " on SmokeSignal"
-                                    |> Ports.setDescription
-                                )
-                            )
+            handleRoute { model | hasNavigated = True } route
 
         Tick newTime ->
             ( { model | now = newTime }, Cmd.none )
@@ -805,6 +745,83 @@ update msg model =
               }
             , Cmd.none
             )
+
+        GoBack ->
+            ( model
+              -- To prevent navigating to a previous website
+            , if model.hasNavigated then
+                Browser.Navigation.back model.navKey 1
+
+              else
+                Browser.Navigation.pushUrl
+                    model.navKey
+                    (Routing.viewToUrlString ViewHome)
+            )
+
+
+handleRoute : Model -> Route -> ( Model, Cmd Msg )
+handleRoute model route =
+    case route of
+        RouteTopics ->
+            ( { model
+                | view = ViewTopics
+              }
+            , Cmd.none
+            )
+
+        RouteHome ->
+            ( { model
+                | view = ViewHome
+              }
+            , Cmd.none
+            )
+
+        RouteInvalid ->
+            ( { model
+                | userNotices =
+                    [ UN.routeNotFound Nothing ]
+              }
+            , Cmd.none
+            )
+
+        RouteViewPost id ->
+            ( { model
+                | view = ViewPost id
+              }
+            , Dict.get (Misc.postIdToKey id) model.rootPosts
+                |> Maybe.andThen (.core >> .content >> .desc)
+                |> unwrap Cmd.none Ports.setDescription
+            )
+
+        RouteMalformedPostId ->
+            ( { model
+                | userNotices =
+                    [ UN.routeNotFound Nothing ]
+              }
+            , Cmd.none
+            )
+
+        RouteViewTopic topic ->
+            topic
+                |> Misc.validateTopic
+                |> unwrap
+                    ( { model
+                        | userNotices =
+                            [ UN.routeNotFound Nothing ]
+                        , view = ViewHome
+                      }
+                    , Cmd.none
+                    )
+                    (\t ->
+                        ( { model
+                            | view = ViewTopic t
+                          }
+                        , "Discussions related to #"
+                            ++ topic
+                            ++ " on SmokeSignal"
+                            |> Ports.setDescription
+                        )
+                    )
 
 
 addPost : Model -> LogPost -> ( Model, Cmd Msg )

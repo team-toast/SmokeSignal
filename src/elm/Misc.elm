@@ -6,6 +6,7 @@ import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Hex)
 import Eth.Utils
+import FormatFloat
 import Helpers.Element
 import Helpers.Time
 import Http
@@ -63,6 +64,7 @@ emptyModel key =
     , replyIds = Dict.empty
     , accounting = Dict.empty
     , topics = Dict.empty
+    , hasNavigated = False
     }
 
 
@@ -313,15 +315,8 @@ postIdToKey id =
 tokenToDollar : Float -> TokenValue -> String
 tokenToDollar eth tv =
     TokenValue.mulFloatWithWarning tv eth
-        |> TokenValue.toFloatString (Just 2)
-        |> (\str ->
-                -- Should be handled in TokenValue.elm?
-                if String.length str == 1 then
-                    str ++ ".00"
-
-                else
-                    str
-           )
+        |> TokenValue.toFloatWithWarning
+        |> FormatFloat.formatFloat 2
 
 
 dollarStringToToken : Float -> String -> Maybe TokenValue

@@ -1,4 +1,4 @@
-module Routing exposing (addressParser, encodePostIdQueryParameters, encodeTopic, hexQueryParser, postIdQueryParser, routeParser, topicParser, urlToRoute, viewToUrlString)
+module Routing exposing (addressParser, blockParser, encodePostIdQueryParameters, encodeTopic, hexQueryParser, postIdQueryParser, routeParser, topicParser, urlToRoute, viewToUrlString)
 
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
@@ -8,6 +8,21 @@ import Url exposing (Url)
 import Url.Builder as Builder
 import Url.Parser as Parser exposing ((</>), (<?>), Parser)
 import Url.Parser.Query as Query
+
+
+blockParser : Url -> Maybe Int
+blockParser =
+    Parser.parse
+        (pathSucceed
+            <?> Query.int "block"
+            |> Parser.map (\_ block -> block)
+        )
+        >> Maybe.andThen identity
+
+
+pathSucceed : Parser (() -> a) a
+pathSucceed =
+    Parser.custom "" (always <| Just ())
 
 
 routeParser : Parser (Route -> a) a

@@ -58,6 +58,7 @@ type alias Model =
     , replyIds : Dict PostKey (Set PostKey)
     , accounting : Dict PostKey Accounting
     , topics : Dict String TokenValue
+    , hasNavigated : Bool
     }
 
 
@@ -105,6 +106,7 @@ type Msg
     | TopicInputChange String
     | SetTipOpen PostState
     | CancelTipOpen
+    | GoBack
 
 
 type alias PostKey =

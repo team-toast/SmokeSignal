@@ -51,7 +51,9 @@ viewDesktop model =
         , Font.size 30
         , whiteGlowAttributeSmall
         , width fill
-        , hover
+        , Element.mouseOver
+            [ Background.color Theme.darkRed
+            ]
         ]
         { onPress = Just <| ShowNewToSmokeSignalModal True
         , label =
@@ -104,7 +106,7 @@ viewPost model post =
         )
         model.ethPrice
         model.compose.dollar
-        post.topic
+        (Just post.topic)
         post.core
 
 

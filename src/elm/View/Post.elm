@@ -31,10 +31,10 @@ view :
     -> Maybe ShowInputState
     -> Float
     -> String
-    -> String
+    -> Maybe String
     -> CoreData
     -> Element Msg
-view dProfile timestamp now replies accounting state ethPrice input title post =
+view dProfile timestamp now replies accounting state ethPrice input topic post =
     let
         isMobile =
             dProfile == EH.Mobile
@@ -49,9 +49,18 @@ view dProfile timestamp now replies accounting state ethPrice input title post =
     in
     [ [ accounting
             |> whenJust (viewAccounting dProfile ethPrice)
-      , [ title
-            |> text
-            |> el [ Font.size 30 ]
+      , [ topic
+            |> whenJust
+                (\t ->
+                    Input.button [ Font.size 30, hover ]
+                        { onPress = Just <| GotoView <| ViewTopic t
+                        , label =
+                            "#"
+                                ++ t
+                                |> text
+                        }
+                )
+            |> el []
         , [ block
           , viewTiming dProfile timestamp now post.id
 

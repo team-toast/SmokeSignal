@@ -1,17 +1,15 @@
 module FormatFloat exposing (autoFormatFloat, formatFloat)
 
 import FormatNumber
-import FormatNumber.Humanize exposing (ZeroStrategy(..))
 import FormatNumber.Locales exposing (usLocale)
 
 
 formatFloat : Int -> Float -> String
 formatFloat numDecimals =
-    FormatNumber.humanize
+    FormatNumber.format
         { usLocale
-            | decimals = numDecimals
+            | decimals = FormatNumber.Locales.Exact numDecimals
         }
-        RemoveZeros
 
 
 autoFormatFloat : Float -> String
