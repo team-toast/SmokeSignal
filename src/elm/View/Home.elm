@@ -104,7 +104,7 @@ viewPost model post =
         )
         model.ethPrice
         model.compose.dollar
-        post.topic
+        (Just post.topic)
         post.core
 
 
