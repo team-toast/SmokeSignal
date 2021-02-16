@@ -9,11 +9,9 @@ const {
 } = process.env;
 
 if (
-  [
-    HTTP_PROVIDER_URL,
-    SMOKE_SIGNAL_CONTRACT_ADDRESS,
-    START_SCAN_BLOCK,
-  ].some((x) => !x)
+  [HTTP_PROVIDER_URL, SMOKE_SIGNAL_CONTRACT_ADDRESS, START_SCAN_BLOCK].some(
+    (x) => !x
+  )
 ) {
   throw "Missing environment variable.";
 }
