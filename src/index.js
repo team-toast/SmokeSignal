@@ -1,11 +1,11 @@
 require("./index.css");
-const elm_ethereum_ports = require("elm-ethereum-ports");
-const networkChangeNotifier = require("./js/networkChangeNotifier");
-require("@metamask/legacy-web3");
+const { txSentry, walletSentry } = require("./eth.js");
+//const networkChangeNotifier = require("./js/networkChangeNotifier");
+//require("@metamask/legacy-web3");
+//const Web3 = require("web3");
+//const { web3 } = window;
 
 window.navigator.serviceWorker.register("./sw.js");
-
-const { web3 } = window;
 
 const { Elm } = require("./elm/App.elm");
 
@@ -16,7 +16,7 @@ const startScanBlock = START_SCAN_BLOCK;
 /* eslint-enable no-undef */
 
 //window.testStuff = secureComms.testStuff;
-window.web3Connected = false;
+//window.web3Connected = false;
 
 // Local storage keys
 const HAS_VISITED = "has-visited";
@@ -32,31 +32,32 @@ window.addEventListener("load", function () {
     );
 
     app.ports.log.subscribe((x) => console.log(x));
+
+    app.ports.connectToWeb3.subscribe(function (_) {
+      //connectAndPrepareRemainingWeb3Ports(app, web3);
+      window.ethereum.enable();
+    });
+
+    txSentry(app.ports.txOut, app.ports.txIn);
+    walletSentry(app.ports.walletSentryPort);
   });
 });
 
 function startDapp() {
   return new Promise((resolve, _reject) => {
-    if (web3 && web3.version && web3.version.getNetwork) {
-      web3.version.getNetwork(function (e, networkId) {
-        const id = (() => {
-          if (e) {
-            console.log("Error initializing web3: " + e);
-            return 0; // 0 indicates no network set by provider
-          } else {
-            return parseInt(networkId);
-          }
-        })();
+    //if (web3 && web3.version && web3.version.getNetwork) {
+    if (false) {
+      window.ethereum.request({ method: "net_version" }).then((id) => {
+        const app = init(parseInt(id));
 
-        const app = init(id);
-
-        web3PortStuff(app, web3);
+        //web3PortStuff(app, true);
+        connectAndPrepareRemainingWeb3Ports(app, true);
 
         resolve(app);
       });
     } else {
-      console.log("Web3 wallet not detected.");
-      const app = init(0);
+      //console.log("Web3 wallet not detected.");
+      const app = init(null);
       resolve(app);
     }
   });
@@ -66,7 +67,7 @@ const init = (networkId) => {
   return Elm.App.init({
     node: document.getElementById("elm"),
     flags: {
-      networkId,
+      //networkId,
       width: window.innerWidth,
       height: window.innerHeight,
       nowInMillis: Date.now(),
@@ -121,7 +122,7 @@ function web3PortStuff(app, web3) {
 }
 
 function prepareWeb3PortsPreConnect(app, web3) {
-  networkChangeNotifier.startWatching(app.ports.networkSentryPort, web3);
+  //networkChangeNotifier.startWatching(app.ports.networkSentryPort, web3);
 
   app.ports.connectToWeb3.subscribe(function (_) {
     connectAndPrepareRemainingWeb3Ports(app, web3);
@@ -129,16 +130,16 @@ function prepareWeb3PortsPreConnect(app, web3) {
 }
 
 function connectAndPrepareRemainingWeb3Ports(app, web3) {
-  if (window.ethereum && !window.web3Connected) {
-    window.web3 = new Web3(ethereum);
-  }
+  //if (window.ethereum && !window.web3Connected) {
+  //window.web3 = new Web3(ethereum);
+  //}
 
-  elm_ethereum_ports.txSentry(app.ports.txOut, app.ports.txIn, web3);
-  elm_ethereum_ports.walletSentry(app.ports.walletSentryPort, web3);
-  networkChangeNotifier.startWatching(app.ports.networkSentryPort, web3);
+  txSentry(app.ports.txOut, app.ports.txIn, web3);
+  walletSentry(app.ports.walletSentryPort, web3);
+  //networkChangeNotifier.startWatching(app.ports.networkSentryPort, web3);
 
-  if (window.ethereum && !window.web3Connected) {
-    ethereum.enable();
-    window.web3Connected = true;
-  }
+  //if (window.ethereum && !window.web3Connected) {
+  //ethereum.enable();
+  //window.web3Connected = true;
+  //}
 }
