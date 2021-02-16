@@ -144,34 +144,46 @@ update msg model =
         WalletStatus walletSentryResult ->
             case walletSentryResult of
                 Ok walletSentry ->
-                    let
-                        ( newWallet, cmd ) =
-                            case walletSentry.account of
-                                Just newAddress ->
-                                    if (model.wallet |> Wallet.userInfo |> Maybe.map .address) == Just newAddress then
-                                        ( model.wallet
-                                        , Cmd.none
-                                        )
+                    case walletSentry.account of
+                        Nothing ->
+                            ( { model
+                                | wallet = Types.OnlyNetwork walletSentry.networkId
+                              }
+                            , Cmd.none
+                            )
+
+                        Just newAddress ->
+                            let
+                                -- if account or network changed, we need a new balance fetched and a Nothing balance set
+                                newBalanceNeeded =
+                                    ((model.wallet |> Wallet.userInfo |> Maybe.map .address) /= Just newAddress)
+                                        || ((model.wallet |> Wallet.network) /= Just walletSentry.networkId)
+                                        || ((model.wallet |> Wallet.userInfo |> Maybe.andThen .balance) == Nothing)
+
+                                newWallet =
+                                    Types.Active <|
+                                        Types.UserInfo
+                                            walletSentry.networkId
+                                            newAddress
+                                            (if newBalanceNeeded then
+                                                Nothing
+
+                                             else
+                                                model.wallet |> Wallet.userInfo |> Maybe.andThen .balance
+                                            )
+
+                                cmd =
+                                    if newBalanceNeeded then
+                                        fetchEthBalanceCmd model.config newAddress
 
                                     else
-                                        ( Types.Active <|
-                                            Types.UserInfo
-                                                walletSentry.networkId
-                                                newAddress
-                                                Nothing
-                                        , fetchEthBalanceCmd model.config newAddress
-                                        )
-
-                                Nothing ->
-                                    ( Types.OnlyNetwork walletSentry.networkId
-                                    , Cmd.none
-                                    )
-                    in
-                    ( { model
-                        | wallet = newWallet
-                      }
-                    , cmd
-                    )
+                                        Cmd.none
+                            in
+                            ( { model
+                                | wallet = newWallet
+                              }
+                            , cmd
+                            )
 
                 Err errStr ->
                     ( model |> addUserNotice (UN.walletError errStr)
