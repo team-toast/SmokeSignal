@@ -21,6 +21,7 @@ import Update exposing (update)
 import Url exposing (Url)
 import UserNotice as UN
 import View exposing (view)
+import Wallet
 
 
 main : Program Flags Model Msg
@@ -101,16 +102,19 @@ startApp flags key route =
                     , [ UN.routeNotFound <| Just err ]
                     )
 
-        ( wallet, walletNotices ) =
-            if flags.networkId == 0 then
-                ( Types.NoneDetected
-                , [ UN.noWeb3Provider ]
-                )
+        wallet =
+            case flags.walletStatus of
+                "GRANTED" ->
+                    Types.Connecting
 
-            else
-                ( Types.OnlyNetwork <| Eth.Net.toNetworkId flags.networkId
-                , []
-                )
+                "NOT_GRANTED" ->
+                    Types.NetworkReady
+
+                "NO_ETHEREUM" ->
+                    Types.NoneDetected
+
+                _ ->
+                    Types.NoneDetected
 
         txSentry =
             Eth.Sentry.Tx.init
@@ -147,7 +151,7 @@ startApp flags key route =
         , dProfile = Helpers.Element.screenWidthToDisplayProfile flags.width
         , txSentry = txSentry
         , eventSentry = eventSentry
-        , userNotices = walletNotices ++ routingUserNotices
+        , userNotices = routingUserNotices
         , cookieConsentGranted = flags.cookieConsent
         , newUserModal = flags.newUser
         , config = config
@@ -158,6 +162,11 @@ startApp flags key route =
         , Contracts.SmokeSignal.getEthPriceCmd
             config
             Types.EthPriceFetched
+        , if wallet == Types.Connecting then
+            Ports.connectToWeb3 ()
+
+          else
+            Cmd.none
         ]
     )
 
@@ -169,11 +178,8 @@ subscriptions model =
         , Time.every 2000 (always Types.ChangeDemoPhaceSrc)
         , Time.every 2500 (always Types.EveryFewSeconds)
         , Time.every 5000 (always Types.CheckTrackedTxsStatus)
-        , Ports.walletSentryPort
-            (Eth.Sentry.Wallet.decodeToMsg
-                (Types.WalletStatus << Err)
-                (Types.WalletStatus << Ok)
-            )
+        , Ports.walletResponse
+            (Wallet.decodeConnectResponse >> Types.WalletResponse)
         , Eth.Sentry.Tx.listen model.txSentry
         , Browser.Events.onResize Types.Resize
         ]

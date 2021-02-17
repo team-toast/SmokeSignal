@@ -677,7 +677,7 @@ inputErrorEl dProfile els =
 
 goButtonAndMaybeError : EH.DisplayProfile -> Bool -> UserInfo -> Model -> ( Element Msg, Maybe (List (Element Msg)) )
 goButtonAndMaybeError dProfile donateChecked userInfo model =
-    case userInfo.balance of
+    case Nothing of
         Just balance ->
             if TokenValue.isZero balance then
                 ( maybeGoButton dProfile Nothing

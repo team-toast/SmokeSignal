@@ -75,13 +75,16 @@ messageBurnEventFilter smokeSignalContractAddress from to maybeHash maybeAuthor 
            )
 
 
-burnEncodedPost : Address -> EncodedDraft -> Call Hex
-burnEncodedPost smokeSignalContractAddress encodedPost =
+burnEncodedPost : UserInfo -> Address -> EncodedDraft -> Call Hex
+burnEncodedPost wallet smokeSignalContractAddress encodedPost =
     G.burnMessage
         smokeSignalContractAddress
         encodedPost.encodedContentAndMetadata
         (TokenValue.getEvmValue encodedPost.donateAmount)
         |> EthHelpers.updateCallValue (TokenValue.getEvmValue encodedPost.burnAmount)
+        |> (\call ->
+                { call | from = Just wallet.address }
+           )
 
 
 getAccountingCmd : Config -> Hex -> Task Http.Error Accounting
