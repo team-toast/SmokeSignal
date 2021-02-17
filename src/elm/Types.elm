@@ -18,8 +18,7 @@ import UserNotice as UN exposing (UserNotice)
 
 
 type alias Flags =
-    { networkId : Int
-    , width : Int
+    { width : Int
     , height : Int
     , nowInMillis : Int
     , cookieConsent : Bool
@@ -27,6 +26,7 @@ type alias Flags =
     , smokeSignalContractAddress : String
     , httpProviderUrl : String
     , startScanBlock : Int
+    , walletStatus : String
     }
 
 
@@ -107,6 +107,7 @@ type Msg
     | SetTipOpen PostState
     | CancelTipOpen
     | GoBack
+    | WalletResponse WalletConnectResponse
 
 
 type alias PostKey =
@@ -180,13 +181,27 @@ type View
 type alias UserInfo =
     { network : Eth.Net.NetworkId
     , address : Address
+    , balance : TokenValue
+    }
+
+
+type alias WalletInfo =
+    { walletSentry : WalletSentry
     , balance : Maybe TokenValue
     }
 
 
+type WalletConnectResponse
+    = WalletSucceed WalletInfo
+    | WalletClear
+    | WalletCancel
+    | WalletError
+
+
 type Wallet
     = NoneDetected
-    | OnlyNetwork Eth.Net.NetworkId
+    | NetworkReady
+    | Connecting
     | Active UserInfo
 
 
