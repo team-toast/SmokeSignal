@@ -19,7 +19,7 @@ import Wallet
 
 view : Model -> Element Msg
 view model =
-    [ walletUXPane model.dProfile model.showAddressId model.demoPhaceSrc model.wallet
+    [ viewWallet model.dProfile model.showAddressId model.demoPhaceSrc model.wallet
     , [ Input.button [ height <| px 30, width fill, hover ]
             { onPress = Just <| GotoView ViewTopics
             , label =
@@ -87,13 +87,13 @@ viewTopics ethPrice =
         >> column [ width fill ]
 
 
-walletUXPane :
+viewWallet :
     DisplayProfile
     -> Maybe PhaceIconId
     -> String
     -> Types.Wallet
     -> Element Msg
-walletUXPane dProfile showAddressId demoPhaceSrc wallet =
+viewWallet dProfile showAddressId demoPhaceSrc wallet =
     let
         phaceEl =
             case Wallet.userInfo wallet of
@@ -133,18 +133,22 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
                     , Just "Then come back to try on some phaces!"
                     )
 
-                Types.OnlyNetwork _ ->
+                Types.NetworkReady ->
                     ( "Connect Wallet"
                     , Just <| EH.Action ConnectToWeb3
                     , Just "Each address has a unique phace!"
                     )
 
+                Types.Connecting ->
+                    ( "Connecting"
+                    , Nothing
+                    , Nothing
+                    )
+
                 Types.Active userInfo ->
                     let
                         userHasNoEth =
-                            userInfo.balance
-                                |> Maybe.map TokenValue.isZero
-                                |> Maybe.withDefault False
+                            TokenValue.isZero userInfo.balance
                     in
                     if userHasNoEth then
                         ( "Compose Post"

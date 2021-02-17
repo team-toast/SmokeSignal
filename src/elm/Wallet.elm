@@ -1,9 +1,43 @@
-module Wallet exposing (network, userInfo, withFetchedBalance)
+module Wallet exposing (decodeConnectResponse, network, userInfo)
 
+import Eth.Decode
 import Eth.Net
-import Misc exposing (withBalance)
+import Eth.Sentry.Wallet
+import Json.Decode as Decode exposing (Decoder, Value)
 import TokenValue exposing (TokenValue)
 import Types exposing (UserInfo, Wallet(..))
+
+
+connectResponseDecoder : Decoder Types.WalletConnectResponse
+connectResponseDecoder =
+    [ Decode.map2 Types.WalletInfo
+        (Decode.field "walletSentry" Eth.Sentry.Wallet.decoder)
+        (Decode.field "balance"
+            (Eth.Decode.bigInt
+                |> Decode.map TokenValue.tokenValue
+            )
+            |> Decode.nullable
+        )
+        |> Decode.map Types.WalletSucceed
+    , Decode.field "code" Decode.int
+        |> Decode.map
+            (\n ->
+                case n of
+                    4001 ->
+                        Types.WalletCancel
+
+                    _ ->
+                        Types.WalletError
+            )
+    , Decode.null Types.WalletClear
+    ]
+        |> Decode.oneOf
+
+
+decodeConnectResponse : Value -> Types.WalletConnectResponse
+decodeConnectResponse =
+    Decode.decodeValue connectResponseDecoder
+        >> Result.withDefault Types.WalletError
 
 
 userInfo : Wallet -> Maybe UserInfo
@@ -22,19 +56,11 @@ network walletState =
         NoneDetected ->
             Nothing
 
-        OnlyNetwork network_ ->
-            Just network_
+        Connecting ->
+            Nothing
+
+        NetworkReady ->
+            Nothing
 
         Active uInfo ->
             Just uInfo.network
-
-
-withFetchedBalance : TokenValue -> Wallet -> Wallet
-withFetchedBalance balance wallet =
-    case wallet of
-        Active uInfo ->
-            Active <|
-                (uInfo |> withBalance balance)
-
-        _ ->
-            wallet

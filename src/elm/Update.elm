@@ -6,6 +6,7 @@ import Contracts.SmokeSignal as SSContract
 import DemoPhaceSrcMutator
 import Dict exposing (Dict)
 import Eth
+import Eth.Net
 import Eth.Sentry.Event as EventSentry
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address)
@@ -141,13 +142,50 @@ update msg model =
                         |> unwrap ( newModel, Cmd.none )
                             (addPost newModel)
 
+        WalletResponse res ->
+            case res of
+                WalletSucceed info ->
+                    ( { model
+                        | wallet =
+                            case ( info.balance, info.walletSentry.account ) of
+                                ( Just balance, Just address ) ->
+                                    { network = info.walletSentry.networkId
+                                    , address = address
+                                    , balance = balance
+                                    }
+                                        |> Active
+
+                                _ ->
+                                    NoneDetected
+                      }
+                    , Cmd.none
+                    )
+
+                WalletClear ->
+                    ( { model
+                        | wallet =
+                            Types.NetworkReady
+                      }
+                    , Cmd.none
+                    )
+
+                WalletCancel ->
+                    ( { model
+                        | userNotices = UN.unexpectedError "The wallet connection has been cancelled" :: model.userNotices
+                      }
+                    , Cmd.none
+                    )
+
+                WalletError ->
+                    ( model, Ports.log "oops" )
+
         WalletStatus walletSentryResult ->
             case walletSentryResult of
                 Ok walletSentry ->
                     case walletSentry.account of
                         Nothing ->
                             ( { model
-                                | wallet = Types.OnlyNetwork walletSentry.networkId
+                                | wallet = Types.NetworkReady
                               }
                             , Cmd.none
                             )
@@ -158,19 +196,19 @@ update msg model =
                                 newBalanceNeeded =
                                     ((model.wallet |> Wallet.userInfo |> Maybe.map .address) /= Just newAddress)
                                         || ((model.wallet |> Wallet.network) /= Just walletSentry.networkId)
-                                        || ((model.wallet |> Wallet.userInfo |> Maybe.andThen .balance) == Nothing)
+                                        || ((model.wallet |> Wallet.userInfo |> Maybe.map .balance) == Nothing)
 
                                 newWallet =
                                     Types.Active <|
                                         Types.UserInfo
                                             walletSentry.networkId
                                             newAddress
-                                            (if newBalanceNeeded then
-                                                Nothing
-
-                                             else
-                                                model.wallet |> Wallet.userInfo |> Maybe.andThen .balance
-                                            )
+                                            --(if newBalanceNeeded then
+                                            --Nothing
+                                            --else
+                                            --model.wallet |> Wallet.userInfo |> Maybe.map .balance
+                                            --)
+                                            TokenValue.zero
 
                                 cmd =
                                     if newBalanceNeeded then
@@ -294,7 +332,9 @@ update msg model =
                     Ok balance ->
                         let
                             newWallet =
-                                model.wallet |> Wallet.withFetchedBalance balance
+                                model.wallet
+
+                            --|> Wallet.withFetchedBalance balance
                         in
                         ( { model
                             | wallet = newWallet
@@ -476,9 +516,7 @@ update msg model =
                                     lowBalance =
                                         TokenValue.compare
                                             (TokenValue.add burnAmount donateAmount)
-                                            (userInfo.balance
-                                                |> Maybe.withDefault TokenValue.zero
-                                            )
+                                            userInfo.balance
                                             /= LT
 
                                     metadata =
@@ -526,7 +564,7 @@ update msg model =
                                     txParams =
                                         postDraft
                                             |> Misc.encodeDraft
-                                            |> SSContract.burnEncodedPost model.config.smokeSignalContractAddress
+                                            |> SSContract.burnEncodedPost userInfo model.config.smokeSignalContractAddress
                                             |> Eth.toSend
 
                                     listeners =

@@ -1,4 +1,4 @@
-port module Ports exposing (connectToWeb3, consentToCookies, log, setDescription, setVisited, txIn, txOut, walletSentryPort)
+port module Ports exposing (connectToWeb3, consentToCookies, log, setDescription, setVisited, txIn, txOut, walletIn, walletResponse)
 
 import Json.Decode exposing (Value)
 
@@ -29,7 +29,10 @@ port setVisited : () -> Cmd msg
 -- IN
 
 
-port walletSentryPort : (Value -> msg) -> Sub msg
+port walletIn : (Value -> msg) -> Sub msg
 
 
 port txIn : (Value -> msg) -> Sub msg
+
+
+port walletResponse : (Value -> msg) -> Sub msg
