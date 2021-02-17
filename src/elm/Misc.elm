@@ -1,4 +1,4 @@
-module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, dollarStringToToken, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, totalBurned, tryRouteToView, txInfoToNameStr, validateTopic, withBalance)
+module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, dollarStringToToken, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, totalBurned, tryRouteToView, txInfoToNameStr, validateTopic)
 
 import Browser.Navigation
 import Dict exposing (Dict)
@@ -96,16 +96,6 @@ getTitle model =
 
         ViewTopic topic ->
             "#" ++ topic ++ " | SmokeSignal"
-
-
-withBalance :
-    TokenValue
-    -> UserInfo
-    -> UserInfo
-withBalance balance userInfo =
-    { userInfo
-        | balance = Just balance
-    }
 
 
 
