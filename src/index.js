@@ -3,6 +3,8 @@ const elm_ethereum_ports = require("elm-ethereum-ports");
 const networkChangeNotifier = require("./js/networkChangeNotifier");
 require("@metamask/legacy-web3");
 
+window.navigator.serviceWorker.register("./sw.js");
+
 const { web3 } = window;
 
 const { Elm } = require("./elm/App.elm");

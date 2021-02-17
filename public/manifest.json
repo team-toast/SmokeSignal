@@ -1,0 +1,20 @@
+{
+  "short_name": "SmokeSignal",
+  "name": "SmokeSignal",
+  "icons": [
+    {
+      "src": "/img/192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/img/512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#000000",
+  "theme_color": "#233B77",
+  "display": "standalone"
+}
