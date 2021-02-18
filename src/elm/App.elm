@@ -103,18 +103,11 @@ startApp flags key route =
                     )
 
         wallet =
-            case flags.walletStatus of
-                "GRANTED" ->
-                    Types.Connecting
+            if flags.hasEthereum then
+                Types.NetworkReady
 
-                "NOT_GRANTED" ->
-                    Types.NetworkReady
-
-                "NO_ETHEREUM" ->
-                    Types.NoneDetected
-
-                _ ->
-                    Types.NoneDetected
+            else
+                Types.NoneDetected
 
         txSentry =
             Eth.Sentry.Tx.init
@@ -162,11 +155,6 @@ startApp flags key route =
         , Contracts.SmokeSignal.getEthPriceCmd
             config
             Types.EthPriceFetched
-        , if wallet == Types.Connecting then
-            Ports.connectToWeb3 ()
-
-          else
-            Cmd.none
         ]
     )
 
