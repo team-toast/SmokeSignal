@@ -50,6 +50,15 @@ render model =
             , height fill
             , width fill
             , View.Attrs.typeFont
+            , View.Sidebar.viewWallet model
+                |> el
+                    [ width fill
+                    , Element.alignBottom
+                    , Background.color black
+                    , padding 20
+                    ]
+                |> Element.inFront
+                |> whenAttr (model.dProfile == Mobile)
             ]
         |> Element.layoutWith
             { options =
