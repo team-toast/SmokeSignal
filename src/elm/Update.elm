@@ -7,6 +7,7 @@ import DemoPhaceSrcMutator
 import Dict exposing (Dict)
 import Eth
 import Eth.Net
+import Eth.RPC
 import Eth.Sentry.Event as EventSentry
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address)
@@ -91,6 +92,16 @@ update msg model =
             , Cmd.none
             )
 
+        RpcResponse res ->
+            res
+                |> unpack
+                    (\e ->
+                        ( model, logHttpError "RpcResponse" e )
+                    )
+                    (\info ->
+                        ( { model | wallet = Active info }, Cmd.none )
+                    )
+
         CheckTrackedTxsStatus ->
             ( model
             , model.trackedTxs
@@ -144,21 +155,25 @@ update msg model =
 
         WalletResponse res ->
             case res of
-                WalletSucceed info ->
+                WalletSucceed addresses ->
+                    let
+                        address =
+                            addresses
+                                |> List.head
+                    in
                     ( { model
                         | wallet =
-                            case ( info.balance, info.walletSentry.account ) of
-                                ( Just balance, Just address ) ->
-                                    { network = info.walletSentry.networkId
-                                    , address = address
-                                    , balance = balance
-                                    }
-                                        |> Active
+                            if address == Nothing then
+                                Types.NetworkReady
 
-                                _ ->
-                                    NoneDetected
+                            else
+                                Types.Connecting
                       }
-                    , Cmd.none
+                    , address
+                        |> unwrap Cmd.none
+                            (Wallet.infoRequest model.config.httpProviderUrl
+                                >> Task.attempt RpcResponse
+                            )
                     )
 
                 WalletClear ->
@@ -169,64 +184,23 @@ update msg model =
                     , Cmd.none
                     )
 
+                WalletInProgress ->
+                    ( { model
+                        | userNotices = UN.unexpectedError "Please complete the wallet connection process" :: model.userNotices
+                      }
+                    , Cmd.none
+                    )
+
                 WalletCancel ->
                     ( { model
                         | userNotices = UN.unexpectedError "The wallet connection has been cancelled" :: model.userNotices
+                        , wallet = NetworkReady
                       }
                     , Cmd.none
                     )
 
                 WalletError ->
                     ( model, Ports.log "oops" )
-
-        WalletStatus walletSentryResult ->
-            case walletSentryResult of
-                Ok walletSentry ->
-                    case walletSentry.account of
-                        Nothing ->
-                            ( { model
-                                | wallet = Types.NetworkReady
-                              }
-                            , Cmd.none
-                            )
-
-                        Just newAddress ->
-                            let
-                                -- if account or network changed, we need a new balance fetched and a Nothing balance set
-                                newBalanceNeeded =
-                                    ((model.wallet |> Wallet.userInfo |> Maybe.map .address) /= Just newAddress)
-                                        || ((model.wallet |> Wallet.network) /= Just walletSentry.networkId)
-                                        || ((model.wallet |> Wallet.userInfo |> Maybe.map .balance) == Nothing)
-
-                                newWallet =
-                                    Types.Active <|
-                                        Types.UserInfo
-                                            walletSentry.networkId
-                                            newAddress
-                                            --(if newBalanceNeeded then
-                                            --Nothing
-                                            --else
-                                            --model.wallet |> Wallet.userInfo |> Maybe.map .balance
-                                            --)
-                                            TokenValue.zero
-
-                                cmd =
-                                    if newBalanceNeeded then
-                                        fetchEthBalanceCmd model.config newAddress
-
-                                    else
-                                        Cmd.none
-                            in
-                            ( { model
-                                | wallet = newWallet
-                              }
-                            , cmd
-                            )
-
-                Err errStr ->
-                    ( model |> addUserNotice (UN.walletError errStr)
-                    , Cmd.none
-                    )
 
         TxSentryMsg subMsg ->
             let
@@ -439,16 +413,9 @@ update msg model =
             )
 
         ConnectToWeb3 ->
-            case model.wallet of
-                Types.NoneDetected ->
-                    ( model |> addUserNotice UN.cantConnectNoWeb3
-                    , Cmd.none
-                    )
-
-                _ ->
-                    ( model
-                    , Ports.connectToWeb3 ()
-                    )
+            ( { model | wallet = Connecting }
+            , Ports.connectToWeb3 ()
+            )
 
         ShowOrHideAddress phaceId ->
             ( { model
@@ -585,67 +552,73 @@ update msg model =
                 )
 
         SubmitBurn postId ->
-            model.compose.dollar
-                |> Misc.dollarStringToToken model.ethPrice
-                |> unwrap
-                    ( { model
-                        | userNotices = [ UN.unexpectedError "Invalid input" ]
-                      }
-                    , Cmd.none
-                    )
-                    (\amount ->
-                        let
-                            txParams =
-                                SSContract.burnForPost model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
-                                    |> Eth.toSend
+            ensureUserInfo
+                (\userInfo ->
+                    model.compose.dollar
+                        |> Misc.dollarStringToToken model.ethPrice
+                        |> unwrap
+                            ( { model
+                                | userNotices = [ UN.unexpectedError "Invalid input" ]
+                              }
+                            , Cmd.none
+                            )
+                            (\amount ->
+                                let
+                                    txParams =
+                                        SSContract.burnForPost userInfo model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
+                                            |> Eth.toSend
 
-                            listeners =
-                                { onMined = Nothing
-                                , onSign = Just <| TxSigned <| BurnTx postId amount
-                                , onBroadcast = Nothing
-                                }
+                                    listeners =
+                                        { onMined = Nothing
+                                        , onSign = Just <| TxSigned <| BurnTx postId amount
+                                        , onBroadcast = Nothing
+                                        }
 
-                            ( txSentry, cmd ) =
-                                TxSentry.customSend model.txSentry listeners txParams
-                        in
-                        ( { model
-                            | txSentry = txSentry
-                          }
-                        , cmd
-                        )
-                    )
+                                    ( txSentry, cmd ) =
+                                        TxSentry.customSend model.txSentry listeners txParams
+                                in
+                                ( { model
+                                    | txSentry = txSentry
+                                  }
+                                , cmd
+                                )
+                            )
+                )
 
         SubmitTip postId ->
-            model.compose.dollar
-                |> Misc.dollarStringToToken model.ethPrice
-                |> unwrap
-                    ( { model
-                        | userNotices = [ UN.unexpectedError "Invalid input" ]
-                      }
-                    , Cmd.none
-                    )
-                    (\amount ->
-                        let
-                            txParams =
-                                SSContract.tipForPost model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
-                                    |> Eth.toSend
+            ensureUserInfo
+                (\userInfo ->
+                    model.compose.dollar
+                        |> Misc.dollarStringToToken model.ethPrice
+                        |> unwrap
+                            ( { model
+                                | userNotices = [ UN.unexpectedError "Invalid input" ]
+                              }
+                            , Cmd.none
+                            )
+                            (\amount ->
+                                let
+                                    txParams =
+                                        SSContract.tipForPost userInfo model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
+                                            |> Eth.toSend
 
-                            listeners =
-                                { onMined = Nothing
-                                , onSign = Just <| TxSigned <| TipTx postId amount
-                                , onBroadcast = Nothing
-                                }
+                                    listeners =
+                                        { onMined = Nothing
+                                        , onSign = Just <| TxSigned <| TipTx postId amount
+                                        , onBroadcast = Nothing
+                                        }
 
-                            ( txSentry, cmd ) =
-                                TxSentry.customSend model.txSentry listeners txParams
-                        in
-                        ( { model
-                            | txSentry = txSentry
-                            , tipOpen = Nothing
-                          }
-                        , cmd
-                        )
-                    )
+                                    ( txSentry, cmd ) =
+                                        TxSentry.customSend model.txSentry listeners txParams
+                                in
+                                ( { model
+                                    | txSentry = txSentry
+                                    , tipOpen = Nothing
+                                  }
+                                , cmd
+                                )
+                            )
+                )
 
         DonationCheckboxSet flag ->
             ( { model

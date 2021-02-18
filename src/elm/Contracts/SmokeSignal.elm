@@ -114,8 +114,8 @@ getEthPriceCmd config msgConstructor =
         |> Task.attempt msgConstructor
 
 
-tipForPost : Address -> Hex -> TokenValue -> Bool -> Call ()
-tipForPost smokeSignalContractAddress messageHash amount donate =
+tipForPost : UserInfo -> Address -> Hex -> TokenValue -> Bool -> Call ()
+tipForPost wallet smokeSignalContractAddress messageHash amount donate =
     G.tipHashOrBurnIfNoAuthor
         smokeSignalContractAddress
         messageHash
@@ -129,10 +129,13 @@ tipForPost smokeSignalContractAddress messageHash amount donate =
             TokenValue.zero |> TokenValue.getEvmValue
         )
         |> EthHelpers.updateCallValue (TokenValue.getEvmValue amount)
+        |> (\call ->
+                { call | from = Just wallet.address }
+           )
 
 
-burnForPost : Address -> Hex -> TokenValue -> Bool -> Call ()
-burnForPost smokeSignalContractAddress messageHash amount donate =
+burnForPost : UserInfo -> Address -> Hex -> TokenValue -> Bool -> Call ()
+burnForPost wallet smokeSignalContractAddress messageHash amount donate =
     G.burnHash
         smokeSignalContractAddress
         messageHash
@@ -146,6 +149,9 @@ burnForPost smokeSignalContractAddress messageHash amount donate =
             TokenValue.zero |> TokenValue.getEvmValue
         )
         |> EthHelpers.updateCallValue (TokenValue.getEvmValue amount)
+        |> (\call ->
+                { call | from = Just wallet.address }
+           )
 
 
 coreDecoder : G.MessageBurn -> Decoder Core

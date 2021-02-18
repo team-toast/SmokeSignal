@@ -26,7 +26,7 @@ type alias Flags =
     , smokeSignalContractAddress : String
     , httpProviderUrl : String
     , startScanBlock : Int
-    , walletStatus : String
+    , hasEthereum : Bool
     }
 
 
@@ -71,7 +71,6 @@ type Msg
     | NewDemoSrc String
       -- | MutateDemoSrcWith MutateInfo
     | Resize Int Int
-    | WalletStatus (Result String WalletSentry)
     | TxSentryMsg TxSentry.Msg
     | EventSentryMsg EventSentry.Msg
     | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error LogPost))
@@ -108,6 +107,7 @@ type Msg
     | CancelTipOpen
     | GoBack
     | WalletResponse WalletConnectResponse
+    | RpcResponse (Result Http.Error UserInfo)
 
 
 type alias PostKey =
@@ -192,9 +192,10 @@ type alias WalletInfo =
 
 
 type WalletConnectResponse
-    = WalletSucceed WalletInfo
+    = WalletSucceed (List Address)
     | WalletClear
     | WalletCancel
+    | WalletInProgress
     | WalletError
 
 
