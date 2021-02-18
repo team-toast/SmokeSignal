@@ -1,4 +1,4 @@
-module View.Sidebar exposing (view)
+module View.Sidebar exposing (view, viewWallet)
 
 import Element exposing (Element, centerX, centerY, column, el, fill, height, paddingXY, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
@@ -19,7 +19,7 @@ import Wallet
 
 view : Model -> Element Msg
 view model =
-    [ viewWallet model.dProfile model.showAddressId model.demoPhaceSrc model.wallet
+    [ viewWallet model
     , [ Input.button [ height <| px 30, width fill, hover ]
             { onPress = Just <| GotoView ViewTopics
             , label =
@@ -87,22 +87,17 @@ viewTopics ethPrice =
         >> column [ width fill ]
 
 
-viewWallet :
-    DisplayProfile
-    -> Maybe PhaceIconId
-    -> String
-    -> Types.Wallet
-    -> Element Msg
-viewWallet dProfile showAddressId demoPhaceSrc wallet =
+viewWallet : Model -> Element Msg
+viewWallet model =
     let
         phaceEl =
-            case Wallet.userInfo wallet of
+            case Wallet.userInfo model.wallet of
                 Nothing ->
                     phaceElement
                         ( 80, 80 )
                         True
-                        (Eth.Utils.unsafeToAddress demoPhaceSrc)
-                        (showAddressId == Just DemoPhace)
+                        (Eth.Utils.unsafeToAddress model.demoPhaceSrc)
+                        (model.showAddressId == Just DemoPhace)
                         (ShowOrHideAddress DemoPhace)
                         |> el
                             [ Border.rounded 10
@@ -116,7 +111,7 @@ viewWallet dProfile showAddressId demoPhaceSrc wallet =
                         ( 100, 100 )
                         True
                         userInfo.address
-                        (showAddressId == Just UserPhace)
+                        (model.showAddressId == Just UserPhace)
                         (ShowOrHideAddress UserPhace)
                         |> el
                             [ Border.rounded 10
@@ -126,7 +121,7 @@ viewWallet dProfile showAddressId demoPhaceSrc wallet =
                             ]
 
         ( buttonText, maybeButtonAction, maybeExplainerText ) =
-            case wallet of
+            case model.wallet of
                 Types.NoneDetected ->
                     ( "Install Metamask"
                     , Just <| EH.NewTabLink "https://metamask.io/"
@@ -180,14 +175,14 @@ viewWallet dProfile showAddressId demoPhaceSrc wallet =
             case maybeButtonAction of
                 Just buttonAction ->
                     Theme.unscaryButton
-                        dProfile
+                        model.dProfile
                         attributes
                         [ buttonText ]
                         buttonAction
 
                 Nothing ->
                     Theme.disabledButton
-                        dProfile
+                        model.dProfile
                         attributes
                         buttonText
 

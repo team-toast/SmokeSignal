@@ -1,23 +1,33 @@
-module Wallet exposing (decodeConnectResponse, network, userInfo)
+module Wallet exposing (decodeConnectResponse, infoRequest, userInfo)
 
+import Eth
 import Eth.Decode
 import Eth.Net
 import Eth.Sentry.Wallet
+import Eth.Types
+import Http
 import Json.Decode as Decode exposing (Decoder, Value)
+import Task exposing (Task)
 import TokenValue exposing (TokenValue)
 import Types exposing (UserInfo, Wallet(..))
 
 
+infoRequest : String -> Eth.Types.Address -> Task Http.Error UserInfo
+infoRequest url address =
+    Task.map2
+        (\network balance ->
+            { network = network
+            , address = address
+            , balance = TokenValue.tokenValue balance
+            }
+        )
+        (Eth.Net.version url)
+        (Eth.getBalance url address)
+
+
 connectResponseDecoder : Decoder Types.WalletConnectResponse
 connectResponseDecoder =
-    [ Decode.map2 Types.WalletInfo
-        (Decode.field "walletSentry" Eth.Sentry.Wallet.decoder)
-        (Decode.field "balance"
-            (Eth.Decode.bigInt
-                |> Decode.map TokenValue.tokenValue
-            )
-            |> Decode.nullable
-        )
+    [ Decode.list Eth.Decode.address
         |> Decode.map Types.WalletSucceed
     , Decode.field "code" Decode.int
         |> Decode.map
@@ -25,6 +35,9 @@ connectResponseDecoder =
                 case n of
                     4001 ->
                         Types.WalletCancel
+
+                    32002 ->
+                        Types.WalletInProgress
 
                     _ ->
                         Types.WalletError
@@ -48,19 +61,3 @@ userInfo walletState =
 
         _ ->
             Nothing
-
-
-network : Wallet -> Maybe Eth.Net.NetworkId
-network walletState =
-    case walletState of
-        NoneDetected ->
-            Nothing
-
-        Connecting ->
-            Nothing
-
-        NetworkReady ->
-            Nothing
-
-        Active uInfo ->
-            Just uInfo.network

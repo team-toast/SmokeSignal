@@ -1,5 +1,5 @@
 require("./index.css");
-const { txSentry, getAccount, enable } = require("./eth.js");
+const { txSentry, enable } = require("./eth.js");
 
 window.navigator.serviceWorker.register("./sw.js");
 
@@ -14,7 +14,6 @@ const startScanBlock = START_SCAN_BLOCK;
 // Local storage keys
 const HAS_VISITED = "has-visited";
 const COOKIE_CONSENT = "cookie-consent";
-const WALLET_ACCESS = "wallet-access";
 
 window.addEventListener("load", () => {
   const app = startDapp();
@@ -29,10 +28,7 @@ window.addEventListener("load", () => {
   app.ports.connectToWeb3.subscribe((_) => {
     enable()
       .then((accounts) => {
-        return getAccount(accounts[0]).then((info) => {
-          localStorage.setItem(WALLET_ACCESS, true);
-          app.ports.walletResponse.send(info);
-        });
+        app.ports.walletResponse.send(accounts);
       })
       .catch((e) => {
         app.ports.walletResponse.send(e);
@@ -43,20 +39,11 @@ window.addEventListener("load", () => {
 });
 
 function startDapp() {
-  const hasGranted = localStorage.getItem(WALLET_ACCESS) === "true";
-
-  const walletStatus = (() => {
-    if (window.ethereum) {
-      return hasGranted ? "GRANTED" : "NOT_GRANTED";
-    } else {
-      return "NO_ETHEREUM";
-    }
-  })();
+  const hasEthereum = Boolean(window.ethereum);
 
   const app = Elm.App.init({
     node: document.getElementById("elm"),
     flags: {
-      walletStatus,
       width: window.innerWidth,
       height: window.innerHeight,
       nowInMillis: Date.now(),
@@ -65,20 +52,20 @@ function startDapp() {
       smokeSignalContractAddress,
       httpProviderUrl,
       startScanBlock,
+      hasEthereum,
     },
   });
 
-  if (window.ethereum) {
+  if (hasEthereum) {
     window.ethereum.on("chainChanged", (_) => {
       app.ports.walletResponse.send(null);
     });
 
-    window.ethereum.on("accountsChanged", (_) => {
-      app.ports.walletResponse.send(null);
+    window.ethereum.on("accountsChanged", (xs) => {
+      app.ports.walletResponse.send(xs);
     });
 
     window.ethereum.on("disconnect", (_) => {
-      localStorage.removeItem(WALLET_ACCESS);
       app.ports.walletResponse.send(null);
     });
   }
