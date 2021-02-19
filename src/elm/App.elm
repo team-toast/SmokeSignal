@@ -162,7 +162,7 @@ startApp flags key route =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Time.every 200 Types.Tick
+        [ Time.every 1000 Types.Tick
         , Time.every 2000 (always Types.ChangeDemoPhaceSrc)
         , Time.every 2500 (always Types.EveryFewSeconds)
         , Time.every 5000 (always Types.CheckTrackedTxsStatus)
