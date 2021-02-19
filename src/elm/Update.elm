@@ -292,41 +292,45 @@ update msg model =
                     , logHttpError "PostAccountingFetched" err
                     )
 
-        BalanceFetched address fetchResult ->
-            let
-                maybeCurrentAddress =
-                    Wallet.userInfo model.wallet
-                        |> Maybe.map .address
-            in
-            if maybeCurrentAddress /= Just address then
-                ( model, Cmd.none )
+        BalanceFetched address res ->
+            case res of
+                Ok balance ->
+                    ( { model
+                        | wallet =
+                            model.wallet
+                                |> Wallet.userInfo
+                                |> unwrap
+                                    model.wallet
+                                    (\userInfo ->
+                                        Active
+                                            { userInfo
+                                                | balance =
+                                                    if userInfo.address == address then
+                                                        balance
 
-            else
-                case fetchResult of
-                    Ok balance ->
-                        let
-                            newWallet =
-                                model.wallet
+                                                    else
+                                                        userInfo.balance
+                                            }
+                                    )
+                      }
+                    , Cmd.none
+                    )
 
-                            --|> Wallet.withFetchedBalance balance
-                        in
-                        ( { model
-                            | wallet = newWallet
-                          }
-                        , Cmd.none
-                        )
-
-                    Err err ->
-                        ( model
-                            |> addUserNotice (UN.web3FetchError "DAI balance")
-                        , logHttpError "BalanceFetched" err
-                        )
+                Err err ->
+                    ( model
+                    , logHttpError "BalanceFetched" err
+                    )
 
         EthPriceFetched fetchResult ->
             case fetchResult of
                 Ok price ->
                     ( { model
-                        | ethPrice = price
+                        | ethPrice =
+                            if price > 1.0 then
+                                price
+
+                            else
+                                model.ethPrice
                       }
                     , Cmd.none
                     )
