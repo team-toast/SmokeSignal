@@ -1,7 +1,7 @@
 module View.PostPage exposing (view)
 
 import Dict
-import Element exposing (Element, column, el, fill, height, padding, px, row, spacing, text, width)
+import Element exposing (Element, column, el, fill, height, padding, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input

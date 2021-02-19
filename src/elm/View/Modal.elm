@@ -1,6 +1,6 @@
 module View.Modal exposing (viewCookieConsent, viewNewToSmokeSignal)
 
-import Element exposing (Element, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
+import Element exposing (Element, centerX, column, el, fill, height, padding, paragraph, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
