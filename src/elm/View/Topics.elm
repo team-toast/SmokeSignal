@@ -1,6 +1,6 @@
 module View.Topics exposing (view)
 
-import Element exposing (Element, column, el, fill, height, padding, row, spaceEvenly, spacing, text, width)
+import Element exposing (Element, column, el, fill, height, padding, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font

@@ -6,8 +6,6 @@ import Contracts.SmokeSignal as SSContract
 import DemoPhaceSrcMutator
 import Dict exposing (Dict)
 import Eth
-import Eth.Net
-import Eth.RPC
 import Eth.Sentry.Event as EventSentry
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address)
@@ -16,10 +14,9 @@ import GTag exposing (GTagData, gTagOut)
 import Helpers.Element as EH exposing (DisplayProfile(..))
 import Http
 import Json.Decode
-import Json.Encode
 import List.Extra
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (defaultSeoDescription, txInfoToNameStr)
+import Misc exposing (txInfoToNameStr)
 import Ports
 import Post
 import Random
@@ -118,9 +115,9 @@ update msg model =
 
         TrackedTxStatusResult txReceiptResult ->
             case txReceiptResult of
-                Err errStr ->
+                Err err ->
                     -- Hasn't yet been mined; make no change
-                    ( model, Cmd.none )
+                    ( model, logHttpError "TrackedTxStatusResult" err )
 
                 Ok txReceipt ->
                     let
@@ -483,7 +480,7 @@ update msg model =
             , Cmd.none
             )
 
-        StartInlineCompose composeContext ->
+        StartInlineCompose _ ->
             ( model, Cmd.none )
 
         --     case model.dProfile of
@@ -992,37 +989,6 @@ fetchPostInfo blockTimes config id =
             |> Task.attempt (BlockTimeFetched id.block)
     ]
         |> Cmd.batch
-
-
-updateSeoDescriptionIfNeededCmd :
-    Model
-    -> ( Model, Cmd Msg )
-updateSeoDescriptionIfNeededCmd model =
-    let
-        appropriateMaybeDescription =
-            case model.view of
-                ViewPost postId ->
-                    --Misc.getPublishedPostFromId model.publishedPosts postId
-                    --|> Maybe.andThen (.core >> .content >> .desc)
-                    Nothing
-
-                ViewTopic topic ->
-                    Just <| "Discussions related to #" ++ topic ++ " on SmokeSignal"
-
-                _ ->
-                    Nothing
-
-        -- Nothing
-    in
-    if appropriateMaybeDescription /= model.maybeSeoDescription then
-        ( { model
-            | maybeSeoDescription = appropriateMaybeDescription
-          }
-        , Ports.setDescription (appropriateMaybeDescription |> Maybe.withDefault defaultSeoDescription)
-        )
-
-    else
-        ( model, Cmd.none )
 
 
 fetchEthBalanceCmd : Types.Config -> Address -> Cmd Msg

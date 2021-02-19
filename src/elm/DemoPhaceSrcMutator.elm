@@ -1,4 +1,4 @@
-module DemoPhaceSrcMutator exposing (addressSrcGenerator)
+module DemoPhaceSrcMutator exposing (addressSrcGenerator, mutateInfoGenerator, mutateSrc)
 
 import Hex
 import Random

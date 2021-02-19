@@ -1,6 +1,6 @@
 module View.Markdown exposing (renderString)
 
-import Element exposing (Attribute, Element, column, fill, height, row, spacing, width)
+import Element exposing (Element, column, fill, height, row, spacing, width)
 import Element.Background
 import Element.Border
 import Element.Font

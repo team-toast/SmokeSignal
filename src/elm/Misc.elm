@@ -1,4 +1,4 @@
-module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, dollarStringToToken, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, totalBurned, tryRouteToView, txInfoToNameStr, validateTopic)
+module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, validateTopic)
 
 import Browser.Navigation
 import Dict exposing (Dict)
@@ -135,41 +135,6 @@ txInfoToNameStr txInfo =
 
         BurnTx _ _ ->
             "Burn"
-
-
-totalBurned : Post -> TokenValue
-totalBurned post =
-    case post of
-        PublishedPost publishedPost ->
-            case publishedPost.maybeAccounting of
-                Just accounting ->
-                    accounting.totalBurned
-
-                Nothing ->
-                    publishedPost.core.authorBurn
-
-        PostDraft postDraft ->
-            postDraft.core.authorBurn
-
-
-contextTopLevel : Context -> Maybe String
-contextTopLevel context =
-    case context of
-        TopLevel topic ->
-            Just topic
-
-        _ ->
-            Nothing
-
-
-contextReplyTo : Context -> Maybe PostId
-contextReplyTo context =
-    case context of
-        Reply id ->
-            Just id
-
-        _ ->
-            Nothing
 
 
 encodeDraft : Draft -> EncodedDraft

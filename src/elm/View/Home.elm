@@ -12,7 +12,7 @@ import Theme exposing (orange)
 import Time
 import TokenValue
 import Types exposing (..)
-import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
+import View.Attrs exposing (slightRound, whiteGlowAttributeSmall)
 import View.Post
 
 

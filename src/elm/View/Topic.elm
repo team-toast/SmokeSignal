@@ -1,7 +1,7 @@
 module View.Topic exposing (view)
 
 import Dict
-import Element exposing (Element, centerX, column, el, fill, height, padding, row, spaceEvenly, spacing, text, width)
+import Element exposing (Element, centerX, column, el, fill, height, padding, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
@@ -10,7 +10,6 @@ import Set
 import Theme exposing (orange)
 import Types exposing (..)
 import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
-import View.Img
 import View.Post
 
 

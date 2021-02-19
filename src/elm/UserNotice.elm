@@ -1,4 +1,4 @@
-module UserNotice exposing (Alignment(..), NoticeType(..), UserNotice, cantConnectNoWeb3, eventDecodeError, noWeb3Provider, routeNotFound, unexpectedError, walletError, web3FetchError, web3SigError)
+module UserNotice exposing (Alignment(..), NoticeType(..), UserNotice, cantConnectNoWeb3, debugMsg, eventDecodeError, inputError, noWeb3Account, noWeb3Provider, routeNotFound, screenTooSmall, unexpectedError, walletError, web3BroadcastError, web3FetchError, web3MiningError, web3SigError, wrongWeb3Network)
 
 import Element exposing (Element)
 import Element.Font
@@ -25,9 +25,9 @@ type NoticeType
     | ShouldBeImpossible
 
 
-screenToSmall : Int -> UserNotice
-screenToSmall width =
-    { uniqueLabel = "screenToSmall " ++ String.fromInt width
+screenTooSmall : Int -> UserNotice
+screenTooSmall width =
+    { uniqueLabel = "screenTooSmall " ++ String.fromInt width
     , noticeType = Caution
     , mainParagraphs =
         [ [ Element.text <| "Your screen is quite small (" ++ String.fromInt width ++ " across)--things may be broken!." ] ]
