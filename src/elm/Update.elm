@@ -326,7 +326,12 @@ update msg model =
             case fetchResult of
                 Ok price ->
                     ( { model
-                        | ethPrice = price
+                        | ethPrice =
+                            if price > 1.0 then
+                                price
+
+                            else
+                                model.ethPrice
                       }
                     , Cmd.none
                     )
