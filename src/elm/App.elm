@@ -4,10 +4,8 @@ import Browser.Events
 import Browser.Hashbang
 import Browser.Navigation
 import Contracts.SmokeSignal
-import Eth.Net
 import Eth.Sentry.Event
 import Eth.Sentry.Tx
-import Eth.Sentry.Wallet
 import Eth.Types
 import Eth.Utils
 import Helpers.Element
@@ -155,6 +153,7 @@ startApp flags key route =
         , Contracts.SmokeSignal.getEthPriceCmd
             config
             Types.EthPriceFetched
+        , Ports.setDescription Misc.defaultSeoDescription
         ]
     )
 

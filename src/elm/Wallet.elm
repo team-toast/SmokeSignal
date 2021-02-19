@@ -3,12 +3,11 @@ module Wallet exposing (decodeConnectResponse, infoRequest, userInfo)
 import Eth
 import Eth.Decode
 import Eth.Net
-import Eth.Sentry.Wallet
 import Eth.Types
 import Http
 import Json.Decode as Decode exposing (Decoder, Value)
 import Task exposing (Task)
-import TokenValue exposing (TokenValue)
+import TokenValue
 import Types exposing (UserInfo, Wallet(..))
 
 
