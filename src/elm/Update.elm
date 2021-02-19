@@ -127,31 +127,70 @@ update msg model =
                         ( newStatus, maybePublishedPost, maybeUserNotice ) =
                             handleTxReceipt txReceipt
 
-                        newModel =
-                            { model
-                                | trackedTxs =
-                                    model.trackedTxs
-                                        |> Dict.update
-                                            (Eth.Utils.txHashToString txReceipt.hash)
-                                            (Maybe.map
-                                                (\info ->
-                                                    if info.status == Mining then
-                                                        { info | status = newStatus }
+                        isMined =
+                            case newStatus of
+                                Mined _ ->
+                                    True
 
-                                                    else
-                                                        info
-                                                )
-                                            )
-                                , userNotices =
-                                    model.userNotices
-                                        ++ (maybeUserNotice
-                                                |> unwrap [] List.singleton
-                                           )
-                            }
+                                _ ->
+                                    False
+
+                        fetchAccounting =
+                            model.trackedTxs
+                                |> Dict.get (Eth.Utils.txHashToString txReceipt.hash)
+                                |> Maybe.andThen
+                                    (\tx ->
+                                        case tx.txInfo of
+                                            PostTx _ ->
+                                                maybePublishedPost
+                                                    |> Maybe.map
+                                                        (\r ->
+                                                            case r of
+                                                                LogReply p ->
+                                                                    p.core.id
+
+                                                                LogRoot p ->
+                                                                    p.core.id
+                                                        )
+
+                                            TipTx id _ ->
+                                                Just id
+
+                                            BurnTx id _ ->
+                                                Just id
+                                    )
+                                |> unwrap Cmd.none
+                                    (fetchPostInfo model.blockTimes model.config)
                     in
-                    maybePublishedPost
-                        |> unwrap ( newModel, Cmd.none )
-                            (addPost newModel)
+                    ( { model
+                        | trackedTxs =
+                            model.trackedTxs
+                                |> Dict.update
+                                    (Eth.Utils.txHashToString txReceipt.hash)
+                                    (Maybe.map
+                                        (\info ->
+                                            if info.status == Mining then
+                                                { info | status = newStatus }
+
+                                            else
+                                                info
+                                        )
+                                    )
+                        , userNotices =
+                            model.userNotices
+                                ++ (maybeUserNotice
+                                        |> unwrap [] List.singleton
+                                   )
+                      }
+                        |> (maybePublishedPost
+                                |> unwrap identity addPost
+                           )
+                    , if isMined then
+                        fetchAccounting
+
+                      else
+                        Cmd.none
+                    )
 
         WalletResponse res ->
             case res of
@@ -247,7 +286,18 @@ update msg model =
                     --ssPost.hash
                     --}
                     --)
-                    addPost model log
+                    let
+                        id =
+                            case log of
+                                LogReply p ->
+                                    p.core.id
+
+                                LogRoot p ->
+                                    p.core.id
+                    in
+                    ( addPost log model
+                    , fetchPostInfo model.blockTimes model.config id
+                    )
 
         PostAccountingFetched postId res ->
             case res of
@@ -851,11 +901,11 @@ handleRoute model route =
                     )
 
 
-addPost : Model -> LogPost -> ( Model, Cmd Msg )
-addPost model log =
+addPost : LogPost -> Model -> Model
+addPost log model =
     case log of
         LogRoot post ->
-            ( { model
+            { model
                 | rootPosts =
                     model.rootPosts
                         |> Dict.insert post.core.key post
@@ -866,12 +916,10 @@ addPost model log =
                             (Maybe.withDefault TokenValue.zero
                                 >> Just
                             )
-              }
-            , fetchPostInfo model.blockTimes model.config post.core.id
-            )
+            }
 
         LogReply post ->
-            ( { model
+            { model
                 | replyPosts =
                     model.replyPosts
                         |> Dict.insert post.core.key post
@@ -882,9 +930,7 @@ addPost model log =
                                 >> Set.insert post.core.key
                                 >> Just
                             )
-              }
-            , fetchPostInfo model.blockTimes model.config post.core.id
-            )
+            }
 
 
 handleTxReceipt :
