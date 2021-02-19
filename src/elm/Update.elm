@@ -1,5 +1,6 @@
 module Update exposing (update)
 
+import BigInt exposing (BigInt)
 import Browser
 import Browser.Navigation
 import Contracts.SmokeSignal as SSContract
@@ -455,7 +456,15 @@ update msg model =
 
                 _ ->
                     ( model
-                    , Ports.connectToWeb3 ()
+                    , [ Ports.connectToWeb3 ()
+                      , GTagData
+                            "Web3 Connected"
+                            Nothing
+                            Nothing
+                            Nothing
+                            |> gTagOut
+                      ]
+                        |> Cmd.batch
                     )
 
         ShowOrHideAddress phaceId ->
@@ -566,7 +575,14 @@ update msg model =
                                 ( { model
                                     | userNotices = [ UN.unexpectedError err ]
                                   }
-                                , Cmd.none
+                                , GTagData
+                                    "Submit Draft"
+                                    Nothing
+                                    (("error " ++ err)
+                                        |> Just
+                                    )
+                                    Nothing
+                                    |> gTagOut
                                 )
                             )
                             (\postDraft ->
@@ -589,7 +605,15 @@ update msg model =
                                 ( { model
                                     | txSentry = txSentry
                                   }
-                                , cmd
+                                , [ cmd
+                                  , GTagData
+                                        "Submit Draft"
+                                        Nothing
+                                        Nothing
+                                        Nothing
+                                        |> gTagOut
+                                  ]
+                                    |> Cmd.batch
                                 )
                             )
                 )
@@ -621,7 +645,20 @@ update msg model =
                         ( { model
                             | txSentry = txSentry
                           }
-                        , cmd
+                        , [ cmd
+                          , GTagData
+                                "Submit Burn"
+                                Nothing
+                                ((amount
+                                    |> TokenValue.getEvmValue
+                                    |> BigInt.toString
+                                 )
+                                    |> Just
+                                )
+                                Nothing
+                                |> gTagOut
+                          ]
+                            |> Cmd.batch
                         )
                     )
 
@@ -653,7 +690,20 @@ update msg model =
                             | txSentry = txSentry
                             , tipOpen = Nothing
                           }
-                        , cmd
+                        , [ cmd
+                          , GTagData
+                                "Submit Tip"
+                                Nothing
+                                ((amount
+                                    |> TokenValue.getEvmValue
+                                    |> BigInt.toString
+                                 )
+                                    |> Just
+                                )
+                                Nothing
+                                |> gTagOut
+                          ]
+                            |> Cmd.batch
                         )
                     )
 
@@ -663,7 +713,21 @@ update msg model =
                     model.compose
                         |> (\r -> { r | donate = flag })
               }
-            , Cmd.none
+            , GTagData
+                "Donation Checkbox"
+                Nothing
+                (("set "
+                    ++ (if flag == True then
+                            "true"
+
+                        else
+                            "false"
+                       )
+                 )
+                    |> Just
+                )
+                Nothing
+                |> gTagOut
             )
 
         ViewDraft maybeDraft ->
@@ -713,12 +777,12 @@ update msg model =
               }
             , Cmd.batch
                 [ Ports.consentToCookies ()
-                , gTagOut <|
-                    GTagData
-                        "accept cookies"
-                        Nothing
-                        Nothing
-                        Nothing
+                , GTagData
+                    "accept cookies"
+                    Nothing
+                    Nothing
+                    Nothing
+                    |> gTagOut
                 ]
             )
 
@@ -726,7 +790,15 @@ update msg model =
             ( { model
                 | newUserModal = flag
               }
-            , Ports.setVisited ()
+            , [ Ports.setVisited ()
+              , GTagData
+                    "Show Modal"
+                    Nothing
+                    (Just "new to smokesignal")
+                    Nothing
+                    |> gTagOut
+              ]
+                |> Cmd.batch
             )
 
         ComposeOpen ->
@@ -756,7 +828,12 @@ update msg model =
                            )
                 , topicInput = ""
               }
-            , Cmd.none
+            , GTagData
+                "Compose Window"
+                Nothing
+                (Just "open")
+                Nothing
+                |> gTagOut
             )
 
         ComposeClose ->
@@ -769,7 +846,12 @@ update msg model =
                                 }
                            )
               }
-            , Cmd.none
+            , GTagData
+                "Compose Window"
+                Nothing
+                (Just "close")
+                Nothing
+                |> gTagOut
             )
 
         ComposeBodyChange str ->
@@ -778,7 +860,12 @@ update msg model =
                     model.compose
                         |> (\r -> { r | body = str })
               }
-            , Cmd.none
+            , GTagData
+                "Compose Window"
+                Nothing
+                (Just "body change")
+                Nothing
+                |> gTagOut
             )
 
         ComposeTitleChange str ->
@@ -787,7 +874,12 @@ update msg model =
                     model.compose
                         |> (\r -> { r | title = str })
               }
-            , Cmd.none
+            , GTagData
+                "Compose Window"
+                Nothing
+                (Just "title change")
+                Nothing
+                |> gTagOut
             )
 
         ComposeDollarChange str ->
@@ -796,7 +888,12 @@ update msg model =
                     model.compose
                         |> (\r -> { r | dollar = str })
               }
-            , Cmd.none
+            , GTagData
+                "Compose Window"
+                Nothing
+                (Just "dollar change")
+                Nothing
+                |> gTagOut
             )
 
         TopicInputChange str ->
