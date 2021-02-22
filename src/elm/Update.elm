@@ -96,7 +96,12 @@ update msg model =
                         ( model, logHttpError "RpcResponse" e )
                     )
                     (\info ->
-                        ( { model | wallet = Active info }, Cmd.none )
+                        ( { model
+                            | wallet = Active info
+                            , tipOpen = Nothing
+                          }
+                        , Cmd.none
+                        )
                     )
 
         CheckTrackedTxsStatus ->

@@ -11,6 +11,7 @@ import Theme exposing (orange)
 import Types exposing (..)
 import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
 import View.Post
+import Wallet
 
 
 view : Model -> String -> Element Msg
@@ -66,6 +67,7 @@ view model topic =
                         model.ethPrice
                         model.compose.dollar
                         (Just topic)
+                        (Wallet.isActive model.wallet)
                         post.core
                 )
             |> column

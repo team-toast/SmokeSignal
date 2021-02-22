@@ -1,4 +1,4 @@
-module Wallet exposing (decodeConnectResponse, infoRequest, userInfo)
+module Wallet exposing (decodeConnectResponse, infoRequest, isActive, userInfo)
 
 import Eth
 import Eth.Decode
@@ -60,3 +60,13 @@ userInfo walletState =
 
         _ ->
             Nothing
+
+
+isActive : Wallet -> Bool
+isActive walletState =
+    case walletState of
+        Active _ ->
+            True
+
+        _ ->
+            False

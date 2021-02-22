@@ -14,6 +14,7 @@ import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (slightRound, whiteGlowAttributeSmall)
 import View.Post
+import Wallet
 
 
 view : Model -> Element Msg
@@ -26,7 +27,7 @@ view model =
             Dict.values model.rootPosts
                 |> List.sortBy (feedSortByFunc model.blockTimes model.now)
                 |> List.reverse
-                |> List.map (viewPost model)
+                |> List.map (viewPost model (Wallet.isActive model.wallet))
                 |> column
                     [ width fill
                     , height fill
@@ -64,7 +65,7 @@ viewDesktop model =
     , posts
         |> List.sortBy (feedSortByFunc model.blockTimes model.now)
         |> List.reverse
-        |> List.map (viewPost model)
+        |> List.map (viewPost model (Wallet.isActive model.wallet))
         |> column
             [ width fill
             , height fill
@@ -79,8 +80,8 @@ viewDesktop model =
             ]
 
 
-viewPost : Model -> RootPost -> Element Msg
-viewPost model post =
+viewPost : Model -> Bool -> RootPost -> Element Msg
+viewPost model walletReady post =
     View.Post.view
         model.dProfile
         (model.blockTimes
@@ -107,6 +108,7 @@ viewPost model post =
         model.ethPrice
         model.compose.dollar
         (Just post.topic)
+        walletReady
         post.core
 
 
