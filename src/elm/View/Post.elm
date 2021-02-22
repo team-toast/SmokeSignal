@@ -6,6 +6,7 @@ import Element.Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile, black, white)
+import Helpers.Eth
 import Helpers.Time as TimeHelpers
 import Maybe.Extra
 import Misc
@@ -59,16 +60,19 @@ view dProfile timestamp now replies accounting state ethPrice input topic post =
                         }
                 )
             |> el []
-        , [ block
-          , viewTiming timestamp now
-
-          --, viewContext dProfile post.core.metadata.context
-          ]
-            |> row
-                [ spacing 20
-                , Font.size 17
-                , Font.color theme.subtleTextColor
+        , Element.newTabLink [ hover ]
+            { url = Helpers.Eth.etherscanTxUrl post.txHash
+            , label =
+                [ block
+                , text "|"
+                , timing
                 ]
+                    |> row
+                        [ spacing 10
+                        , Font.size 17
+                        , Font.color theme.subtleTextColor
+                        ]
+            }
             |> when (not isMobile)
         ]
             |> row [ width fill, spaceEvenly ]
@@ -214,23 +218,11 @@ viewTiming maybePostTime now =
     maybePostTime
         |> whenJust
             (\time ->
-                [ text <| Misc.formatPosix time
-                , TimeHelpers.sub now time
+                TimeHelpers.sub now time
                     |> TimeHelpers.roundToSingleUnit
                     |> (\s -> s ++ " ago")
-                    --|> Maybe.withDefault "..."
                     |> text
-
-                --, maybeTimePassed
-                --|> Maybe.map TimeHelpers.roundToSingleUnit
-                --|> Maybe.map (\s -> s ++ " ago")
-                --|> Maybe.withDefault "..."
-                --|> text
-                --|> el
-                --[ Font.color theme.subtleTextColor
-                --]
-                ]
-                    |> row [ spacing 20 ]
+                    |> el [ View.Attrs.title (Misc.formatPosix time) ]
             )
 
 
