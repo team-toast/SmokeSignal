@@ -41,6 +41,18 @@ view model =
             , slightRound
             ]
         |> when (model.view /= ViewTopics)
+    , Element.newTabLink
+        [ Font.color white
+        , View.Attrs.sansSerifFont
+        , Font.bold
+        , centerX
+        , hover
+        ]
+        { url = model.alphaUrl
+        , label =
+            [ text "SmokeSignal Alpha", View.Img.link 20 white ]
+                |> row [ spacing 10 ]
+        }
     ]
         |> column
             [ cappedWidth 400

@@ -37,9 +37,6 @@ main =
 init : Flags -> Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
-        route =
-            Routing.urlToRoute url
-
         redirectCmd =
             Routing.blockParser url
                 |> Maybe.andThen
@@ -50,12 +47,15 @@ init flags url key =
                         else
                             Nothing
                     )
+
+        model =
+            Misc.emptyModel key
     in
     redirectCmd
         |> Maybe.Extra.unwrap
-            (startApp flags key route)
+            (startApp flags url model)
             (\redirect ->
-                ( Misc.emptyModel key
+                ( model
                 , redirect
                 )
             )
@@ -81,14 +81,24 @@ redirectDomain url =
             )
 
 
-startApp : Flags -> Browser.Navigation.Key -> Types.Route -> ( Model, Cmd Msg )
-startApp flags key route =
+startApp : Flags -> Url -> Model -> ( Model, Cmd Msg )
+startApp flags url model =
     let
         config =
             { smokeSignalContractAddress = Eth.Utils.unsafeToAddress flags.smokeSignalContractAddress
             , httpProviderUrl = flags.httpProviderUrl
             , startScanBlock = flags.startScanBlock
             }
+
+        route =
+            Routing.urlToRoute url
+
+        alphaUrl =
+            if String.endsWith ".eth" url.host then
+                "http://alpha.smokesignal.eth"
+
+            else
+                "http://alpha.smokesignal.eth.link"
 
         ( view, routingUserNotices ) =
             case tryRouteToView route of
@@ -131,9 +141,6 @@ startApp flags key route =
 
         now =
             Time.millisToPosix flags.nowInMillis
-
-        model =
-            Misc.emptyModel key
     in
     ( { model
         | view = view
@@ -146,6 +153,7 @@ startApp flags key route =
         , cookieConsentGranted = flags.cookieConsent
         , newUserModal = flags.newUser
         , config = config
+        , alphaUrl = alphaUrl
       }
     , Cmd.batch
         [ initEventSentryCmd
