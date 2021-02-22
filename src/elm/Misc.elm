@@ -65,6 +65,7 @@ emptyModel key =
     , accounting = Dict.empty
     , topics = Dict.empty
     , hasNavigated = False
+    , alphaUrl = ""
     }
 
 

@@ -59,6 +59,7 @@ type alias Model =
     , accounting : Dict PostKey Accounting
     , topics : Dict String TokenValue
     , hasNavigated : Bool
+    , alphaUrl : String
     }
 
 

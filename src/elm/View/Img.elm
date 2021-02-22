@@ -1,16 +1,33 @@
-module View.Img exposing (bookmark, dollar, hide, logo, replyArrow, speechBubble)
+module View.Img exposing (bookmark, dollar, hide, link, logo, replyArrow, speechBubble)
 
 import Element exposing (Color, Element)
 import Svg exposing (Svg, g, path, svg)
-import Svg.Attributes exposing (d, fill, height, stroke, strokeLinejoin, strokeWidth, viewBox, width)
+import Svg.Attributes exposing (d, fill, stroke, strokeLinejoin, strokeWidth, viewBox)
+
+
+link : Int -> Color -> Element msg
+link size color =
+    svg [ height size, viewBox "0 0 24 24", width size ]
+        [ Svg.path
+            [ d "M0 0h24v24H0z"
+            , fill "none"
+            ]
+            []
+        , Svg.path
+            [ d "M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"
+            , fill <| rgb color
+            ]
+            []
+        ]
+        |> wrap
 
 
 dollar : Int -> Color -> Element msg
 dollar size color =
     svg
         [ viewBox "0 0 67.2 97.1"
-        , height <| String.fromInt size
-        , width <| String.fromInt size
+        , height size
+        , width size
         ]
         [ Svg.path
             [ fill <| rgb color
@@ -25,8 +42,8 @@ speechBubble : Int -> Color -> Element msg
 speechBubble size color =
     svg
         [ viewBox "0 0 66.32 43.94"
-        , height <| String.fromInt size
-        , width <| String.fromInt size
+        , height size
+        , width size
         ]
         [ Svg.path
             [ fill <| rgb color
@@ -41,8 +58,8 @@ hide : Int -> Color -> Element msg
 hide size color =
     svg
         [ viewBox "0 0 30.74 30.73"
-        , height <| String.fromInt size
-        , width <| String.fromInt size
+        , height size
+        , width size
         ]
         [ Svg.path
             [ fill <| rgb color
@@ -57,8 +74,8 @@ replyArrow : Int -> Color -> Element msg
 replyArrow size color =
     svg
         [ viewBox "0 0 73 63"
-        , height <| String.fromInt size
-        , width <| String.fromInt size
+        , height size
+        , width size
         ]
         [ g
             [ fill "none"
@@ -76,8 +93,8 @@ bookmark : Int -> Color -> Element msg
 bookmark size color =
     Svg.svg
         [ viewBox "0 0 35 44"
-        , height <| String.fromInt size
-        , width <| String.fromInt size
+        , height size
+        , width size
         ]
         [ path
             [ fill <| rgb color
@@ -92,7 +109,7 @@ logo : Int -> Element msg
 logo size =
     svg
         [ viewBox "0 0 178.6 230.13"
-        , width <| String.fromInt size
+        , width size
         ]
         [ Svg.defs [] [ Svg.style [] [ Svg.text ".cls-1{fill:#f69b1e}.cls-3{fill:#a6a7aa}" ] ]
         , Svg.path [ d "M97.7 169.36c1.67-2.2 7.06-7.72 7.06-18 0-14.58-18.75-22-12.64-38.67-11.81 6.26-12.81 26-8.79 32.22-3.86-1-6.37-6-6-10.12-6.36 7.52-7.65 20.72-.21 30.48 1.06 1.39 2.17 2.74 3.26 4.11S58.3 161.16 58.3 139c0-34.35 31.54-35.09 24.81-68.74 15.21 11.55 19.53 35.77 19.53 50.12 6.86-3.24 7.66-13.5 7.71-13.85.19.15 10.87 13.87 10.87 31.8 0 23.61-23.36 30.91-23.55 31z", Svg.Attributes.class "cls-1" ] []
@@ -124,3 +141,13 @@ rgb =
         >> List.map ((*) 255 >> round >> String.fromInt)
         >> String.join ", "
         >> (\str -> "rgb(" ++ str ++ ")")
+
+
+height : Int -> Svg.Attribute msg
+height =
+    String.fromInt >> Svg.Attributes.height
+
+
+width : Int -> Svg.Attribute msg
+width =
+    String.fromInt >> Svg.Attributes.width
