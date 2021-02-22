@@ -17,6 +17,7 @@ import View.Common
 import View.Img
 import View.Markdown
 import View.Post
+import Wallet
 
 
 view : Model -> CoreData -> Element Msg
@@ -127,6 +128,7 @@ view model post =
                     model.ethPrice
                     model.compose.dollar
                     Nothing
+                    (Wallet.isActive model.wallet)
                     reply.core
             )
         |> column
