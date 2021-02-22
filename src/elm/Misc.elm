@@ -205,10 +205,10 @@ formatPosix t =
             |> String.right 2
       ]
         |> String.join "-"
-    , [ Time.toMinute Time.utc t
+    , [ Time.toHour Time.utc t
             |> String.fromInt
             |> String.padLeft 2 '0'
-      , Time.toHour Time.utc t
+      , Time.toMinute Time.utc t
             |> String.fromInt
             |> String.padLeft 2 '0'
       ]
