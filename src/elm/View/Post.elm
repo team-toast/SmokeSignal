@@ -31,9 +31,10 @@ view :
     -> Float
     -> String
     -> Maybe String
+    -> Bool
     -> CoreData
     -> Element Msg
-view dProfile timestamp now replies accounting state ethPrice input topic post =
+view dProfile timestamp now replies accounting state ethPrice input topic walletReady post =
     let
         isMobile =
             dProfile == EH.Mobile
@@ -91,15 +92,21 @@ view dProfile timestamp now replies accounting state ethPrice input topic post =
             ClickHappened
       , [ viewContent post
             |> linkToPost post.id
-        , [ state
-                |> Maybe.Extra.unwrap
-                    (viewActions replies post)
-                    (viewInput post input)
+        , [ [ View.Img.speechBubble 17 almostWhite
+            , text <| viewReplies replies
+            ]
+                |> row [ spacing 10, Font.size 23 ]
+                |> linkToPost post.id
+                |> el
+                    [ Font.color almostWhite
+                    , Font.size 17
+                    , width fill
+                    , Element.alignTop
+                    ]
+          , viewActions post input state
+                |> when walletReady
           ]
-            |> row
-                [ spacing 10
-                , Element.alignRight
-                ]
+            |> row [ width fill, spaceEvenly ]
         ]
             |> column
                 [ spacing 10
@@ -146,30 +153,6 @@ viewContent post =
             , View.Attrs.sansSerifFont
             , spacing 10
             ]
-
-
-viewActions : Set PostKey -> CoreData -> Element Msg
-viewActions replies post =
-    [ [ ( viewReplies replies, View.Img.speechBubble )
-
-      --, ( "Bookmark", View.Img.bookmark )
-      --, ( "Hide", View.Img.hide )
-      ]
-        |> List.map
-            (\( txt, icn ) ->
-                [ icn 17 almostWhite
-                , text txt
-                ]
-                    |> row [ spacing 10, Font.size 23 ]
-                    |> linkToPost post.id
-            )
-        |> row [ spacing 10, Font.color almostWhite, Font.size 17 ]
-    , supportTipButton post.id
-    , supportBurnButton post.id
-
-    --, replyButton post.id
-    ]
-        |> row [ spacing 10 ]
 
 
 viewReplies : Set a -> String
@@ -226,68 +209,76 @@ viewTiming maybePostTime now =
             )
 
 
-viewInput : CoreData -> String -> ShowInputState -> Element Msg
-viewInput post input showInput =
-    let
-        title =
-            case showInput of
-                Tip _ ->
-                    "Tip Ether for this post, rewarding the author."
+viewActions : CoreData -> String -> Maybe ShowInputState -> Element Msg
+viewActions post input =
+    Maybe.Extra.unwrap
+        ([ supportTipButton post.id
+         , supportBurnButton post.id
+         ]
+            |> row [ spacing 10 ]
+        )
+        (\showInput ->
+            let
+                title =
+                    case showInput of
+                        Tip _ ->
+                            "Tip Ether for this post, rewarding the author."
 
-                Burn _ ->
-                    "Burn Ether to increase the visibility of this post."
+                        Burn _ ->
+                            "Burn Ether to increase the visibility of this post."
 
-        msg =
-            case showInput of
-                Tip _ ->
-                    SubmitTip post.id
+                msg =
+                    case showInput of
+                        Tip _ ->
+                            SubmitTip post.id
 
-                Burn _ ->
-                    --"Burn DAI to increase this post's visibility"
-                    SubmitBurn post.id
-    in
-    [ text title
-    , [ View.Img.dollar 30 white
-      , Input.text [ Font.color black ]
-            { onChange = ComposeDollarChange
-            , label = Input.labelHidden ""
-            , placeholder =
-                "00.00"
-                    |> text
-                    |> Input.placeholder []
-                    |> Just
-            , text = input
-            }
-      ]
-        |> row [ spacing 5, width fill ]
-    , [ Input.button
-            [ Font.underline
-            , hover
+                        Burn _ ->
+                            --"Burn DAI to increase this post's visibility"
+                            SubmitBurn post.id
+            in
+            [ text title
+            , [ View.Img.dollar 30 white
+              , Input.text [ Font.color black ]
+                    { onChange = ComposeDollarChange
+                    , label = Input.labelHidden ""
+                    , placeholder =
+                        "00.00"
+                            |> text
+                            |> Input.placeholder []
+                            |> Just
+                    , text = input
+                    }
+              ]
+                |> row [ spacing 5, width fill ]
+            , [ Input.button
+                    [ Font.underline
+                    , hover
+                    ]
+                    { onPress = Just CancelTipOpen
+                    , label = text "Cancel"
+                    }
+              , Input.button
+                    [ Background.color Theme.orange
+                    , padding 10
+                    , roundBorder
+                    , hover
+                    , Font.color black
+                    ]
+                    { onPress = Just msg
+                    , label = text "Submit"
+                    }
+              ]
+                |> row [ Element.alignRight, spacing 20 ]
             ]
-            { onPress = Just CancelTipOpen
-            , label = text "Cancel"
-            }
-      , Input.button
-            [ Background.color Theme.orange
-            , padding 10
-            , roundBorder
-            , hover
-            , Font.color black
-            ]
-            { onPress = Just msg
-            , label = text "Submit"
-            }
-      ]
-        |> row [ Element.alignRight, spacing 20 ]
-    ]
-        |> column
-            [ Background.color black
-            , spacing 20
-            , padding 20
-            , width fill
-            , Font.color white
-            , View.Attrs.sansSerifFont
-            ]
+                |> column
+                    [ Background.color black
+                    , spacing 20
+                    , padding 10
+                    , width fill
+                    , Font.color white
+                    , View.Attrs.sansSerifFont
+                    ]
+        )
 
 
 supportTipButton :
