@@ -170,32 +170,22 @@ viewWallet model =
                         )
 
         button =
-            let
-                attributes =
-                    [ paddingXY 10 5
-                    , width fill
-                    ]
-                        ++ (case maybeExplainerText of
-                                Nothing ->
-                                    [ Element.centerY
-                                    ]
-
-                                _ ->
-                                    []
-                           )
-            in
             case maybeButtonAction of
                 Just buttonAction ->
                     Theme.unscaryButton
                         model.dProfile
-                        attributes
+                        [ paddingXY 10 5
+                        , width fill
+                        ]
                         [ buttonText ]
                         buttonAction
 
                 Nothing ->
                     Theme.disabledButton
                         model.dProfile
-                        attributes
+                        [ paddingXY 10 5
+                        , width fill
+                        ]
                         buttonText
 
         explainerParagraphOrNone =
@@ -211,16 +201,59 @@ viewWallet model =
                 |> Maybe.withDefault Element.none
     in
     [ phaceEl
-    , column
-        [ width fill
-        , spaceEvenly
-        , height fill
+    , [ [ button
+        , model.wallet
+            |> Wallet.userInfo
+            |> View.Common.whenJust (.chain >> viewChain)
         ]
-        [ button
-        , explainerParagraphOrNone
-        ]
+            |> column [ spacing 10, width fill ]
+      , explainerParagraphOrNone
+      ]
+        |> column
+            [ width fill
+            , spaceEvenly
+            , height fill
+            ]
     ]
         |> row
             [ width fill
             , spacing 10
+            ]
+
+
+viewChain : Types.Chain -> Element msg
+viewChain c =
+    let
+        txt =
+            case c of
+                Types.XDai ->
+                    "xDai"
+
+                Types.Eth ->
+                    "Ethereum"
+
+        col =
+            case c of
+                Types.XDai ->
+                    softRed
+
+                Types.Eth ->
+                    orange
+
+        img =
+            case c of
+                Types.XDai ->
+                    View.Img.xDai
+
+                Types.Eth ->
+                    View.Img.eth
+    in
+    [ img 20, text txt ]
+        |> row
+            [ spacing 10
+            , Background.color col
+            , View.Attrs.sansSerifFont
+            , Font.color white
+            , Element.padding 10
+            , View.Attrs.roundBorder
             ]

@@ -1,8 +1,37 @@
-module View.Img exposing (bookmark, dollar, hide, link, logo, replyArrow, speechBubble)
+module View.Img exposing (bookmark, dollar, eth, hide, link, logo, replyArrow, speechBubble, xDai)
 
 import Element exposing (Color, Element)
-import Svg exposing (Svg, g, path, svg)
-import Svg.Attributes exposing (d, fill, stroke, strokeLinejoin, strokeWidth, viewBox)
+import Svg exposing (Svg, g, path, polygon, svg)
+import Svg.Attributes exposing (d, fill, points, stroke, strokeLinejoin, strokeWidth, viewBox)
+
+
+eth : Int -> Element msg
+eth size =
+    svg
+        [ viewBox "0 0 67.2 103.67"
+        , height size
+        , width size
+        ]
+        [ polygon [ points "34.44 76.07 60.29 60.82 34.44 97.13 34.44 76.07" ] []
+        , polygon [ points "34.44 40.3 61.44 52.56 34.44 68.53 34.44 40.3" ] []
+        , polygon [ points "34.44 38.45 34.44 6.27 61.15 50.58 34.44 38.45" ] []
+        , polygon [ points "6.91 60.82 32.76 76.07 32.76 97.13 6.91 60.82" ] []
+        , polygon [ points "5.75 52.56 32.76 40.3 32.76 68.53 5.75 52.56" ] []
+        , polygon [ points "32.76 6.27 32.76 38.45 6.05 50.58 32.76 6.27" ] []
+        ]
+        |> wrap
+
+
+xDai : Int -> Element msg
+xDai size =
+    svg [ viewBox "0 0 512 512", height size, width size ]
+        [ Svg.path
+            [ fill "#fff", d "M0 0v511h512V0H0z" ]
+            []
+        , Svg.path [ fill "#48a9a6", d "M40 40v86h172V40H40m258 0v86h172V40H298M40 298v172h172v-86h-86v-86H40m344 0v86h-86v86h172V298h-86z" ] []
+        , Svg.path [ d "M0 511c4.4687 1.875 10.1913 1 15 1h497c-4.469-1.875-10.191-1-15-1H0z" ] []
+        ]
+        |> wrap
 
 
 link : Int -> Color -> Element msg

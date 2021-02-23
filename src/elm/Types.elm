@@ -3,7 +3,6 @@ module Types exposing (..)
 import Browser
 import Browser.Navigation
 import Dict exposing (Dict)
-import Eth.Net
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
@@ -180,9 +179,9 @@ type View
 
 
 type alias UserInfo =
-    { network : Eth.Net.NetworkId
-    , address : Address
+    { address : Address
     , balance : TokenValue
+    , chain : Chain
     }
 
 
@@ -193,8 +192,7 @@ type alias WalletInfo =
 
 
 type WalletConnectResponse
-    = WalletSucceed (List Address)
-    | WalletClear
+    = WalletSucceed UserInfo
     | WalletCancel
     | WalletInProgress
     | WalletError
@@ -332,3 +330,8 @@ type Route
     | RouteViewTopic String
     | RouteInvalid
     | RouteTopics
+
+
+type Chain
+    = XDai
+    | Eth
