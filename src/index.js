@@ -1,5 +1,10 @@
 require("./index.css");
-const { txSentry, enable } = require("./eth.js");
+const {
+  txSentry,
+  getWallet,
+  requestAccounts,
+  getAccounts,
+} = require("./eth.js");
 
 window.navigator.serviceWorker.register("./sw.js");
 
@@ -25,15 +30,17 @@ window.addEventListener("load", () => {
 
   app.ports.log.subscribe((x) => console.log(x));
 
-  app.ports.connectToWeb3.subscribe((_) => {
-    enable()
-      .then((accounts) => {
-        app.ports.walletResponse.send(accounts);
-      })
-      .catch((e) => {
-        app.ports.walletResponse.send(e);
-      });
-  });
+  app.ports.connectToWeb3.subscribe(() =>
+    (async () => {
+      const [account] = await requestAccounts();
+
+      const wallet = account ? await getWallet(account) : null;
+
+      app.ports.walletResponse.send(wallet);
+    })().catch((e) => {
+      app.ports.walletResponse.send(e);
+    })
+  );
 
   txSentry(app.ports.txOut, app.ports.txIn);
 });
@@ -57,17 +64,44 @@ function startDapp() {
   });
 
   if (hasEthereum) {
-    window.ethereum.on("chainChanged", (_) => {
-      app.ports.walletResponse.send(null);
-    });
+    window.ethereum.on("chainChanged", (_chain) =>
+      (async () => {
+        const [account] = await getAccounts();
 
-    window.ethereum.on("accountsChanged", (xs) => {
-      app.ports.walletResponse.send(xs);
-    });
+        const wallet = account ? await getWallet(account) : null;
 
-    window.ethereum.on("disconnect", (_) => {
-      app.ports.walletResponse.send(null);
-    });
+        app.ports.walletResponse.send(wallet);
+      })().catch((e) => {
+        console.error("chainChanged", e);
+        app.ports.walletResponse.send(e);
+      })
+    );
+
+    window.ethereum.on("accountsChanged", ([account]) =>
+      (async () => {
+        const wallet = account ? await getWallet(account) : null;
+
+        app.ports.walletResponse.send(wallet);
+      })().catch((e) => {
+        console.error("accountsChanged", e);
+        app.ports.walletResponse.send(e);
+      })
+    );
+
+    window.ethereum.on("disconnect", (message) =>
+      (async () => {
+        console.log(message);
+
+        const [account] = await getAccounts();
+
+        const wallet = account ? await getWallet(account) : null;
+
+        app.ports.walletResponse.send(wallet);
+      })().catch((e) => {
+        console.error("disconnect", e);
+        app.ports.walletResponse.send(e);
+      })
+    );
   }
 
   return app;

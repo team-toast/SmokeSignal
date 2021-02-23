@@ -8,7 +8,7 @@ import Dict exposing (Dict)
 import Eth
 import Eth.Sentry.Event as EventSentry
 import Eth.Sentry.Tx as TxSentry
-import Eth.Types exposing (Address)
+import Eth.Types exposing (TxReceipt)
 import Eth.Utils
 import GTag exposing (GTagData, gTagOut)
 import Helpers.Element as EH exposing (DisplayProfile(..))
@@ -69,17 +69,9 @@ update msg model =
 
         EveryFewSeconds ->
             ( model
-            , Cmd.batch
-                [ SSContract.getEthPriceCmd
-                    model.config
-                    EthPriceFetched
-                , Wallet.userInfo model.wallet
-                    |> Maybe.map
-                        (\userInfo ->
-                            fetchEthBalanceCmd model.config userInfo.address
-                        )
-                    |> Maybe.withDefault Cmd.none
-                ]
+            , SSContract.getEthPriceCmd
+                model.config
+                EthPriceFetched
             )
 
         ShowExpandedTrackedTxs flag ->
@@ -196,31 +188,9 @@ update msg model =
 
         WalletResponse res ->
             case res of
-                WalletSucceed addresses ->
-                    let
-                        address =
-                            addresses
-                                |> List.head
-                    in
+                WalletSucceed info ->
                     ( { model
-                        | wallet =
-                            if address == Nothing then
-                                Types.NetworkReady
-
-                            else
-                                Types.Connecting
-                      }
-                    , address
-                        |> unwrap Cmd.none
-                            (Wallet.infoRequest model.config.httpProviderUrl
-                                >> Task.attempt RpcResponse
-                            )
-                    )
-
-                WalletClear ->
-                    ( { model
-                        | wallet =
-                            Types.NetworkReady
+                        | wallet = Active info
                       }
                     , Cmd.none
                     )
@@ -241,7 +211,12 @@ update msg model =
                     )
 
                 WalletError ->
-                    ( model, Ports.log "oops" )
+                    ( { model
+                        | wallet =
+                            Types.NetworkReady
+                      }
+                    , Cmd.none
+                    )
 
         TxSentryMsg subMsg ->
             let
@@ -935,9 +910,7 @@ addPost log model =
             }
 
 
-handleTxReceipt :
-    Eth.Types.TxReceipt
-    -> ( TxStatus, Maybe LogPost, Maybe UserNotice )
+handleTxReceipt : TxReceipt -> ( TxStatus, Maybe LogPost, Maybe UserNotice )
 handleTxReceipt txReceipt =
     case txReceipt.status of
         Just True ->
@@ -994,15 +967,6 @@ fetchPostInfo blockTimes config id =
             |> Task.attempt (BlockTimeFetched id.block)
     ]
         |> Cmd.batch
-
-
-fetchEthBalanceCmd : Types.Config -> Address -> Cmd Msg
-fetchEthBalanceCmd config address =
-    Eth.getBalance
-        config.httpProviderUrl
-        address
-        |> Task.map TokenValue.tokenValue
-        |> Task.attempt (BalanceFetched address)
 
 
 addUserNotice :

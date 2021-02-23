@@ -1,32 +1,30 @@
-module Wallet exposing (decodeConnectResponse, infoRequest, isActive, userInfo)
+module Wallet exposing (decodeConnectResponse, isActive, userInfo)
 
-import Eth
 import Eth.Decode
 import Eth.Net
-import Eth.Types
-import Http
 import Json.Decode as Decode exposing (Decoder, Value)
-import Task exposing (Task)
 import TokenValue
 import Types exposing (UserInfo, Wallet(..))
 
 
-infoRequest : String -> Eth.Types.Address -> Task Http.Error UserInfo
-infoRequest url address =
-    Task.map2
-        (\network balance ->
-            { network = network
-            , address = address
-            , balance = TokenValue.tokenValue balance
-            }
-        )
-        (Eth.Net.version url)
-        (Eth.getBalance url address)
-
-
 connectResponseDecoder : Decoder Types.WalletConnectResponse
 connectResponseDecoder =
-    [ Decode.list Eth.Decode.address
+    [ Decode.map3 UserInfo
+        (Decode.field "address" Eth.Decode.address)
+        (Decode.field "balance" Eth.Decode.bigInt
+            |> Decode.map TokenValue.tokenValue
+        )
+        (Decode.field "network" Eth.Net.networkIdDecoder
+            |> Decode.map
+                (\network ->
+                    case network of
+                        Eth.Net.Private 100 ->
+                            Types.XDai
+
+                        _ ->
+                            Types.Eth
+                )
+        )
         |> Decode.map Types.WalletSucceed
     , Decode.field "code" Decode.int
         |> Decode.map
@@ -41,7 +39,6 @@ connectResponseDecoder =
                     _ ->
                         Types.WalletError
             )
-    , Decode.null Types.WalletClear
     ]
         |> Decode.oneOf
 
