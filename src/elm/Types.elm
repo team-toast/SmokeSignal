@@ -3,13 +3,14 @@ module Types exposing (..)
 import Browser
 import Browser.Navigation
 import Dict exposing (Dict)
+import Eth.Net exposing (NetworkId)
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
 import Helpers.Element as EH
 import Http
-import Json.Decode
+import Json.Decode exposing (Value)
 import Set exposing (Set)
 import Time
 import TokenValue exposing (TokenValue)
@@ -22,10 +23,11 @@ type alias Flags =
     , nowInMillis : Int
     , cookieConsent : Bool
     , newUser : Bool
-    , smokeSignalContractAddress : String
-    , httpProviderUrl : String
     , startScanBlock : Int
+    , ethProviderUrl : String
+    , xDaiProviderUrl : String
     , hasWallet : Bool
+    , chains : List Value
     }
 
 
@@ -35,7 +37,10 @@ type alias Model =
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
     , txSentry : TxSentry Msg
-    , eventSentry : EventSentry Msg
+    , sentries :
+        { xDai : EventSentry Msg
+        , ethereum : EventSentry Msg
+        }
     , ethPrice : Float
     , view : View
     , blockTimes : Dict Int Time.Posix
@@ -72,7 +77,7 @@ type Msg
       -- | MutateDemoSrcWith MutateInfo
     | Resize Int Int
     | TxSentryMsg TxSentry.Msg
-    | EventSentryMsg EventSentry.Msg
+    | EventSentryMsg Chain EventSentry.Msg
     | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error LogPost))
     | PostAccountingFetched PostId (Result Http.Error Accounting)
     | ShowExpandedTrackedTxs Bool
@@ -120,6 +125,14 @@ type alias RootPost =
     }
 
 
+type alias ChainConfig =
+    { chain : Chain
+    , contract : Address
+    , startScanBlock : Int
+    , providerUrl : String
+    }
+
+
 type alias ReplyPost =
     { core : CoreData
     , parent : PostId
@@ -134,6 +147,7 @@ type alias CoreData =
     , authorBurn : TokenValue
     , content : Content
     , metadataVersion : Int
+    , chain : Chain
     }
 
 
@@ -148,9 +162,8 @@ type alias ComposeModel =
 
 
 type alias Config =
-    { smokeSignalContractAddress : Address
-    , httpProviderUrl : String
-    , startScanBlock : Int
+    { xDai : ChainConfig
+    , ethereum : ChainConfig
     }
 
 

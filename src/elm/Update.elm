@@ -105,7 +105,7 @@ update msg model =
                         trackedTx.status == Mining
                     )
                 |> List.map .txHash
-                |> List.map (Eth.getTxReceipt model.config.httpProviderUrl)
+                |> List.map (Eth.getTxReceipt model.config.ethereum.providerUrl)
                 |> List.map (Task.attempt TrackedTxStatusResult)
                 |> Cmd.batch
             )
@@ -225,19 +225,47 @@ update msg model =
             in
             ( { model | txSentry = newTxSentry }, subCmd )
 
-        EventSentryMsg eventMsg ->
-            let
-                ( newEventSentry, cmd ) =
-                    EventSentry.update
-                        eventMsg
-                        model.eventSentry
-            in
-            ( { model
-                | eventSentry =
-                    newEventSentry
-              }
-            , cmd
-            )
+        EventSentryMsg chain eventMsg ->
+            case chain of
+                Eth ->
+                    let
+                        ( newEventSentry, cmd ) =
+                            EventSentry.update
+                                eventMsg
+                                model.sentries.ethereum
+                    in
+                    ( { model
+                        | sentries =
+                            model.sentries
+                                |> (\ss ->
+                                        { ss
+                                            | ethereum =
+                                                newEventSentry
+                                        }
+                                   )
+                      }
+                    , cmd
+                    )
+
+                XDai ->
+                    let
+                        ( newEventSentry, cmd ) =
+                            EventSentry.update
+                                eventMsg
+                                model.sentries.xDai
+                    in
+                    ( { model
+                        | sentries =
+                            model.sentries
+                                |> (\ss ->
+                                        { ss
+                                            | xDai =
+                                                newEventSentry
+                                        }
+                                   )
+                      }
+                    , cmd
+                    )
 
         PostLogReceived res ->
             case res.returnData of
@@ -562,7 +590,7 @@ update msg model =
                                     txParams =
                                         postDraft
                                             |> Misc.encodeDraft
-                                            |> SSContract.burnEncodedPost userInfo model.config.smokeSignalContractAddress
+                                            |> SSContract.burnEncodedPost userInfo model.config.ethereum.contract
                                             |> Eth.toSend
 
                                     listeners =
@@ -596,7 +624,7 @@ update msg model =
                             (\amount ->
                                 let
                                     txParams =
-                                        SSContract.burnForPost userInfo model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
+                                        SSContract.burnForPost userInfo model.config.ethereum.contract postId.messageHash amount model.compose.donate
                                             |> Eth.toSend
 
                                     listeners =
@@ -630,7 +658,7 @@ update msg model =
                             (\amount ->
                                 let
                                     txParams =
-                                        SSContract.tipForPost userInfo model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
+                                        SSContract.tipForPost userInfo model.config.ethereum.contract postId.messageHash amount model.compose.donate
                                             |> Eth.toSend
 
                                     listeners =
@@ -917,7 +945,7 @@ handleTxReceipt txReceipt =
             let
                 post =
                     txReceipt.logs
-                        |> List.map (SSContract.decodePost >> .returnData)
+                        |> List.map (SSContract.decodePost Types.XDai >> .returnData)
                         |> List.filterMap Result.toMaybe
                         |> List.head
             in
@@ -961,7 +989,7 @@ fetchPostInfo blockTimes config id =
 
       else
         Eth.getBlock
-            config.httpProviderUrl
+            config.ethereum.providerUrl
             id.block
             |> Task.map .timestamp
             |> Task.attempt (BlockTimeFetched id.block)

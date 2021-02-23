@@ -2,9 +2,10 @@ module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyModel, en
 
 import Browser.Navigation
 import Dict exposing (Dict)
+import Eth.Net
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
-import Eth.Types exposing (Hex)
+import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import FormatFloat
 import Helpers.Element
@@ -34,7 +35,12 @@ emptyModel key =
             ( Ports.txOut, Ports.txIn )
             TxSentryMsg
             ""
-    , eventSentry = Eth.Sentry.Event.init (always Types.ClickHappened) "" |> Tuple.first
+    , sentries =
+        { xDai =
+            Eth.Sentry.Event.init (always Types.ClickHappened) "" |> Tuple.first
+        , ethereum =
+            Eth.Sentry.Event.init (always Types.ClickHappened) "" |> Tuple.first
+        }
     , blockTimes = Dict.empty
     , showAddressId = Nothing
     , userNotices = []
@@ -45,11 +51,7 @@ emptyModel key =
     , cookieConsentGranted = False
     , maybeSeoDescription = Nothing
     , topicInput = ""
-    , config =
-        Types.Config
-            (Eth.Utils.unsafeToAddress "")
-            ""
-            0
+    , config = emptyConfig
     , compose =
         { title = ""
         , dollar = ""
@@ -67,6 +69,28 @@ emptyModel key =
     , hasNavigated = False
     , alphaUrl = ""
     }
+
+
+emptyConfig : Config
+emptyConfig =
+    { xDai =
+        { chain = Types.Eth
+        , contract = emptyAddress
+        , startScanBlock = 0
+        , providerUrl = ""
+        }
+    , ethereum =
+        { chain = Types.Eth
+        , contract = emptyAddress
+        , startScanBlock = 0
+        , providerUrl = ""
+        }
+    }
+
+
+emptyAddress : Address
+emptyAddress =
+    Eth.Utils.unsafeToAddress ""
 
 
 initDemoPhaceSrc : String
