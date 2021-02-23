@@ -15,8 +15,8 @@ import TokenValue exposing (TokenValue)
 import Types exposing (..)
 
 
-decodePost : Eth.Types.Log -> Eth.Types.Event (Result Decode.Error LogPost)
-decodePost log =
+decodePost : Chain -> Eth.Types.Log -> Eth.Types.Event (Result Decode.Error LogPost)
+decodePost chain log =
     Eth.Decode.event
         (G.messageBurnDecoder
             |> Decode.andThen
@@ -41,6 +41,7 @@ decodePost log =
                                         , authorBurn = core.authorBurn
                                         , content = core.content
                                         , metadataVersion = core.metadata.metadataVersion
+                                        , chain = chain
                                         }
                                 in
                                 case core.metadata.context of
@@ -90,9 +91,9 @@ burnEncodedPost wallet smokeSignalContractAddress encodedPost =
 getAccountingCmd : Config -> Hex -> Task Http.Error Accounting
 getAccountingCmd config msgHash =
     Eth.call
-        config.httpProviderUrl
+        config.ethereum.providerUrl
         (G.storedMessageData
-            config.smokeSignalContractAddress
+            config.ethereum.contract
             msgHash
         )
         |> Task.map
@@ -107,8 +108,8 @@ getAccountingCmd config msgHash =
 getEthPriceCmd : Config -> (Result Http.Error Float -> msg) -> Cmd msg
 getEthPriceCmd config msgConstructor =
     Eth.call
-        config.httpProviderUrl
-        (G.ethPrice config.smokeSignalContractAddress)
+        config.ethereum.providerUrl
+        (G.ethPrice config.ethereum.contract)
         |> Task.map TokenValue.tokenValue
         |> Task.map TokenValue.toFloatWithWarning
         |> Task.attempt msgConstructor

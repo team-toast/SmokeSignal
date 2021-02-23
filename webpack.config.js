@@ -3,17 +3,13 @@ const webpack = require("webpack");
 
 const {
   ENV,
-  HTTP_PROVIDER_URL,
-  SMOKE_SIGNAL_CONTRACT_ADDRESS,
+  ETH_PROVIDER_URL,
+  XDAI_PROVIDER_URL,
   START_SCAN_BLOCK,
 } = process.env;
 
-if (
-  [HTTP_PROVIDER_URL, SMOKE_SIGNAL_CONTRACT_ADDRESS, START_SCAN_BLOCK].some(
-    (x) => !x
-  )
-) {
-  throw "Missing environment variable.";
+if ([ETH_PROVIDER_URL, XDAI_PROVIDER_URL, START_SCAN_BLOCK].some((x) => !x)) {
+  throw "Missing environment variable(s).";
 }
 
 const publicFolder = resolve("./public");
@@ -69,10 +65,8 @@ module.exports = {
   plugins: [
     new webpack.NoEmitOnErrorsPlugin(),
     new webpack.DefinePlugin({
-      HTTP_PROVIDER_URL: JSON.stringify(HTTP_PROVIDER_URL),
-      SMOKE_SIGNAL_CONTRACT_ADDRESS: JSON.stringify(
-        SMOKE_SIGNAL_CONTRACT_ADDRESS
-      ),
+      ETH_PROVIDER_URL: JSON.stringify(ETH_PROVIDER_URL),
+      XDAI_PROVIDER_URL: JSON.stringify(XDAI_PROVIDER_URL),
       // No stringify needed for an integer.
       START_SCAN_BLOCK,
     }),

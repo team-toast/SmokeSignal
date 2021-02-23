@@ -1,0 +1,14 @@
+[
+  {
+    "name": "xDai",
+    "network": 100,
+    "contract": "0x484c3A51a794D37939cf76CD176559c8e1614D74",
+    "scan": 14609730
+  },
+  {
+    "name": "Ethereum",
+    "network": 1,
+    "contract": "0x9f0Cec66a2893da5525D4339F83fD5B25A4E076B",
+    "scan": 11679315
+  }
+]

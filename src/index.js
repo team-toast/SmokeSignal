@@ -5,14 +5,15 @@ const {
   requestAccounts,
   handleWalletEvents,
 } = require("./metamask.js");
+const chains = require("../config.json");
 
 window.navigator.serviceWorker.register("./sw.js");
 
 const { Elm } = require("./elm/App.elm");
 
 /* eslint-disable no-undef */
-const smokeSignalContractAddress = SMOKE_SIGNAL_CONTRACT_ADDRESS;
-const httpProviderUrl = HTTP_PROVIDER_URL;
+const xDaiProviderUrl = XDAI_PROVIDER_URL;
+const ethProviderUrl = ETH_PROVIDER_URL;
 const startScanBlock = START_SCAN_BLOCK;
 /* eslint-enable no-undef */
 
@@ -56,10 +57,11 @@ function startDapp() {
       nowInMillis: Date.now(),
       cookieConsent: getCookieConsent(),
       newUser: !window.localStorage.getItem(HAS_VISITED),
-      smokeSignalContractAddress,
-      httpProviderUrl,
+      ethProviderUrl,
+      xDaiProviderUrl,
       startScanBlock,
       hasWallet,
+      chains,
     },
   });
 
