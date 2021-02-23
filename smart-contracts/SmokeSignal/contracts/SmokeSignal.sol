@@ -1,7 +1,6 @@
 pragma solidity ^0.6.0;
 
 import "../../common/openzeppelin/math/SafeMath.sol";
-//import "../../common/dsproxy/proxy.sol";
 
 abstract contract EthPriceOracle
 {
