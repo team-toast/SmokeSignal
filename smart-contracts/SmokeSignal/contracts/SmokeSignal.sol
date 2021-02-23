@@ -42,7 +42,7 @@ contract SmokeSignal
         view
         returns (uint _price)
     {
-        return address(oracle) == address(0) ? 10**18 : uint(oracle.read());
+        return address(oracle) == address(0) ? 1 : uint(oracle.read());
     }
 
     event MessageBurn(
@@ -197,9 +197,9 @@ contract SmokeSignal_Ethereum is SmokeSignal
     { }
 }
 
-contract SmokeSignal_xDai is SmokeSignal
-{
-    constructor(address payable _donationAddress) SmokeSignal(_donationAddress, EthPriceOracle(address(0)))
-        public 
-    { }
-}
+// contract SmokeSignal_xDai is SmokeSignal
+// {
+//     constructor() SmokeSignal(xdaiDonationAddress, EthPriceOracle(address(0)))
+//         public 
+//     { }
+// }
