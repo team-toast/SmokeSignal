@@ -3,8 +3,8 @@ const {
   txSentry,
   getWallet,
   requestAccounts,
-  getAccounts,
-} = require("./eth.js");
+  handleWalletEvents,
+} = require("./metamask.js");
 
 window.navigator.serviceWorker.register("./sw.js");
 
@@ -46,7 +46,7 @@ window.addEventListener("load", () => {
 });
 
 function startDapp() {
-  const hasEthereum = Boolean(window.ethereum);
+  const hasWallet = Boolean(window.ethereum);
 
   const app = Elm.App.init({
     node: document.getElementById("elm"),
@@ -59,49 +59,12 @@ function startDapp() {
       smokeSignalContractAddress,
       httpProviderUrl,
       startScanBlock,
-      hasEthereum,
+      hasWallet,
     },
   });
 
-  if (hasEthereum) {
-    window.ethereum.on("chainChanged", (_chain) =>
-      (async () => {
-        const [account] = await getAccounts();
-
-        const wallet = account ? await getWallet(account) : null;
-
-        app.ports.walletResponse.send(wallet);
-      })().catch((e) => {
-        console.error("chainChanged", e);
-        app.ports.walletResponse.send(e);
-      })
-    );
-
-    window.ethereum.on("accountsChanged", ([account]) =>
-      (async () => {
-        const wallet = account ? await getWallet(account) : null;
-
-        app.ports.walletResponse.send(wallet);
-      })().catch((e) => {
-        console.error("accountsChanged", e);
-        app.ports.walletResponse.send(e);
-      })
-    );
-
-    window.ethereum.on("disconnect", (message) =>
-      (async () => {
-        console.log(message);
-
-        const [account] = await getAccounts();
-
-        const wallet = account ? await getWallet(account) : null;
-
-        app.ports.walletResponse.send(wallet);
-      })().catch((e) => {
-        console.error("disconnect", e);
-        app.ports.walletResponse.send(e);
-      })
-    );
+  if (hasWallet) {
+    handleWalletEvents(app.ports.walletResponse.send);
   }
 
   return app;

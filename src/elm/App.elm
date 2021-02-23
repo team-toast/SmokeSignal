@@ -111,7 +111,7 @@ startApp flags url model =
                     )
 
         wallet =
-            if flags.hasEthereum then
+            if flags.hasWallet then
                 Types.NetworkReady
 
             else

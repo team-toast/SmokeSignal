@@ -25,7 +25,7 @@ type alias Flags =
     , smokeSignalContractAddress : String
     , httpProviderUrl : String
     , startScanBlock : Int
-    , hasEthereum : Bool
+    , hasWallet : Bool
     }
 
 
