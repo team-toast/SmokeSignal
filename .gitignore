@@ -6,3 +6,5 @@ node_modules/
 org/
 ss-to-foundrydao
 *.envrc
+artifacts/
+flat.sol
