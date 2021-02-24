@@ -1,5 +1,6 @@
 module Types exposing (..)
 
+import GTag
 import Browser
 import Browser.Navigation
 import Dict exposing (Dict)
@@ -58,6 +59,7 @@ type alias Model =
     , replyIds : Dict PostKey (Set PostKey)
     , accounting : Dict PostKey Accounting
     , topics : Dict String TokenValue
+    , gtagHistory : GTag.GTagHistory
     }
 
 

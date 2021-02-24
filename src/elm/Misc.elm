@@ -6,6 +6,7 @@ import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Hex)
 import Eth.Utils
+import GTag
 import Helpers.Element
 import Helpers.Time
 import Http
@@ -63,6 +64,7 @@ emptyModel key =
     , replyIds = Dict.empty
     , accounting = Dict.empty
     , topics = Dict.empty
+    , gtagHistory = GTag.emptyGtagHistory
     }
 
 
