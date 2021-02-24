@@ -7,6 +7,7 @@ import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Hex)
 import Eth.Utils
 import FormatFloat
+import GTag
 import Helpers.Element
 import Helpers.Time
 import Http
@@ -65,6 +66,7 @@ emptyModel key =
     , accounting = Dict.empty
     , topics = Dict.empty
     , hasNavigated = False
+    , gtagHistory = GTag.emptyGtagHistory
     }
 
 

@@ -8,6 +8,7 @@ import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
+import GTag
 import Helpers.Element as EH
 import Http
 import Json.Decode
@@ -59,6 +60,7 @@ type alias Model =
     , accounting : Dict PostKey Accounting
     , topics : Dict String TokenValue
     , hasNavigated : Bool
+    , gtagHistory : GTag.GTagHistory
     }
 
 

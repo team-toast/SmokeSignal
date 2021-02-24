@@ -11,7 +11,7 @@ import Eth.Sentry.Event as EventSentry
 import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address)
 import Eth.Utils
-import GTag exposing (GTagData, gTagOut)
+import GTag exposing (GTagData, gTagOut, gTagOutOnlyOnLabelOrValueChange, gTagOutOnlyOnceForEvent)
 import Helpers.Element as EH exposing (DisplayProfile(..))
 import Http
 import Json.Decode
@@ -296,11 +296,20 @@ update msg model =
                         let
                             newWallet =
                                 model.wallet |> Wallet.withFetchedBalance balance
+
+                            ( newGtagHistory, gtagCmd ) =
+                                GTagData
+                                    "balance fetched"
+                                    Nothing
+                                    (Just <| TokenValue.toFloatString Nothing balance)
+                                    Nothing
+                                    |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                         in
                         ( { model
                             | wallet = newWallet
+                            , gtagHistory = newGtagHistory
                           }
-                        , Cmd.none
+                        , gtagCmd
                         )
 
                     Err err ->
@@ -744,9 +753,14 @@ update msg model =
               }
             , [ Ports.setVisited ()
               , GTagData
-                    "Show Modal"
+                    (if flag then
+                        "show newuser modal"
+
+                     else
+                        "dismiss newuser modal"
+                    )
                     Nothing
-                    (Just "new to smokesignal")
+                    Nothing
                     Nothing
                     |> gTagOut
               ]
