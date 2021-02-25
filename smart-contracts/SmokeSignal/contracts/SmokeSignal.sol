@@ -45,6 +45,14 @@ contract SmokeSignal
         return address(oracle) == address(0) ? 10**18 : uint(oracle.read());
     }
 
+    function ethToUsd(uint ethAmount)
+        public
+        view
+        returns (uint usdAmount)
+    {
+        usdAmount = EthPrice() * ethAmount / 10**18;
+    }
+
     event MessageBurn(
         bytes32 indexed _hash,
         address indexed _from,
@@ -64,7 +72,7 @@ contract SmokeSignal
 
         uint burnAmount = msg.value.sub(donateAmount);
 
-        uint burnUsdValue = EthPrice() * burnAmount;
+        uint burnUsdValue = ethToUsd(burnAmount);
 
         internalBurnForMessageHash(hash, burnAmount, burnUsdValue);
 
@@ -98,7 +106,7 @@ contract SmokeSignal
 
         uint burnAmount = msg.value.sub(donateAmount);
 
-        uint burnUsdValue = EthPrice() * burnAmount;
+        uint burnUsdValue = ethToUsd(burnAmount);
 
         internalBurnForMessageHash(_hash, burnAmount, burnUsdValue);
 
@@ -125,7 +133,7 @@ contract SmokeSignal
 
         uint tipAmount = msg.value.sub(donateAmount);
         
-        uint tipUsdValue = EthPrice() * tipAmount;
+        uint tipUsdValue = ethToUsd(tipAmount);
         
         address author = storedMessageData[_hash].firstAuthor;
         if (author == address(0))
