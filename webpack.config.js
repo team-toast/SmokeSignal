@@ -1,14 +1,9 @@
 const { resolve } = require("path");
 const webpack = require("webpack");
 
-const {
-  ENV,
-  ETH_PROVIDER_URL,
-  XDAI_PROVIDER_URL,
-  START_SCAN_BLOCK,
-} = process.env;
+const { ENV, ETH_PROVIDER_URL, XDAI_PROVIDER_URL } = process.env;
 
-if ([ETH_PROVIDER_URL, XDAI_PROVIDER_URL, START_SCAN_BLOCK].some((x) => !x)) {
+if ([ETH_PROVIDER_URL, XDAI_PROVIDER_URL].some((x) => !x)) {
   throw "Missing environment variable(s).";
 }
 
@@ -67,8 +62,6 @@ module.exports = {
     new webpack.DefinePlugin({
       ETH_PROVIDER_URL: JSON.stringify(ETH_PROVIDER_URL),
       XDAI_PROVIDER_URL: JSON.stringify(XDAI_PROVIDER_URL),
-      // No stringify needed for an integer.
-      START_SCAN_BLOCK,
     }),
   ],
 };

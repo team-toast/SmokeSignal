@@ -4,16 +4,29 @@ import Eth.Decode
 import Eth.Net
 import Json.Decode as Decode exposing (Decoder, Value)
 import TokenValue
-import Types exposing (UserInfo, Wallet(..))
+import Types exposing (Flags, UserInfo, Wallet(..))
 
 
-chainDecoder : Decoder Types.ChainConfig
-chainDecoder =
-    Decode.map4 Types.ChainConfig
+chainDecoder : Flags -> Decoder (List Types.ChainConfig)
+chainDecoder flags =
+    Decode.map3
+        (\chain contract scan ->
+            { chain = chain
+            , contract = contract
+            , startScanBlock = scan
+            , providerUrl =
+                case chain of
+                    Types.Eth ->
+                        flags.ethProviderUrl
+
+                    Types.XDai ->
+                        flags.xDaiProviderUrl
+            }
+        )
         (Decode.field "network" decodeChain)
         (Decode.field "contract" Eth.Decode.address)
         (Decode.field "scan" Decode.int)
-        (Decode.succeed "")
+        |> Decode.list
 
 
 decodeChain : Decoder Types.Chain

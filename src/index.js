@@ -14,7 +14,6 @@ const { Elm } = require("./elm/App.elm");
 /* eslint-disable no-undef */
 const xDaiProviderUrl = XDAI_PROVIDER_URL;
 const ethProviderUrl = ETH_PROVIDER_URL;
-const startScanBlock = START_SCAN_BLOCK;
 /* eslint-enable no-undef */
 
 // Local storage keys
@@ -60,7 +59,6 @@ function startDapp() {
       newUser: !window.localStorage.getItem(HAS_VISITED),
       ethProviderUrl,
       xDaiProviderUrl,
-      startScanBlock,
       hasWallet,
       chains,
     },

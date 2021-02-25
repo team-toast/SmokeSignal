@@ -22,11 +22,10 @@ type alias Flags =
     , nowInMillis : Int
     , cookieConsent : Bool
     , newUser : Bool
-    , startScanBlock : Int
     , ethProviderUrl : String
     , xDaiProviderUrl : String
     , hasWallet : Bool
-    , chains : List Value
+    , chains : Value
     }
 
 

@@ -9,7 +9,7 @@ import Eth.Sentry.Tx
 import Eth.Types
 import Helpers.Element
 import Json.Decode
-import Maybe.Extra
+import Maybe.Extra exposing (unwrap)
 import Misc exposing (tryRouteToView)
 import Ports
 import Routing
@@ -38,27 +38,63 @@ main =
 init : Flags -> Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
-        redirectCmd =
-            Routing.blockParser url
-                |> Maybe.andThen
-                    (\block ->
-                        if block < flags.startScanBlock then
-                            redirectDomain url
-
-                        else
-                            Nothing
-                    )
-
         model =
             Misc.emptyModel key
     in
-    redirectCmd
-        |> Maybe.Extra.unwrap
-            (startApp flags url model)
-            (\redirect ->
-                ( model
-                , redirect
-                )
+    flags.chains
+        |> Json.Decode.decodeValue
+            (Wallet.chainDecoder flags)
+        |> Result.toMaybe
+        |> unwrap
+            ( { model
+                | userNotices =
+                    [ UN.unexpectedError "Config decode failure" ]
+              }
+            , Cmd.none
+            )
+            (\chainConfigs ->
+                let
+                    config =
+                        chainConfigs
+                            |> List.foldl
+                                (\data ->
+                                    case data.chain of
+                                        Types.XDai ->
+                                            \config_ ->
+                                                { config_
+                                                    | xDai = data
+                                                }
+
+                                        Types.Eth ->
+                                            \config_ ->
+                                                { config_
+                                                    | ethereum = data
+                                                }
+                                )
+                                model.config
+
+                    redirectCmd =
+                        Routing.blockParser url
+                            |> Maybe.andThen
+                                (\block ->
+                                    if block < config.ethereum.startScanBlock then
+                                        redirectDomain url
+
+                                    else
+                                        Nothing
+                                )
+
+                    modelWithConfig =
+                        { model | config = config }
+                in
+                redirectCmd
+                    |> unwrap
+                        (startApp flags url modelWithConfig)
+                        (\redirect ->
+                            ( modelWithConfig
+                            , redirect
+                            )
+                        )
             )
 
 
@@ -85,31 +121,6 @@ redirectDomain url =
 startApp : Flags -> Url -> Model -> ( Model, Cmd Msg )
 startApp flags url model =
     let
-        config =
-            flags.chains
-                |> List.filterMap
-                    (Json.Decode.decodeValue Wallet.chainDecoder
-                        >> Result.toMaybe
-                    )
-                |> List.foldl
-                    (\data ->
-                        case data.chain of
-                            Types.XDai ->
-                                \config_ ->
-                                    { config_
-                                        | xDai =
-                                            { data | providerUrl = flags.xDaiProviderUrl }
-                                    }
-
-                            Types.Eth ->
-                                \config_ ->
-                                    { config_
-                                        | ethereum =
-                                            { data | providerUrl = flags.ethProviderUrl }
-                                    }
-                    )
-                    model.config
-
         route =
             Routing.urlToRoute url
 
@@ -141,19 +152,19 @@ startApp flags url model =
             Eth.Sentry.Tx.init
                 ( Ports.txOut, Ports.txIn )
                 (Types.TxSentryMsg Types.Eth)
-                config.ethereum.providerUrl
+                model.config.ethereum.providerUrl
 
         txSentryX =
             Eth.Sentry.Tx.init
                 ( Ports.txOutX, Ports.txInX )
                 (Types.TxSentryMsg Types.XDai)
-                config.xDai.providerUrl
+                model.config.xDai.providerUrl
 
         ( ethSentry, ethCmd1, ethCmd2 ) =
-            startSentry config.ethereum
+            startSentry model.config.ethereum
 
         ( xDaiSentry, xDaiCmd1, xDaiCmd2 ) =
-            startSentry config.xDai
+            startSentry model.config.xDai
 
         now =
             Time.millisToPosix flags.nowInMillis
@@ -176,7 +187,6 @@ startApp flags url model =
         , userNotices = routingUserNotices
         , cookieConsentGranted = flags.cookieConsent
         , newUserModal = flags.newUser
-        , config = config
         , alphaUrl = alphaUrl
       }
     , Cmd.batch
@@ -185,7 +195,7 @@ startApp flags url model =
         , xDaiCmd1
         , xDaiCmd2
         , Contracts.SmokeSignal.getEthPriceCmd
-            config.ethereum
+            model.config.ethereum
             |> Task.attempt Types.EthPriceFetched
         , Ports.setDescription Misc.defaultSeoDescription
         ]
