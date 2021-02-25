@@ -7,13 +7,13 @@ import Contracts.SmokeSignal
 import Eth.Sentry.Event
 import Eth.Sentry.Tx
 import Eth.Types
-import Eth.Utils
 import Helpers.Element
 import Json.Decode
 import Maybe.Extra
 import Misc exposing (tryRouteToView)
 import Ports
 import Routing
+import Task
 import Time
 import Types exposing (Flags, Model, Msg)
 import Update exposing (update)
@@ -140,8 +140,14 @@ startApp flags url model =
         txSentry =
             Eth.Sentry.Tx.init
                 ( Ports.txOut, Ports.txIn )
-                Types.TxSentryMsg
+                (Types.TxSentryMsg Types.Eth)
                 config.ethereum.providerUrl
+
+        txSentryX =
+            Eth.Sentry.Tx.init
+                ( Ports.txOutX, Ports.txInX )
+                (Types.TxSentryMsg Types.XDai)
+                config.xDai.providerUrl
 
         ( ethSentry, ethCmd1, ethCmd2 ) =
             startSentry config.ethereum
@@ -158,10 +164,15 @@ startApp flags url model =
         , now = now
         , dProfile = Helpers.Element.screenWidthToDisplayProfile flags.width
         , txSentry = txSentry
+        , txSentryX = txSentryX
         , sentries =
-            { xDai = xDaiSentry
-            , ethereum = ethSentry
-            }
+            model.sentries
+                |> (\cs ->
+                        { cs
+                            | xDai = xDaiSentry
+                            , ethereum = ethSentry
+                        }
+                   )
         , userNotices = routingUserNotices
         , cookieConsentGranted = flags.cookieConsent
         , newUserModal = flags.newUser
@@ -174,8 +185,8 @@ startApp flags url model =
         , xDaiCmd1
         , xDaiCmd2
         , Contracts.SmokeSignal.getEthPriceCmd
-            config
-            Types.EthPriceFetched
+            config.ethereum
+            |> Task.attempt Types.EthPriceFetched
         , Ports.setDescription Misc.defaultSeoDescription
         ]
     )
@@ -217,5 +228,6 @@ subscriptions model =
         , Ports.walletResponse
             (Wallet.decodeConnectResponse >> Types.WalletResponse)
         , Eth.Sentry.Tx.listen model.txSentry
+        , Eth.Sentry.Tx.listen model.txSentryX
         , Browser.Events.onResize Types.Resize
         ]

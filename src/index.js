@@ -44,6 +44,7 @@ window.addEventListener("load", () => {
   );
 
   txSentry(app.ports.txOut, app.ports.txIn);
+  txSentry(app.ports.txOutX, app.ports.txInX);
 });
 
 function startDapp() {

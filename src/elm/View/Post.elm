@@ -6,7 +6,6 @@ import Element.Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile, black, white)
-import Helpers.Eth
 import Helpers.Time as TimeHelpers
 import Maybe.Extra
 import Misc
@@ -62,7 +61,7 @@ view dProfile timestamp now replies accounting state ethPrice input topic wallet
                 )
             |> el []
         , Element.newTabLink [ hover ]
-            { url = Helpers.Eth.etherscanTxUrl post.txHash
+            { url = Misc.txUrl post.chain post.txHash
             , label =
                 [ block
                 , text "|"

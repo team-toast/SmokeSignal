@@ -7,6 +7,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (DisplayProfile(..), white)
 import Helpers.Time as TimeHelpers
+import Misc
 import Set
 import Theme exposing (orange)
 import Time
@@ -105,7 +106,7 @@ viewPost model walletReady post =
                         Nothing
                 )
         )
-        model.ethPrice
+        (Misc.getPrice post.core.chain model)
         model.compose.dollar
         (Just post.topic)
         walletReady
