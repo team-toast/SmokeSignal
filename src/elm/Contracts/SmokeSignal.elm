@@ -88,12 +88,12 @@ burnEncodedPost wallet smokeSignalContractAddress encodedPost =
            )
 
 
-getAccountingCmd : Config -> Hex -> Task Http.Error Accounting
+getAccountingCmd : ChainConfig -> Hex -> Task Http.Error Accounting
 getAccountingCmd config msgHash =
     Eth.call
-        config.ethereum.providerUrl
+        config.providerUrl
         (G.storedMessageData
-            config.ethereum.contract
+            config.contract
             msgHash
         )
         |> Task.map
@@ -105,14 +105,15 @@ getAccountingCmd config msgHash =
             )
 
 
-getEthPriceCmd : Config -> (Result Http.Error Float -> msg) -> Cmd msg
-getEthPriceCmd config msgConstructor =
+getEthPriceCmd : ChainConfig -> Task Http.Error Float
+getEthPriceCmd config =
     Eth.call
-        config.ethereum.providerUrl
-        (G.ethPrice config.ethereum.contract)
-        |> Task.map TokenValue.tokenValue
-        |> Task.map TokenValue.toFloatWithWarning
-        |> Task.attempt msgConstructor
+        config.providerUrl
+        (G.ethPrice config.contract)
+        |> Task.map
+            (TokenValue.tokenValue
+                >> TokenValue.toFloatWithWarning
+            )
 
 
 tipForPost : UserInfo -> Address -> Hex -> TokenValue -> Bool -> Call ()

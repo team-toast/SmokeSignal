@@ -3,7 +3,6 @@ module Types exposing (..)
 import Browser
 import Browser.Navigation
 import Dict exposing (Dict)
-import Eth.Net exposing (NetworkId)
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
@@ -37,11 +36,13 @@ type alias Model =
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
     , txSentry : TxSentry Msg
+    , txSentryX : TxSentry Msg
     , sentries :
         { xDai : EventSentry Msg
         , ethereum : EventSentry Msg
         }
     , ethPrice : Float
+    , xDaiPrice : Float
     , view : View
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
@@ -76,14 +77,14 @@ type Msg
     | NewDemoSrc String
       -- | MutateDemoSrcWith MutateInfo
     | Resize Int Int
-    | TxSentryMsg TxSentry.Msg
+    | TxSentryMsg Chain TxSentry.Msg
     | EventSentryMsg Chain EventSentry.Msg
     | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error LogPost))
     | PostAccountingFetched PostId (Result Http.Error Accounting)
     | ShowExpandedTrackedTxs Bool
     | CheckTrackedTxsStatus
-    | TrackedTxStatusResult (Result Http.Error TxReceipt)
-    | TxSigned TxInfo (Result String TxHash)
+    | TrackedTxStatusResult (Result Http.Error (Maybe TxReceipt))
+    | TxSigned Chain TxInfo (Result String TxHash)
     | ViewDraft (Maybe Draft)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
       -- | RestoreDraft Draft
@@ -104,6 +105,7 @@ type Msg
     | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool
     | EthPriceFetched (Result Http.Error Float)
+    | XDaiPriceFetched (Result Http.Error Float)
     | ComposeBodyChange String
     | ComposeTitleChange String
     | ComposeDollarChange String
@@ -241,6 +243,7 @@ type alias TrackedTx =
     { txHash : TxHash
     , txInfo : TxInfo
     , status : TxStatus
+    , chain : Chain
     }
 
 
