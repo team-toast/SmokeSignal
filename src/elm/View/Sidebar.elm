@@ -33,7 +33,7 @@ view model =
             }
       , model.topics
             |> Misc.sortTopics
-            |> viewTopics model.ethPrice
+            |> viewTopics
       ]
         |> column
             [ width fill
@@ -61,8 +61,8 @@ view model =
             ]
 
 
-viewTopics : Float -> List ( String, TokenValue ) -> Element Msg
-viewTopics ethPrice =
+viewTopics : List ( String, TokenValue ) -> Element Msg
+viewTopics =
     List.map
         (\( topic, totalBurned ) ->
             Input.button
@@ -85,7 +85,7 @@ viewTopics ethPrice =
                             }
                       , View.Img.dollar 25 softRed
                       , totalBurned
-                            |> Misc.tokenToDollar ethPrice
+                            |> Misc.formatDollar
                             |> text
                             |> el [ Font.size 25, Font.bold, Font.color softRed ]
                       ]
@@ -222,38 +222,21 @@ viewWallet model =
 
 
 viewChain : Types.Chain -> Element msg
-viewChain c =
+viewChain chain =
     let
-        txt =
-            case c of
-                Types.XDai ->
-                    "xDai"
-
-                Types.Eth ->
-                    "Ethereum"
-
         col =
-            case c of
+            case chain of
                 Types.XDai ->
                     softRed
 
                 Types.Eth ->
                     orange
-
-        img =
-            case c of
-                Types.XDai ->
-                    View.Img.xDai
-
-                Types.Eth ->
-                    View.Img.eth
     in
-    [ img 20, text txt ]
-        |> row
-            [ spacing 10
-            , Background.color col
-            , View.Attrs.sansSerifFont
-            , Font.color white
+    chain
+        |> View.Common.viewChain
+        |> el
+            [ Font.color white
             , Element.padding 10
             , View.Attrs.roundBorder
+            , Background.color col
             ]

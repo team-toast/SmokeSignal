@@ -125,7 +125,6 @@ view model post =
                                     Nothing
                             )
                     )
-                    (Misc.getPrice reply.core.chain model)
                     model.compose.dollar
                     Nothing
                     (Wallet.isActive model.wallet)
