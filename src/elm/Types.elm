@@ -9,7 +9,7 @@ import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
 import Helpers.Element as EH
 import Http
-import Json.Decode
+import Json.Decode exposing (Value)
 import Set exposing (Set)
 import Time
 import TokenValue exposing (TokenValue)
@@ -22,10 +22,11 @@ type alias Flags =
     , nowInMillis : Int
     , cookieConsent : Bool
     , newUser : Bool
-    , smokeSignalContractAddress : String
-    , httpProviderUrl : String
     , startScanBlock : Int
-    , hasEthereum : Bool
+    , ethProviderUrl : String
+    , xDaiProviderUrl : String
+    , hasWallet : Bool
+    , chains : List Value
     }
 
 
@@ -35,8 +36,13 @@ type alias Model =
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
     , txSentry : TxSentry Msg
-    , eventSentry : EventSentry Msg
+    , txSentryX : TxSentry Msg
+    , sentries :
+        { xDai : EventSentry Msg
+        , ethereum : EventSentry Msg
+        }
     , ethPrice : Float
+    , xDaiPrice : Float
     , view : View
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
@@ -71,14 +77,14 @@ type Msg
     | NewDemoSrc String
       -- | MutateDemoSrcWith MutateInfo
     | Resize Int Int
-    | TxSentryMsg TxSentry.Msg
-    | EventSentryMsg EventSentry.Msg
+    | TxSentryMsg Chain TxSentry.Msg
+    | EventSentryMsg Chain EventSentry.Msg
     | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error LogPost))
     | PostAccountingFetched PostId (Result Http.Error Accounting)
     | ShowExpandedTrackedTxs Bool
     | CheckTrackedTxsStatus
-    | TrackedTxStatusResult (Result Http.Error TxReceipt)
-    | TxSigned TxInfo (Result String TxHash)
+    | TrackedTxStatusResult (Result Http.Error (Maybe TxReceipt))
+    | TxSigned Chain TxInfo (Result String TxHash)
     | ViewDraft (Maybe Draft)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
       -- | RestoreDraft Draft
@@ -99,6 +105,7 @@ type Msg
     | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool
     | EthPriceFetched (Result Http.Error Float)
+    | XDaiPriceFetched (Result Http.Error Float)
     | ComposeBodyChange String
     | ComposeTitleChange String
     | ComposeDollarChange String
@@ -120,6 +127,14 @@ type alias RootPost =
     }
 
 
+type alias ChainConfig =
+    { chain : Chain
+    , contract : Address
+    , startScanBlock : Int
+    , providerUrl : String
+    }
+
+
 type alias ReplyPost =
     { core : CoreData
     , parent : PostId
@@ -134,6 +149,7 @@ type alias CoreData =
     , authorBurn : TokenValue
     , content : Content
     , metadataVersion : Int
+    , chain : Chain
     }
 
 
@@ -148,9 +164,8 @@ type alias ComposeModel =
 
 
 type alias Config =
-    { smokeSignalContractAddress : Address
-    , httpProviderUrl : String
-    , startScanBlock : Int
+    { xDai : ChainConfig
+    , ethereum : ChainConfig
     }
 
 
@@ -228,6 +243,7 @@ type alias TrackedTx =
     { txHash : TxHash
     , txInfo : TxInfo
     , status : TxStatus
+    , chain : Chain
     }
 
 

@@ -3,16 +3,17 @@ const {
   txSentry,
   getWallet,
   requestAccounts,
-  getAccounts,
-} = require("./eth.js");
+  handleWalletEvents,
+} = require("./metamask.js");
+const chains = require("../config.json");
 
 window.navigator.serviceWorker.register("./sw.js");
 
 const { Elm } = require("./elm/App.elm");
 
 /* eslint-disable no-undef */
-const smokeSignalContractAddress = SMOKE_SIGNAL_CONTRACT_ADDRESS;
-const httpProviderUrl = HTTP_PROVIDER_URL;
+const xDaiProviderUrl = XDAI_PROVIDER_URL;
+const ethProviderUrl = ETH_PROVIDER_URL;
 const startScanBlock = START_SCAN_BLOCK;
 /* eslint-enable no-undef */
 
@@ -43,10 +44,11 @@ window.addEventListener("load", () => {
   );
 
   txSentry(app.ports.txOut, app.ports.txIn);
+  txSentry(app.ports.txOutX, app.ports.txInX);
 });
 
 function startDapp() {
-  const hasEthereum = Boolean(window.ethereum);
+  const hasWallet = Boolean(window.ethereum);
 
   const app = Elm.App.init({
     node: document.getElementById("elm"),
@@ -56,52 +58,16 @@ function startDapp() {
       nowInMillis: Date.now(),
       cookieConsent: getCookieConsent(),
       newUser: !window.localStorage.getItem(HAS_VISITED),
-      smokeSignalContractAddress,
-      httpProviderUrl,
+      ethProviderUrl,
+      xDaiProviderUrl,
       startScanBlock,
-      hasEthereum,
+      hasWallet,
+      chains,
     },
   });
 
-  if (hasEthereum) {
-    window.ethereum.on("chainChanged", (_chain) =>
-      (async () => {
-        const [account] = await getAccounts();
-
-        const wallet = account ? await getWallet(account) : null;
-
-        app.ports.walletResponse.send(wallet);
-      })().catch((e) => {
-        console.error("chainChanged", e);
-        app.ports.walletResponse.send(e);
-      })
-    );
-
-    window.ethereum.on("accountsChanged", ([account]) =>
-      (async () => {
-        const wallet = account ? await getWallet(account) : null;
-
-        app.ports.walletResponse.send(wallet);
-      })().catch((e) => {
-        console.error("accountsChanged", e);
-        app.ports.walletResponse.send(e);
-      })
-    );
-
-    window.ethereum.on("disconnect", (message) =>
-      (async () => {
-        console.log(message);
-
-        const [account] = await getAccounts();
-
-        const wallet = account ? await getWallet(account) : null;
-
-        app.ports.walletResponse.send(wallet);
-      })().catch((e) => {
-        console.error("disconnect", e);
-        app.ports.walletResponse.send(e);
-      })
-    );
+  if (hasWallet) {
+    handleWalletEvents(app.ports.walletResponse.send);
   }
 
   return app;

@@ -1,10 +1,43 @@
-module Wallet exposing (decodeConnectResponse, isActive, userInfo)
+module Wallet exposing (chainDecoder, decodeConnectResponse, isActive, userInfo)
 
 import Eth.Decode
 import Eth.Net
 import Json.Decode as Decode exposing (Decoder, Value)
 import TokenValue
 import Types exposing (UserInfo, Wallet(..))
+
+
+chainDecoder : Decoder Types.ChainConfig
+chainDecoder =
+    Decode.map4 Types.ChainConfig
+        (Decode.field "network" decodeChain)
+        (Decode.field "contract" Eth.Decode.address)
+        (Decode.field "scan" Decode.int)
+        (Decode.succeed "")
+
+
+decodeChain : Decoder Types.Chain
+decodeChain =
+    Eth.Net.networkIdDecoder
+        |> Decode.andThen
+            (\network ->
+                case network of
+                    Eth.Net.Mainnet ->
+                        Types.Eth
+                            |> Decode.succeed
+
+                    Eth.Net.Private 100 ->
+                        Types.XDai
+                            |> Decode.succeed
+
+                    -- Hardhat server
+                    Eth.Net.Private 31337 ->
+                        Types.Eth
+                            |> Decode.succeed
+
+                    _ ->
+                        Decode.fail "bad network"
+            )
 
 
 connectResponseDecoder : Decoder Types.WalletConnectResponse
@@ -14,17 +47,7 @@ connectResponseDecoder =
         (Decode.field "balance" Eth.Decode.bigInt
             |> Decode.map TokenValue.tokenValue
         )
-        (Decode.field "network" Eth.Net.networkIdDecoder
-            |> Decode.map
-                (\network ->
-                    case network of
-                        Eth.Net.Private 100 ->
-                            Types.XDai
-
-                        _ ->
-                            Types.Eth
-                )
-        )
+        (Decode.field "network" decodeChain)
         |> Decode.map Types.WalletSucceed
     , Decode.field "code" Decode.int
         |> Decode.map

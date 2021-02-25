@@ -9,7 +9,6 @@ import Element.Events
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal)
-import Helpers.Eth as EthHelpers
 import Helpers.Tuple as TupleHelpers
 import Html exposing (Html)
 import Maybe.Extra
@@ -184,18 +183,7 @@ viewBody model =
             View.Compose.view model
 
         ViewPost postId ->
-            let
-                key =
-                    Misc.postIdToKey postId
-            in
-            model.rootPosts
-                |> Dict.get key
-                |> Maybe.Extra.unwrap
-                    (model.replyPosts
-                        |> Dict.get key
-                        |> Maybe.map .core
-                    )
-                    (.core >> Just)
+            Misc.getPostOrReply postId model
                 |> Maybe.Extra.unwrap
                     (appStatusMessage
                         theme.appStatusTextColor
@@ -456,7 +444,7 @@ viewTrackedTxRow trackedTx =
                 [ Font.italic
                 , Font.color linkTextColor
                 ]
-                { url = EthHelpers.etherscanTxUrl trackedTx.txHash
+                { url = Misc.txUrl trackedTx.chain trackedTx.txHash
                 , label = Element.text label
                 }
 

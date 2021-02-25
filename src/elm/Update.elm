@@ -70,8 +70,8 @@ update msg model =
         EveryFewSeconds ->
             ( model
             , SSContract.getEthPriceCmd
-                model.config
-                EthPriceFetched
+                model.config.ethereum
+                |> Task.attempt EthPriceFetched
             )
 
         ShowExpandedTrackedTxs flag ->
@@ -104,87 +104,96 @@ update msg model =
                     (\trackedTx ->
                         trackedTx.status == Mining
                     )
-                |> List.map .txHash
-                |> List.map (Eth.getTxReceipt model.config.httpProviderUrl)
-                |> List.map (Task.attempt TrackedTxStatusResult)
+                |> List.map
+                    (\tx ->
+                        Misc.getTxReceipt
+                            (Misc.getProviderUrl tx.chain model.config)
+                            tx.txHash
+                            |> Task.attempt TrackedTxStatusResult
+                    )
                 |> Cmd.batch
             )
 
-        TrackedTxStatusResult txReceiptResult ->
-            case txReceiptResult of
+        TrackedTxStatusResult res ->
+            case res of
                 Err err ->
-                    -- Hasn't yet been mined; make no change
                     ( model, logHttpError "TrackedTxStatusResult" err )
 
-                Ok txReceipt ->
-                    let
-                        ( newStatus, maybePublishedPost, maybeUserNotice ) =
-                            handleTxReceipt txReceipt
+                Ok data ->
+                    data
+                        |> unwrap
+                            ( model, Cmd.none )
+                            (\txReceipt ->
+                                model.trackedTxs
+                                    |> Dict.get (Eth.Utils.txHashToString txReceipt.hash)
+                                    |> unwrap ( model, Ports.log "Transaction not found." )
+                                        (\tx ->
+                                            let
+                                                ( newStatus, maybePublishedPost, maybeUserNotice ) =
+                                                    handleTxReceipt tx.chain txReceipt
 
-                        isMined =
-                            case newStatus of
-                                Mined _ ->
-                                    True
+                                                isMined =
+                                                    case newStatus of
+                                                        Mined _ ->
+                                                            True
 
-                                _ ->
-                                    False
+                                                        _ ->
+                                                            False
 
-                        fetchAccounting =
-                            model.trackedTxs
-                                |> Dict.get (Eth.Utils.txHashToString txReceipt.hash)
-                                |> Maybe.andThen
-                                    (\tx ->
-                                        case tx.txInfo of
-                                            PostTx _ ->
-                                                maybePublishedPost
-                                                    |> Maybe.map
-                                                        (\r ->
-                                                            case r of
-                                                                LogReply p ->
-                                                                    p.core.id
+                                                fetchAccounting =
+                                                    (case tx.txInfo of
+                                                        PostTx _ ->
+                                                            maybePublishedPost
+                                                                |> Maybe.map
+                                                                    (\r ->
+                                                                        case r of
+                                                                            LogReply p ->
+                                                                                p.core
 
-                                                                LogRoot p ->
-                                                                    p.core.id
-                                                        )
+                                                                            LogRoot p ->
+                                                                                p.core
+                                                                    )
 
-                                            TipTx id _ ->
-                                                Just id
+                                                        TipTx id _ ->
+                                                            Misc.getPostOrReply id model
 
-                                            BurnTx id _ ->
-                                                Just id
-                                    )
-                                |> unwrap Cmd.none
-                                    (fetchPostInfo model.blockTimes model.config)
-                    in
-                    ( { model
-                        | trackedTxs =
-                            model.trackedTxs
-                                |> Dict.update
-                                    (Eth.Utils.txHashToString txReceipt.hash)
-                                    (Maybe.map
-                                        (\info ->
-                                            if info.status == Mining then
-                                                { info | status = newStatus }
+                                                        BurnTx id _ ->
+                                                            Misc.getPostOrReply id model
+                                                    )
+                                                        |> unwrap Cmd.none
+                                                            (fetchPostInfo model.blockTimes model.config)
+                                            in
+                                            ( { model
+                                                | trackedTxs =
+                                                    model.trackedTxs
+                                                        |> Dict.update
+                                                            (Eth.Utils.txHashToString txReceipt.hash)
+                                                            (Maybe.map
+                                                                (\info ->
+                                                                    if info.status == Mining then
+                                                                        { info | status = newStatus }
 
-                                            else
-                                                info
+                                                                    else
+                                                                        info
+                                                                )
+                                                            )
+                                                , userNotices =
+                                                    model.userNotices
+                                                        ++ (maybeUserNotice
+                                                                |> unwrap [] List.singleton
+                                                           )
+                                              }
+                                                |> (maybePublishedPost
+                                                        |> unwrap identity addPost
+                                                   )
+                                            , if isMined then
+                                                fetchAccounting
+
+                                              else
+                                                Cmd.none
+                                            )
                                         )
-                                    )
-                        , userNotices =
-                            model.userNotices
-                                ++ (maybeUserNotice
-                                        |> unwrap [] List.singleton
-                                   )
-                      }
-                        |> (maybePublishedPost
-                                |> unwrap identity addPost
-                           )
-                    , if isMined then
-                        fetchAccounting
-
-                      else
-                        Cmd.none
-                    )
+                            )
 
         WalletResponse res ->
             case res of
@@ -218,26 +227,63 @@ update msg model =
                     , Cmd.none
                     )
 
-        TxSentryMsg subMsg ->
-            let
-                ( newTxSentry, subCmd ) =
-                    TxSentry.update subMsg model.txSentry
-            in
-            ( { model | txSentry = newTxSentry }, subCmd )
+        TxSentryMsg chain subMsg ->
+            case chain of
+                Eth ->
+                    let
+                        ( newTxSentry, subCmd ) =
+                            TxSentry.update subMsg model.txSentry
+                    in
+                    ( { model | txSentry = newTxSentry }, subCmd )
 
-        EventSentryMsg eventMsg ->
-            let
-                ( newEventSentry, cmd ) =
-                    EventSentry.update
-                        eventMsg
-                        model.eventSentry
-            in
-            ( { model
-                | eventSentry =
-                    newEventSentry
-              }
-            , cmd
-            )
+                XDai ->
+                    let
+                        ( newTxSentry, subCmd ) =
+                            TxSentry.update subMsg model.txSentryX
+                    in
+                    ( { model | txSentryX = newTxSentry }, subCmd )
+
+        EventSentryMsg chain eventMsg ->
+            case chain of
+                Eth ->
+                    let
+                        ( newEventSentry, cmd ) =
+                            EventSentry.update
+                                eventMsg
+                                model.sentries.ethereum
+                    in
+                    ( { model
+                        | sentries =
+                            model.sentries
+                                |> (\ss ->
+                                        { ss
+                                            | ethereum =
+                                                newEventSentry
+                                        }
+                                   )
+                      }
+                    , cmd
+                    )
+
+                XDai ->
+                    let
+                        ( newEventSentry, cmd ) =
+                            EventSentry.update
+                                eventMsg
+                                model.sentries.xDai
+                    in
+                    ( { model
+                        | sentries =
+                            model.sentries
+                                |> (\ss ->
+                                        { ss
+                                            | xDai =
+                                                newEventSentry
+                                        }
+                                   )
+                      }
+                    , cmd
+                    )
 
         PostLogReceived res ->
             case res.returnData of
@@ -264,16 +310,16 @@ update msg model =
                     --}
                     --)
                     let
-                        id =
+                        core =
                             case log of
                                 LogReply p ->
-                                    p.core.id
+                                    p.core
 
                                 LogRoot p ->
-                                    p.core.id
+                                    p.core
                     in
                     ( addPost log model
-                    , fetchPostInfo model.blockTimes model.config id
+                    , fetchPostInfo model.blockTimes model.config core
                     )
 
         PostAccountingFetched postId res ->
@@ -315,7 +361,7 @@ update msg model =
 
                 Err err ->
                     ( model
-                        |> addUserNotice (UN.web3FetchError "DAI balance")
+                        |> addUserNotice (UN.web3FetchError "accounting data")
                     , logHttpError "PostAccountingFetched" err
                     )
 
@@ -352,12 +398,7 @@ update msg model =
             case fetchResult of
                 Ok price ->
                     ( { model
-                        | ethPrice =
-                            if price > 1.0 then
-                                price
-
-                            else
-                                model.ethPrice
+                        | ethPrice = price
                       }
                     , Cmd.none
                     )
@@ -366,6 +407,21 @@ update msg model =
                     ( model
                         |> addUserNotice (UN.web3FetchError "ETH price")
                     , logHttpError "EthPriceFetched" err
+                    )
+
+        XDaiPriceFetched fetchResult ->
+            case fetchResult of
+                Ok price ->
+                    ( { model
+                        | xDaiPrice = price
+                      }
+                    , Cmd.none
+                    )
+
+                Err err ->
+                    ( model
+                        |> addUserNotice (UN.web3FetchError "xDai price")
+                    , logHttpError "XDaiPriceFetched" err
                     )
 
         BlockTimeFetched blocknum timeResult ->
@@ -410,7 +466,7 @@ update msg model =
             , Cmd.none
             )
 
-        TxSigned txInfo res ->
+        TxSigned chain txInfo res ->
             case res of
                 Ok txHash ->
                     ( { model
@@ -421,6 +477,7 @@ update msg model =
                                     { txHash = txHash
                                     , txInfo = txInfo
                                     , status = Mining
+                                    , chain = chain
                                     }
                       }
                     , Cmd.none
@@ -433,7 +490,7 @@ update msg model =
                                 (txInfoToNameStr txInfo)
                                 errStr
                             )
-                    , Cmd.none
+                    , Ports.log <| "TxSigned error:\n" ++ errStr
                     )
 
         GotoView view ->
@@ -499,7 +556,8 @@ update msg model =
             ensureUserInfo
                 (\userInfo ->
                     model.compose.dollar
-                        |> Misc.dollarStringToToken model.ethPrice
+                        |> Misc.dollarStringToToken
+                            (Misc.getPrice userInfo.chain model)
                         |> Result.fromMaybe "Invalid input"
                         |> Result.andThen
                             (\burnAmount ->
@@ -559,26 +617,43 @@ update msg model =
                             )
                             (\postDraft ->
                                 let
+                                    config =
+                                        Misc.getConfig userInfo.chain model.config
+
                                     txParams =
                                         postDraft
                                             |> Misc.encodeDraft
-                                            |> SSContract.burnEncodedPost userInfo model.config.smokeSignalContractAddress
+                                            |> SSContract.burnEncodedPost userInfo config.contract
                                             |> Eth.toSend
 
                                     listeners =
                                         { onMined = Nothing
-                                        , onSign = Just <| TxSigned <| PostTx postDraft
+                                        , onSign = Just <| TxSigned userInfo.chain <| PostTx postDraft
                                         , onBroadcast = Nothing
                                         }
-
-                                    ( txSentry, cmd ) =
-                                        TxSentry.customSend model.txSentry listeners txParams
                                 in
-                                ( { model
-                                    | txSentry = txSentry
-                                  }
-                                , cmd
-                                )
+                                case userInfo.chain of
+                                    Eth ->
+                                        let
+                                            ( newSentry, cmd ) =
+                                                TxSentry.customSend model.txSentry listeners txParams
+                                        in
+                                        ( { model
+                                            | txSentry = newSentry
+                                          }
+                                        , cmd
+                                        )
+
+                                    XDai ->
+                                        let
+                                            ( newSentry, cmd ) =
+                                                TxSentry.customSend model.txSentryX listeners txParams
+                                        in
+                                        ( { model
+                                            | txSentryX = newSentry
+                                          }
+                                        , cmd
+                                        )
                             )
                 )
 
@@ -586,7 +661,8 @@ update msg model =
             ensureUserInfo
                 (\userInfo ->
                     model.compose.dollar
-                        |> Misc.dollarStringToToken model.ethPrice
+                        |> Misc.dollarStringToToken
+                            (Misc.getPrice userInfo.chain model)
                         |> unwrap
                             ( { model
                                 | userNotices = [ UN.unexpectedError "Invalid input" ]
@@ -595,24 +671,41 @@ update msg model =
                             )
                             (\amount ->
                                 let
+                                    config =
+                                        Misc.getConfig userInfo.chain model.config
+
                                     txParams =
-                                        SSContract.burnForPost userInfo model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
+                                        SSContract.burnForPost userInfo config.contract postId.messageHash amount model.compose.donate
                                             |> Eth.toSend
 
                                     listeners =
                                         { onMined = Nothing
-                                        , onSign = Just <| TxSigned <| BurnTx postId amount
+                                        , onSign = Just <| TxSigned userInfo.chain <| BurnTx postId amount
                                         , onBroadcast = Nothing
                                         }
-
-                                    ( txSentry, cmd ) =
-                                        TxSentry.customSend model.txSentry listeners txParams
                                 in
-                                ( { model
-                                    | txSentry = txSentry
-                                  }
-                                , cmd
-                                )
+                                case userInfo.chain of
+                                    Eth ->
+                                        let
+                                            ( newSentry, cmd ) =
+                                                TxSentry.customSend model.txSentry listeners txParams
+                                        in
+                                        ( { model
+                                            | txSentry = newSentry
+                                          }
+                                        , cmd
+                                        )
+
+                                    XDai ->
+                                        let
+                                            ( newSentry, cmd ) =
+                                                TxSentry.customSend model.txSentryX listeners txParams
+                                        in
+                                        ( { model
+                                            | txSentryX = newSentry
+                                          }
+                                        , cmd
+                                        )
                             )
                 )
 
@@ -620,7 +713,8 @@ update msg model =
             ensureUserInfo
                 (\userInfo ->
                     model.compose.dollar
-                        |> Misc.dollarStringToToken model.ethPrice
+                        |> Misc.dollarStringToToken
+                            (Misc.getPrice userInfo.chain model)
                         |> unwrap
                             ( { model
                                 | userNotices = [ UN.unexpectedError "Invalid input" ]
@@ -629,25 +723,41 @@ update msg model =
                             )
                             (\amount ->
                                 let
+                                    config =
+                                        Misc.getConfig userInfo.chain model.config
+
                                     txParams =
-                                        SSContract.tipForPost userInfo model.config.smokeSignalContractAddress postId.messageHash amount model.compose.donate
+                                        SSContract.tipForPost userInfo config.contract postId.messageHash amount model.compose.donate
                                             |> Eth.toSend
 
                                     listeners =
                                         { onMined = Nothing
-                                        , onSign = Just <| TxSigned <| TipTx postId amount
+                                        , onSign = Just <| TxSigned userInfo.chain <| TipTx postId amount
                                         , onBroadcast = Nothing
                                         }
-
-                                    ( txSentry, cmd ) =
-                                        TxSentry.customSend model.txSentry listeners txParams
                                 in
-                                ( { model
-                                    | txSentry = txSentry
-                                    , tipOpen = Nothing
-                                  }
-                                , cmd
-                                )
+                                case userInfo.chain of
+                                    Eth ->
+                                        let
+                                            ( newSentry, cmd ) =
+                                                TxSentry.customSend model.txSentry listeners txParams
+                                        in
+                                        ( { model
+                                            | txSentry = newSentry
+                                          }
+                                        , cmd
+                                        )
+
+                                    XDai ->
+                                        let
+                                            ( newSentry, cmd ) =
+                                                TxSentry.customSend model.txSentryX listeners txParams
+                                        in
+                                        ( { model
+                                            | txSentryX = newSentry
+                                          }
+                                        , cmd
+                                        )
                             )
                 )
 
@@ -910,14 +1020,17 @@ addPost log model =
             }
 
 
-handleTxReceipt : TxReceipt -> ( TxStatus, Maybe LogPost, Maybe UserNotice )
-handleTxReceipt txReceipt =
+handleTxReceipt : Chain -> TxReceipt -> ( TxStatus, Maybe LogPost, Maybe UserNotice )
+handleTxReceipt chain txReceipt =
     case txReceipt.status of
         Just True ->
             let
                 post =
                     txReceipt.logs
-                        |> List.map (SSContract.decodePost >> .returnData)
+                        |> List.map
+                            (SSContract.decodePost chain
+                                >> .returnData
+                            )
                         |> List.filterMap Result.toMaybe
                         |> List.head
             in
@@ -950,21 +1063,21 @@ handleTxReceipt txReceipt =
             )
 
 
-fetchPostInfo : Dict Int Time.Posix -> Config -> PostId -> Cmd Msg
-fetchPostInfo blockTimes config id =
+fetchPostInfo : Dict Int Time.Posix -> Config -> CoreData -> Cmd Msg
+fetchPostInfo blockTimes config core =
     [ SSContract.getAccountingCmd
-        config
-        id.messageHash
-        |> Task.attempt (PostAccountingFetched id)
-    , if Dict.member id.block blockTimes then
+        (Misc.getConfig core.chain config)
+        core.id.messageHash
+        |> Task.attempt (PostAccountingFetched core.id)
+    , if Dict.member core.id.block blockTimes then
         Cmd.none
 
       else
         Eth.getBlock
-            config.httpProviderUrl
-            id.block
+            (Misc.getProviderUrl core.chain config)
+            core.id.block
             |> Task.map .timestamp
-            |> Task.attempt (BlockTimeFetched id.block)
+            |> Task.attempt (BlockTimeFetched core.id.block)
     ]
         |> Cmd.batch
 

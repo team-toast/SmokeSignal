@@ -30,9 +30,51 @@ const getWallet = async (address) => {
   return { address, balance, network };
 };
 
+const handleWalletEvents = (port) => {
+  window.ethereum.on("chainChanged", (_chain) =>
+    (async () => {
+      const [account] = await getAccounts();
+
+      const wallet = account ? await getWallet(account) : null;
+
+      port(wallet);
+    })().catch((e) => {
+      console.error("chainChanged", e);
+      port(e);
+    })
+  );
+
+  window.ethereum.on("accountsChanged", ([account]) =>
+    (async () => {
+      const wallet = account ? await getWallet(account) : null;
+
+      port(wallet);
+    })().catch((e) => {
+      console.error("accountsChanged", e);
+      port(e);
+    })
+  );
+
+  window.ethereum.on("disconnect", (message) =>
+    (async () => {
+      console.log(message);
+
+      const [account] = await getAccounts();
+
+      const wallet = account ? await getWallet(account) : null;
+
+      port(wallet);
+    })().catch((e) => {
+      console.error("disconnect", e);
+      port(e);
+    })
+  );
+};
+
 module.exports = {
   getAccounts,
   getWallet,
   txSentry,
   requestAccounts,
+  handleWalletEvents,
 };

@@ -6,9 +6,9 @@ import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (DisplayProfile(..), black, white)
-import Helpers.Eth
 import Helpers.Time
 import Maybe.Extra exposing (unwrap)
+import Misc
 import Set
 import Theme
 import Types exposing (..)
@@ -36,7 +36,7 @@ view model post =
                             |> text
                     )
           , Element.newTabLink [ hover ]
-                { url = Helpers.Eth.etherscanTxUrl post.txHash
+                { url = Misc.txUrl post.chain post.txHash
                 , label = text "View on Etherscan 🌐"
                 }
           ]
@@ -125,7 +125,7 @@ view model post =
                                     Nothing
                             )
                     )
-                    model.ethPrice
+                    (Misc.getPrice reply.core.chain model)
                     model.compose.dollar
                     Nothing
                     (Wallet.isActive model.wallet)
