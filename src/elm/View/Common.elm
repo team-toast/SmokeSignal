@@ -1,9 +1,9 @@
-module View.Common exposing (appStatusMessage, phaceElement, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (appStatusMessage, phaceElement, verticalRule, viewChain, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
 
-import Element exposing (Attribute, Element, column, fill, height, row, width)
+import Element exposing (Attribute, Color, Element, column, el, fill, height, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -13,6 +13,34 @@ import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black)
 import Phace
 import Types exposing (..)
+import View.Attrs
+import View.Img
+
+
+viewChain : Types.Chain -> Element msg
+viewChain c =
+    let
+        txt =
+            case c of
+                Types.XDai ->
+                    "xDai"
+
+                Types.Eth ->
+                    "Ethereum"
+
+        img =
+            case c of
+                Types.XDai ->
+                    View.Img.xDai
+
+                Types.Eth ->
+                    View.Img.eth
+    in
+    [ img 20, text txt ]
+        |> row
+            [ spacing 10
+            , View.Attrs.sansSerifFont
+            ]
 
 
 appStatusMessage : Element.Color -> String -> Element Msg
@@ -122,3 +150,9 @@ wrapModal msg elem =
     , btn
     ]
         |> row [ width fill, height fill ]
+
+
+verticalRule : Color -> Element msg
+verticalRule col =
+    Element.none
+        |> el [ width <| px 1, height fill, Background.color col ]

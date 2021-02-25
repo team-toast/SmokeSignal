@@ -1,4 +1,4 @@
-module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getConfig, getPostOrReply, getPrice, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
+module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatDollar, formatPosix, getConfig, getPostOrReply, getPrice, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
 
 import Browser.Navigation
 import Dict exposing (Dict)
@@ -308,6 +308,12 @@ tokenToDollar eth tv =
     TokenValue.mulFloatWithWarning tv eth
         |> TokenValue.toFloatWithWarning
         |> FormatFloat.formatFloat 2
+
+
+formatDollar : TokenValue -> String
+formatDollar =
+    TokenValue.toFloatWithWarning
+        >> FormatFloat.formatFloat 2
 
 
 dollarStringToToken : Float -> String -> Maybe TokenValue

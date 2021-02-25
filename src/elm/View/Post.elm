@@ -1,4 +1,4 @@
-module View.Post exposing (view, viewTiming)
+module View.Post exposing (view)
 
 import Element exposing (Color, Element, centerX, centerY, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
@@ -27,13 +27,12 @@ view :
     -> Set.Set Types.PostKey
     -> Maybe Accounting
     -> Maybe ShowInputState
-    -> Float
     -> String
     -> Maybe String
     -> Bool
     -> CoreData
     -> Element Msg
-view dProfile timestamp now replies accounting state ethPrice input topic walletReady post =
+view dProfile timestamp now replies accounting state input topic walletReady post =
     let
         isMobile =
             dProfile == EH.Mobile
@@ -47,7 +46,7 @@ view dProfile timestamp now replies accounting state ethPrice input topic wallet
             viewTiming timestamp now
     in
     [ [ accounting
-            |> whenJust (viewAccounting dProfile ethPrice)
+            |> whenJust (viewAccounting dProfile)
       , [ topic
             |> whenJust
                 (\t ->
@@ -60,19 +59,7 @@ view dProfile timestamp now replies accounting state ethPrice input topic wallet
                         }
                 )
             |> el []
-        , Element.newTabLink [ hover ]
-            { url = Misc.txUrl post.chain post.txHash
-            , label =
-                [ block
-                , text "|"
-                , timing
-                ]
-                    |> row
-                        [ spacing 10
-                        , Font.size 17
-                        , Font.color theme.subtleTextColor
-                        ]
-            }
+        , viewCard timestamp now post
             |> when (not isMobile)
         ]
             |> row [ width fill, spaceEvenly ]
@@ -128,6 +115,49 @@ view dProfile timestamp now replies accounting state ethPrice input topic wallet
             ]
 
 
+viewCard : Maybe Time.Posix -> Time.Posix -> CoreData -> Element Msg
+viewCard timestamp now post =
+    let
+        block =
+            "@"
+                ++ String.fromInt post.id.block
+                |> text
+
+        timing =
+            viewTiming timestamp now
+
+        col =
+            case post.chain of
+                Types.XDai ->
+                    Theme.softRed
+
+                Types.Eth ->
+                    Theme.orange
+    in
+    Element.newTabLink
+        [ hover
+        , Background.color col
+        , Font.color white
+        , roundBorder
+        , padding 10
+        , View.Attrs.sansSerifFont
+        ]
+        { url = Misc.txUrl post.chain post.txHash
+        , label =
+            [ [ View.Common.viewChain post.chain
+              , block
+              ]
+                |> column [ spacing 10 ]
+            , View.Common.verticalRule white
+            , timing
+            ]
+                |> row
+                    [ spacing 10
+                    , Font.size 17
+                    ]
+        }
+
+
 linkToPost : PostId -> Element Msg -> Element Msg
 linkToPost id elem =
     Input.button [ width fill, hover ]
@@ -170,20 +200,20 @@ viewReplies replies =
     String.fromInt len ++ " " ++ word
 
 
-viewAccounting : DisplayProfile -> Float -> Accounting -> Element Msg
-viewAccounting _ ethPrice accounting =
+viewAccounting : DisplayProfile -> Accounting -> Element Msg
+viewAccounting _ accounting =
     Element.row
         [ spacing 5
         ]
-        [ viewAmount theme.daiBurnedBackground accounting.totalBurned ethPrice
-        , viewAmount theme.daiTippedBackground accounting.totalTipped ethPrice
+        [ viewAmount theme.daiBurnedBackground accounting.totalBurned
+        , viewAmount theme.daiTippedBackground accounting.totalTipped
         ]
 
 
-viewAmount : Color -> TokenValue -> Float -> Element Msg
-viewAmount color amount ethPrice =
+viewAmount : Color -> TokenValue -> Element Msg
+viewAmount color amount =
     [ View.Img.dollar 22 white
-    , Misc.tokenToDollar ethPrice amount
+    , Misc.formatDollar amount
         |> text
     ]
         |> row

@@ -6,7 +6,6 @@ import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (black, white)
-import Misc
 import Set
 import Theme exposing (orange)
 import Types exposing (..)
@@ -65,7 +64,6 @@ view model topic =
                                         Nothing
                                 )
                         )
-                        (Misc.getPrice post.core.chain model)
                         model.compose.dollar
                         (Just topic)
                         (Wallet.isActive model.wallet)

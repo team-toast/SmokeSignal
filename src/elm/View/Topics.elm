@@ -64,7 +64,7 @@ view model =
             ]
     , model.topics
         |> Misc.sortTopics
-        |> viewTopics model.ethPrice
+        |> viewTopics
     ]
         |> column
             [ width fill
@@ -74,8 +74,8 @@ view model =
             ]
 
 
-viewTopics : Float -> List ( String, TokenValue ) -> Element Msg
-viewTopics ethPrice =
+viewTopics : List ( String, TokenValue ) -> Element Msg
+viewTopics =
     List.map
         (\( topic, totalBurned ) ->
             Input.button
@@ -93,7 +93,7 @@ viewTopics ethPrice =
                         |> el [ width fill, Font.size 40 ]
                     , [ View.Img.dollar 25 white
                       , totalBurned
-                            |> Misc.tokenToDollar ethPrice
+                            |> Misc.formatDollar
                             |> text
                             |> el [ Font.size 30, Font.bold ]
                       ]

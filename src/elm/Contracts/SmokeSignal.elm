@@ -99,8 +99,8 @@ getAccountingCmd config msgHash =
         |> Task.map
             (\storedMessageData ->
                 { firstAuthor = storedMessageData.firstAuthor
-                , totalBurned = TokenValue.tokenValue storedMessageData.nativeBurned
-                , totalTipped = TokenValue.tokenValue storedMessageData.nativeTipped
+                , totalBurned = TokenValue.tokenValue storedMessageData.dollarsBurned
+                , totalTipped = TokenValue.tokenValue storedMessageData.dollarsTipped
                 }
             )
 
