@@ -131,37 +131,6 @@ update msg model =
                                             let
                                                 ( newStatus, maybePublishedPost, maybeUserNotice ) =
                                                     handleTxReceipt tx.chain txReceipt
-
-                                                isMined =
-                                                    case newStatus of
-                                                        Mined _ ->
-                                                            True
-
-                                                        _ ->
-                                                            False
-
-                                                fetchAccounting =
-                                                    (case tx.txInfo of
-                                                        PostTx _ ->
-                                                            maybePublishedPost
-                                                                |> Maybe.map
-                                                                    (\r ->
-                                                                        case r of
-                                                                            LogReply p ->
-                                                                                p.core
-
-                                                                            LogRoot p ->
-                                                                                p.core
-                                                                    )
-
-                                                        TipTx id _ ->
-                                                            Misc.getPostOrReply id model
-
-                                                        BurnTx id _ ->
-                                                            Misc.getPostOrReply id model
-                                                    )
-                                                        |> unwrap Cmd.none
-                                                            (fetchPostInfo model.blockTimes model.config)
                                             in
                                             ( { model
                                                 | trackedTxs =
@@ -186,11 +155,7 @@ update msg model =
                                                 |> (maybePublishedPost
                                                         |> unwrap identity addPost
                                                    )
-                                            , if isMined then
-                                                fetchAccounting
-
-                                              else
-                                                Cmd.none
+                                            , Cmd.none
                                             )
                                         )
                             )
