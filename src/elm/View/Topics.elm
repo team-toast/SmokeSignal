@@ -1,6 +1,6 @@
 module View.Topics exposing (view)
 
-import Element exposing (Element, column, el, fill, height, padding, row, spaceEvenly, spacing, text, width)
+import Element exposing (Element, column, el, fill, height, padding, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -16,14 +16,11 @@ import View.Img
 
 view : Model -> Element Msg
 view model =
-    [ [ [ "Topics"
+    [ [ "Topics"
             |> text
             |> el [ Font.size 35, Font.color black ]
-        , View.Img.bookmark 30 black
-        ]
-            |> row
+            |> el
                 [ width fill
-                , spaceEvenly
                 , Background.color orange
                 , Font.color white
                 , padding 15
@@ -67,7 +64,7 @@ view model =
             ]
     , model.topics
         |> Misc.sortTopics
-        |> viewTopics model.ethPrice
+        |> viewTopics
     ]
         |> column
             [ width fill
@@ -77,8 +74,8 @@ view model =
             ]
 
 
-viewTopics : Float -> List ( String, TokenValue ) -> Element Msg
-viewTopics ethPrice =
+viewTopics : List ( String, TokenValue ) -> Element Msg
+viewTopics =
     List.map
         (\( topic, totalBurned ) ->
             Input.button
@@ -96,7 +93,7 @@ viewTopics ethPrice =
                         |> el [ width fill, Font.size 40 ]
                     , [ View.Img.dollar 25 white
                       , totalBurned
-                            |> Misc.tokenToDollar ethPrice
+                            |> Misc.formatDollar
                             |> text
                             |> el [ Font.size 30, Font.bold ]
                       ]

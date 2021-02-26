@@ -3,14 +3,13 @@ module Types exposing (..)
 import Browser
 import Browser.Navigation
 import Dict exposing (Dict)
-import Eth.Net
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Tx as TxSentry exposing (TxSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
 import Helpers.Element as EH
 import Http
-import Json.Decode
+import Json.Decode exposing (Value)
 import Set exposing (Set)
 import Time
 import TokenValue exposing (TokenValue)
@@ -18,15 +17,15 @@ import UserNotice as UN exposing (UserNotice)
 
 
 type alias Flags =
-    { networkId : Int
-    , width : Int
+    { width : Int
     , height : Int
     , nowInMillis : Int
     , cookieConsent : Bool
     , newUser : Bool
-    , smokeSignalContractAddress : String
-    , httpProviderUrl : String
-    , startScanBlock : Int
+    , ethProviderUrl : String
+    , xDaiProviderUrl : String
+    , hasWallet : Bool
+    , chains : Value
     }
 
 
@@ -36,8 +35,13 @@ type alias Model =
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
     , txSentry : TxSentry Msg
-    , eventSentry : EventSentry Msg
+    , txSentryX : TxSentry Msg
+    , sentries :
+        { xDai : EventSentry Msg
+        , ethereum : EventSentry Msg
+        }
     , ethPrice : Float
+    , xDaiPrice : Float
     , view : View
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
@@ -58,6 +62,8 @@ type alias Model =
     , replyIds : Dict PostKey (Set PostKey)
     , accounting : Dict PostKey Accounting
     , topics : Dict String TokenValue
+    , hasNavigated : Bool
+    , alphaUrl : String
     }
 
 
@@ -70,15 +76,14 @@ type Msg
     | NewDemoSrc String
       -- | MutateDemoSrcWith MutateInfo
     | Resize Int Int
-    | WalletStatus (Result String WalletSentry)
-    | TxSentryMsg TxSentry.Msg
-    | EventSentryMsg EventSentry.Msg
+    | TxSentryMsg Chain TxSentry.Msg
+    | EventSentryMsg Chain EventSentry.Msg
     | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error LogPost))
     | PostAccountingFetched PostId (Result Http.Error Accounting)
     | ShowExpandedTrackedTxs Bool
     | CheckTrackedTxsStatus
-    | TrackedTxStatusResult (Result Http.Error TxReceipt)
-    | TxSigned TxInfo (Result String TxHash)
+    | TrackedTxStatusResult (Result Http.Error (Maybe TxReceipt))
+    | TxSigned Chain TxInfo (Result String TxHash)
     | ViewDraft (Maybe Draft)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
       -- | RestoreDraft Draft
@@ -99,12 +104,16 @@ type Msg
     | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool
     | EthPriceFetched (Result Http.Error Float)
+    | XDaiPriceFetched (Result Http.Error Float)
     | ComposeBodyChange String
     | ComposeTitleChange String
     | ComposeDollarChange String
     | TopicInputChange String
     | SetTipOpen PostState
     | CancelTipOpen
+    | GoBack
+    | WalletResponse WalletConnectResponse
+    | RpcResponse (Result Http.Error UserInfo)
 
 
 type alias PostKey =
@@ -114,6 +123,14 @@ type alias PostKey =
 type alias RootPost =
     { core : CoreData
     , topic : String
+    }
+
+
+type alias ChainConfig =
+    { chain : Chain
+    , contract : Address
+    , startScanBlock : Int
+    , providerUrl : String
     }
 
 
@@ -131,6 +148,7 @@ type alias CoreData =
     , authorBurn : TokenValue
     , content : Content
     , metadataVersion : Int
+    , chain : Chain
     }
 
 
@@ -145,9 +163,8 @@ type alias ComposeModel =
 
 
 type alias Config =
-    { smokeSignalContractAddress : Address
-    , httpProviderUrl : String
-    , startScanBlock : Int
+    { xDai : ChainConfig
+    , ethereum : ChainConfig
     }
 
 
@@ -176,15 +193,29 @@ type View
 
 
 type alias UserInfo =
-    { network : Eth.Net.NetworkId
-    , address : Address
+    { address : Address
+    , balance : TokenValue
+    , chain : Chain
+    }
+
+
+type alias WalletInfo =
+    { walletSentry : WalletSentry
     , balance : Maybe TokenValue
     }
 
 
+type WalletConnectResponse
+    = WalletSucceed UserInfo
+    | WalletCancel
+    | WalletInProgress
+    | WalletError
+
+
 type Wallet
     = NoneDetected
-    | OnlyNetwork Eth.Net.NetworkId
+    | NetworkReady
+    | Connecting
     | Active UserInfo
 
 
@@ -211,6 +242,7 @@ type alias TrackedTx =
     { txHash : TxHash
     , txInfo : TxInfo
     , status : TxStatus
+    , chain : Chain
     }
 
 
@@ -313,3 +345,8 @@ type Route
     | RouteViewTopic String
     | RouteInvalid
     | RouteTopics
+
+
+type Chain
+    = XDai
+    | Eth

@@ -1,15 +1,13 @@
-module View.Post exposing (view, viewTiming)
+module View.Post exposing (view)
 
-import Dict exposing (Dict)
-import Element exposing (Attribute, Color, Element, centerX, centerY, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
+import Element exposing (Color, Element, centerX, centerY, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border
-import Element.Events
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Element as EH exposing (DisplayProfile, black, responsiveVal, white)
+import Helpers.Element as EH exposing (DisplayProfile, black, white)
 import Helpers.Time as TimeHelpers
-import Maybe.Extra
+import Maybe.Extra exposing (unwrap)
 import Misc
 import Set exposing (Set)
 import Theme exposing (almostWhite, theme)
@@ -17,7 +15,7 @@ import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import View.Attrs exposing (hover, roundBorder, typeFont, whiteGlowAttributeSmall)
-import View.Common exposing (daiAmountInput, phaceElement, when, whenJust)
+import View.Common exposing (phaceElement, when, whenJust)
 import View.Img
 import View.Markdown
 
@@ -29,12 +27,12 @@ view :
     -> Set.Set Types.PostKey
     -> Maybe Accounting
     -> Maybe ShowInputState
-    -> Float
     -> String
-    -> String
+    -> Maybe String
+    -> Bool
     -> CoreData
     -> Element Msg
-view dProfile timestamp now replies accounting state ethPrice input title post =
+view dProfile timestamp now replies accounting state input topic walletReady post =
     let
         isMobile =
             dProfile == EH.Mobile
@@ -45,23 +43,23 @@ view dProfile timestamp now replies accounting state ethPrice input title post =
                 |> text
 
         timing =
-            viewTiming dProfile timestamp now post.id
+            viewTiming timestamp now
     in
     [ [ accounting
-            |> whenJust (viewAccounting dProfile ethPrice)
-      , [ title
-            |> text
-            |> el [ Font.size 30 ]
-        , [ block
-          , viewTiming dProfile timestamp now post.id
-
-          --, viewContext dProfile post.core.metadata.context
-          ]
-            |> row
-                [ spacing 20
-                , Font.size 17
-                , Font.color theme.subtleTextColor
-                ]
+            |> whenJust (viewAccounting dProfile)
+      , [ topic
+            |> whenJust
+                (\t ->
+                    Input.button [ Font.size 30, hover ]
+                        { onPress = Just <| GotoView <| ViewTopic t
+                        , label =
+                            "#"
+                                ++ t
+                                |> text
+                        }
+                )
+            |> el []
+        , viewCard timestamp now post
             |> when (not isMobile)
         ]
             |> row [ width fill, spaceEvenly ]
@@ -80,15 +78,21 @@ view dProfile timestamp now replies accounting state ethPrice input title post =
             ClickHappened
       , [ viewContent post
             |> linkToPost post.id
-        , [ state
-                |> Maybe.Extra.unwrap
-                    (viewActions replies post)
-                    (viewInput dProfile post input)
+        , [ [ View.Img.speechBubble 17 almostWhite
+            , text <| viewReplies replies
+            ]
+                |> row [ spacing 10, Font.size 23 ]
+                |> linkToPost post.id
+                |> el
+                    [ Font.color almostWhite
+                    , Font.size 17
+                    , width fill
+                    , Element.alignTop
+                    ]
+          , viewActions post input state
+                |> when walletReady
           ]
-            |> row
-                [ spacing 10
-                , Element.alignRight
-                ]
+            |> row [ width fill, spaceEvenly ]
         ]
             |> column
                 [ spacing 10
@@ -109,6 +113,52 @@ view dProfile timestamp now replies accounting state ethPrice input title post =
             , width fill
             , typeFont
             ]
+
+
+viewCard : Maybe Time.Posix -> Time.Posix -> CoreData -> Element Msg
+viewCard timestamp now post =
+    let
+        block =
+            "@"
+                ++ String.fromInt post.id.block
+                |> text
+
+        timing =
+            viewTiming timestamp now
+
+        col =
+            case post.chain of
+                Types.XDai ->
+                    Theme.softRed
+
+                Types.Eth ->
+                    Theme.orange
+    in
+    Element.newTabLink
+        [ hover
+        , Background.color col
+        , Font.color white
+        , roundBorder
+        , padding 10
+        , View.Attrs.sansSerifFont
+        , width <| px 270
+        ]
+        { url = Misc.txUrl post.chain post.txHash
+        , label =
+            [ [ View.Common.viewChain post.chain
+              , block
+              ]
+                |> column [ spacing 10, width fill ]
+            , View.Common.verticalRule white
+            , timing
+                |> el [ width fill ]
+            ]
+                |> row
+                    [ spacing 10
+                    , Font.size 17
+                    , width fill
+                    ]
+        }
 
 
 linkToPost : PostId -> Element Msg -> Element Msg
@@ -137,30 +187,6 @@ viewContent post =
             ]
 
 
-viewActions : Set PostKey -> CoreData -> Element Msg
-viewActions replies post =
-    [ [ ( viewReplies replies, View.Img.speechBubble )
-
-      --, ( "Bookmark", View.Img.bookmark )
-      --, ( "Hide", View.Img.hide )
-      ]
-        |> List.map
-            (\( txt, icn ) ->
-                [ icn 17 almostWhite
-                , text txt
-                ]
-                    |> row [ spacing 10, Font.size 23 ]
-                    |> linkToPost post.id
-            )
-        |> row [ spacing 10, Font.color almostWhite, Font.size 17 ]
-    , supportTipButton post.id
-    , supportBurnButton post.id
-
-    --, replyButton post.id
-    ]
-        |> row [ spacing 10 ]
-
-
 viewReplies : Set a -> String
 viewReplies replies =
     let
@@ -177,58 +203,20 @@ viewReplies replies =
     String.fromInt len ++ " " ++ word
 
 
-mainPreviewPane :
-    DisplayProfile
-    -> Bool
-    -> Bool
-    -> Dict Int Time.Posix
-    -> Time.Posix
-    -> Maybe Int
-    -> Published
-    -> Element Msg
-mainPreviewPane dProfile showAddress donateChecked blockTimes now maybeUXModel post =
-    Element.column
-        [ Element.width <| Element.fillPortion 11
-        , Element.height Element.fill
-        , Element.spacing 10
-        ]
-        [ previewMetadata dProfile blockTimes now post
-        , previewBody dProfile showAddress post
-        ]
-
-
-previewMetadata :
-    DisplayProfile
-    -> Dict Int Time.Posix
-    -> Time.Posix
-    -> Published
-    -> Element Msg
-previewMetadata dProfile blockTimes now post =
-    Element.row
-        [ Font.size <| responsiveVal dProfile 16 10
-        , Element.width <| Element.px 300
-        , Element.spacing 40
-        ]
-        [ -- viewAccounting dProfile post
-          --viewTiming dProfile blockTimes now post.id
-          viewContext dProfile post.core.metadata.context
-        ]
-
-
-viewAccounting : DisplayProfile -> Float -> Accounting -> Element Msg
-viewAccounting dProfile ethPrice accounting =
+viewAccounting : DisplayProfile -> Accounting -> Element Msg
+viewAccounting _ accounting =
     Element.row
         [ spacing 5
         ]
-        [ viewAmount theme.daiBurnedBackground accounting.totalBurned ethPrice
-        , viewAmount theme.daiTippedBackground accounting.totalTipped ethPrice
+        [ viewAmount theme.daiBurnedBackground accounting.totalBurned
+        , viewAmount theme.daiTippedBackground accounting.totalTipped
         ]
 
 
-viewAmount : Color -> TokenValue -> Float -> Element Msg
-viewAmount color amount ethPrice =
+viewAmount : Color -> TokenValue -> Element Msg
+viewAmount color amount =
     [ View.Img.dollar 22 white
-    , Misc.tokenToDollar ethPrice amount
+    , Misc.formatDollar amount
         |> text
     ]
         |> row
@@ -240,156 +228,92 @@ viewAmount color amount ethPrice =
             ]
 
 
-viewContext :
-    DisplayProfile
-    -> Context
-    -> Element Msg
-viewContext dProfile context =
-    Element.el
-        [ Element.width Element.fill
-        , Font.color almostWhite
-        ]
-    <|
-        case context of
-            Reply id ->
-                Element.text "reply"
-
-            TopLevel topic ->
-                Element.text <| "#" ++ topic
-
-
-viewTiming :
-    DisplayProfile
-    -> Maybe Time.Posix
-    -> Time.Posix
-    -> PostId
-    -> Element Msg
-viewTiming dProfile maybePostTime now id =
-    let
-        maybeTimePassed =
-            maybePostTime
-                |> Maybe.map
-                    (\postTime ->
-                        TimeHelpers.sub now postTime
-                    )
-    in
+viewTiming : Maybe Time.Posix -> Time.Posix -> Element Msg
+viewTiming maybePostTime now =
     maybePostTime
-        |> whenJust
+        |> unwrap
+            (View.Img.spinner 20 white
+                |> el [ centerX, View.Attrs.rotate ]
+            )
             (\time ->
-                [ text <| Misc.formatPosix time
-                , TimeHelpers.sub now time
+                TimeHelpers.sub now time
                     |> TimeHelpers.roundToSingleUnit
                     |> (\s -> s ++ " ago")
-                    --|> Maybe.withDefault "..."
                     |> text
-
-                --, maybeTimePassed
-                --|> Maybe.map TimeHelpers.roundToSingleUnit
-                --|> Maybe.map (\s -> s ++ " ago")
-                --|> Maybe.withDefault "..."
-                --|> text
-                --|> el
-                --[ Font.color theme.subtleTextColor
-                --]
-                ]
-                    |> row [ spacing 20 ]
+                    |> el [ View.Attrs.title (Misc.formatPosix time) ]
             )
 
 
-previewBody :
-    DisplayProfile
-    -> Bool
-    -> Published
-    -> Element Msg
-previewBody dProfile showAddress post =
-    Element.row
-        [ Element.width Element.fill
-        , Element.height Element.fill
-        , Element.spacing 5
-        ]
-        --[ View.phaceElement
-        --( 60, 60 )
-        --True
-        --post.core.author
-        --showAddress
-        --(MsgUp <| Types.ShowOrHideAddress <| PhaceForPublishedPost post.id)
-        --NoOp
-        [ post.core.content.title
-            |> Maybe.withDefault post.core.content.body
-            |> limitedString
-            |> text
-            |> List.singleton
-            |> Element.paragraph
-                [ Font.color almostWhite
-                , Font.size (responsiveVal dProfile 14 8)
-                , Element.height Element.fill
-                , Element.width Element.fill
-                ]
-        ]
+viewActions : CoreData -> String -> Maybe ShowInputState -> Element Msg
+viewActions post input =
+    unwrap
+        ([ supportTipButton post.id
+         , supportBurnButton post.id
+         ]
+            |> row [ spacing 10 ]
+        )
+        (\showInput ->
+            let
+                title =
+                    case showInput of
+                        Tip _ ->
+                            "Tip Ether for this post, rewarding the author."
 
+                        Burn _ ->
+                            "Burn Ether to increase the visibility of this post."
 
-viewInput : DisplayProfile -> CoreData -> String -> ShowInputState -> Element Msg
-viewInput dProfile post input showInput =
-    let
-        title =
-            case showInput of
-                Tip _ ->
-                    "Tip Ether for this post, rewarding the author."
+                msg =
+                    case showInput of
+                        Tip _ ->
+                            SubmitTip post.id
 
-                Burn _ ->
-                    "Burn Ether to increase the visibility of this post."
-
-        msg =
-            case showInput of
-                Tip _ ->
-                    SubmitTip post.id
-
-                Burn _ ->
-                    --"Burn DAI to increase this post's visibility"
-                    SubmitBurn post.id
-    in
-    [ text title
-    , [ View.Img.dollar 30 white
-      , Input.text [ Font.color black ]
-            { onChange = ComposeDollarChange
-            , label = Input.labelHidden ""
-            , placeholder =
-                "00.00"
-                    |> text
-                    |> Input.placeholder []
-                    |> Just
-            , text = input
-            }
-      ]
-        |> row [ spacing 5, width fill ]
-    , [ Input.button
-            [ Font.underline
-            , hover
+                        Burn _ ->
+                            --"Burn DAI to increase this post's visibility"
+                            SubmitBurn post.id
+            in
+            [ text title
+            , [ View.Img.dollar 30 white
+              , Input.text [ Font.color black ]
+                    { onChange = ComposeDollarChange
+                    , label = Input.labelHidden ""
+                    , placeholder =
+                        "00.00"
+                            |> text
+                            |> Input.placeholder []
+                            |> Just
+                    , text = input
+                    }
+              ]
+                |> row [ spacing 5, width fill ]
+            , [ Input.button
+                    [ Font.underline
+                    , hover
+                    ]
+                    { onPress = Just CancelTipOpen
+                    , label = text "Cancel"
+                    }
+              , Input.button
+                    [ Background.color Theme.orange
+                    , padding 10
+                    , roundBorder
+                    , hover
+                    , Font.color black
+                    ]
+                    { onPress = Just msg
+                    , label = text "Submit"
+                    }
+              ]
+                |> row [ Element.alignRight, spacing 20 ]
             ]
-            { onPress = Just CancelTipOpen
-            , label = text "Cancel"
-            }
-      , Input.button
-            [ Background.color Theme.orange
-            , padding 10
-            , roundBorder
-            , hover
-            , Font.color black
-            ]
-            { onPress = Just msg
-            , label = text "Submit"
-            }
-      ]
-        |> row [ Element.alignRight, spacing 20 ]
-    ]
-        |> column
-            [ Background.color black
-            , spacing 20
-            , padding 20
-            , width fill
-            , Font.color white
-            , View.Attrs.sansSerifFont
-            ]
+                |> column
+                    [ Background.color black
+                    , spacing 20
+                    , padding 10
+                    , width fill
+                    , Font.color white
+                    , View.Attrs.sansSerifFont
+                    ]
+        )
 
 
 supportTipButton :
@@ -426,161 +350,3 @@ supportBurnButton postId =
             View.Img.dollar 30 white
                 |> el [ centerX, centerY ]
         }
-
-
-replyButton : PostId -> Element Msg
-replyButton postId =
-    View.Img.replyArrow 14 white
-        |> publishedPostActionButton
-            [ EH.withTitle "Reply"
-            , Background.color Theme.blue
-            ]
-            (Types.StartInlineCompose <| Reply postId)
-
-
-publishedPostActionButton :
-    List (Attribute Msg)
-    -> Msg
-    -> Element Msg
-    -> Element Msg
-publishedPostActionButton attributes onClick innerEl =
-    Element.el
-        (attributes
-            ++ [ Element.padding 3
-               , Element.pointer
-               , Element.Border.rounded 1
-               , Element.Border.shadow
-                    { offset = ( 0, 0 )
-                    , size = 0
-                    , blur = 5
-                    , color = Element.rgba 0 0 0 0.1
-                    }
-               , Element.Events.onClick onClick
-               , Element.width <| Element.px 20
-               , Element.height <| Element.px 20
-               ]
-        )
-        innerEl
-
-
-unlockOrInputForm :
-    DisplayProfile
-    -> Bool
-    -> Element.Color
-    -> String
-    -> String
-    -> (TokenValue -> Msg)
-    -> Element Msg
-unlockOrInputForm dProfile donateChecked bgColor currentString buttonLabel onSubmit =
-    Element.row
-        [ Element.padding 10
-        , Element.Border.rounded 6
-        , Background.color bgColor
-        , Element.spacing 10
-        , Element.Border.glow
-            (Element.rgba 0 0 0 0.1)
-            5
-        , Element.width <| Element.fillPortion 1
-        ]
-        [ EH.closeButton
-            [ Element.alignTop
-            , Element.moveUp 5
-            , Element.moveRight 5
-            ]
-            EH.black
-            --ResetActionForm
-            ClickHappened
-        ]
-
-
-inputForm :
-    DisplayProfile
-    -> Bool
-    -> String
-    -> String
-    -> (TokenValue -> Msg)
-    -> Element Msg
-inputForm dProfile donateChecked currentString buttonLabel onSubmit =
-    Element.column
-        [ Element.spacing 10 ]
-        [ Element.row
-            [ Element.spacing 10
-            , Element.centerX
-            ]
-            [ --daiSymbol False
-              --[ Element.height <| Element.px 22 ]
-              daiAmountInput
-                dProfile
-                currentString
-                --AmountInputChanged
-                (always ClickHappened)
-            , maybeSubmitButton
-                dProfile
-                buttonLabel
-                (TokenValue.fromString currentString)
-                onSubmit
-            ]
-        , Element.row
-            [ Element.centerX
-            , Font.size 12
-            ]
-            [ Input.checkbox
-                []
-                { onChange = Types.DonationCheckboxSet
-                , icon = Input.defaultCheckbox
-                , checked = donateChecked
-                , label =
-                    Input.labelRight
-                        [ Element.centerY
-                        ]
-                    <|
-                        Element.text "Donate an extra 1% to "
-                }
-            , Element.newTabLink
-                [ Font.color theme.linkTextColor
-                , Element.centerY
-                ]
-                { url = "https://foundrydao.com/"
-                , label = Element.text "Foundry"
-                }
-            ]
-        ]
-
-
-maybeSubmitButton :
-    DisplayProfile
-    -> String
-    -> Maybe TokenValue
-    -> (TokenValue -> Msg)
-    -> Element Msg
-maybeSubmitButton dProfile label maybeAmount onSubmit =
-    case maybeAmount of
-        Just amount ->
-            theme.emphasizedActionButton
-                EH.Mobile
-                []
-                [ label ]
-                (EH.Action <| onSubmit amount)
-
-        Nothing ->
-            Theme.disabledButton
-                EH.Mobile
-                []
-                label
-
-
-previewMaxTextLength : Int
-previewMaxTextLength =
-    150
-
-
-limitedString : String -> String
-limitedString text =
-    if String.length text > previewMaxTextLength then
-        text
-            ++ "..."
-            |> String.replace "\n" " "
-            |> String.slice 0 previewMaxTextLength
-
-    else
-        text

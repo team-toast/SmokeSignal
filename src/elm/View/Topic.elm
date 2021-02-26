@@ -1,7 +1,7 @@
 module View.Topic exposing (view)
 
 import Dict
-import Element exposing (Element, centerX, column, el, fill, height, padding, row, spaceEvenly, spacing, text, width)
+import Element exposing (Element, centerX, column, el, fill, height, padding, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
@@ -10,8 +10,8 @@ import Set
 import Theme exposing (orange)
 import Types exposing (..)
 import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
-import View.Img
 import View.Post
+import Wallet
 
 
 view : Model -> String -> Element Msg
@@ -64,9 +64,9 @@ view model topic =
                                         Nothing
                                 )
                         )
-                        model.ethPrice
                         model.compose.dollar
-                        topic
+                        (Just topic)
+                        (Wallet.isActive model.wallet)
                         post.core
                 )
             |> column
@@ -84,17 +84,12 @@ view model topic =
 
 topicHeader : String -> Element Msg
 topicHeader topic =
-    [ [ topic
-            |> text
-            |> el [ Font.size 35 ]
-      , View.Img.bookmark 30 orange
-      ]
-        |> row
+    [ topic
+        |> text
+        |> el [ Font.size 35 ]
+        |> el
             [ width fill
-            , spaceEvenly
-            , Background.color black
             , Font.color white
-            , padding 15
             ]
     , Input.button
         [ View.Attrs.sansSerifFont
@@ -104,14 +99,17 @@ topicHeader topic =
         , Font.bold
         , Font.color white
         , Font.size 20
-        , width fill
         , hover
         ]
         { onPress = Just Types.ComposeOpen
-        , label = text "Comment..."
+        , label =
+            [ text "+" |> el [ Font.size 30 ], text "New Post" ]
+                |> row [ spacing 5 ]
         }
     ]
-        |> column
+        |> row
             [ width fill
             , whiteGlowAttributeSmall
+            , padding 15
+            , Background.color black
             ]

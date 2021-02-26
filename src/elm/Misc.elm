@@ -1,19 +1,26 @@
-module Misc exposing (contextReplyTo, contextTopLevel, defaultSeoDescription, dollarStringToToken, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatPosix, getTitle, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, totalBurned, tryRouteToView, txInfoToNameStr, validateTopic, withBalance)
+module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatDollar, formatPosix, getConfig, getPostOrReply, getPrice, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
 
 import Browser.Navigation
 import Dict exposing (Dict)
+import Eth.Decode
+import Eth.Encode
+import Eth.RPC
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
-import Eth.Types exposing (Hex)
+import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
 import Eth.Utils
+import FormatFloat
 import Helpers.Element
+import Helpers.Eth
 import Helpers.Time
 import Http
+import Json.Decode as Decode
 import Json.Encode as E
 import Maybe.Extra exposing (unwrap)
 import Ports
 import Post
 import String.Extra
+import Task exposing (Task)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
@@ -28,12 +35,23 @@ emptyModel key =
     , now = Time.millisToPosix 0
     , dProfile = Helpers.Element.Desktop
     , ethPrice = 1.0
+    , xDaiPrice = 1.0
     , txSentry =
         TxSentry.init
             ( Ports.txOut, Ports.txIn )
-            TxSentryMsg
+            (TxSentryMsg XDai)
             ""
-    , eventSentry = Eth.Sentry.Event.init (always Types.ClickHappened) "" |> Tuple.first
+    , txSentryX =
+        TxSentry.init
+            ( Ports.txOut, Ports.txIn )
+            (TxSentryMsg XDai)
+            ""
+    , sentries =
+        { xDai =
+            Eth.Sentry.Event.init (always Types.ClickHappened) "" |> Tuple.first
+        , ethereum =
+            Eth.Sentry.Event.init (always Types.ClickHappened) "" |> Tuple.first
+        }
     , blockTimes = Dict.empty
     , showAddressId = Nothing
     , userNotices = []
@@ -44,11 +62,7 @@ emptyModel key =
     , cookieConsentGranted = False
     , maybeSeoDescription = Nothing
     , topicInput = ""
-    , config =
-        Types.Config
-            (Eth.Utils.unsafeToAddress "")
-            ""
-            0
+    , config = emptyConfig
     , compose =
         { title = ""
         , dollar = ""
@@ -63,7 +77,31 @@ emptyModel key =
     , replyIds = Dict.empty
     , accounting = Dict.empty
     , topics = Dict.empty
+    , hasNavigated = False
+    , alphaUrl = ""
     }
+
+
+emptyConfig : Config
+emptyConfig =
+    { xDai =
+        { chain = Types.Eth
+        , contract = emptyAddress
+        , startScanBlock = 0
+        , providerUrl = ""
+        }
+    , ethereum =
+        { chain = Types.Eth
+        , contract = emptyAddress
+        , startScanBlock = 0
+        , providerUrl = ""
+        }
+    }
+
+
+emptyAddress : Address
+emptyAddress =
+    Eth.Utils.unsafeToAddress ""
 
 
 initDemoPhaceSrc : String
@@ -94,16 +132,6 @@ getTitle model =
 
         ViewTopic topic ->
             "#" ++ topic ++ " | SmokeSignal"
-
-
-withBalance :
-    TokenValue
-    -> UserInfo
-    -> UserInfo
-withBalance balance userInfo =
-    { userInfo
-        | balance = Just balance
-    }
 
 
 
@@ -143,41 +171,6 @@ txInfoToNameStr txInfo =
 
         BurnTx _ _ ->
             "Burn"
-
-
-totalBurned : Post -> TokenValue
-totalBurned post =
-    case post of
-        PublishedPost publishedPost ->
-            case publishedPost.maybeAccounting of
-                Just accounting ->
-                    accounting.totalBurned
-
-                Nothing ->
-                    publishedPost.core.authorBurn
-
-        PostDraft postDraft ->
-            postDraft.core.authorBurn
-
-
-contextTopLevel : Context -> Maybe String
-contextTopLevel context =
-    case context of
-        TopLevel topic ->
-            Just topic
-
-        _ ->
-            Nothing
-
-
-contextReplyTo : Context -> Maybe PostId
-contextReplyTo context =
-    case context of
-        Reply id ->
-            Just id
-
-        _ ->
-            Nothing
 
 
 encodeDraft : Draft -> EncodedDraft
@@ -248,10 +241,10 @@ formatPosix t =
             |> String.right 2
       ]
         |> String.join "-"
-    , [ Time.toMinute Time.utc t
+    , [ Time.toHour Time.utc t
             |> String.fromInt
             |> String.padLeft 2 '0'
-      , Time.toHour Time.utc t
+      , Time.toMinute Time.utc t
             |> String.fromInt
             |> String.padLeft 2 '0'
       ]
@@ -313,15 +306,14 @@ postIdToKey id =
 tokenToDollar : Float -> TokenValue -> String
 tokenToDollar eth tv =
     TokenValue.mulFloatWithWarning tv eth
-        |> TokenValue.toFloatString (Just 2)
-        |> (\str ->
-                -- Should be handled in TokenValue.elm?
-                if String.length str == 1 then
-                    str ++ ".00"
+        |> TokenValue.toFloatWithWarning
+        |> FormatFloat.formatFloat 2
 
-                else
-                    str
-           )
+
+formatDollar : TokenValue -> String
+formatDollar =
+    TokenValue.toFloatWithWarning
+        >> FormatFloat.formatFloat 2
 
 
 dollarStringToToken : Float -> String -> Maybe TokenValue
@@ -355,3 +347,74 @@ validateTopic =
                 else
                     Just str
            )
+
+
+getProviderUrl : Chain -> Config -> String
+getProviderUrl chain =
+    case chain of
+        Eth ->
+            .ethereum >> .providerUrl
+
+        XDai ->
+            .xDai >> .providerUrl
+
+
+getConfig : Chain -> Config -> ChainConfig
+getConfig chain =
+    case chain of
+        Eth ->
+            .ethereum
+
+        XDai ->
+            .xDai
+
+
+txUrl : Chain -> TxHash -> String
+txUrl chain hash =
+    case chain of
+        Eth ->
+            Helpers.Eth.etherscanTxUrl hash
+
+        XDai ->
+            "https://blockscout.com/poa/xdai/tx/"
+                ++ Eth.Utils.txHashToString hash
+
+
+getPrice : Chain -> Model -> Float
+getPrice chain =
+    case chain of
+        Eth ->
+            .ethPrice
+
+        XDai ->
+            .xDaiPrice
+
+
+getPostOrReply : PostId -> Model -> Maybe CoreData
+getPostOrReply id model =
+    let
+        key =
+            postIdToKey id
+    in
+    model.rootPosts
+        |> Dict.get key
+        |> Maybe.Extra.unwrap
+            (model.replyPosts
+                |> Dict.get key
+                |> Maybe.map .core
+            )
+            (.core >> Just)
+
+
+{-| Version of Eth.getTxReceipt that handles the normal outcome of a null response
+if the Tx has not been mined yet.
+<https://github.com/cmditch/elm-ethereum/blob/5.0.0/src/Eth.elm#L225>
+-}
+getTxReceipt : String -> TxHash -> Task Http.Error (Maybe TxReceipt)
+getTxReceipt url txHash =
+    Eth.RPC.toTask
+        { url = url
+        , method = "eth_getTransactionReceipt"
+        , params = [ Eth.Encode.txHash txHash ]
+        , decoder = Decode.nullable Eth.Decode.txReceipt
+        }

@@ -15,8 +15,8 @@ import TokenValue exposing (TokenValue)
 import Types exposing (..)
 
 
-decodePost : Eth.Types.Log -> Eth.Types.Event (Result Decode.Error LogPost)
-decodePost log =
+decodePost : Chain -> Eth.Types.Log -> Eth.Types.Event (Result Decode.Error LogPost)
+decodePost chain log =
     Eth.Decode.event
         (G.messageBurnDecoder
             |> Decode.andThen
@@ -41,6 +41,7 @@ decodePost log =
                                         , authorBurn = core.authorBurn
                                         , content = core.content
                                         , metadataVersion = core.metadata.metadataVersion
+                                        , chain = chain
                                         }
                                 in
                                 case core.metadata.context of
@@ -75,44 +76,48 @@ messageBurnEventFilter smokeSignalContractAddress from to maybeHash maybeAuthor 
            )
 
 
-burnEncodedPost : Address -> EncodedDraft -> Call Hex
-burnEncodedPost smokeSignalContractAddress encodedPost =
+burnEncodedPost : UserInfo -> Address -> EncodedDraft -> Call Hex
+burnEncodedPost wallet smokeSignalContractAddress encodedPost =
     G.burnMessage
         smokeSignalContractAddress
         encodedPost.encodedContentAndMetadata
         (TokenValue.getEvmValue encodedPost.donateAmount)
         |> EthHelpers.updateCallValue (TokenValue.getEvmValue encodedPost.burnAmount)
+        |> (\call ->
+                { call | from = Just wallet.address }
+           )
 
 
-getAccountingCmd : Config -> Hex -> Task Http.Error Accounting
+getAccountingCmd : ChainConfig -> Hex -> Task Http.Error Accounting
 getAccountingCmd config msgHash =
     Eth.call
-        config.httpProviderUrl
+        config.providerUrl
         (G.storedMessageData
-            config.smokeSignalContractAddress
+            config.contract
             msgHash
         )
         |> Task.map
             (\storedMessageData ->
                 { firstAuthor = storedMessageData.firstAuthor
-                , totalBurned = TokenValue.tokenValue storedMessageData.nativeBurned
-                , totalTipped = TokenValue.tokenValue storedMessageData.nativeTipped
+                , totalBurned = TokenValue.tokenValue storedMessageData.dollarsBurned
+                , totalTipped = TokenValue.tokenValue storedMessageData.dollarsTipped
                 }
             )
 
 
-getEthPriceCmd : Config -> (Result Http.Error Float -> msg) -> Cmd msg
-getEthPriceCmd config msgConstructor =
+getEthPriceCmd : ChainConfig -> Task Http.Error Float
+getEthPriceCmd config =
     Eth.call
-        config.httpProviderUrl
-        (G.ethPrice config.smokeSignalContractAddress)
-        |> Task.map TokenValue.tokenValue
-        |> Task.map TokenValue.toFloatWithWarning
-        |> Task.attempt msgConstructor
+        config.providerUrl
+        (G.ethPrice config.contract)
+        |> Task.map
+            (TokenValue.tokenValue
+                >> TokenValue.toFloatWithWarning
+            )
 
 
-tipForPost : Address -> Hex -> TokenValue -> Bool -> Call ()
-tipForPost smokeSignalContractAddress messageHash amount donate =
+tipForPost : UserInfo -> Address -> Hex -> TokenValue -> Bool -> Call ()
+tipForPost wallet smokeSignalContractAddress messageHash amount donate =
     G.tipHashOrBurnIfNoAuthor
         smokeSignalContractAddress
         messageHash
@@ -126,10 +131,13 @@ tipForPost smokeSignalContractAddress messageHash amount donate =
             TokenValue.zero |> TokenValue.getEvmValue
         )
         |> EthHelpers.updateCallValue (TokenValue.getEvmValue amount)
+        |> (\call ->
+                { call | from = Just wallet.address }
+           )
 
 
-burnForPost : Address -> Hex -> TokenValue -> Bool -> Call ()
-burnForPost smokeSignalContractAddress messageHash amount donate =
+burnForPost : UserInfo -> Address -> Hex -> TokenValue -> Bool -> Call ()
+burnForPost wallet smokeSignalContractAddress messageHash amount donate =
     G.burnHash
         smokeSignalContractAddress
         messageHash
@@ -143,6 +151,9 @@ burnForPost smokeSignalContractAddress messageHash amount donate =
             TokenValue.zero |> TokenValue.getEvmValue
         )
         |> EthHelpers.updateCallValue (TokenValue.getEvmValue amount)
+        |> (\call ->
+                { call | from = Just wallet.address }
+           )
 
 
 coreDecoder : G.MessageBurn -> Decoder Core

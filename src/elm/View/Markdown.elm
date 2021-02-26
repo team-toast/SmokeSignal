@@ -1,9 +1,9 @@
 module View.Markdown exposing (renderString)
 
-import Element exposing (Attribute, Element, column, fill, height, row, spacing, width)
+import Element exposing (Element, column, fill, height, row, spacing, width)
 import Element.Background
 import Element.Border
-import Element.Font
+import Element.Font as Font
 import Element.Input
 import Helpers.Element as EH
 import Html
@@ -50,8 +50,8 @@ renderer =
         <|
             EH.thinHRuler (Element.rgba 0 0 0 0.5)
     , text = Element.text
-    , strong = \content -> row [ Element.Font.bold ] content
-    , emphasis = \content -> row [ Element.Font.italic ] content
+    , strong = \content -> row [ Font.bold ] content
+    , emphasis = \content -> row [ Font.italic ] content
     , codeSpan = code
     , link =
         \{ destination } body ->
@@ -62,7 +62,7 @@ renderer =
                 { url = destination
                 , label =
                     Element.paragraph
-                        [ Element.Font.color (Element.rgb255 0 0 255)
+                        [ Font.color (Element.rgb255 0 0 255)
                         ]
                         body
                 }
@@ -142,13 +142,14 @@ renderer =
         \_ children ->
             Element.paragraph [] children
     , tableCell = \_ -> Element.paragraph []
+    , strikethrough = Element.paragraph [ Font.strike ]
     }
 
 
 heading : { level : Markdown.Block.HeadingLevel, rawText : String, children : List (Element msg) } -> Element msg
 heading { level, rawText } =
     Element.paragraph
-        [ Element.Font.size
+        [ Font.size
             (case level of
                 Markdown.Block.H1 ->
                     42
@@ -165,7 +166,7 @@ heading { level, rawText } =
                 _ ->
                     20
             )
-        , Element.Font.bold
+        , Font.bold
         ]
         [ Element.text rawText ]
 
@@ -178,8 +179,8 @@ code snippet =
         , Element.scrollbarX
         , Element.Border.rounded 2
         , Element.paddingXY 5 3
-        , Element.Font.family
-            [ Element.Font.external
+        , Font.family
+            [ Font.external
                 { url = "https://fonts.googleapis.com/css?family=Source+Code+Pro"
                 , name = "Source Code Pro"
                 }
@@ -194,8 +195,8 @@ codeBlock details =
         [ Element.Background.color (Element.rgba 0 0 0 0.03)
         , Element.htmlAttribute (Html.Attributes.style "white-space" "pre")
         , Element.padding 20
-        , Element.Font.family
-            [ Element.Font.external
+        , Font.family
+            [ Font.external
                 { url = "https://fonts.googleapis.com/css?family=Source+Code+Pro"
                 , name = "Source Code Pro"
                 }

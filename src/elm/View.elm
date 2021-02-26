@@ -2,26 +2,23 @@ module View exposing (view)
 
 import Browser
 import Dict
-import Element exposing (Attribute, Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spacing, text, width)
+import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal, white)
-import Helpers.Eth as EthHelpers
-import Helpers.Time as TimeHelpers
+import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal)
 import Helpers.Tuple as TupleHelpers
 import Html exposing (Html)
 import Maybe.Extra
 import Misc exposing (getTitle)
 import Theme exposing (theme)
-import Time
 import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import View.Attrs exposing (cappedWidth, hover, whiteGlowAttribute, whiteGlowAttributeSmall)
-import View.Common exposing (appStatusMessage, viewContext, whenAttr)
+import View.Common exposing (appStatusMessage, whenAttr)
 import View.Compose
 import View.Home
 import View.Modal
@@ -50,6 +47,15 @@ render model =
             , height fill
             , width fill
             , View.Attrs.typeFont
+            , View.Sidebar.viewWallet model
+                |> el
+                    [ width fill
+                    , Element.alignBottom
+                    , Background.color black
+                    , padding 20
+                    ]
+                |> Element.inFront
+                |> whenAttr (model.dProfile == Mobile)
             ]
         |> Element.layoutWith
             { options =
@@ -177,18 +183,7 @@ viewBody model =
             View.Compose.view model
 
         ViewPost postId ->
-            let
-                key =
-                    Misc.postIdToKey postId
-            in
-            model.rootPosts
-                |> Dict.get key
-                |> Maybe.Extra.unwrap
-                    (model.replyPosts
-                        |> Dict.get key
-                        |> Maybe.map .core
-                    )
-                    (.core >> Just)
+            Misc.getPostOrReply postId model
                 |> Maybe.Extra.unwrap
                     (appStatusMessage
                         theme.appStatusTextColor
@@ -208,7 +203,7 @@ viewFrame model elem =
         elem
 
     else
-        [ banner model.dProfile
+        [ banner
         , [ elem
           , View.Sidebar.view model
           ]
@@ -225,15 +220,14 @@ viewFrame model elem =
                  ]
                     ++ (List.map Element.inFront <|
                             viewModals
-                                model.dProfile
                                 --model.showNewToSmokeSignalModal
                                 False
                        )
                 )
 
 
-banner : DisplayProfile -> Element Msg
-banner dProfile =
+banner : Element Msg
+banner =
     Element.image
         [ height <| px 175
         , Background.color EH.black
@@ -245,8 +239,8 @@ banner dProfile =
         }
 
 
-viewModals : DisplayProfile -> Bool -> List (Element Msg)
-viewModals dProfile showNewToSmokeSignalModal =
+viewModals : Bool -> List (Element Msg)
+viewModals showNewToSmokeSignalModal =
     Maybe.Extra.values
         [ if showNewToSmokeSignalModal == True then
             --Just <|
@@ -450,13 +444,13 @@ viewTrackedTxRow trackedTx =
                 [ Font.italic
                 , Font.color linkTextColor
                 ]
-                { url = EthHelpers.etherscanTxUrl trackedTx.txHash
+                { url = Misc.txUrl trackedTx.chain trackedTx.txHash
                 , label = Element.text label
                 }
 
         titleEl =
             case ( trackedTx.txInfo, trackedTx.status ) of
-                ( TipTx postId amount, _ ) ->
+                ( TipTx postId _, _ ) ->
                     Element.row
                         []
                         [ Element.text "Tip "
@@ -470,7 +464,7 @@ viewTrackedTxRow trackedTx =
                             (Element.text "Post")
                         ]
 
-                ( BurnTx postId amount, _ ) ->
+                ( BurnTx postId _, _ ) ->
                     Element.row
                         []
                         [ Element.text "Burn for "
@@ -512,7 +506,7 @@ viewTrackedTxRow trackedTx =
 
                 Mined maybePostId ->
                     case trackedTx.txInfo of
-                        PostTx draft ->
+                        PostTx _ ->
                             case maybePostId of
                                 Just postId ->
                                     Element.el
@@ -672,104 +666,6 @@ userNotice dProfile ( id, notice ) =
                 , Element.width Element.fill
                 ]
         )
-
-
-emphasizedText : String -> Element Msg
-emphasizedText =
-    Element.el
-        [ Font.bold
-        , Font.color EH.white
-        ]
-        << Element.text
-
-
-posixToString : Time.Posix -> String
-posixToString t =
-    let
-        z =
-            Time.utc
-    in
-    String.fromInt (Time.toYear z t)
-        ++ "-"
-        ++ String.padLeft 2 '0' (String.fromInt <| TimeHelpers.monthToInt <| Time.toMonth z t)
-        ++ "-"
-        ++ String.padLeft 2 '0' (String.fromInt (Time.toDay z t))
-        ++ " "
-        ++ String.padLeft 2 '0' (String.fromInt (Time.toHour z t))
-        ++ ":"
-        ++ String.padLeft 2 '0' (String.fromInt (Time.toMinute z t))
-        ++ " (UTC)"
-
-
-subheaderAttributes : DisplayProfile -> List (Attribute Msg)
-subheaderAttributes dProfile =
-    [ Element.paddingXY 0 (responsiveVal dProfile 20 10)
-    , Font.size (responsiveVal dProfile 50 30)
-    , Font.color theme.headerTextColor
-    ]
-
-
-commonFontSize : DisplayProfile -> Int
-commonFontSize dProfile =
-    case dProfile of
-        Desktop ->
-            24
-
-        Mobile ->
-            18
-
-
-viewMetadata : Bool -> Metadata -> Element Msg
-viewMetadata showContext metadata =
-    Element.column
-        [ Element.width Element.fill
-        , Element.spacing 10
-        ]
-        [ case metadata.maybeDecodeError of
-            Just jsonDecodeErr ->
-                viewMetadataDecodeError jsonDecodeErr
-
-            Nothing ->
-                Element.none
-        , if showContext then
-            Element.el [ Element.alignLeft ] <|
-                viewContext metadata.context
-
-          else
-            Element.none
-        ]
-
-
-viewMetadataDecodeError : String -> Element Msg
-viewMetadataDecodeError error =
-    Element.el
-        [ Border.rounded 5
-        , Border.width 1
-        , Border.color <| Element.rgba 0 0 0 0.3
-        , Element.clip
-        ]
-    <|
-        Element.el
-            [ Font.color theme.errorTextColor
-            , Font.italic
-            , Font.size 18
-            , Element.height (Element.shrink |> Element.maximum 80)
-            , Element.width (Element.shrink |> Element.maximum 400)
-            , Element.scrollbars
-            , Background.color <| Element.rgba 1 0 0 0.1
-            ]
-            (Element.text <|
-                "Metadata decode error:\n\n"
-                    ++ error
-            )
-
-
-coloredAppTitle : List (Attribute Msg) -> Element Msg
-coloredAppTitle attributes =
-    Element.row attributes
-        [ Element.el [ Font.color Theme.darkGray ] <| Element.text "Smoke"
-        , Element.el [ Font.color <| Element.rgb 1 0.5 0 ] <| Element.text "Signal"
-        ]
 
 
 maxContentColWidth : Int

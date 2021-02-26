@@ -1,6 +1,6 @@
-module Routing exposing (addressParser, encodePostIdQueryParameters, encodeTopic, hexQueryParser, postIdQueryParser, routeParser, topicParser, urlToRoute, viewToUrlString)
+module Routing exposing (blockParser, encodePostIdQueryParameters, encodeTopic, hexQueryParser, postIdQueryParser, routeParser, topicParser, urlToRoute, viewToUrlString)
 
-import Eth.Types exposing (Address, Hex)
+import Eth.Types exposing (Hex)
 import Eth.Utils
 import Maybe.Extra
 import Types exposing (..)
@@ -8,6 +8,21 @@ import Url exposing (Url)
 import Url.Builder as Builder
 import Url.Parser as Parser exposing ((</>), (<?>), Parser)
 import Url.Parser.Query as Query
+
+
+blockParser : Url -> Maybe Int
+blockParser =
+    Parser.parse
+        (pathSucceed
+            <?> Query.int "block"
+            |> Parser.map (\_ block -> block)
+        )
+        >> Maybe.andThen identity
+
+
+pathSucceed : Parser (() -> a) a
+pathSucceed =
+    Parser.custom "" (always <| Just ())
 
 
 routeParser : Parser (Route -> a) a
@@ -118,13 +133,6 @@ hexQueryParser : String -> Query.Parser (Maybe Hex)
 hexQueryParser label =
     Query.string label
         |> Query.map (Maybe.andThen (Eth.Utils.toHex >> Result.toMaybe))
-
-
-addressParser : Parser (Address -> a) a
-addressParser =
-    Parser.custom
-        "ADDRESS"
-        (Eth.Utils.toAddress >> Result.toMaybe)
 
 
 urlToRoute : Url -> Route

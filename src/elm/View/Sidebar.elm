@@ -1,4 +1,4 @@
-module View.Sidebar exposing (view)
+module View.Sidebar exposing (view, viewWallet)
 
 import Element exposing (Element, centerX, centerY, column, el, fill, height, paddingXY, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
@@ -19,24 +19,21 @@ import Wallet
 
 view : Model -> Element Msg
 view model =
-    [ walletUXPane model.dProfile model.showAddressId model.demoPhaceSrc model.wallet
+    [ viewWallet model
     , [ Input.button [ height <| px 30, width fill, hover ]
             { onPress = Just <| GotoView ViewTopics
             , label =
-                [ View.Img.bookmark 17 orange
+                text "Topics"
                     |> el [ centerX, centerY ]
-                    |> el [ height <| px 30, width <| px 30, Background.color black ]
-                , text "Topics"
-                    |> el [ centerX ]
-                ]
-                    |> row
+                    |> el
                         [ width fill
+                        , height <| px 30
                         , Background.color Theme.orange
                         ]
             }
       , model.topics
             |> Misc.sortTopics
-            |> viewTopics model.ethPrice
+            |> viewTopics
       ]
         |> column
             [ width fill
@@ -44,6 +41,18 @@ view model =
             , slightRound
             ]
         |> when (model.view /= ViewTopics)
+    , Element.newTabLink
+        [ Font.color white
+        , View.Attrs.sansSerifFont
+        , Font.bold
+        , centerX
+        , hover
+        ]
+        { url = model.alphaUrl
+        , label =
+            [ text "SmokeSignal Alpha", View.Img.link 20 white ]
+                |> row [ spacing 10 ]
+        }
     ]
         |> column
             [ cappedWidth 400
@@ -52,8 +61,8 @@ view model =
             ]
 
 
-viewTopics : Float -> List ( String, TokenValue ) -> Element Msg
-viewTopics ethPrice =
+viewTopics : List ( String, TokenValue ) -> Element Msg
+viewTopics =
     List.map
         (\( topic, totalBurned ) ->
             Input.button
@@ -76,7 +85,7 @@ viewTopics ethPrice =
                             }
                       , View.Img.dollar 25 softRed
                       , totalBurned
-                            |> Misc.tokenToDollar ethPrice
+                            |> Misc.formatDollar
                             |> text
                             |> el [ Font.size 25, Font.bold, Font.color softRed ]
                       ]
@@ -90,22 +99,17 @@ viewTopics ethPrice =
         >> column [ width fill ]
 
 
-walletUXPane :
-    DisplayProfile
-    -> Maybe PhaceIconId
-    -> String
-    -> Types.Wallet
-    -> Element Msg
-walletUXPane dProfile showAddressId demoPhaceSrc wallet =
+viewWallet : Model -> Element Msg
+viewWallet model =
     let
         phaceEl =
-            case Wallet.userInfo wallet of
+            case Wallet.userInfo model.wallet of
                 Nothing ->
                     phaceElement
                         ( 80, 80 )
                         True
-                        (Eth.Utils.unsafeToAddress demoPhaceSrc)
-                        (showAddressId == Just DemoPhace)
+                        (Eth.Utils.unsafeToAddress model.demoPhaceSrc)
+                        (model.showAddressId == Just DemoPhace)
                         (ShowOrHideAddress DemoPhace)
                         |> el
                             [ Border.rounded 10
@@ -119,7 +123,7 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
                         ( 100, 100 )
                         True
                         userInfo.address
-                        (showAddressId == Just UserPhace)
+                        (model.showAddressId == Just UserPhace)
                         (ShowOrHideAddress UserPhace)
                         |> el
                             [ Border.rounded 10
@@ -129,25 +133,29 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
                             ]
 
         ( buttonText, maybeButtonAction, maybeExplainerText ) =
-            case wallet of
+            case model.wallet of
                 Types.NoneDetected ->
                     ( "Install Metamask"
                     , Just <| EH.NewTabLink "https://metamask.io/"
                     , Just "Then come back to try on some phaces!"
                     )
 
-                Types.OnlyNetwork _ ->
+                Types.NetworkReady ->
                     ( "Connect Wallet"
                     , Just <| EH.Action ConnectToWeb3
                     , Just "Each address has a unique phace!"
                     )
 
+                Types.Connecting ->
+                    ( "Connecting"
+                    , Nothing
+                    , Nothing
+                    )
+
                 Types.Active userInfo ->
                     let
                         userHasNoEth =
-                            userInfo.balance
-                                |> Maybe.map TokenValue.isZero
-                                |> Maybe.withDefault False
+                            TokenValue.isZero userInfo.balance
                     in
                     if userHasNoEth then
                         ( "Compose Post"
@@ -162,32 +170,22 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
                         )
 
         button =
-            let
-                attributes =
-                    [ paddingXY 10 5
-                    , width fill
-                    ]
-                        ++ (case maybeExplainerText of
-                                Nothing ->
-                                    [ Element.centerY
-                                    ]
-
-                                _ ->
-                                    []
-                           )
-            in
             case maybeButtonAction of
                 Just buttonAction ->
                     Theme.unscaryButton
-                        dProfile
-                        attributes
+                        model.dProfile
+                        [ paddingXY 10 5
+                        , width fill
+                        ]
                         [ buttonText ]
                         buttonAction
 
                 Nothing ->
                     Theme.disabledButton
-                        dProfile
-                        attributes
+                        model.dProfile
+                        [ paddingXY 10 5
+                        , width fill
+                        ]
                         buttonText
 
         explainerParagraphOrNone =
@@ -203,16 +201,42 @@ walletUXPane dProfile showAddressId demoPhaceSrc wallet =
                 |> Maybe.withDefault Element.none
     in
     [ phaceEl
-    , column
-        [ width fill
-        , spaceEvenly
-        , height fill
+    , [ [ button
+        , model.wallet
+            |> Wallet.userInfo
+            |> View.Common.whenJust (.chain >> viewChain)
         ]
-        [ button
-        , explainerParagraphOrNone
-        ]
+            |> column [ spacing 10, width fill ]
+      , explainerParagraphOrNone
+      ]
+        |> column
+            [ width fill
+            , spaceEvenly
+            , height fill
+            ]
     ]
         |> row
             [ width fill
             , spacing 10
+            ]
+
+
+viewChain : Types.Chain -> Element msg
+viewChain chain =
+    let
+        col =
+            case chain of
+                Types.XDai ->
+                    softRed
+
+                Types.Eth ->
+                    orange
+    in
+    chain
+        |> View.Common.viewChain
+        |> el
+            [ Font.color white
+            , Element.padding 10
+            , View.Attrs.roundBorder
+            , Background.color col
             ]

@@ -1,14 +1,14 @@
 module View.PostPage exposing (view)
 
 import Dict
-import Element exposing (Element, column, el, fill, height, padding, px, row, spacing, text, width)
+import Element exposing (Element, column, el, fill, height, padding, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (DisplayProfile(..), black, white)
-import Helpers.Eth
 import Helpers.Time
 import Maybe.Extra exposing (unwrap)
+import Misc
 import Set
 import Theme
 import Types exposing (..)
@@ -17,6 +17,7 @@ import View.Common
 import View.Img
 import View.Markdown
 import View.Post
+import Wallet
 
 
 view : Model -> CoreData -> Element Msg
@@ -35,7 +36,7 @@ view model post =
                             |> text
                     )
           , Element.newTabLink [ hover ]
-                { url = Helpers.Eth.etherscanTxUrl post.txHash
+                { url = Misc.txUrl post.chain post.txHash
                 , label = text "View on Etherscan 🌐"
                 }
           ]
@@ -53,7 +54,7 @@ view model post =
                 , Font.color white
                 ]
       , Input.button [ Background.color Theme.orange, padding 20, roundBorder, hover ]
-            { onPress = Just <| GotoView ViewHome
+            { onPress = Just GoBack
             , label = text "Go back"
             }
       ]
@@ -124,9 +125,9 @@ view model post =
                                     Nothing
                             )
                     )
-                    model.ethPrice
                     model.compose.dollar
-                    ". . ."
+                    Nothing
+                    (Wallet.isActive model.wallet)
                     reply.core
             )
         |> column

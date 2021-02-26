@@ -4,23 +4,23 @@ import Browser.Events
 import Browser.Hashbang
 import Browser.Navigation
 import Contracts.SmokeSignal
-import Eth.Net
 import Eth.Sentry.Event
 import Eth.Sentry.Tx
-import Eth.Sentry.Wallet
 import Eth.Types
-import Eth.Utils
 import Helpers.Element
-import Maybe.Extra
+import Json.Decode
+import Maybe.Extra exposing (unwrap)
 import Misc exposing (tryRouteToView)
 import Ports
 import Routing
+import Task
 import Time
 import Types exposing (Flags, Model, Msg)
 import Update exposing (update)
 import Url exposing (Url)
 import UserNotice as UN
 import View exposing (view)
+import Wallet
 
 
 main : Program Flags Model Msg
@@ -38,28 +38,63 @@ main =
 init : Flags -> Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
-        route =
-            Routing.urlToRoute url
-
-        redirectCmd =
-            case route of
-                Types.RouteViewPost id ->
-                    if id.block < flags.startScanBlock then
-                        redirectDomain url
-
-                    else
-                        Nothing
-
-                _ ->
-                    Nothing
+        model =
+            Misc.emptyModel key
     in
-    redirectCmd
-        |> Maybe.Extra.unwrap
-            (startApp flags key route)
-            (\redirect ->
-                ( Misc.emptyModel key
-                , redirect
-                )
+    flags.chains
+        |> Json.Decode.decodeValue
+            (Wallet.chainDecoder flags)
+        |> Result.toMaybe
+        |> unwrap
+            ( { model
+                | userNotices =
+                    [ UN.unexpectedError "Config decode failure" ]
+              }
+            , Cmd.none
+            )
+            (\chainConfigs ->
+                let
+                    config =
+                        chainConfigs
+                            |> List.foldl
+                                (\data ->
+                                    case data.chain of
+                                        Types.XDai ->
+                                            \config_ ->
+                                                { config_
+                                                    | xDai = data
+                                                }
+
+                                        Types.Eth ->
+                                            \config_ ->
+                                                { config_
+                                                    | ethereum = data
+                                                }
+                                )
+                                model.config
+
+                    redirectCmd =
+                        Routing.blockParser url
+                            |> Maybe.andThen
+                                (\block ->
+                                    if block < config.ethereum.startScanBlock then
+                                        redirectDomain url
+
+                                    else
+                                        Nothing
+                                )
+
+                    modelWithConfig =
+                        { model | config = config }
+                in
+                redirectCmd
+                    |> unwrap
+                        (startApp flags url modelWithConfig)
+                        (\redirect ->
+                            ( modelWithConfig
+                            , redirect
+                            )
+                        )
             )
 
 
@@ -83,14 +118,18 @@ redirectDomain url =
             )
 
 
-startApp : Flags -> Browser.Navigation.Key -> Types.Route -> ( Model, Cmd Msg )
-startApp flags key route =
+startApp : Flags -> Url -> Model -> ( Model, Cmd Msg )
+startApp flags url model =
     let
-        config =
-            { smokeSignalContractAddress = Eth.Utils.unsafeToAddress flags.smokeSignalContractAddress
-            , httpProviderUrl = flags.httpProviderUrl
-            , startScanBlock = flags.startScanBlock
-            }
+        route =
+            Routing.urlToRoute url
+
+        alphaUrl =
+            if String.endsWith ".eth" url.host then
+                "http://alpha.smokesignal.eth"
+
+            else
+                "http://alpha.smokesignal.eth.link"
 
         ( view, routingUserNotices ) =
             case tryRouteToView route of
@@ -102,44 +141,33 @@ startApp flags key route =
                     , [ UN.routeNotFound <| Just err ]
                     )
 
-        ( wallet, walletNotices ) =
-            if flags.networkId == 0 then
-                ( Types.NoneDetected
-                , [ UN.noWeb3Provider ]
-                )
+        wallet =
+            if flags.hasWallet then
+                Types.NetworkReady
 
             else
-                ( Types.OnlyNetwork <| Eth.Net.toNetworkId flags.networkId
-                , []
-                )
+                Types.NoneDetected
 
         txSentry =
             Eth.Sentry.Tx.init
                 ( Ports.txOut, Ports.txIn )
-                Types.TxSentryMsg
-                config.httpProviderUrl
+                (Types.TxSentryMsg Types.Eth)
+                model.config.ethereum.providerUrl
 
-        ( initEventSentry, initEventSentryCmd ) =
-            Eth.Sentry.Event.init Types.EventSentryMsg config.httpProviderUrl
+        txSentryX =
+            Eth.Sentry.Tx.init
+                ( Ports.txOutX, Ports.txInX )
+                (Types.TxSentryMsg Types.XDai)
+                model.config.xDai.providerUrl
 
-        ( eventSentry, secondEventSentryCmd, _ ) =
-            Contracts.SmokeSignal.messageBurnEventFilter
-                config.smokeSignalContractAddress
-                (Eth.Types.BlockNum config.startScanBlock)
-                Eth.Types.LatestBlock
-                Nothing
-                Nothing
-                |> Eth.Sentry.Event.watch
-                    (Contracts.SmokeSignal.decodePost
-                        >> Types.PostLogReceived
-                    )
-                    initEventSentry
+        ( ethSentry, ethCmd1, ethCmd2 ) =
+            startSentry model.config.ethereum
+
+        ( xDaiSentry, xDaiCmd1, xDaiCmd2 ) =
+            startSentry model.config.xDai
 
         now =
             Time.millisToPosix flags.nowInMillis
-
-        model =
-            Misc.emptyModel key
     in
     ( { model
         | view = view
@@ -147,34 +175,69 @@ startApp flags key route =
         , now = now
         , dProfile = Helpers.Element.screenWidthToDisplayProfile flags.width
         , txSentry = txSentry
-        , eventSentry = eventSentry
-        , userNotices = walletNotices ++ routingUserNotices
+        , txSentryX = txSentryX
+        , sentries =
+            model.sentries
+                |> (\cs ->
+                        { cs
+                            | xDai = xDaiSentry
+                            , ethereum = ethSentry
+                        }
+                   )
+        , userNotices = routingUserNotices
         , cookieConsentGranted = flags.cookieConsent
         , newUserModal = flags.newUser
-        , config = config
+        , alphaUrl = alphaUrl
       }
     , Cmd.batch
-        [ initEventSentryCmd
-        , secondEventSentryCmd
+        [ ethCmd1
+        , ethCmd2
+        , xDaiCmd1
+        , xDaiCmd2
         , Contracts.SmokeSignal.getEthPriceCmd
-            config
-            Types.EthPriceFetched
+            model.config.ethereum
+            |> Task.attempt Types.EthPriceFetched
+        , Ports.setDescription Misc.defaultSeoDescription
         ]
     )
+
+
+startSentry : Types.ChainConfig -> ( Eth.Sentry.Event.EventSentry Msg, Cmd Msg, Cmd Msg )
+startSentry config =
+    let
+        scan =
+            Contracts.SmokeSignal.messageBurnEventFilter
+                config.contract
+                (Eth.Types.BlockNum config.startScanBlock)
+                Eth.Types.LatestBlock
+                Nothing
+                Nothing
+
+        ( initEventSentry, initEventSentryCmd ) =
+            Eth.Sentry.Event.init (Types.EventSentryMsg config.chain)
+                config.providerUrl
+
+        ( eventSentry, secondEventSentryCmd, _ ) =
+            Eth.Sentry.Event.watch
+                (Contracts.SmokeSignal.decodePost config.chain
+                    >> Types.PostLogReceived
+                )
+                initEventSentry
+                scan
+    in
+    ( eventSentry, initEventSentryCmd, secondEventSentryCmd )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Time.every 200 Types.Tick
+        [ Time.every 1000 Types.Tick
         , Time.every 2000 (always Types.ChangeDemoPhaceSrc)
         , Time.every 2500 (always Types.EveryFewSeconds)
         , Time.every 5000 (always Types.CheckTrackedTxsStatus)
-        , Ports.walletSentryPort
-            (Eth.Sentry.Wallet.decodeToMsg
-                (Types.WalletStatus << Err)
-                (Types.WalletStatus << Ok)
-            )
+        , Ports.walletResponse
+            (Wallet.decodeConnectResponse >> Types.WalletResponse)
         , Eth.Sentry.Tx.listen model.txSentry
+        , Eth.Sentry.Tx.listen model.txSentryX
         , Browser.Events.onResize Types.Resize
         ]

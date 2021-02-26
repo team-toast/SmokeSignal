@@ -5,6 +5,7 @@ import Element.Background
 import Element.Border
 import Element.Font
 import Helpers.Element as EH
+import View.Attrs
 
 
 type alias Theme msg =
@@ -305,6 +306,7 @@ disabledButton dProfile attributes text =
          , Element.Background.color lightGray
          , Element.Font.center
          , EH.noSelectText
+         , View.Attrs.style "cursor" "not-allowed"
          ]
             ++ attributes
         )
