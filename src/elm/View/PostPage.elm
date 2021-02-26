@@ -127,7 +127,7 @@ view model post =
                     )
                     model.compose.dollar
                     Nothing
-                    (Wallet.isActive model.wallet)
+                    (Wallet.userInfo model.wallet)
                     reply.core
             )
         |> column

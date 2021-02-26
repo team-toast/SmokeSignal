@@ -29,10 +29,10 @@ view :
     -> Maybe ShowInputState
     -> String
     -> Maybe String
-    -> Bool
+    -> Maybe UserInfo
     -> CoreData
     -> Element Msg
-view dProfile timestamp now replies accounting state input topic walletReady post =
+view dProfile timestamp now replies accounting state input topic wallet post =
     let
         isMobile =
             dProfile == EH.Mobile
@@ -44,6 +44,10 @@ view dProfile timestamp now replies accounting state input topic walletReady pos
 
         timing =
             viewTiming timestamp now
+
+        showActions =
+            wallet
+                |> unwrap False (.chain >> (==) post.chain)
     in
     [ [ accounting
             |> whenJust (viewAccounting dProfile)
@@ -90,7 +94,7 @@ view dProfile timestamp now replies accounting state input topic walletReady pos
                     , Element.alignTop
                     ]
           , viewActions post input state
-                |> when walletReady
+                |> when showActions
           ]
             |> row [ width fill, spaceEvenly ]
         ]

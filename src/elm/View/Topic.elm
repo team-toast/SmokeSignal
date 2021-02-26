@@ -66,7 +66,7 @@ view model topic =
                         )
                         model.compose.dollar
                         (Just topic)
-                        (Wallet.isActive model.wallet)
+                        (Wallet.userInfo model.wallet)
                         post.core
                 )
             |> column
