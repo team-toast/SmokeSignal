@@ -81,17 +81,25 @@ viewBox model userInfo =
                         |> el [ centerY ]
           ]
             |> column [ width fill, height fill ]
-        , [ text "🔥"
-                |> el [ Font.size 30 ]
-          , text "BURN"
-                |> el [ Font.size 15, centerX ]
-          ]
-            |> column
-                [ spacing 10
-                , Font.color orange
-                , Font.bold
-                ]
-        , [ [ View.Img.dollar 30 white
+
+        --, [ text "🔥"
+        --|> el [ Font.size 30 ]
+        --, text "BURN"
+        --|> el [ Font.size 15, centerX ]
+        --]
+        --|> column
+        --[ spacing 10
+        --, Font.color orange
+        --, Font.bold
+        --]
+        , [ View.Common.viewChain userInfo.chain
+                |> el
+                    [ Background.color white
+                    , View.Attrs.roundBorder
+                    , padding 5
+                    , Element.alignRight
+                    ]
+          , [ View.Img.dollar 30 white
             , Input.text
                 [ View.Attrs.whiteGlowAttributeSmall
                 , Background.color white
@@ -145,23 +153,24 @@ viewBox model userInfo =
                     ]
           ]
             |> column [ height fill, spacing 10 ]
-        , [ text "💎"
-                |> el [ Font.size 30 ]
-          , text "ETH"
-                |> el [ Font.size 15, centerX ]
-          ]
-            |> column
-                [ spacing 10
-                , Font.color orange
-                , Font.bold
-                ]
-        , phaceElement
-            ( 75, 75 )
-            False
-            userInfo.address
-            False
-            ClickHappened
-            |> el [ centerY ]
+
+        --, [ text "💎"
+        --|> el [ Font.size 30 ]
+        --, text "ETH"
+        --|> el [ Font.size 15, centerX ]
+        --]
+        --|> column
+        --[ spacing 10
+        --, Font.color orange
+        --, Font.bold
+        --]
+        --, phaceElement
+        --( 75, 75 )
+        --False
+        --userInfo.address
+        --False
+        --ClickHappened
+        --|> el [ centerY ]
         ]
             |> row [ width fill, spacing 20, sansSerifFont ]
       , [ Input.multiline
