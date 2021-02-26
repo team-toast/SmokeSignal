@@ -27,7 +27,7 @@ view model =
             Dict.values model.rootPosts
                 |> List.sortBy (feedSortByFunc model.blockTimes model.now)
                 |> List.reverse
-                |> List.map (viewPost model (Wallet.isActive model.wallet))
+                |> List.map (viewPost model (Wallet.userInfo model.wallet))
                 |> column
                     [ width fill
                     , height fill
@@ -65,7 +65,7 @@ viewDesktop model =
     , posts
         |> List.sortBy (feedSortByFunc model.blockTimes model.now)
         |> List.reverse
-        |> List.map (viewPost model (Wallet.isActive model.wallet))
+        |> List.map (viewPost model (Wallet.userInfo model.wallet))
         |> column
             [ width fill
             , height fill
@@ -80,8 +80,8 @@ viewDesktop model =
             ]
 
 
-viewPost : Model -> Bool -> RootPost -> Element Msg
-viewPost model walletReady post =
+viewPost : Model -> Maybe UserInfo -> RootPost -> Element Msg
+viewPost model wallet post =
     View.Post.view
         model.dProfile
         (model.blockTimes
@@ -107,7 +107,7 @@ viewPost model walletReady post =
         )
         model.compose.dollar
         (Just post.topic)
-        walletReady
+        wallet
         post.core
 
 
