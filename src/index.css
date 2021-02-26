@@ -2,6 +2,15 @@ body {
   background-color: #ffffff;
 }
 
+@keyframes rotation {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(359deg);
+  }
+}
+
 @font-face {
   font-family: "SmallType";
   src: url("./fonts/SmallTypeWriting.ttf") format("truetype");

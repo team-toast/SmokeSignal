@@ -7,7 +7,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile, black, white)
 import Helpers.Time as TimeHelpers
-import Maybe.Extra
+import Maybe.Extra exposing (unwrap)
 import Misc
 import Set exposing (Set)
 import Theme exposing (almostWhite, theme)
@@ -141,19 +141,22 @@ viewCard timestamp now post =
         , roundBorder
         , padding 10
         , View.Attrs.sansSerifFont
+        , width <| px 270
         ]
         { url = Misc.txUrl post.chain post.txHash
         , label =
             [ [ View.Common.viewChain post.chain
               , block
               ]
-                |> column [ spacing 10 ]
+                |> column [ spacing 10, width fill ]
             , View.Common.verticalRule white
             , timing
+                |> el [ width fill ]
             ]
                 |> row
                     [ spacing 10
                     , Font.size 17
+                    , width fill
                     ]
         }
 
@@ -228,7 +231,10 @@ viewAmount color amount =
 viewTiming : Maybe Time.Posix -> Time.Posix -> Element Msg
 viewTiming maybePostTime now =
     maybePostTime
-        |> whenJust
+        |> unwrap
+            (View.Img.spinner 20 white
+                |> el [ centerX, View.Attrs.rotate ]
+            )
             (\time ->
                 TimeHelpers.sub now time
                     |> TimeHelpers.roundToSingleUnit
@@ -240,7 +246,7 @@ viewTiming maybePostTime now =
 
 viewActions : CoreData -> String -> Maybe ShowInputState -> Element Msg
 viewActions post input =
-    Maybe.Extra.unwrap
+    unwrap
         ([ supportTipButton post.id
          , supportBurnButton post.id
          ]

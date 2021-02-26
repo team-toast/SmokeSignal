@@ -1,4 +1,4 @@
-module View.Attrs exposing (cappedHeight, cappedWidth, fade, hover, onEnter, onKeydown, roundBorder, sansSerifFont, slightRound, style, title, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
+module View.Attrs exposing (cappedHeight, cappedWidth, fade, hover, onEnter, onKeydown, rotate, roundBorder, sansSerifFont, slightRound, style, title, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
 
 {-| A module for managing elm-ui 'Attribute' values and related functions.
 -}
@@ -117,3 +117,8 @@ onKeydown decoders =
             )
         |> Html.Events.on "keydown"
         |> Element.htmlAttribute
+
+
+rotate : Attribute msg
+rotate =
+    style "animation" "rotation 0.7s infinite linear"
