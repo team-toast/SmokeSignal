@@ -2,14 +2,16 @@ module View.Compose exposing (view)
 
 import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, px, row, spacing, text, width)
 import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (DisplayProfile(..), black, responsiveVal, white)
 import Maybe.Extra exposing (unwrap)
+import Misc
 import Theme exposing (orange, theme)
 import Types exposing (..)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
-import View.Common exposing (phaceElement, whenAttr, wrapModal)
+import View.Common exposing (wrapModal)
 import View.Img
 import View.Markdown
 import Wallet
@@ -38,9 +40,15 @@ view model =
 viewBox : Model -> UserInfo -> Element Msg
 viewBox model userInfo =
     let
+        validTopic =
+            model.topicInput
+                |> Misc.validateTopic
+                |> (/=) Nothing
+
         submitEnabled =
             not (String.isEmpty model.compose.body)
                 && not (String.isEmpty model.compose.dollar)
+                && validTopic
     in
     [ "Comment"
         |> text
@@ -62,25 +70,55 @@ viewBox model userInfo =
                 { onChange = ComposeTitleChange
                 , label = Input.labelHidden ""
                 , placeholder =
-                    "Post Title"
+                    "Title"
                         |> text
                         |> Input.placeholder []
                         |> Just
                 , text = model.compose.title
                 }
           , case model.compose.context of
-                TopLevel topic ->
-                    "#"
-                        ++ topic
-                        |> text
-                        |> el [ Font.color orange, centerY ]
-                        |> el [ height fill, Font.size 25, Font.bold ]
+                TopLevel _ ->
+                    Input.text
+                        [ Background.color white
+                        , width <| px 250
+                        , Border.roundEach
+                            { bottomLeft = 0
+                            , topLeft = 0
+                            , bottomRight = 5
+                            , topRight = 5
+                            }
+                        , spacing 0
+                        ]
+                        { onChange = TopicInputChange
+                        , label =
+                            "Topic"
+                                |> text
+                                |> el [ centerY ]
+                                |> Input.labelLeft
+                                    [ Background.color orange
+                                    , Border.roundEach
+                                        { bottomLeft = 5
+                                        , topLeft = 5
+                                        , bottomRight = 0
+                                        , topRight = 0
+                                        }
+                                    , height fill
+                                    , Element.paddingXY 10 0
+                                    , sansSerifFont
+                                    ]
+                        , placeholder = Nothing
+                        , text = model.topicInput
+                        }
 
                 Reply _ ->
-                    View.Img.replyArrow 25 orange
-                        |> el [ centerY ]
+                    [ View.Img.replyArrow 25 orange
+                    , "Reply"
+                        |> text
+                        |> el [ Font.color orange ]
+                    ]
+                        |> row [ spacing 10 ]
           ]
-            |> column [ width fill, height fill ]
+            |> column [ width fill, height fill, spacing 10 ]
 
         --, [ text "🔥"
         --|> el [ Font.size 30 ]
@@ -219,9 +257,11 @@ viewBox model userInfo =
             , Background.color orange
             , Element.alignRight
             , View.Attrs.roundBorder
-            , hover
-                |> whenAttr submitEnabled
-            , Font.color white
+            , if submitEnabled then
+                hover
+
+              else
+                View.Attrs.style "cursor" "not-allowed"
             , sansSerifFont
             ]
             { onPress =

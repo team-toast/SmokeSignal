@@ -601,10 +601,21 @@ update msg model =
                                             userInfo.balance
                                             /= LT
 
+                                    context =
+                                        case model.compose.context of
+                                            Types.TopLevel topic ->
+                                                model.topicInput
+                                                    |> Misc.validateTopic
+                                                    |> Maybe.withDefault topic
+                                                    |> TopLevel
+
+                                            ctx ->
+                                                ctx
+
                                     metadata =
                                         { metadataVersion =
                                             Post.currentMetadataVersion
-                                        , context = model.compose.context
+                                        , context = context
                                         , maybeDecodeError = Nothing
                                         }
 
@@ -812,6 +823,31 @@ update msg model =
                     )
 
         ComposeOpen ->
+            let
+                topic =
+                    model.topicInput
+                        |> Misc.validateTopic
+                        |> Maybe.withDefault Post.defaultTopic
+
+                context =
+                    case model.view of
+                        ViewTopic t ->
+                            Types.TopLevel t
+
+                        ViewPost id ->
+                            Types.Reply id
+
+                        _ ->
+                            Types.TopLevel topic
+
+                topicInput =
+                    case context of
+                        Types.Reply _ ->
+                            model.topicInput
+
+                        Types.TopLevel t ->
+                            t
+            in
             ( { model
                 | compose =
                     model.compose
@@ -821,22 +857,10 @@ update msg model =
                                     , title = ""
                                     , body = ""
                                     , dollar = ""
-                                    , context =
-                                        case model.view of
-                                            ViewTopic t ->
-                                                Types.TopLevel t
-
-                                            ViewPost id ->
-                                                Types.Reply id
-
-                                            _ ->
-                                                model.topicInput
-                                                    |> Misc.validateTopic
-                                                    |> Maybe.withDefault Post.defaultTopic
-                                                    |> Types.TopLevel
+                                    , context = context
                                 }
                            )
-                , topicInput = ""
+                , topicInput = topicInput
               }
             , Cmd.none
             )
