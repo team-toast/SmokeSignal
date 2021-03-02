@@ -230,7 +230,7 @@ tryRouteToView route =
         RouteViewPost postId ->
             Ok <| ViewPost postId
 
-        RouteViewTopic topic ->
+        RouteTopic topic ->
             topic
                 |> validateTopic
                 |> Maybe.map ViewTopic
@@ -284,6 +284,14 @@ sortTopics =
 validateTopic : String -> Maybe String
 validateTopic =
     String.toLower
+        >> String.map
+            (\c ->
+                if Char.isAlphaNum c then
+                    c
+
+                else
+                    ' '
+            )
         >> String.Extra.clean
         >> String.replace " " "-"
         >> (\str ->

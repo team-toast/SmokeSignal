@@ -30,7 +30,7 @@ view model =
             , Border.color Theme.almostWhite
             , whiteGlowAttributeSmall
             , Font.color white
-            , View.Attrs.onKeydown [ View.Attrs.onEnter ComposeOpen ]
+            , View.Attrs.onKeydown [ View.Attrs.onEnter TopicSubmit ]
             ]
             { onChange = TopicInputChange
             , text = model.topicInput
@@ -40,7 +40,7 @@ view model =
                         [ Font.color white
                         , Font.italic
                         ]
-                        (Element.text "Create topic...")
+                        (Element.text "Find topic")
             , label = Input.labelHidden "topic"
             }
         , Input.button
@@ -50,8 +50,8 @@ view model =
             , hover
             , Element.alignRight
             ]
-            { onPress = Just ComposeOpen
-            , label = text "Compose"
+            { onPress = Just TopicSubmit
+            , label = text "Submit"
             }
         ]
             |> column [ padding 20, width fill, spacing 10 ]

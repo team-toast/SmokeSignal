@@ -793,6 +793,24 @@ update msg model =
             , Ports.setVisited ()
             )
 
+        TopicSubmit ->
+            model.topicInput
+                |> Misc.validateTopic
+                |> unwrap
+                    ( { model
+                        | userNotices =
+                            [ UN.unexpectedError "Invalid topic" ]
+                      }
+                    , Cmd.none
+                    )
+                    (\topic ->
+                        ( { model | topicInput = "" }
+                        , Browser.Navigation.pushUrl
+                            model.navKey
+                            (Routing.viewToUrlString <| ViewTopic topic)
+                        )
+                    )
+
         ComposeOpen ->
             ( { model
                 | compose =
@@ -925,7 +943,7 @@ handleRoute model route =
             , Cmd.none
             )
 
-        RouteViewTopic topic ->
+        RouteTopic topic ->
             topic
                 |> Misc.validateTopic
                 |> unwrap

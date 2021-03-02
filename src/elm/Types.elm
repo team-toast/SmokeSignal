@@ -114,6 +114,7 @@ type Msg
     | GoBack
     | WalletResponse WalletConnectResponse
     | RpcResponse (Result Http.Error UserInfo)
+    | TopicSubmit
 
 
 type alias PostKey =
@@ -302,7 +303,7 @@ type Route
     = RouteHome
     | RouteViewPost PostId
     | RouteMalformedPostId
-    | RouteViewTopic String
+    | RouteTopic String
     | RouteInvalid
     | RouteTopics
 
