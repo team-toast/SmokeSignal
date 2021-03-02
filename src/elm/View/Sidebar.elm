@@ -248,8 +248,7 @@ viewChain chain =
     chain
         |> View.Common.viewChain
         |> el
-            [ Font.color white
-            , Element.padding 10
+            [ Element.padding 10
             , View.Attrs.roundBorder
             , Background.color col
             ]
