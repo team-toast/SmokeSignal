@@ -1,6 +1,6 @@
 module View.Sidebar exposing (view, viewWallet)
 
-import Element exposing (Element, centerX, centerY, column, el, fill, height, paddingXY, px, row, spaceEvenly, spacing, text, width)
+import Element exposing (Element, centerX, centerY, column, el, fill, height, paddingXY, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -9,7 +9,7 @@ import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Misc
 import Theme exposing (orange, softRed)
-import TokenValue exposing (TokenValue)
+import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttributeSmall)
 import View.Common exposing (phaceElement, when)
@@ -61,10 +61,10 @@ view model =
             ]
 
 
-viewTopics : List ( String, TokenValue ) -> Element Msg
+viewTopics : List ( String, Count ) -> Element Msg
 viewTopics =
     List.map
-        (\( topic, totalBurned ) ->
+        (\( topic, count ) ->
             Input.button
                 [ width fill
                 , Background.color black
@@ -84,7 +84,7 @@ viewTopics =
                             , description = "smokesignal logo"
                             }
                       , View.Img.dollar 25 softRed
-                      , totalBurned
+                      , count.total
                             |> Misc.formatDollar
                             |> text
                             |> el [ Font.size 25, Font.bold, Font.color softRed ]
@@ -156,11 +156,22 @@ viewWallet model =
                     let
                         userHasNoEth =
                             TokenValue.isZero userInfo.balance
+
+                        name =
+                            case userInfo.chain of
+                                Eth ->
+                                    "Eth"
+
+                                XDai ->
+                                    "xDai"
                     in
                     if userHasNoEth then
                         ( "Compose Post"
                         , Nothing
-                        , Just "That address has no ETH! You need ETH to post on SmokeSignal."
+                        , "That address has no "
+                            ++ name
+                            ++ "! You will need to transfer some to post on SmokeSignal."
+                            |> Just
                         )
 
                     else
@@ -194,13 +205,15 @@ viewWallet model =
                     (\text ->
                         Element.paragraph
                             [ Font.color EH.white
-                            , Font.size 16
+                            , Font.size 17
+                            , View.Attrs.sansSerifFont
                             ]
                             [ Element.text text ]
                     )
                 |> Maybe.withDefault Element.none
     in
     [ phaceEl
+        |> el [ Element.alignTop ]
     , [ [ button
         , model.wallet
             |> Wallet.userInfo
@@ -211,7 +224,7 @@ viewWallet model =
       ]
         |> column
             [ width fill
-            , spaceEvenly
+            , spacing 10
             , height fill
             ]
     ]
@@ -235,8 +248,7 @@ viewChain chain =
     chain
         |> View.Common.viewChain
         |> el
-            [ Font.color white
-            , Element.padding 10
+            [ Element.padding 10
             , View.Attrs.roundBorder
             , Background.color col
             ]

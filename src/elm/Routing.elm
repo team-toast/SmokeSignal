@@ -34,7 +34,7 @@ routeParser =
             |> Parser.map (Maybe.Extra.unwrap RouteMalformedPostId RouteViewPost)
         , Parser.s "topic"
             </> topicParser
-            |> Parser.map (Maybe.Extra.unwrap RouteInvalid RouteViewTopic)
+            |> Parser.map (Maybe.Extra.unwrap RouteInvalid RouteTopic)
         , Parser.s "topics"
             |> Parser.map RouteTopics
         ]
