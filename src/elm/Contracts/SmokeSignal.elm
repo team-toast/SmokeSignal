@@ -19,45 +19,7 @@ decodePost : Chain -> Eth.Types.Log -> Eth.Types.Event (Result Decode.Error LogP
 decodePost chain log =
     Eth.Decode.event
         (G.messageBurnDecoder
-            |> Decode.andThen
-                (\messageBurn ->
-                    coreDecoder messageBurn
-                        |> Decode.map
-                            (\core ->
-                                let
-                                    id =
-                                        { block = log.blockNumber
-                                        , messageHash = messageBurn.hash
-                                        }
-
-                                    key =
-                                        Misc.postIdToKey id
-
-                                    core_ =
-                                        { id = id
-                                        , key = key
-                                        , txHash = log.transactionHash
-                                        , author = core.author
-                                        , authorBurn = core.authorBurn
-                                        , content = core.content
-                                        , metadataVersion = core.metadata.metadataVersion
-                                        , chain = chain
-                                        }
-                                in
-                                case core.metadata.context of
-                                    TopLevel topic ->
-                                        { core = core_
-                                        , topic = topic
-                                        }
-                                            |> Types.LogRoot
-
-                                    Reply parent ->
-                                        { core = core_
-                                        , parent = parent
-                                        }
-                                            |> Types.LogReply
-                            )
-                )
+            |> Decode.andThen (postDecoder chain log)
         )
         log
 
@@ -76,13 +38,13 @@ messageBurnEventFilter smokeSignalContractAddress from to maybeHash maybeAuthor 
            )
 
 
-burnEncodedPost : UserInfo -> Address -> EncodedDraft -> Call Hex
-burnEncodedPost wallet smokeSignalContractAddress encodedPost =
+burnEncodedPost : UserInfo -> Address -> Draft -> Call Hex
+burnEncodedPost wallet smokeSignalContractAddress draft =
     G.burnMessage
         smokeSignalContractAddress
-        encodedPost.encodedContentAndMetadata
-        (TokenValue.getEvmValue encodedPost.donateAmount)
-        |> EthHelpers.updateCallValue (TokenValue.getEvmValue encodedPost.burnAmount)
+        (Post.encodePostContent draft)
+        (TokenValue.getEvmValue draft.donateAmount)
+        |> EthHelpers.updateCallValue (TokenValue.getEvmValue draft.authorBurn)
         |> (\call ->
                 { call | from = Just wallet.address }
            )
@@ -156,8 +118,8 @@ burnForPost wallet smokeSignalContractAddress messageHash amount donate =
            )
 
 
-coreDecoder : G.MessageBurn -> Decoder Core
-coreDecoder messageBurn =
+postDecoder : Chain -> Eth.Types.Log -> G.MessageBurn -> Decoder LogPost
+postDecoder chain log messageBurn =
     case String.split "!smokesignal" messageBurn.message of
         [ _, encoded ] ->
             encoded
@@ -168,11 +130,38 @@ coreDecoder messageBurn =
                                 Post.messageDataDecoder metadata.metadataVersion
                                     |> Decode.map
                                         (\content ->
-                                            { author = messageBurn.from
-                                            , authorBurn = TokenValue.tokenValue messageBurn.burnAmount
-                                            , content = content
-                                            , metadata = metadata
-                                            }
+                                            let
+                                                id =
+                                                    { block = log.blockNumber
+                                                    , messageHash = messageBurn.hash
+                                                    }
+
+                                                key =
+                                                    Misc.postIdToKey id
+
+                                                core =
+                                                    { id = id
+                                                    , key = key
+                                                    , txHash = log.transactionHash
+                                                    , author = messageBurn.from
+                                                    , authorBurn = TokenValue.tokenValue messageBurn.burnAmount
+                                                    , content = content
+                                                    , metadataVersion = metadata.metadataVersion
+                                                    , chain = chain
+                                                    }
+                                            in
+                                            case metadata.context of
+                                                TopLevel topic ->
+                                                    { core = core
+                                                    , topic = topic
+                                                    }
+                                                        |> Types.LogRoot
+
+                                                Reply parent ->
+                                                    { core = core
+                                                    , parent = parent
+                                                    }
+                                                        |> Types.LogReply
                                         )
                             )
                     )

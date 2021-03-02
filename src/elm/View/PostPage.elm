@@ -20,7 +20,7 @@ import View.Post
 import Wallet
 
 
-view : Model -> CoreData -> Element Msg
+view : Model -> Core -> Element Msg
 view model post =
     [ [ [ [ text (post.content.title |> Maybe.withDefault ". . .") ]
             |> Element.paragraph

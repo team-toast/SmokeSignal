@@ -1,4 +1,4 @@
-module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatDollar, formatPosix, getConfig, getPostOrReply, getPrice, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
+module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyModel, formatDollar, formatPosix, getConfig, getPostOrReply, getPrice, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
 
 import Browser.Navigation
 import Dict exposing (Dict)
@@ -7,7 +7,7 @@ import Eth.Encode
 import Eth.RPC
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
-import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
+import Eth.Types exposing (Address, TxHash, TxReceipt)
 import Eth.Utils
 import FormatFloat
 import Helpers.Element
@@ -15,7 +15,6 @@ import Helpers.Eth
 import Helpers.Time
 import Http
 import Json.Decode as Decode
-import Json.Encode as E
 import Maybe.Extra exposing (unwrap)
 import Ports
 import Post
@@ -171,60 +170,6 @@ txInfoToNameStr txInfo =
 
         BurnTx _ _ ->
             "Burn"
-
-
-encodeDraft : Draft -> EncodedDraft
-encodeDraft draft =
-    EncodedDraft
-        draft.core.author
-        ("!smokesignal" ++ encodeToString ( draft.core.metadata, draft.core.content ))
-        draft.core.authorBurn
-        draft.donateAmount
-
-
-encodeToString : ( Metadata, Content ) -> String
-encodeToString ( metadata, content ) =
-    E.encode 0
-        (E.object <|
-            [ ( "m", encodeContent content )
-            , ( "v", E.int metadata.metadataVersion )
-            , ( "c", encodeContext metadata.context )
-            ]
-        )
-
-
-encodeContext : Context -> E.Value
-encodeContext context =
-    case context of
-        Reply postId ->
-            E.object
-                [ ( "re", encodePostId postId ) ]
-
-        TopLevel topic ->
-            E.object
-                [ ( "topic", E.string topic ) ]
-
-
-encodePostId : PostId -> E.Value
-encodePostId postId =
-    E.list identity
-        [ E.int postId.block
-        , encodeHex postId.messageHash
-        ]
-
-
-encodeContent : Content -> E.Value
-encodeContent content =
-    E.list identity
-        [ E.string <| Maybe.withDefault "" <| content.title
-        , E.string <| Maybe.withDefault "" <| content.desc
-        , E.string content.body
-        ]
-
-
-encodeHex : Hex -> E.Value
-encodeHex =
-    Eth.Utils.hexToString >> E.string
 
 
 formatPosix : Posix -> String
@@ -390,7 +335,7 @@ getPrice chain =
             .xDaiPrice
 
 
-getPostOrReply : PostId -> Model -> Maybe CoreData
+getPostOrReply : PostId -> Model -> Maybe Core
 getPostOrReply id model =
     let
         key =

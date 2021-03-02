@@ -563,12 +563,10 @@ update msg model =
 
                                 else
                                     { donateAmount = donateAmount
-                                    , core =
-                                        { author = userInfo.address
-                                        , authorBurn = burnAmount
-                                        , content = content
-                                        , metadata = metadata
-                                        }
+                                    , author = userInfo.address
+                                    , authorBurn = burnAmount
+                                    , content = content
+                                    , metadata = metadata
                                     }
                                         |> Ok
                             )
@@ -587,7 +585,6 @@ update msg model =
 
                                     txParams =
                                         postDraft
-                                            |> Misc.encodeDraft
                                             |> SSContract.burnEncodedPost userInfo config.contract
                                             |> Eth.toSend
 
@@ -597,28 +594,7 @@ update msg model =
                                         , onBroadcast = Nothing
                                         }
                                 in
-                                case userInfo.chain of
-                                    Eth ->
-                                        let
-                                            ( newSentry, cmd ) =
-                                                TxSentry.customSend model.txSentry listeners txParams
-                                        in
-                                        ( { model
-                                            | txSentry = newSentry
-                                          }
-                                        , cmd
-                                        )
-
-                                    XDai ->
-                                        let
-                                            ( newSentry, cmd ) =
-                                                TxSentry.customSend model.txSentryX listeners txParams
-                                        in
-                                        ( { model
-                                            | txSentryX = newSentry
-                                          }
-                                        , cmd
-                                        )
+                                submitTxn model userInfo.chain listeners txParams
                             )
                 )
 
@@ -649,28 +625,7 @@ update msg model =
                                         , onBroadcast = Nothing
                                         }
                                 in
-                                case userInfo.chain of
-                                    Eth ->
-                                        let
-                                            ( newSentry, cmd ) =
-                                                TxSentry.customSend model.txSentry listeners txParams
-                                        in
-                                        ( { model
-                                            | txSentry = newSentry
-                                          }
-                                        , cmd
-                                        )
-
-                                    XDai ->
-                                        let
-                                            ( newSentry, cmd ) =
-                                                TxSentry.customSend model.txSentryX listeners txParams
-                                        in
-                                        ( { model
-                                            | txSentryX = newSentry
-                                          }
-                                        , cmd
-                                        )
+                                submitTxn model userInfo.chain listeners txParams
                             )
                 )
 
@@ -701,28 +656,7 @@ update msg model =
                                         , onBroadcast = Nothing
                                         }
                                 in
-                                case userInfo.chain of
-                                    Eth ->
-                                        let
-                                            ( newSentry, cmd ) =
-                                                TxSentry.customSend model.txSentry listeners txParams
-                                        in
-                                        ( { model
-                                            | txSentry = newSentry
-                                          }
-                                        , cmd
-                                        )
-
-                                    XDai ->
-                                        let
-                                            ( newSentry, cmd ) =
-                                                TxSentry.customSend model.txSentryX listeners txParams
-                                        in
-                                        ( { model
-                                            | txSentryX = newSentry
-                                          }
-                                        , cmd
-                                        )
+                                submitTxn model userInfo.chain listeners txParams
                             )
                 )
 
@@ -1028,7 +962,7 @@ handleTxReceipt chain txReceipt =
             )
 
 
-fetchPostInfo : Dict Int Time.Posix -> Config -> CoreData -> Cmd Msg
+fetchPostInfo : Dict Int Time.Posix -> Config -> Core -> Cmd Msg
 fetchPostInfo blockTimes config core =
     [ SSContract.getAccountingCmd
         (Misc.getConfig core.chain config)
@@ -1073,3 +1007,29 @@ addUserNotices notices model =
 logHttpError : String -> Http.Error -> Cmd msg
 logHttpError tag =
     Misc.parseHttpError >> (++) (tag ++ ":\n") >> Ports.log
+
+
+submitTxn : Model -> Chain -> TxSentry.CustomSend Msg -> Eth.Types.Send -> ( Model, Cmd Msg )
+submitTxn model chain listeners txParams =
+    case chain of
+        Eth ->
+            let
+                ( newSentry, cmd ) =
+                    TxSentry.customSend model.txSentry listeners txParams
+            in
+            ( { model
+                | txSentry = newSentry
+              }
+            , cmd
+            )
+
+        XDai ->
+            let
+                ( newSentry, cmd ) =
+                    TxSentry.customSend model.txSentryX listeners txParams
+            in
+            ( { model
+                | txSentryX = newSentry
+              }
+            , cmd
+            )

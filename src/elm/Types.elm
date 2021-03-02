@@ -121,7 +121,7 @@ type alias PostKey =
 
 
 type alias RootPost =
-    { core : CoreData
+    { core : Core
     , topic : String
     }
 
@@ -135,12 +135,12 @@ type alias ChainConfig =
 
 
 type alias ReplyPost =
-    { core : CoreData
+    { core : Core
     , parent : PostId
     }
 
 
-type alias CoreData =
+type alias Core =
     { id : PostId
     , key : PostKey
     , txHash : TxHash
@@ -172,11 +172,6 @@ type alias PostState =
     { id : PostId
     , showInput : ShowInputState
     }
-
-
-type PostUXId
-    = PublishedPostId PostId
-    | DraftPreview
 
 
 type ShowInputState
@@ -224,12 +219,6 @@ type LogPost
     | LogReply ReplyPost
 
 
-type alias ReplyIds =
-    { from : PostId
-    , to : PostId
-    }
-
-
 type PhaceIconId
     = PhaceForPublishedPost PostId
     | PhaceForDraft
@@ -262,11 +251,6 @@ type FailReason
     = MinedButExecutionFailed
 
 
-type Post
-    = PublishedPost Published
-    | PostDraft Draft
-
-
 type alias Accounting =
     { firstAuthor : Address
     , totalBurned : TokenValue
@@ -274,28 +258,12 @@ type alias Accounting =
     }
 
 
-type alias Published =
-    { txHash : TxHash
-    , id : PostId
-    , key : PostKey
-    , core : Core
-    , maybeAccounting : Maybe Accounting
-    }
-
-
 type alias Draft =
     { donateAmount : TokenValue
-    , core : Core
-    }
-
-
-type alias Core =
-    { author : Address
+    , author : Address
     , authorBurn : TokenValue
     , content : Content
     , metadata : Metadata
-
-    --, renderedPost : Element Never
     }
 
 
@@ -306,24 +274,10 @@ type alias Content =
     }
 
 
-type alias EncodedDraft =
-    { author : Address
-    , encodedContentAndMetadata : String
-    , burnAmount : TokenValue
-    , donateAmount : TokenValue
-    }
-
-
 type alias Metadata =
     { metadataVersion : Int
     , context : Context
     , maybeDecodeError : Maybe String
-    }
-
-
-type alias CheckedMaybeValidInputs =
-    { content : Maybe Content
-    , burnAndDonateAmount : Maybe (Result String ( TokenValue, TokenValue ))
     }
 
 
