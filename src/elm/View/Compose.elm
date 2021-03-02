@@ -191,7 +191,7 @@ viewBox model userInfo =
                     |> Input.placeholder []
                     |> Just
             , text = model.compose.body
-            , spellcheck = False
+            , spellcheck = True
             }
         , model.compose.body
             |> View.Markdown.renderString
