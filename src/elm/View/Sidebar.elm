@@ -1,6 +1,6 @@
 module View.Sidebar exposing (view, viewWallet)
 
-import Element exposing (Element, centerX, centerY, column, el, fill, height, paddingXY, px, row, spaceEvenly, spacing, text, width)
+import Element exposing (Element, centerX, centerY, column, el, fill, height, paddingXY, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -156,11 +156,22 @@ viewWallet model =
                     let
                         userHasNoEth =
                             TokenValue.isZero userInfo.balance
+
+                        name =
+                            case userInfo.chain of
+                                Eth ->
+                                    "Eth"
+
+                                XDai ->
+                                    "xDai"
                     in
                     if userHasNoEth then
                         ( "Compose Post"
                         , Nothing
-                        , Just "That address has no ETH! You need ETH to post on SmokeSignal."
+                        , "That address has no "
+                            ++ name
+                            ++ "! You will need to transfer some to post on SmokeSignal."
+                            |> Just
                         )
 
                     else
@@ -194,13 +205,15 @@ viewWallet model =
                     (\text ->
                         Element.paragraph
                             [ Font.color EH.white
-                            , Font.size 16
+                            , Font.size 17
+                            , View.Attrs.sansSerifFont
                             ]
                             [ Element.text text ]
                     )
                 |> Maybe.withDefault Element.none
     in
     [ phaceEl
+        |> el [ Element.alignTop ]
     , [ [ button
         , model.wallet
             |> Wallet.userInfo
@@ -211,7 +224,7 @@ viewWallet model =
       ]
         |> column
             [ width fill
-            , spaceEvenly
+            , spacing 10
             , height fill
             ]
     ]
