@@ -9,7 +9,7 @@ import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Misc
 import Theme exposing (orange, softRed)
-import TokenValue exposing (TokenValue)
+import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttributeSmall)
 import View.Common exposing (phaceElement, when)
@@ -61,10 +61,10 @@ view model =
             ]
 
 
-viewTopics : List ( String, TokenValue ) -> Element Msg
+viewTopics : List ( String, Count ) -> Element Msg
 viewTopics =
     List.map
-        (\( topic, totalBurned ) ->
+        (\( topic, count ) ->
             Input.button
                 [ width fill
                 , Background.color black
@@ -84,7 +84,7 @@ viewTopics =
                             , description = "smokesignal logo"
                             }
                       , View.Img.dollar 25 softRed
-                      , totalBurned
+                      , count.total
                             |> Misc.formatDollar
                             |> text
                             |> el [ Font.size 25, Font.bold, Font.color softRed ]

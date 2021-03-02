@@ -129,8 +129,40 @@ update msg model =
                                     |> unwrap ( model, Ports.log "Transaction not found." )
                                         (\tx ->
                                             let
-                                                ( newStatus, maybePublishedPost, maybeUserNotice ) =
+                                                ( newStatus, _, maybeUserNotice ) =
                                                     handleTxReceipt tx.chain txReceipt
+
+                                                isMined =
+                                                    case newStatus of
+                                                        Mined _ ->
+                                                            True
+
+                                                        _ ->
+                                                            False
+
+                                                fetchAccounting =
+                                                    (case tx.txInfo of
+                                                        -- Rely on PostLogReceived as source of truth for post data.
+                                                        PostTx _ ->
+                                                            --maybePublishedPost
+                                                            --|> Maybe.map
+                                                            --(\r ->
+                                                            --case r of
+                                                            --LogReply p ->
+                                                            --p.core
+                                                            --LogRoot p ->
+                                                            --p.core
+                                                            --)
+                                                            Nothing
+
+                                                        TipTx id _ ->
+                                                            Misc.getPostOrReply id model
+
+                                                        BurnTx id _ ->
+                                                            Misc.getPostOrReply id model
+                                                    )
+                                                        |> unwrap Cmd.none
+                                                            (fetchPostInfo model.blockTimes model.config)
                                             in
                                             ( { model
                                                 | trackedTxs =
@@ -152,10 +184,11 @@ update msg model =
                                                                 |> unwrap [] List.singleton
                                                            )
                                               }
-                                                |> (maybePublishedPost
-                                                        |> unwrap identity addPost
-                                                   )
-                                            , Cmd.none
+                                            , if isMined then
+                                                fetchAccounting
+
+                                              else
+                                                Cmd.none
                                             )
                                         )
                             )
@@ -289,7 +322,7 @@ update msg model =
 
         PostAccountingFetched postId res ->
             case res of
-                Ok accounting ->
+                Ok accountingData ->
                     let
                         key =
                             Misc.postIdToKey postId
@@ -299,24 +332,52 @@ update msg model =
                                 |> Dict.get key
                                 |> Maybe.map .topic
 
+                        accounting =
+                            model.accounting
+                                |> Dict.insert key accountingData
+
                         updateTopics =
                             maybeTopic
                                 |> unwrap identity
                                     (\topic ->
                                         Dict.update
                                             topic
-                                            (unwrap accounting.totalBurned
-                                                (TokenValue.add
-                                                    accounting.totalBurned
+                                            (unwrap
+                                                { total = accountingData.totalBurned
+                                                , ids = Set.singleton key
+                                                }
+                                                (\data ->
+                                                    let
+                                                        ids =
+                                                            data.ids
+                                                                |> Set.insert key
+
+                                                        total =
+                                                            if Set.size data.ids == Set.size ids then
+                                                                data.total
+
+                                                            else
+                                                                ids
+                                                                    |> Set.toList
+                                                                    |> List.filterMap
+                                                                        (\id ->
+                                                                            Dict.get id accounting
+                                                                        )
+                                                                    |> List.map .totalBurned
+                                                                    |> List.foldl
+                                                                        TokenValue.add
+                                                                        TokenValue.zero
+                                                    in
+                                                    { total = total
+                                                    , ids = ids
+                                                    }
                                                 )
                                                 >> Just
                                             )
                                     )
                     in
                     ( { model
-                        | accounting =
-                            model.accounting
-                                |> Dict.insert key accounting
+                        | accounting = accounting
                         , topics =
                             model.topics
                                 |> updateTopics
@@ -899,7 +960,10 @@ addPost log model =
                     model.topics
                         |> Dict.update
                             post.topic
-                            (Maybe.withDefault TokenValue.zero
+                            (Maybe.withDefault
+                                { total = TokenValue.zero
+                                , ids = Set.empty
+                                }
                                 >> Just
                             )
             }

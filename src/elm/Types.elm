@@ -61,7 +61,7 @@ type alias Model =
     , replyPosts : Dict PostKey ReplyPost
     , replyIds : Dict PostKey (Set PostKey)
     , accounting : Dict PostKey Accounting
-    , topics : Dict String TokenValue
+    , topics : Dict String Count
     , hasNavigated : Bool
     , alphaUrl : String
     }
@@ -137,6 +137,12 @@ type alias ChainConfig =
 type alias ReplyPost =
     { core : Core
     , parent : PostId
+    }
+
+
+type alias Count =
+    { ids : Set PostKey
+    , total : TokenValue
     }
 
 

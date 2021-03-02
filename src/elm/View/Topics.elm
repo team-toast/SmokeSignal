@@ -8,7 +8,6 @@ import Element.Input as Input
 import Helpers.Element exposing (black, white)
 import Misc
 import Theme exposing (orange)
-import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import View.Attrs exposing (hover, whiteGlowAttributeSmall)
 import View.Img
@@ -74,10 +73,10 @@ view model =
             ]
 
 
-viewTopics : List ( String, TokenValue ) -> Element Msg
+viewTopics : List ( String, Count ) -> Element Msg
 viewTopics =
     List.map
-        (\( topic, totalBurned ) ->
+        (\( topic, count ) ->
             Input.button
                 [ width fill
                 , Background.color black
@@ -92,7 +91,7 @@ viewTopics =
                         |> text
                         |> el [ width fill, Font.size 40 ]
                     , [ View.Img.dollar 25 white
-                      , totalBurned
+                      , count.total
                             |> Misc.formatDollar
                             |> text
                             |> el [ Font.size 30, Font.bold ]

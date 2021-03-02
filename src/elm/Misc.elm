@@ -270,11 +270,12 @@ dollarStringToToken ethPrice =
             )
 
 
-sortTopics : Dict String TokenValue -> List ( String, TokenValue )
+sortTopics : Dict String Types.Count -> List ( String, Types.Count )
 sortTopics =
     Dict.toList
         >> List.sortBy
             (Tuple.second
+                >> .total
                 >> TokenValue.toFloatWithWarning
                 >> negate
             )
