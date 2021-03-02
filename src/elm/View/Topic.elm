@@ -6,6 +6,7 @@ import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (black, white)
+import Misc
 import Set
 import Theme exposing (orange)
 import Types exposing (..)
@@ -25,6 +26,7 @@ view model topic =
                         >> String.toLower
                         >> (==) (String.toLower topic)
                     )
+                |> List.sortBy (.core >> Misc.sortPosts model.blockTimes model.now)
     in
     [ topicHeader topic
     , if List.isEmpty posts then

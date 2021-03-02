@@ -1,4 +1,4 @@
-module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyModel, formatDollar, formatPosix, getConfig, getPostOrReply, getPrice, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
+module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyModel, formatDollar, formatPosix, getConfig, getPostOrReply, getPrice, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPosts, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
 
 import Browser.Navigation
 import Dict exposing (Dict)
@@ -364,3 +364,32 @@ getTxReceipt url txHash =
         , params = [ Eth.Encode.txHash txHash ]
         , decoder = Decode.nullable Eth.Decode.txReceipt
         }
+
+
+sortPosts : Dict Int Time.Posix -> Time.Posix -> Core -> Float
+sortPosts blockTimes now post =
+    let
+        postTimeDefaultZero =
+            blockTimes
+                |> Dict.get post.id.block
+                |> Maybe.withDefault (Time.millisToPosix 0)
+
+        age =
+            Helpers.Time.sub now postTimeDefaultZero
+
+        ageFactor =
+            -- 1 at age zero, falls to 0 when 3 days old
+            Helpers.Time.getRatio
+                age
+                (Helpers.Time.mul Helpers.Time.oneDay 90)
+                |> clamp 0 1
+                |> (\ascNum -> 1 - ascNum)
+
+        totalBurned =
+            post.authorBurn
+                |> TokenValue.toFloatWithWarning
+
+        newnessMultiplier =
+            (ageFactor * 4.0) + 1
+    in
+    totalBurned * newnessMultiplier

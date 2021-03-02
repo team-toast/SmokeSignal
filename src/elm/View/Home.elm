@@ -1,16 +1,14 @@
 module View.Home exposing (view)
 
-import Dict exposing (Dict)
+import Dict
 import Element exposing (Element, centerX, column, el, fill, height, padding, paddingXY, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (DisplayProfile(..), white)
-import Helpers.Time as TimeHelpers
+import Misc
 import Set
 import Theme exposing (orange)
-import Time
-import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (slightRound, whiteGlowAttributeSmall)
 import View.Post
@@ -25,7 +23,7 @@ view model =
 
         Mobile ->
             Dict.values model.rootPosts
-                |> List.sortBy (feedSortByFunc model.blockTimes model.now)
+                |> List.sortBy (.core >> Misc.sortPosts model.blockTimes model.now)
                 |> List.reverse
                 |> List.map (viewPost model (Wallet.userInfo model.wallet))
                 |> column
@@ -63,7 +61,7 @@ viewDesktop model =
                 |> Element.el [ centerX ]
         }
     , posts
-        |> List.sortBy (feedSortByFunc model.blockTimes model.now)
+        |> List.sortBy (.core >> Misc.sortPosts model.blockTimes model.now)
         |> List.reverse
         |> List.map (viewPost model (Wallet.userInfo model.wallet))
         |> column
@@ -109,33 +107,3 @@ viewPost model wallet post =
         (Just post.topic)
         wallet
         post.core
-
-
-feedSortByFunc : Dict Int Time.Posix -> Time.Posix -> RootPost -> Float
-feedSortByFunc blockTimes now post =
-    let
-        postTimeDefaultZero =
-            blockTimes
-                |> Dict.get post.core.id.block
-                |> Maybe.withDefault (Time.millisToPosix 0)
-
-        age =
-            TimeHelpers.sub now postTimeDefaultZero
-
-        ageFactor =
-            -- 1 at age zero, falls to 0 when 3 days old
-            TimeHelpers.getRatio
-                age
-                (TimeHelpers.mul TimeHelpers.oneDay 90)
-                |> clamp 0 1
-                |> (\ascNum -> 1 - ascNum)
-
-        totalBurned =
-            --Misc.totalBurned (PublishedPost post)
-            post.core.authorBurn
-                |> TokenValue.toFloatWithWarning
-
-        newnessMultiplier =
-            (ageFactor * 4.0) + 1
-    in
-    totalBurned * newnessMultiplier
