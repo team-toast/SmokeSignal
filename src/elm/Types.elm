@@ -115,6 +115,7 @@ type Msg
     | WalletResponse WalletConnectResponse
     | RpcResponse (Result Http.Error UserInfo)
     | TopicSubmit
+    | XDaiImport
 
 
 type alias PostKey =

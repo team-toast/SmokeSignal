@@ -47,15 +47,6 @@ render model =
             , height fill
             , width fill
             , View.Attrs.typeFont
-            , View.Sidebar.viewWallet model
-                |> el
-                    [ width fill
-                    , Element.alignBottom
-                    , Background.color black
-                    , padding 20
-                    ]
-                |> Element.inFront
-                |> whenAttr (model.dProfile == Mobile)
             ]
         |> Element.layoutWith
             { options =
@@ -93,6 +84,14 @@ viewPage model =
                 |> Element.inFront
                 |> View.Common.whenAttr (not model.cookieConsentGranted)
             ]
+    , View.Sidebar.viewWallet model
+        |> el
+            [ width fill
+            , Element.alignBottom
+            , Background.color black
+            , padding 20
+            ]
+        |> View.Common.when (model.dProfile == Mobile)
     ]
         |> column
             [ width fill
@@ -104,8 +103,11 @@ viewPage model =
 header : Model -> Element Msg
 header model =
     let
+        isMobile =
+            model.dProfile == EH.Mobile
+
         sidePadding =
-            if model.dProfile == EH.Mobile then
+            if isMobile then
                 paddingXY 30 0
 
             else
@@ -141,6 +143,18 @@ header model =
             model.showExpandedTrackedTxs
             model.trackedTxs
             |> Maybe.withDefault Element.none
+      , Input.button
+            [ padding 10
+            , Font.color black
+            , hover
+            , Background.color Theme.orange
+            , View.Attrs.roundBorder
+            , View.Attrs.sansSerifFont
+            ]
+            { onPress = Just XDaiImport
+            , label = text "Import xDai"
+            }
+            |> View.Common.when (not isMobile)
       , Element.newTabLink [ hover ]
             { url = "https://foundrydao.com/"
             , label =

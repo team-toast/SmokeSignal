@@ -1,11 +1,11 @@
 module View.Markdown exposing (renderString)
 
-import Element exposing (Element, column, fill, height, row, spacing, width)
+import Element exposing (Element, column, fill, height, paragraph, row, spacing, text, width)
 import Element.Background
 import Element.Border
 import Element.Font as Font
 import Element.Input
-import Helpers.Element as EH
+import Helpers.Element exposing (DisplayProfile, thinHRuler)
 import Html
 import Html.Attributes
 import Markdown.Block
@@ -19,8 +19,8 @@ import View.Attrs exposing (hover)
 -- Largely taken from https://github.com/dillonkearns/elm-markdown/blob/master/examples/src/ElmUi.elm
 
 
-renderString : String -> Element msg
-renderString src =
+renderString : DisplayProfile -> String -> Element msg
+renderString device src =
     src
         |> Markdown.Parser.parse
         |> Result.mapError (always ())
@@ -29,27 +29,26 @@ renderString src =
         -->> String.join "\n"
         --)
         |> Result.andThen
-            (Markdown.Renderer.render renderer
+            (Markdown.Renderer.render (renderer device)
                 >> Result.mapError (always ())
             )
-        |> Result.withDefault [ Element.text "There has been a problem." ]
-        |> column [ spacing 10, height fill, width fill ]
+        |> Result.withDefault [ text "There has been a problem." ]
+        |> column [ spacing 10, height fill, width fill, Font.size 17 ]
 
 
-renderer : Renderer (Element msg)
-renderer =
-    { heading = heading
+renderer : DisplayProfile -> Renderer (Element msg)
+renderer device =
+    { heading = heading device
     , paragraph =
-        Element.paragraph
+        paragraph
             [ Element.spacing 3 ]
     , thematicBreak =
-        Element.el
-            [ Element.width Element.fill
-            , Element.paddingXY 10 5
-            ]
-        <|
-            EH.thinHRuler (Element.rgba 0 0 0 0.5)
-    , text = Element.text
+        thinHRuler (Element.rgba 0 0 0 0.5)
+            |> Element.el
+                [ Element.width Element.fill
+                , Element.paddingXY 10 5
+                ]
+    , text = text
     , strong = \content -> row [ Font.bold ] content
     , emphasis = \content -> row [ Font.italic ] content
     , codeSpan = code
@@ -61,7 +60,7 @@ renderer =
                 ]
                 { url = destination
                 , label =
-                    Element.paragraph
+                    paragraph
                         [ Font.color (Element.rgb255 0 0 255)
                         ]
                         body
@@ -105,8 +104,8 @@ renderer =
                                                 Element.Input.defaultCheckbox True
 
                                             Markdown.Block.NoTask ->
-                                                Element.text "•"
-                                    , Element.paragraph [ Element.width Element.fill ] children
+                                                text "•"
+                                    , paragraph [ Element.width Element.fill ] children
                                     ]
                                 ]
                         )
@@ -124,8 +123,8 @@ renderer =
                                     , Element.spacing 15
                                     ]
                                     [ Element.el [ Element.alignTop ] <|
-                                        Element.text (String.fromInt (index + startingIndex))
-                                    , Element.paragraph
+                                        text (String.fromInt (index + startingIndex))
+                                    , paragraph
                                         [ Element.alignTop ]
                                         itemBlocks
                                     ]
@@ -140,53 +139,71 @@ renderer =
     , tableRow = Element.row []
     , tableHeaderCell =
         \_ children ->
-            Element.paragraph [] children
-    , tableCell = \_ -> Element.paragraph []
-    , strikethrough = Element.paragraph [ Font.strike ]
+            paragraph [] children
+    , tableCell = \_ -> paragraph []
+    , strikethrough = paragraph [ Font.strike ]
     }
 
 
-heading : { level : Markdown.Block.HeadingLevel, rawText : String, children : List (Element msg) } -> Element msg
-heading { level, rawText } =
-    Element.paragraph
-        [ Font.size
-            (case level of
+heading : DisplayProfile -> { level : Markdown.Block.HeadingLevel, rawText : String, children : List (Element msg) } -> Element msg
+heading device { level, rawText } =
+    let
+        isMobile =
+            device == Helpers.Element.Mobile
+
+        multiplier =
+            case level of
                 Markdown.Block.H1 ->
-                    42
+                    1.4
 
                 Markdown.Block.H2 ->
-                    36
+                    1.3
 
                 Markdown.Block.H3 ->
-                    30
+                    1.2
 
                 Markdown.Block.H4 ->
-                    24
+                    1
 
-                _ ->
-                    20
+                Markdown.Block.H5 ->
+                    1
+
+                Markdown.Block.H6 ->
+                    1
+
+        fs =
+            (if isMobile then
+                17
+
+             else
+                25
             )
-        , Font.bold
-        ]
-        [ Element.text rawText ]
+                |> (*) multiplier
+                |> round
+    in
+    [ text rawText ]
+        |> paragraph
+            [ Font.size fs
+            , Font.bold
+            ]
 
 
 code : String -> Element msg
 code snippet =
-    Element.el
-        [ Element.Background.color
-            (Element.rgba 0 0 0 0.04)
-        , Element.scrollbarX
-        , Element.Border.rounded 2
-        , Element.paddingXY 5 3
-        , Font.family
-            [ Font.external
-                { url = "https://fonts.googleapis.com/css?family=Source+Code+Pro"
-                , name = "Source Code Pro"
-                }
+    text snippet
+        |> Element.el
+            [ Element.Background.color
+                (Element.rgba 0 0 0 0.04)
+            , Element.scrollbarX
+            , Element.Border.rounded 2
+            , Element.paddingXY 5 3
+            , Font.family
+                [ Font.external
+                    { url = "https://fonts.googleapis.com/css?family=Source+Code+Pro"
+                    , name = "Source Code Pro"
+                    }
+                ]
             ]
-        ]
-        (Element.text snippet)
 
 
 codeBlock : { body : String, language : Maybe String } -> Element msg

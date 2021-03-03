@@ -13,7 +13,7 @@ import Set
 import Theme
 import Types exposing (..)
 import View.Attrs exposing (hover, roundBorder, sansSerifFont, whiteGlowAttributeSmall)
-import View.Common
+import View.Common exposing (when)
 import View.Img
 import View.Markdown
 import View.Post
@@ -22,9 +22,21 @@ import Wallet
 
 view : Model -> Core -> Element Msg
 view model post =
+    let
+        isMobile =
+            model.dProfile == Mobile
+
+        fontSize =
+            if isMobile then
+                25
+
+            else
+                50
+    in
     [ [ [ [ text (post.content.title |> Maybe.withDefault ". . .") ]
             |> Element.paragraph
-                [ Font.size 50
+                [ Font.size fontSize
+                , Font.bold
                 ]
         , [ model.blockTimes
                 |> Dict.get post.id.block
@@ -37,7 +49,7 @@ view model post =
                     )
           , Element.newTabLink [ hover ]
                 { url = Misc.txUrl post.chain post.txHash
-                , label = text "View on Etherscan 🌐"
+                , label = text "View on block explorer 🌐"
                 }
           ]
             |> row
@@ -57,25 +69,29 @@ view model post =
             { onPress = Just GoBack
             , label = text "Go back"
             }
+            |> when (not isMobile)
       ]
         |> row
             [ spacing 10
             , width fill
             ]
     , [ post.content.body
-            |> View.Markdown.renderString
+            |> View.Markdown.renderString model.dProfile
             |> el
                 [ width fill
                 , height fill
                 , Font.color white
-                , Element.scrollbarY
                 ]
-      , Input.button
+      , [ Input.button [ Background.color Theme.orange, padding 10, roundBorder, hover ]
+            { onPress = Just GoBack
+            , label = text "Go back"
+            }
+            |> when isMobile
+        , Input.button
             [ Background.color Theme.orange
             , padding 10
             , roundBorder
             , hover
-            , Element.alignRight
             ]
             { onPress = Just ComposeOpen
             , label =
@@ -84,10 +100,11 @@ view model post =
                 ]
                     |> row [ spacing 10, Font.size 20 ]
             }
+        ]
+            |> row [ spacing 10, Element.alignRight ]
       ]
         |> column
             [ width fill
-            , View.Attrs.cappedHeight 500
             , padding 10
             , spacing 10
             , whiteGlowAttributeSmall
