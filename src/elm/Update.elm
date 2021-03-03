@@ -416,14 +416,21 @@ update msg model =
                     )
 
                 _ ->
-                    ( model
+                    let
+                        ( newGtagHistory, gtagCmd ) =
+                            GTagData
+                                "Web3 Connected"
+                                Nothing
+                                Nothing
+                                Nothing
+                                |> gTagOutOnlyOnceForEvent model.gtagHistory
+                    in
+                    ( { model
+                        | gtagHistory =
+                            newGtagHistory
+                      }
                     , [ Ports.connectToWeb3 ()
-                      , GTagData
-                            "Web3 Connected"
-                            Nothing
-                            Nothing
-                            Nothing
-                            |> gTagOut
+                      , gtagCmd
                       ]
                         |> Cmd.batch
                     )
@@ -533,17 +540,22 @@ update msg model =
                             )
                         |> unpack
                             (\err ->
+                                let
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "Submit Draft"
+                                            Nothing
+                                            (("error " ++ err)
+                                                |> Just
+                                            )
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+                                in
                                 ( { model
                                     | userNotices = [ UN.unexpectedError err ]
+                                    , gtagHistory = newGtagHistory
                                   }
-                                , GTagData
-                                    "Submit Draft"
-                                    Nothing
-                                    (("error " ++ err)
-                                        |> Just
-                                    )
-                                    Nothing
-                                    |> gTagOut
+                                , gtagCmd
                                 )
                             )
                             (\postDraft ->
@@ -562,17 +574,21 @@ update msg model =
 
                                     ( txSentry, cmd ) =
                                         TxSentry.customSend model.txSentry listeners txParams
+
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "Submit Draft"
+                                            Nothing
+                                            Nothing
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                                 in
                                 ( { model
                                     | txSentry = txSentry
+                                    , gtagHistory = newGtagHistory
                                   }
                                 , [ cmd
-                                  , GTagData
-                                        "Submit Draft"
-                                        Nothing
-                                        Nothing
-                                        Nothing
-                                        |> gTagOut
+                                  , gtagCmd
                                   ]
                                     |> Cmd.batch
                                 )
@@ -602,22 +618,26 @@ update msg model =
 
                             ( txSentry, cmd ) =
                                 TxSentry.customSend model.txSentry listeners txParams
+
+                            ( newGtagHistory, gtagCmd ) =
+                                GTagData
+                                    "Submit Burn"
+                                    Nothing
+                                    ((amount
+                                        |> TokenValue.getEvmValue
+                                        |> BigInt.toString
+                                     )
+                                        |> Just
+                                    )
+                                    Nothing
+                                    |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                         in
                         ( { model
                             | txSentry = txSentry
+                            , gtagHistory = newGtagHistory
                           }
                         , [ cmd
-                          , GTagData
-                                "Submit Burn"
-                                Nothing
-                                ((amount
-                                    |> TokenValue.getEvmValue
-                                    |> BigInt.toString
-                                 )
-                                    |> Just
-                                )
-                                Nothing
-                                |> gTagOut
+                          , gtagCmd
                           ]
                             |> Cmd.batch
                         )
@@ -646,70 +666,108 @@ update msg model =
 
                             ( txSentry, cmd ) =
                                 TxSentry.customSend model.txSentry listeners txParams
+
+                            ( newGtagHistory, gtagCmd ) =
+                                GTagData
+                                    "Submit Tip"
+                                    Nothing
+                                    ((amount
+                                        |> TokenValue.getEvmValue
+                                        |> BigInt.toString
+                                     )
+                                        |> Just
+                                    )
+                                    Nothing
+                                    |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                         in
                         ( { model
                             | txSentry = txSentry
                             , tipOpen = Nothing
+                            , gtagHistory = newGtagHistory
                           }
                         , [ cmd
-                          , GTagData
-                                "Submit Tip"
-                                Nothing
-                                ((amount
-                                    |> TokenValue.getEvmValue
-                                    |> BigInt.toString
-                                 )
-                                    |> Just
-                                )
-                                Nothing
-                                |> gTagOut
+                          , gtagCmd
                           ]
                             |> Cmd.batch
                         )
                     )
 
         DonationCheckboxSet flag ->
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "Donation Checkbox"
+                        Nothing
+                        (("set "
+                            ++ (if flag == True then
+                                    "true"
+
+                                else
+                                    "false"
+                               )
+                         )
+                            |> Just
+                        )
+                        Nothing
+                        |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+            in
             ( { model
                 | compose =
                     model.compose
                         |> (\r -> { r | donate = flag })
+                , gtagHistory = newGtagHistory
               }
-            , GTagData
-                "Donation Checkbox"
-                Nothing
-                (("set "
-                    ++ (if flag == True then
-                            "true"
-
-                        else
-                            "false"
-                       )
-                 )
-                    |> Just
-                )
-                Nothing
-                |> gTagOut
+            , gtagCmd
             )
 
         ViewDraft maybeDraft ->
+            let
+                gtagCmd =
+                    GTagData
+                        "View Draft"
+                        Nothing
+                        Nothing
+                        Nothing
+                        |> gTagOut
+            in
             ( { model
                 | draftModal = maybeDraft
               }
-            , Cmd.none
+            , gtagCmd
             )
 
         SetTipOpen state ->
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "Tip Window"
+                        Nothing
+                        (Just "open")
+                        Nothing
+                        |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+            in
             ( { model
                 | tipOpen = Just state
+                , gtagHistory = newGtagHistory
               }
-            , Cmd.none
+            , gtagCmd
             )
 
         CancelTipOpen ->
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "Tip Window"
+                        Nothing
+                        (Just "close")
+                        Nothing
+                        |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+            in
             ( { model
                 | tipOpen = Nothing
+                , gtagHistory = newGtagHistory
               }
-            , Cmd.none
+            , gtagCmd
             )
 
         ChangeDemoPhaceSrc ->
@@ -733,41 +791,62 @@ update msg model =
             )
 
         CookieConsentGranted ->
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "accept cookies"
+                        Nothing
+                        Nothing
+                        Nothing
+                        |> gTagOutOnlyOnceForEvent model.gtagHistory
+            in
             ( { model
                 | cookieConsentGranted = True
+                , gtagHistory = newGtagHistory
               }
             , Cmd.batch
                 [ Ports.consentToCookies ()
-                , GTagData
-                    "accept cookies"
-                    Nothing
-                    Nothing
-                    Nothing
-                    |> gTagOut
+                , gtagCmd
                 ]
             )
 
         ShowNewToSmokeSignalModal flag ->
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "New User Modal"
+                        Nothing
+                        ((if flag then
+                            "show"
+
+                          else
+                            "dismiss"
+                         )
+                            |> Just
+                        )
+                        Nothing
+                        |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+            in
             ( { model
                 | newUserModal = flag
+                , gtagHistory = newGtagHistory
               }
             , [ Ports.setVisited ()
-              , GTagData
-                    (if flag then
-                        "show newuser modal"
-
-                     else
-                        "dismiss newuser modal"
-                    )
-                    Nothing
-                    Nothing
-                    Nothing
-                    |> gTagOut
+              , gtagCmd
               ]
                 |> Cmd.batch
             )
 
         ComposeOpen ->
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "Compose Window"
+                        Nothing
+                        (Just "open")
+                        Nothing
+                        |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+            in
             ( { model
                 | compose =
                     model.compose
@@ -793,16 +872,21 @@ update msg model =
                                 }
                            )
                 , topicInput = ""
+                , gtagHistory = newGtagHistory
               }
-            , GTagData
-                "Compose Window"
-                Nothing
-                (Just "open")
-                Nothing
-                |> gTagOut
+            , gtagCmd
             )
 
         ComposeClose ->
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "Compose Window"
+                        Nothing
+                        (Just "close")
+                        Nothing
+                        |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+            in
             ( { model
                 | compose =
                     model.compose
@@ -811,55 +895,66 @@ update msg model =
                                     | modal = False
                                 }
                            )
+                , gtagHistory = newGtagHistory
               }
-            , GTagData
-                "Compose Window"
-                Nothing
-                (Just "close")
-                Nothing
-                |> gTagOut
+            , gtagCmd
             )
 
         ComposeBodyChange str ->
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "Compose Message"
+                        Nothing
+                        (Just "body change")
+                        Nothing
+                        |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+            in
             ( { model
                 | compose =
                     model.compose
                         |> (\r -> { r | body = str })
+                , gtagHistory = newGtagHistory
               }
-            , GTagData
-                "Compose Window"
-                Nothing
-                (Just "body change")
-                Nothing
-                |> gTagOut
+            , gtagCmd
             )
 
         ComposeTitleChange str ->
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "Compose Message"
+                        Nothing
+                        (Just "title change")
+                        Nothing
+                        |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+            in
             ( { model
                 | compose =
                     model.compose
                         |> (\r -> { r | title = str })
+                , gtagHistory = newGtagHistory
               }
-            , GTagData
-                "Compose Window"
-                Nothing
-                (Just "title change")
-                Nothing
-                |> gTagOut
+            , gtagCmd
             )
 
         ComposeDollarChange str ->
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "Compose Message"
+                        Nothing
+                        (Just "dollar change")
+                        Nothing
+                        |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+            in
             ( { model
                 | compose =
                     model.compose
                         |> (\r -> { r | dollar = str })
+                , gtagHistory = newGtagHistory
               }
-            , GTagData
-                "Compose Window"
-                Nothing
-                (Just "dollar change")
-                Nothing
-                |> gTagOut
+            , gtagCmd
             )
 
         TopicInputChange str ->
