@@ -1,11 +1,13 @@
-module Post exposing (currentMetadataVersion, defaultTopic, justBodyContent, messageDataDecoder, metadataDecoder)
+module Post exposing (currentMetadataVersion, defaultTopic, encodePostContent, justBodyContent, messageDataDecoder, metadataDecoder)
 
 {-| Helpers related to Post management.
 -}
 
 import Eth.Types exposing (Hex)
 import Eth.Utils
-import Json.Decode as Decode exposing (Decoder)
+import Json.Decode as Decode exposing (Decoder, Value)
+import Json.Encode as Encode
+import Result.Extra
 import String.Extra
 import Types exposing (..)
 
@@ -139,13 +141,51 @@ postIdDecoder =
 hexDecoder : Decoder Hex
 hexDecoder =
     Decode.string
-        |> Decode.map Eth.Utils.toHex
         |> Decode.andThen
-            (\result ->
-                case result of
-                    Err errStr ->
-                        Decode.fail errStr
-
-                    Ok hex ->
-                        Decode.succeed hex
+            (Eth.Utils.toHex
+                >> Result.Extra.unpack
+                    Decode.fail
+                    Decode.succeed
             )
+
+
+encodePostContent : Draft -> String
+encodePostContent draft =
+    [ ( "m", encodeContent draft.content )
+    , ( "v", Encode.int draft.metadata.metadataVersion )
+    , ( "c", encodeContext draft.metadata.context )
+    ]
+        |> Encode.object
+        |> Encode.encode 0
+        |> (++) "!smokesignal"
+
+
+encodeContent : Content -> Value
+encodeContent content =
+    [ Encode.string <| Maybe.withDefault "" <| content.title
+    , Encode.string <| Maybe.withDefault "" <| content.desc
+    , Encode.string content.body
+    ]
+        |> Encode.list identity
+
+
+encodeContext : Context -> Value
+encodeContext context =
+    case context of
+        Reply postId ->
+            Encode.object
+                [ ( "re", encodePostId postId ) ]
+
+        TopLevel topic ->
+            Encode.object
+                [ ( "topic", Encode.string topic ) ]
+
+
+encodePostId : PostId -> Value
+encodePostId postId =
+    [ Encode.int postId.block
+    , postId.messageHash
+        |> Eth.Utils.hexToString
+        |> Encode.string
+    ]
+        |> Encode.list identity

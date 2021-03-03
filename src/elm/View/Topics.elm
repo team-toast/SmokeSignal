@@ -7,10 +7,10 @@ import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (black, white)
 import Misc
+import Set
 import Theme exposing (orange)
-import TokenValue exposing (TokenValue)
 import Types exposing (..)
-import View.Attrs exposing (hover, whiteGlowAttributeSmall)
+import View.Attrs exposing (hover, sansSerifFont, whiteGlowAttributeSmall)
 import View.Img
 
 
@@ -31,17 +31,17 @@ view model =
             , Border.color Theme.almostWhite
             , whiteGlowAttributeSmall
             , Font.color white
-            , View.Attrs.onKeydown [ View.Attrs.onEnter ComposeOpen ]
+            , View.Attrs.onKeydown [ View.Attrs.onEnter TopicSubmit ]
+            , View.Attrs.sansSerifFont
             ]
             { onChange = TopicInputChange
             , text = model.topicInput
             , placeholder =
-                Just <|
-                    Input.placeholder
+                Element.text "Find topic"
+                    |> Input.placeholder
                         [ Font.color white
-                        , Font.italic
                         ]
-                        (Element.text "Create topic...")
+                    |> Just
             , label = Input.labelHidden "topic"
             }
         , Input.button
@@ -50,9 +50,10 @@ view model =
             , View.Attrs.roundBorder
             , hover
             , Element.alignRight
+            , View.Attrs.sansSerifFont
             ]
-            { onPress = Just ComposeOpen
-            , label = text "Compose"
+            { onPress = Just TopicSubmit
+            , label = text "Submit"
             }
         ]
             |> column [ padding 20, width fill, spacing 10 ]
@@ -74,10 +75,10 @@ view model =
             ]
 
 
-viewTopics : List ( String, TokenValue ) -> Element Msg
+viewTopics : List ( String, Count ) -> Element Msg
 viewTopics =
     List.map
-        (\( topic, totalBurned ) ->
+        (\( topic, count ) ->
             Input.button
                 [ width fill
                 , Background.color black
@@ -88,19 +89,39 @@ viewTopics =
                 ]
                 { onPress = Just <| GotoView <| ViewTopic topic
                 , label =
-                    [ topic
-                        |> text
-                        |> el [ width fill, Font.size 40 ]
-                    , [ View.Img.dollar 25 white
-                      , totalBurned
+                    [ [ topic
+                            |> text
+                            |> el [ width fill, Font.size 40 ]
+                      , [ View.Img.dollar 25 white
+                        , count.total
                             |> Misc.formatDollar
                             |> text
                             |> el [ Font.size 30, Font.bold ]
+                        ]
+                            |> row [ View.Attrs.sansSerifFont ]
                       ]
-                        |> row [ View.Attrs.sansSerifFont ]
-                    ]
                         |> row
                             [ width fill
+                            ]
+                    , count.ids
+                        |> Set.size
+                        |> (\len ->
+                                let
+                                    suffix =
+                                        if len == 1 then
+                                            ""
+
+                                        else
+                                            "s"
+                                in
+                                String.fromInt len ++ " post" ++ suffix
+                           )
+                        |> text
+                        |> el [ Element.alignRight, sansSerifFont ]
+                    ]
+                        |> column
+                            [ width fill
+                            , spacing 10
                             ]
                 }
         )

@@ -30,7 +30,7 @@ view :
     -> String
     -> Maybe String
     -> Maybe UserInfo
-    -> CoreData
+    -> Core
     -> Element Msg
 view dProfile timestamp now replies accounting state input topic wallet post =
     let
@@ -119,7 +119,7 @@ view dProfile timestamp now replies accounting state input topic wallet post =
             ]
 
 
-viewCard : Maybe Time.Posix -> Time.Posix -> CoreData -> Element Msg
+viewCard : Maybe Time.Posix -> Time.Posix -> Core -> Element Msg
 viewCard timestamp now post =
     let
         block =
@@ -173,7 +173,7 @@ linkToPost id elem =
         }
 
 
-viewContent : CoreData -> Element Msg
+viewContent : Core -> Element Msg
 viewContent post =
     [ post.content.title |> whenJust (text >> el [ Font.bold ])
     , post.content.desc |> whenJust (text >> el [ Font.italic ])
@@ -248,7 +248,7 @@ viewTiming maybePostTime now =
             )
 
 
-viewActions : CoreData -> String -> Maybe ShowInputState -> Element Msg
+viewActions : Core -> String -> Maybe ShowInputState -> Element Msg
 viewActions post input =
     unwrap
         ([ supportTipButton post.id

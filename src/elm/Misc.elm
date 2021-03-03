@@ -1,4 +1,4 @@
-module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyModel, encodeContent, encodeContext, encodeDraft, encodeHex, encodePostId, encodeToString, formatDollar, formatPosix, getConfig, getPostOrReply, getPrice, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
+module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyModel, formatDollar, formatPosix, getConfig, getPostOrReply, getPrice, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPosts, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
 
 import Browser.Navigation
 import Dict exposing (Dict)
@@ -7,7 +7,7 @@ import Eth.Encode
 import Eth.RPC
 import Eth.Sentry.Event
 import Eth.Sentry.Tx as TxSentry
-import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
+import Eth.Types exposing (Address, TxHash, TxReceipt)
 import Eth.Utils
 import FormatFloat
 import Helpers.Element
@@ -15,7 +15,6 @@ import Helpers.Eth
 import Helpers.Time
 import Http
 import Json.Decode as Decode
-import Json.Encode as E
 import Maybe.Extra exposing (unwrap)
 import Ports
 import Post
@@ -173,60 +172,6 @@ txInfoToNameStr txInfo =
             "Burn"
 
 
-encodeDraft : Draft -> EncodedDraft
-encodeDraft draft =
-    EncodedDraft
-        draft.core.author
-        ("!smokesignal" ++ encodeToString ( draft.core.metadata, draft.core.content ))
-        draft.core.authorBurn
-        draft.donateAmount
-
-
-encodeToString : ( Metadata, Content ) -> String
-encodeToString ( metadata, content ) =
-    E.encode 0
-        (E.object <|
-            [ ( "m", encodeContent content )
-            , ( "v", E.int metadata.metadataVersion )
-            , ( "c", encodeContext metadata.context )
-            ]
-        )
-
-
-encodeContext : Context -> E.Value
-encodeContext context =
-    case context of
-        Reply postId ->
-            E.object
-                [ ( "re", encodePostId postId ) ]
-
-        TopLevel topic ->
-            E.object
-                [ ( "topic", E.string topic ) ]
-
-
-encodePostId : PostId -> E.Value
-encodePostId postId =
-    E.list identity
-        [ E.int postId.block
-        , encodeHex postId.messageHash
-        ]
-
-
-encodeContent : Content -> E.Value
-encodeContent content =
-    E.list identity
-        [ E.string <| Maybe.withDefault "" <| content.title
-        , E.string <| Maybe.withDefault "" <| content.desc
-        , E.string content.body
-        ]
-
-
-encodeHex : Hex -> E.Value
-encodeHex =
-    Eth.Utils.hexToString >> E.string
-
-
 formatPosix : Posix -> String
 formatPosix t =
     [ [ Time.toDay Time.utc t
@@ -285,7 +230,7 @@ tryRouteToView route =
         RouteViewPost postId ->
             Ok <| ViewPost postId
 
-        RouteViewTopic topic ->
+        RouteTopic topic ->
             topic
                 |> validateTopic
                 |> Maybe.map ViewTopic
@@ -325,11 +270,12 @@ dollarStringToToken ethPrice =
             )
 
 
-sortTopics : Dict String TokenValue -> List ( String, TokenValue )
+sortTopics : Dict String Types.Count -> List ( String, Types.Count )
 sortTopics =
     Dict.toList
         >> List.sortBy
             (Tuple.second
+                >> .total
                 >> TokenValue.toFloatWithWarning
                 >> negate
             )
@@ -338,6 +284,14 @@ sortTopics =
 validateTopic : String -> Maybe String
 validateTopic =
     String.toLower
+        >> String.map
+            (\c ->
+                if Char.isAlphaNum c then
+                    c
+
+                else
+                    ' '
+            )
         >> String.Extra.clean
         >> String.replace " " "-"
         >> (\str ->
@@ -390,7 +344,7 @@ getPrice chain =
             .xDaiPrice
 
 
-getPostOrReply : PostId -> Model -> Maybe CoreData
+getPostOrReply : PostId -> Model -> Maybe Core
 getPostOrReply id model =
     let
         key =
@@ -418,3 +372,32 @@ getTxReceipt url txHash =
         , params = [ Eth.Encode.txHash txHash ]
         , decoder = Decode.nullable Eth.Decode.txReceipt
         }
+
+
+sortPosts : Dict Int Time.Posix -> Time.Posix -> Core -> Float
+sortPosts blockTimes now post =
+    let
+        postTimeDefaultZero =
+            blockTimes
+                |> Dict.get post.id.block
+                |> Maybe.withDefault (Time.millisToPosix 0)
+
+        age =
+            Helpers.Time.sub now postTimeDefaultZero
+
+        ageFactor =
+            -- 1 at age zero, falls to 0 when 3 days old
+            Helpers.Time.getRatio
+                age
+                (Helpers.Time.mul Helpers.Time.oneDay 90)
+                |> clamp 0 1
+                |> (\ascNum -> 1 - ascNum)
+
+        totalBurned =
+            post.authorBurn
+                |> TokenValue.toFloatWithWarning
+
+        newnessMultiplier =
+            (ageFactor * 4.0) + 1
+    in
+    totalBurned * newnessMultiplier

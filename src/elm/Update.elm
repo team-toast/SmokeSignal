@@ -129,8 +129,40 @@ update msg model =
                                     |> unwrap ( model, Ports.log "Transaction not found." )
                                         (\tx ->
                                             let
-                                                ( newStatus, maybePublishedPost, maybeUserNotice ) =
+                                                ( newStatus, _, maybeUserNotice ) =
                                                     handleTxReceipt tx.chain txReceipt
+
+                                                isMined =
+                                                    case newStatus of
+                                                        Mined _ ->
+                                                            True
+
+                                                        _ ->
+                                                            False
+
+                                                fetchAccounting =
+                                                    (case tx.txInfo of
+                                                        -- Rely on PostLogReceived as source of truth for post data.
+                                                        PostTx _ ->
+                                                            --maybePublishedPost
+                                                            --|> Maybe.map
+                                                            --(\r ->
+                                                            --case r of
+                                                            --LogReply p ->
+                                                            --p.core
+                                                            --LogRoot p ->
+                                                            --p.core
+                                                            --)
+                                                            Nothing
+
+                                                        TipTx id _ ->
+                                                            Misc.getPostOrReply id model
+
+                                                        BurnTx id _ ->
+                                                            Misc.getPostOrReply id model
+                                                    )
+                                                        |> unwrap Cmd.none
+                                                            (fetchPostInfo model.blockTimes model.config)
                                             in
                                             ( { model
                                                 | trackedTxs =
@@ -152,10 +184,11 @@ update msg model =
                                                                 |> unwrap [] List.singleton
                                                            )
                                               }
-                                                |> (maybePublishedPost
-                                                        |> unwrap identity addPost
-                                                   )
-                                            , Cmd.none
+                                            , if isMined then
+                                                fetchAccounting
+
+                                              else
+                                                Cmd.none
                                             )
                                         )
                             )
@@ -289,7 +322,7 @@ update msg model =
 
         PostAccountingFetched postId res ->
             case res of
-                Ok accounting ->
+                Ok accountingData ->
                     let
                         key =
                             Misc.postIdToKey postId
@@ -299,24 +332,52 @@ update msg model =
                                 |> Dict.get key
                                 |> Maybe.map .topic
 
+                        accounting =
+                            model.accounting
+                                |> Dict.insert key accountingData
+
                         updateTopics =
                             maybeTopic
                                 |> unwrap identity
                                     (\topic ->
                                         Dict.update
                                             topic
-                                            (unwrap accounting.totalBurned
-                                                (TokenValue.add
-                                                    accounting.totalBurned
+                                            (unwrap
+                                                { total = accountingData.totalBurned
+                                                , ids = Set.singleton key
+                                                }
+                                                (\data ->
+                                                    let
+                                                        ids =
+                                                            data.ids
+                                                                |> Set.insert key
+
+                                                        total =
+                                                            if Set.size data.ids == Set.size ids then
+                                                                data.total
+
+                                                            else
+                                                                ids
+                                                                    |> Set.toList
+                                                                    |> List.filterMap
+                                                                        (\id ->
+                                                                            Dict.get id accounting
+                                                                        )
+                                                                    |> List.map .totalBurned
+                                                                    |> List.foldl
+                                                                        TokenValue.add
+                                                                        TokenValue.zero
+                                                    in
+                                                    { total = total
+                                                    , ids = ids
+                                                    }
                                                 )
                                                 >> Just
                                             )
                                     )
                     in
                     ( { model
-                        | accounting =
-                            model.accounting
-                                |> Dict.insert key accounting
+                        | accounting = accounting
                         , topics =
                             model.topics
                                 |> updateTopics
@@ -540,10 +601,21 @@ update msg model =
                                             userInfo.balance
                                             /= LT
 
+                                    context =
+                                        case model.compose.context of
+                                            Types.TopLevel topic ->
+                                                model.topicInput
+                                                    |> Misc.validateTopic
+                                                    |> Maybe.withDefault topic
+                                                    |> TopLevel
+
+                                            ctx ->
+                                                ctx
+
                                     metadata =
                                         { metadataVersion =
                                             Post.currentMetadataVersion
-                                        , context = model.compose.context
+                                        , context = context
                                         , maybeDecodeError = Nothing
                                         }
 
@@ -563,12 +635,10 @@ update msg model =
 
                                 else
                                     { donateAmount = donateAmount
-                                    , core =
-                                        { author = userInfo.address
-                                        , authorBurn = burnAmount
-                                        , content = content
-                                        , metadata = metadata
-                                        }
+                                    , author = userInfo.address
+                                    , authorBurn = burnAmount
+                                    , content = content
+                                    , metadata = metadata
                                     }
                                         |> Ok
                             )
@@ -587,7 +657,6 @@ update msg model =
 
                                     txParams =
                                         postDraft
-                                            |> Misc.encodeDraft
                                             |> SSContract.burnEncodedPost userInfo config.contract
                                             |> Eth.toSend
 
@@ -597,28 +666,7 @@ update msg model =
                                         , onBroadcast = Nothing
                                         }
                                 in
-                                case userInfo.chain of
-                                    Eth ->
-                                        let
-                                            ( newSentry, cmd ) =
-                                                TxSentry.customSend model.txSentry listeners txParams
-                                        in
-                                        ( { model
-                                            | txSentry = newSentry
-                                          }
-                                        , cmd
-                                        )
-
-                                    XDai ->
-                                        let
-                                            ( newSentry, cmd ) =
-                                                TxSentry.customSend model.txSentryX listeners txParams
-                                        in
-                                        ( { model
-                                            | txSentryX = newSentry
-                                          }
-                                        , cmd
-                                        )
+                                submitTxn model userInfo.chain listeners txParams
                             )
                 )
 
@@ -649,28 +697,7 @@ update msg model =
                                         , onBroadcast = Nothing
                                         }
                                 in
-                                case userInfo.chain of
-                                    Eth ->
-                                        let
-                                            ( newSentry, cmd ) =
-                                                TxSentry.customSend model.txSentry listeners txParams
-                                        in
-                                        ( { model
-                                            | txSentry = newSentry
-                                          }
-                                        , cmd
-                                        )
-
-                                    XDai ->
-                                        let
-                                            ( newSentry, cmd ) =
-                                                TxSentry.customSend model.txSentryX listeners txParams
-                                        in
-                                        ( { model
-                                            | txSentryX = newSentry
-                                          }
-                                        , cmd
-                                        )
+                                submitTxn model userInfo.chain listeners txParams
                             )
                 )
 
@@ -701,28 +728,7 @@ update msg model =
                                         , onBroadcast = Nothing
                                         }
                                 in
-                                case userInfo.chain of
-                                    Eth ->
-                                        let
-                                            ( newSentry, cmd ) =
-                                                TxSentry.customSend model.txSentry listeners txParams
-                                        in
-                                        ( { model
-                                            | txSentry = newSentry
-                                          }
-                                        , cmd
-                                        )
-
-                                    XDai ->
-                                        let
-                                            ( newSentry, cmd ) =
-                                                TxSentry.customSend model.txSentryX listeners txParams
-                                        in
-                                        ( { model
-                                            | txSentryX = newSentry
-                                          }
-                                        , cmd
-                                        )
+                                submitTxn model userInfo.chain listeners txParams
                             )
                 )
 
@@ -798,7 +804,50 @@ update msg model =
             , Ports.setVisited ()
             )
 
+        TopicSubmit ->
+            model.topicInput
+                |> Misc.validateTopic
+                |> unwrap
+                    ( { model
+                        | userNotices =
+                            [ UN.unexpectedError "Invalid topic" ]
+                      }
+                    , Cmd.none
+                    )
+                    (\topic ->
+                        ( { model | topicInput = "" }
+                        , Browser.Navigation.pushUrl
+                            model.navKey
+                            (Routing.viewToUrlString <| ViewTopic topic)
+                        )
+                    )
+
         ComposeOpen ->
+            let
+                topic =
+                    model.topicInput
+                        |> Misc.validateTopic
+                        |> Maybe.withDefault Post.defaultTopic
+
+                context =
+                    case model.view of
+                        ViewTopic t ->
+                            Types.TopLevel t
+
+                        ViewPost id ->
+                            Types.Reply id
+
+                        _ ->
+                            Types.TopLevel topic
+
+                topicInput =
+                    case context of
+                        Types.Reply _ ->
+                            model.topicInput
+
+                        Types.TopLevel t ->
+                            t
+            in
             ( { model
                 | compose =
                     model.compose
@@ -808,22 +857,10 @@ update msg model =
                                     , title = ""
                                     , body = ""
                                     , dollar = ""
-                                    , context =
-                                        case model.view of
-                                            ViewTopic t ->
-                                                Types.TopLevel t
-
-                                            ViewPost id ->
-                                                Types.Reply id
-
-                                            _ ->
-                                                model.topicInput
-                                                    |> Misc.validateTopic
-                                                    |> Maybe.withDefault Post.defaultTopic
-                                                    |> Types.TopLevel
+                                    , context = context
                                 }
                            )
-                , topicInput = ""
+                , topicInput = topicInput
               }
             , Cmd.none
             )
@@ -930,7 +967,7 @@ handleRoute model route =
             , Cmd.none
             )
 
-        RouteViewTopic topic ->
+        RouteTopic topic ->
             topic
                 |> Misc.validateTopic
                 |> unwrap
@@ -965,7 +1002,10 @@ addPost log model =
                     model.topics
                         |> Dict.update
                             post.topic
-                            (Maybe.withDefault TokenValue.zero
+                            (Maybe.withDefault
+                                { total = TokenValue.zero
+                                , ids = Set.empty
+                                }
                                 >> Just
                             )
             }
@@ -1028,7 +1068,7 @@ handleTxReceipt chain txReceipt =
             )
 
 
-fetchPostInfo : Dict Int Time.Posix -> Config -> CoreData -> Cmd Msg
+fetchPostInfo : Dict Int Time.Posix -> Config -> Core -> Cmd Msg
 fetchPostInfo blockTimes config core =
     [ SSContract.getAccountingCmd
         (Misc.getConfig core.chain config)
@@ -1073,3 +1113,29 @@ addUserNotices notices model =
 logHttpError : String -> Http.Error -> Cmd msg
 logHttpError tag =
     Misc.parseHttpError >> (++) (tag ++ ":\n") >> Ports.log
+
+
+submitTxn : Model -> Chain -> TxSentry.CustomSend Msg -> Eth.Types.Send -> ( Model, Cmd Msg )
+submitTxn model chain listeners txParams =
+    case chain of
+        Eth ->
+            let
+                ( newSentry, cmd ) =
+                    TxSentry.customSend model.txSentry listeners txParams
+            in
+            ( { model
+                | txSentry = newSentry
+              }
+            , cmd
+            )
+
+        XDai ->
+            let
+                ( newSentry, cmd ) =
+                    TxSentry.customSend model.txSentryX listeners txParams
+            in
+            ( { model
+                | txSentryX = newSentry
+              }
+            , cmd
+            )

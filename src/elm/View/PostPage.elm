@@ -20,7 +20,7 @@ import View.Post
 import Wallet
 
 
-view : Model -> CoreData -> Element Msg
+view : Model -> Core -> Element Msg
 view model post =
     [ [ [ [ text (post.content.title |> Maybe.withDefault ". . .") ]
             |> Element.paragraph
@@ -100,6 +100,7 @@ view model post =
             (\id ->
                 Dict.get id model.replyPosts
             )
+        |> List.sortBy (.core >> Misc.sortPosts model.blockTimes model.now)
         |> List.map
             (\reply ->
                 View.Post.view
