@@ -80,7 +80,7 @@ view dProfile timestamp now replies accounting state input topic wallet post =
             post.author
             False
             ClickHappened
-      , [ viewContent post
+      , [ viewContent dProfile post
             |> linkToPost post.id
         , [ [ View.Img.speechBubble 17 almostWhite
             , text <| viewReplies replies
@@ -173,12 +173,12 @@ linkToPost id elem =
         }
 
 
-viewContent : Core -> Element Msg
-viewContent post =
+viewContent : DisplayProfile -> Core -> Element Msg
+viewContent device post =
     [ post.content.title |> whenJust (text >> List.singleton >> paragraph [ Font.bold ])
     , post.content.desc |> whenJust (text >> List.singleton >> paragraph [ Font.italic ])
     , post.content.body
-        |> View.Markdown.renderString
+        |> View.Markdown.renderString device
         |> el
             [ height <| px 100
             , Element.clip

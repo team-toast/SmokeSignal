@@ -232,7 +232,7 @@ viewBox model userInfo =
             , spellcheck = True
             }
         , model.compose.body
-            |> View.Markdown.renderString
+            |> View.Markdown.renderString model.dProfile
             |> el
                 [ width <| px 500
 
