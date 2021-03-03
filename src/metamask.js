@@ -17,6 +17,25 @@ const getAccounts = () => window.ethereum.request({ method: "eth_accounts" });
 const requestAccounts = () =>
   window.ethereum.request({ method: "eth_requestAccounts" });
 
+// https://docs.metamask.io/guide/rpc-api.html#wallet-addethereumchain
+const xDaiImport = () =>
+  window.ethereum.request({
+    method: "wallet_addEthereumChain",
+    params: [
+      // https://www.xdaichain.com/for-users/wallets/metamask/metamask-setup
+      {
+        chainId: "0x64",
+        chainName: "xDai Chain",
+        rpcUrls: ["https://rpc.xdaichain.com"],
+        blockExplorerUrls: ["https://blockscout.com/xdai/mainnet"],
+        nativeCurrency: {
+          symbol: "xDAI",
+          decimals: 18,
+        },
+      },
+    ],
+  });
+
 const getWallet = async (address) => {
   const balance = await window.ethereum.request({
     method: "eth_getBalance",
@@ -77,4 +96,5 @@ module.exports = {
   txSentry,
   requestAccounts,
   handleWalletEvents,
+  xDaiImport,
 };

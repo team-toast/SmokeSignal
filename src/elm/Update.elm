@@ -782,6 +782,11 @@ update msg model =
             , Cmd.none
             )
 
+        XDaiImport ->
+            ( model
+            , Ports.xDaiImport ()
+            )
+
         CookieConsentGranted ->
             ( { model
                 | cookieConsentGranted = True

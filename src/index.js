@@ -4,6 +4,7 @@ const {
   getWallet,
   requestAccounts,
   handleWalletEvents,
+  xDaiImport,
 } = require("./metamask.js");
 const chains = require("../config.json");
 
@@ -29,6 +30,10 @@ window.addEventListener("load", () => {
   app.ports.setVisited.subscribe(() => localStorage.setItem(HAS_VISITED, true));
 
   app.ports.log.subscribe((x) => console.log(x));
+
+  app.ports.xDaiImport.subscribe((_) =>
+    xDaiImport().then(console.log).catch(console.error)
+  );
 
   app.ports.connectToWeb3.subscribe(() =>
     (async () => {
