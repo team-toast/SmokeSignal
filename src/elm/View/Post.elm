@@ -1,6 +1,6 @@
 module View.Post exposing (view)
 
-import Element exposing (Color, Element, centerX, centerY, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
+import Element exposing (Color, Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border
 import Element.Font as Font
@@ -175,8 +175,8 @@ linkToPost id elem =
 
 viewContent : Core -> Element Msg
 viewContent post =
-    [ post.content.title |> whenJust (text >> el [ Font.bold ])
-    , post.content.desc |> whenJust (text >> el [ Font.italic ])
+    [ post.content.title |> whenJust (text >> List.singleton >> paragraph [ Font.bold ])
+    , post.content.desc |> whenJust (text >> List.singleton >> paragraph [ Font.italic ])
     , post.content.body
         |> View.Markdown.renderString
         |> el
