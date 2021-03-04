@@ -54,15 +54,15 @@ view dProfile timestamp now replies accounting state input topic wallet post =
       , [ topic
             |> whenJust
                 (\t ->
-                    Input.button [ Font.size 30, hover ]
+                    Input.button [ Font.size 30, hover, width fill ]
                         { onPress = Just <| GotoView <| ViewTopic t
                         , label =
                             "#"
                                 ++ t
-                                |> text
+                                |> View.Common.ellipsisText 30
                         }
                 )
-            |> el []
+            |> el [ width fill ]
         , viewCard timestamp now post
             |> when (not isMobile)
         ]

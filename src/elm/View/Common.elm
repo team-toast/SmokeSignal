@@ -1,4 +1,4 @@
-module View.Common exposing (appStatusMessage, phaceElement, verticalRule, viewChain, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (appStatusMessage, ellipsisText, phaceElement, verticalRule, viewChain, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
@@ -11,9 +11,11 @@ import Element.Input as Input
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black)
+import Html
+import Html.Attributes
 import Phace
 import Types exposing (..)
-import View.Attrs
+import View.Attrs exposing (style)
 import View.Img
 
 
@@ -156,3 +158,24 @@ verticalRule : Color -> Element msg
 verticalRule col =
     Element.none
         |> el [ width <| px 1, height fill, Background.color col ]
+
+
+ellipsisText : Int -> String -> Element msg
+ellipsisText n txt =
+    Html.div
+        [ Html.Attributes.style "overflow" "hidden"
+        , Html.Attributes.style "text-overflow" "ellipsis"
+        , Html.Attributes.style "white-space" "nowrap"
+        , Html.Attributes.style "height" <| String.fromInt n ++ "px"
+        , Html.Attributes.style "display" "table-cell"
+        , Html.Attributes.title txt
+        ]
+        [ Html.text txt
+        ]
+        |> Element.html
+        |> el
+            [ width fill
+            , style "width" "100%"
+            , style "table-layout" "fixed"
+            , style "display" "table"
+            ]
