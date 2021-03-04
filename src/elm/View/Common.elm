@@ -1,4 +1,4 @@
-module View.Common exposing (appStatusMessage, ellipsisText, phaceElement, verticalRule, viewChain, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (appStatusMessage, cancel, ellipsisText, phaceElement, verticalRule, viewChain, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
@@ -179,3 +179,15 @@ ellipsisText n txt =
             , style "table-layout" "fixed"
             , style "display" "table"
             ]
+
+
+cancel : msg -> Element msg
+cancel msg =
+    Input.button
+        [ Font.underline
+        , View.Attrs.hover
+        , View.Attrs.sansSerifFont
+        ]
+        { onPress = Just msg
+        , label = text "Cancel"
+        }

@@ -289,13 +289,7 @@ viewActions post input =
                     }
               ]
                 |> row [ spacing 5, width fill ]
-            , [ Input.button
-                    [ Font.underline
-                    , hover
-                    ]
-                    { onPress = Just CancelTipOpen
-                    , label = text "Cancel"
-                    }
+            , [ View.Common.cancel CancelTipOpen
               , Input.button
                     [ Background.color Theme.orange
                     , padding 10

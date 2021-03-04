@@ -2,6 +2,11 @@ body {
   background-color: #ffffff;
 }
 
+.multiline > label,
+.multiline > label > div {
+  flex-grow: 1;
+}
+
 @keyframes rotation {
   from {
     transform: rotate(0deg);

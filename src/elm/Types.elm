@@ -116,6 +116,8 @@ type Msg
     | RpcResponse (Result Http.Error UserInfo)
     | TopicSubmit
     | XDaiImport
+    | SanitizeTopic
+    | PreviewSet Bool
 
 
 type alias PostKey =
@@ -167,6 +169,7 @@ type alias ComposeModel =
     , modal : Bool
     , donate : Bool
     , context : Context
+    , preview : Bool
     }
 
 

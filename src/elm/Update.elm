@@ -59,6 +59,15 @@ update msg model =
         Tick newTime ->
             ( { model | now = newTime }, Cmd.none )
 
+        PreviewSet val ->
+            ( { model
+                | compose =
+                    model.compose
+                        |> (\r -> { r | preview = val })
+              }
+            , Cmd.none
+            )
+
         Resize width _ ->
             ( { model
                 | dProfile =
@@ -913,6 +922,16 @@ update msg model =
         TopicInputChange str ->
             ( { model
                 | topicInput = str
+              }
+            , Cmd.none
+            )
+
+        SanitizeTopic ->
+            ( { model
+                | topicInput =
+                    model.topicInput
+                        |> Misc.validateTopic
+                        |> Maybe.withDefault Post.defaultTopic
               }
             , Cmd.none
             )
