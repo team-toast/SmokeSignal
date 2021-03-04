@@ -116,6 +116,7 @@ type Msg
     | RpcResponse (Result Http.Error UserInfo)
     | TopicSubmit
     | XDaiImport
+    | SanitizeTopic
     | PreviewSet Bool
 
 

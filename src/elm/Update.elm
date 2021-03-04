@@ -926,6 +926,16 @@ update msg model =
             , Cmd.none
             )
 
+        SanitizeTopic ->
+            ( { model
+                | topicInput =
+                    model.topicInput
+                        |> Misc.validateTopic
+                        |> Maybe.withDefault Post.defaultTopic
+              }
+            , Cmd.none
+            )
+
         GoBack ->
             ( model
               -- To prevent navigating to a previous website

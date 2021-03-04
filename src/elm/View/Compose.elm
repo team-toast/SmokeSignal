@@ -3,6 +3,7 @@ module View.Compose exposing (view)
 import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (DisplayProfile(..), black, white)
@@ -112,6 +113,7 @@ viewBox model userInfo =
                             , topRight = 5
                             }
                         , spacing 0
+                        , Element.Events.onLoseFocus SanitizeTopic
                         ]
                         { onChange = TopicInputChange
                         , label =
