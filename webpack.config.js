@@ -1,5 +1,6 @@
 const { resolve } = require("path");
 const webpack = require("webpack");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 const { ENV, ETH_PROVIDER_URL, XDAI_PROVIDER_URL } = process.env;
 
@@ -36,9 +37,9 @@ module.exports = {
     hotOnly: true,
   },
   output: {
-    publicPath: "/",
+    publicPath: "./",
     path: publicFolder,
-    filename: "bundle.js",
+    filename: "bundle.js?t=" + new Date().getTime(),
   },
   module: {
     rules: [
@@ -49,7 +50,7 @@ module.exports = {
       },
       {
         test: /\.(woff(2)?|ttf)$/,
-        use: ["base64-inline-loader"],
+        type: "asset/inline",
       },
       {
         test: /\.css$/,
@@ -59,6 +60,11 @@ module.exports = {
   },
   plugins: [
     new webpack.NoEmitOnErrorsPlugin(),
+    new HtmlWebpackPlugin({
+      cache: false,
+      minify: false,
+      template: "./src/index.html",
+    }),
     new webpack.DefinePlugin({
       ETH_PROVIDER_URL: JSON.stringify(ETH_PROVIDER_URL),
       XDAI_PROVIDER_URL: JSON.stringify(XDAI_PROVIDER_URL),
