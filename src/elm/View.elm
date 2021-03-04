@@ -91,7 +91,7 @@ viewPage model =
             , Background.color black
             , padding 20
             ]
-        |> View.Common.when (model.dProfile == Mobile)
+        |> View.Common.when (not isDesktop && not model.compose.modal)
     ]
         |> column
             [ width fill

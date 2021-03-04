@@ -59,6 +59,15 @@ update msg model =
         Tick newTime ->
             ( { model | now = newTime }, Cmd.none )
 
+        PreviewSet val ->
+            ( { model
+                | compose =
+                    model.compose
+                        |> (\r -> { r | preview = val })
+              }
+            , Cmd.none
+            )
+
         Resize width _ ->
             ( { model
                 | dProfile =

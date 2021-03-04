@@ -69,6 +69,7 @@ emptyModel key =
         , modal = False
         , donate = True
         , context = TopLevel Post.defaultTopic
+        , preview = False
         }
     , tipOpen = Nothing
     , rootPosts = Dict.empty
