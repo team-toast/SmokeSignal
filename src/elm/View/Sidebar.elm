@@ -75,7 +75,7 @@ viewTopics =
                 { onPress = Just <| GotoView <| ViewTopic topic
                 , label =
                     [ topic
-                        |> text
+                        |> View.Common.ellipsisText 30
                         |> el [ width fill, Font.size 30 ]
                     , [ Element.image
                             [ height <| px 25
@@ -96,7 +96,7 @@ viewTopics =
                             ]
                 }
         )
-        >> column [ width fill ]
+        >> column [ width <| px 400 ]
 
 
 viewWallet : Model -> Element Msg
