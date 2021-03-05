@@ -51,13 +51,17 @@ viewBox model userInfo =
             model.dProfile == Helpers.Element.Mobile
 
         validTopic =
-            model.topicInput
-                |> Misc.validateTopic
-                |> (/=) Nothing
+            case model.compose.context of
+                Reply _ ->
+                    True
+
+                TopLevel _ ->
+                    model.topicInput
+                        |> Misc.validateTopic
+                        |> (/=) Nothing
 
         submitEnabled =
             not (String.isEmpty model.compose.body)
-                && not (String.isEmpty model.compose.dollar)
                 && validTopic
 
         whitespace =
@@ -153,76 +157,7 @@ viewBox model userInfo =
                )
         ]
             |> column [ width fill, spacing 10, sansSerifFont ]
-      , [ if model.compose.preview then
-            model.compose.body
-                |> View.Markdown.renderString model.dProfile
-                |> el
-                    [ width fill
-                    , height fill
-                    , Element.scrollbarY
-                    , whiteGlowAttributeSmall
-                    , Font.color white
-                    , padding 10
-                    ]
-                |> List.singleton
-                |> column [ width fill, height fill ]
-
-          else
-            Input.multiline
-                [ if isMobile then
-                    width fill
-
-                  else
-                    width <| px 500
-                , if isMobile then
-                    height fill
-
-                  else
-                    height <| px 500
-                , View.Attrs.whiteGlowAttributeSmall
-                , Background.color black
-                , Font.color white
-                , height <| px 0
-                ]
-                { onChange = Types.ComposeBodyChange
-                , label = Input.labelHidden ""
-                , placeholder =
-                    "What do you want to say?"
-                        |> text
-                        |> Input.placeholder []
-                        |> Just
-                , text = model.compose.body
-                , spellcheck = True
-                }
-                |> el
-                    [ Html.Attributes.class "multiline"
-                        |> Element.htmlAttribute
-                    , Element.scrollbarY
-                    , height fill
-                    , width fill
-                    ]
-        , model.compose.body
-            |> View.Markdown.renderString model.dProfile
-            |> el
-                [ width <| px 500
-
-                --, height fill
-                , Element.scrollbarY
-                , height <| px 500
-
-                --, View.Attrs.style "min-height" "auto"
-                , whiteGlowAttributeSmall
-                , Font.color white
-                , padding 10
-                ]
-            |> when (not isMobile)
-        ]
-            |> row
-                [ height fill
-                , width fill
-                , spacing 30
-                , sansSerifFont
-                ]
+      , viewMarkdown model
       , [ [ Input.checkbox
                 [ width <| px 30
                 , height <| px 30
@@ -352,3 +287,100 @@ viewBurnBox donate txt =
             ]
     ]
         |> column [ spacing 10 ]
+
+
+viewMarkdown : Model -> Element Msg
+viewMarkdown model =
+    let
+        isMobile =
+            model.dProfile == Helpers.Element.Mobile
+    in
+    if isMobile then
+        if model.compose.preview then
+            model.compose.body
+                |> View.Markdown.renderString model.dProfile
+                |> el
+                    [ width fill
+                    , height fill
+                    , Element.scrollbarY
+                    , whiteGlowAttributeSmall
+                    , Font.color white
+                    , padding 10
+                    ]
+                |> List.singleton
+                |> column [ width fill, height fill ]
+
+        else
+            Input.multiline
+                [ if isMobile then
+                    width fill
+
+                  else
+                    width <| px 500
+                , if isMobile then
+                    height fill
+
+                  else
+                    height <| px 500
+                , View.Attrs.whiteGlowAttributeSmall
+                , Background.color black
+                , Font.color white
+                , height <| px 0
+                ]
+                { onChange = Types.ComposeBodyChange
+                , label = Input.labelHidden ""
+                , placeholder =
+                    "What do you want to say?"
+                        |> text
+                        |> Input.placeholder []
+                        |> Just
+                , text = model.compose.body
+                , spellcheck = True
+                }
+                |> el
+                    [ Html.Attributes.class "multiline"
+                        |> Element.htmlAttribute
+                    , Element.scrollbarY
+                    , height fill
+                    , width fill
+                    ]
+
+    else
+        [ Input.multiline
+            [ width <| px 500
+            , height <| px 500
+            , View.Attrs.whiteGlowAttributeSmall
+            , Background.color black
+            , Font.color white
+            ]
+            { onChange = Types.ComposeBodyChange
+            , label = Input.labelHidden ""
+            , placeholder =
+                "What do you want to say?"
+                    |> text
+                    |> Input.placeholder []
+                    |> Just
+            , text = model.compose.body
+            , spellcheck = True
+            }
+        , model.compose.body
+            |> View.Markdown.renderString model.dProfile
+            |> el
+                [ width <| px 500
+
+                --, height fill
+                , Element.scrollbarY
+                , height <| px 500
+
+                --, View.Attrs.style "min-height" "auto"
+                , whiteGlowAttributeSmall
+                , Font.color white
+                , padding 10
+                ]
+        ]
+            |> row
+                [ height fill
+                , width fill
+                , spacing 30
+                , sansSerifFont
+                ]
