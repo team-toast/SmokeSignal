@@ -503,11 +503,6 @@ update msg model =
 
                 Err errStr ->
                     ( model
-                        |> addUserNotice
-                            (UN.web3SigError
-                                (txInfoToNameStr txInfo)
-                                errStr
-                            )
                     , Ports.log <| "TxSigned error:\n" ++ errStr
                     )
 
