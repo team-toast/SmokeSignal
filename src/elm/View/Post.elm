@@ -26,13 +26,12 @@ view :
     -> Posix
     -> Set.Set Types.PostKey
     -> Maybe Accounting
-    -> Maybe ShowInputState
-    -> String
+    -> Maybe PostState
     -> Maybe String
     -> Maybe UserInfo
     -> Core
     -> Element Msg
-view dProfile timestamp now replies accounting state input topic wallet post =
+view dProfile timestamp now replies accounting state topic wallet post =
     let
         isMobile =
             dProfile == EH.Mobile
@@ -84,7 +83,7 @@ view dProfile timestamp now replies accounting state input topic wallet post =
                     , Font.size 17
                     , width fill
                     ]
-          , viewActions post input state
+          , viewActions post state
                 |> when showActions
           ]
             |> (if isMobile then
@@ -288,30 +287,30 @@ viewTiming maybePostTime now =
             )
 
 
-viewActions : Core -> String -> Maybe ShowInputState -> Element Msg
-viewActions post input =
+viewActions : Core -> Maybe PostState -> Element Msg
+viewActions post =
     unwrap
         ([ supportTipButton post.id
          , supportBurnButton post.id
          ]
             |> row [ spacing 10, Element.alignRight ]
         )
-        (\showInput ->
+        (\state ->
             let
                 title =
-                    case showInput of
-                        Tip _ ->
+                    case state.showInput of
+                        Tip ->
                             "Tip Ether for this post, rewarding the author."
 
-                        Burn _ ->
+                        Burn ->
                             "Burn Ether to increase the visibility of this post."
 
                 msg =
-                    case showInput of
-                        Tip _ ->
+                    case state.showInput of
+                        Tip ->
                             SubmitTip post.id
 
-                        Burn _ ->
+                        Burn ->
                             --"Burn DAI to increase this post's visibility"
                             SubmitBurn post.id
             in
@@ -319,14 +318,14 @@ viewActions post input =
                 |> paragraph []
             , [ View.Img.dollar 30 white
               , Input.text [ Font.color black ]
-                    { onChange = ComposeDollarChange
+                    { onChange = PostInputChange
                     , label = Input.labelHidden ""
                     , placeholder =
                         "00.00"
                             |> text
                             |> Input.placeholder []
                             |> Just
-                    , text = input
+                    , text = state.input
                     }
               ]
                 |> row [ spacing 5, width fill ]
@@ -366,7 +365,7 @@ supportTipButton postId =
         , EH.withTitle "Tip DAI for this post, rewarding the author"
         , hover
         ]
-        { onPress = Just <| SetTipOpen <| PostState postId (Types.Tip "")
+        { onPress = Just <| SetTipOpen <| PostState postId "" Types.Tip
         , label =
             View.Img.dollar 30 white
                 |> el [ centerX, centerY ]
@@ -384,7 +383,7 @@ supportBurnButton postId =
         , EH.withTitle "Burn DAI to increase this post's visibility"
         , hover
         ]
-        { onPress = Just <| SetTipOpen <| PostState postId (Types.Burn "")
+        { onPress = Just <| SetTipOpen <| PostState postId "" Types.Burn
         , label =
             View.Img.dollar 30 white
                 |> el [ centerX, centerY ]

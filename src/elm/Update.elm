@@ -99,7 +99,7 @@ update msg model =
                     (\info ->
                         ( { model
                             | wallet = Active info
-                            , tipOpen = Nothing
+                            , postState = Nothing
                           }
                         , Cmd.none
                         )
@@ -715,14 +715,14 @@ update msg model =
 
         SetTipOpen state ->
             ( { model
-                | tipOpen = Just state
+                | postState = Just state
               }
             , Cmd.none
             )
 
         CancelTipOpen ->
             ( { model
-                | tipOpen = Nothing
+                | postState = Nothing
               }
             , Cmd.none
             )
@@ -878,6 +878,15 @@ update msg model =
         TopicInputChange str ->
             ( { model
                 | topicInput = str
+              }
+            , Cmd.none
+            )
+
+        PostInputChange str ->
+            ( { model
+                | postState =
+                    model.postState
+                        |> Maybe.map (\r -> { r | input = str })
               }
             , Cmd.none
             )

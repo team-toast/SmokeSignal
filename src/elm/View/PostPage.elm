@@ -138,17 +138,16 @@ view model post =
                     (model.accounting
                         |> Dict.get reply.core.key
                     )
-                    (model.tipOpen
+                    (model.postState
                         |> Maybe.andThen
                             (\x ->
                                 if x.id == reply.core.id then
-                                    Just x.showInput
+                                    Just x
 
                                 else
                                     Nothing
                             )
                     )
-                    model.compose.dollar
                     Nothing
                     (Wallet.userInfo model.wallet)
                     reply.core
