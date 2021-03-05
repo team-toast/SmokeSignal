@@ -25,7 +25,7 @@ import Routing exposing (viewToUrlString)
 import Set
 import Task
 import Time
-import TokenValue
+import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import Url
 import UserNotice as UN exposing (UserNotice)
@@ -591,9 +591,8 @@ update msg model =
             ensureUserInfo
                 (\userInfo ->
                     model.compose.dollar
-                        |> Misc.dollarStringToToken
+                        |> getBurnAmount
                             (Misc.getPrice userInfo.chain model)
-                        |> Result.fromMaybe "Invalid input"
                         |> Result.andThen
                             (\burnAmount ->
                                 let
@@ -683,13 +682,15 @@ update msg model =
             ensureUserInfo
                 (\userInfo ->
                     model.compose.dollar
-                        |> Misc.dollarStringToToken
+                        |> getBurnAmount
                             (Misc.getPrice userInfo.chain model)
-                        |> unwrap
-                            ( { model
-                                | userNotices = [ UN.unexpectedError "Invalid input" ]
-                              }
-                            , Cmd.none
+                        |> unpack
+                            (\err ->
+                                ( { model
+                                    | userNotices = [ UN.unexpectedError err ]
+                                  }
+                                , Cmd.none
+                                )
                             )
                             (\amount ->
                                 let
@@ -714,13 +715,15 @@ update msg model =
             ensureUserInfo
                 (\userInfo ->
                     model.compose.dollar
-                        |> Misc.dollarStringToToken
+                        |> getBurnAmount
                             (Misc.getPrice userInfo.chain model)
-                        |> unwrap
-                            ( { model
-                                | userNotices = [ UN.unexpectedError "Invalid input" ]
-                              }
-                            , Cmd.none
+                        |> unpack
+                            (\err ->
+                                ( { model
+                                    | userNotices = [ UN.unexpectedError err ]
+                                  }
+                                , Cmd.none
+                                )
                             )
                             (\amount ->
                                 let
@@ -1163,3 +1166,14 @@ submitTxn model chain listeners txParams =
               }
             , cmd
             )
+
+
+getBurnAmount : Float -> String -> Result String TokenValue
+getBurnAmount price txt =
+    if String.isEmpty txt then
+        Ok TokenValue.zero
+
+    else
+        txt
+            |> Misc.dollarStringToToken price
+            |> Result.fromMaybe "Invalid burn amount"
