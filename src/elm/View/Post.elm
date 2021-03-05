@@ -37,14 +37,6 @@ view dProfile timestamp now replies accounting state input topic wallet post =
         isMobile =
             dProfile == EH.Mobile
 
-        block =
-            "Block "
-                ++ String.fromInt post.id.block
-                |> text
-
-        timing =
-            viewTiming timestamp now
-
         showActions =
             wallet
                 |> unwrap False (.chain >> (==) post.chain)
@@ -69,10 +61,7 @@ view dProfile timestamp now replies accounting state input topic wallet post =
             |> row [ width fill, spaceEvenly ]
       ]
         |> row [ width fill, spacing 10 ]
-    , [ block
-      , timing
-      ]
-        |> column [ width fill, spacing 10 ]
+    , viewCardMobile timestamp now post
         |> when isMobile
     , [ phaceElement
             ( 60, 60 )
@@ -88,15 +77,22 @@ view dProfile timestamp now replies accounting state input topic wallet post =
                 |> row [ spacing 10, Font.size 23 ]
                 |> linkToPost post.id
                 |> el
+                    [ Element.alignRight
+                    ]
+                |> el
                     [ Font.color almostWhite
                     , Font.size 17
                     , width fill
-                    , Element.alignTop
                     ]
           , viewActions post input state
                 |> when showActions
           ]
-            |> row [ width fill, spaceEvenly ]
+            |> (if isMobile then
+                    column [ width fill, spacing 10 ]
+
+                else
+                    row [ width fill, spaceEvenly ]
+               )
         ]
             |> column
                 [ spacing 10
@@ -117,6 +113,50 @@ view dProfile timestamp now replies accounting state input topic wallet post =
             , width fill
             , typeFont
             ]
+
+
+viewCardMobile : Maybe Time.Posix -> Time.Posix -> Core -> Element Msg
+viewCardMobile timestamp now post =
+    let
+        block =
+            "@"
+                ++ String.fromInt post.id.block
+                |> text
+
+        timing =
+            viewTiming timestamp now
+
+        col =
+            case post.chain of
+                Types.XDai ->
+                    Theme.softRed
+
+                Types.Eth ->
+                    Theme.orange
+    in
+    Element.newTabLink
+        [ hover
+        , Background.color col
+        , Font.color white
+        , roundBorder
+        , padding 10
+        , View.Attrs.sansSerifFont
+        , width fill
+        ]
+        { url = Misc.txUrl post.chain post.txHash
+        , label =
+            [ View.Common.viewChain post.chain
+            , View.Common.verticalRule white
+            , block
+            , View.Common.verticalRule white
+            , timing
+            ]
+                |> row
+                    [ spaceEvenly
+                    , Font.size 17
+                    , width fill
+                    ]
+        }
 
 
 viewCard : Maybe Time.Posix -> Time.Posix -> Core -> Element Msg
@@ -254,7 +294,7 @@ viewActions post input =
         ([ supportTipButton post.id
          , supportBurnButton post.id
          ]
-            |> row [ spacing 10 ]
+            |> row [ spacing 10, Element.alignRight ]
         )
         (\showInput ->
             let
@@ -275,7 +315,8 @@ viewActions post input =
                             --"Burn DAI to increase this post's visibility"
                             SubmitBurn post.id
             in
-            [ text title
+            [ [ text title ]
+                |> paragraph []
             , [ View.Img.dollar 30 white
               , Input.text [ Font.color black ]
                     { onChange = ComposeDollarChange
@@ -305,7 +346,7 @@ viewActions post input =
             ]
                 |> column
                     [ Background.color black
-                    , spacing 20
+                    , spacing 10
                     , padding 10
                     , width fill
                     , Font.color white
