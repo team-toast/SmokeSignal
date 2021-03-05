@@ -93,7 +93,6 @@ type Msg
     | ComposeClose
     | BalanceFetched Address (Result Http.Error TokenValue)
     | CookieConsentGranted
-    | StartInlineCompose Context
     | GotoView View
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId

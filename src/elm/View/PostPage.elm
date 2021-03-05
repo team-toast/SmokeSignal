@@ -32,6 +32,10 @@ view model post =
 
             else
                 50
+
+        walletActive =
+            model.wallet
+                |> Wallet.isActive
     in
     [ [ [ [ text (post.content.title |> Maybe.withDefault ". . .") ]
             |> Element.paragraph
@@ -100,6 +104,7 @@ view model post =
                 ]
                     |> row [ spacing 10, Font.size 20 ]
             }
+            |> when walletActive
         ]
             |> row [ spacing 10, Element.alignRight ]
       ]

@@ -13,7 +13,7 @@ import Misc
 import Theme exposing (orange, theme)
 import Types exposing (..)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
-import View.Common exposing (when, wrapModal)
+import View.Common exposing (when, whenAttr, wrapModal)
 import View.Img
 import View.Markdown
 import Wallet
@@ -228,6 +228,9 @@ viewBox model userInfo =
             , height fill
             , Background.color black
             , whiteGlowAttributeSmall
+                |> whenAttr (not isMobile)
+            , View.Attrs.style "z-index" "2000"
+            , sansSerifFont
             ]
 
 
@@ -382,5 +385,4 @@ viewMarkdown model =
                 [ height fill
                 , width fill
                 , spacing 30
-                , sansSerifFont
                 ]

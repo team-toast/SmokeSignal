@@ -476,23 +476,6 @@ update msg model =
                     , Cmd.none
                     )
 
-        -- RestoreDraft draft ->
-        --     { model
-        --         | draftModal = Nothing
-        --         --, composeUXModel =
-        --         --model.composeUXModel
-        --         --|> (\composeUXModel ->
-        --         --{ composeUXModel
-        --         --| content = draft.core.content
-        --         --, daiInput =
-        --         --draft.core.authorBurn
-        --         --|> TokenValue.toFloatString Nothing
-        --         --}
-        --         --)
-        --         -- TODO
-        --         --|> identity
-        --     }
-        --         |> (GotoView <| ViewCompose draft.core.metadata.context)
         DismissNotice id ->
             ( { model
                 | userNotices =
@@ -552,36 +535,6 @@ update msg model =
             , Cmd.none
             )
 
-        StartInlineCompose _ ->
-            ( model, Cmd.none )
-
-        --     case model.dProfile of
-        --         Desktop ->
-        --             ( { model
-        --                 | showHalfComposeUX = True
-        --                 --, composeUXModel =
-        --                 --model.composeUXModel
-        --                 -- TODO
-        --                 --|> ComposeUX.updateContext composeContext
-        --               }
-        --             , Cmd.none
-        --             )
-        --         Mobile ->
-        --             model
-        --                 |> (GotoView <|
-        --                         Routing.Compose composeContext
-        --                    )
-        -- case model.view of
-        --     ViewCompose context ->
-        --         model
-        --             |> gotoView contextToView
-        --     _ ->
-        --         ( model, Cmd.none )
-        -- ( { model
-        --     | showHalfComposeUX = False
-        --   }
-        -- , Cmd.none
-        -- )
         AddUserNotice userNotice ->
             ( model |> addUserNotice userNotice
             , Cmd.none
