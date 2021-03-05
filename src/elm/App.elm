@@ -3,6 +3,7 @@ module App exposing (main)
 import Browser.Events
 import Browser.Hashbang
 import Browser.Navigation
+import Chain
 import Contracts.SmokeSignal
 import Eth.Sentry.Event
 import Eth.Sentry.Tx
@@ -43,7 +44,7 @@ init flags url key =
     in
     flags.chains
         |> Json.Decode.decodeValue
-            (Wallet.chainDecoder flags)
+            (Chain.chainDecoder flags)
         |> Result.toMaybe
         |> unwrap
             ( { model

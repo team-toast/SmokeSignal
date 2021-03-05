@@ -16,7 +16,7 @@ import Http
 import Json.Decode
 import List.Extra
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (txInfoToNameStr)
+import Misc
 import Ports
 import Post
 import Random
@@ -539,7 +539,7 @@ update msg model =
             ensureUserInfo
                 (\userInfo ->
                     model.compose.dollar
-                        |> getBurnAmount
+                        |> getPostBurnAmount
                             (Misc.getPrice userInfo.chain model)
                         |> Result.andThen
                             (\burnAmount ->
@@ -626,12 +626,13 @@ update msg model =
                             )
                 )
 
-        SubmitBurn postId ->
+        SubmitBurn txt postId ->
             ensureUserInfo
                 (\userInfo ->
-                    model.compose.dollar
-                        |> getBurnAmount
+                    txt
+                        |> Misc.dollarStringToToken
                             (Misc.getPrice userInfo.chain model)
+                        |> Result.fromMaybe "Invalid burn amount"
                         |> unpack
                             (\err ->
                                 ( { model
@@ -659,12 +660,13 @@ update msg model =
                             )
                 )
 
-        SubmitTip postId ->
+        SubmitTip txt postId ->
             ensureUserInfo
                 (\userInfo ->
-                    model.compose.dollar
-                        |> getBurnAmount
+                    txt
+                        |> Misc.dollarStringToToken
                             (Misc.getPrice userInfo.chain model)
+                        |> Result.fromMaybe "Invalid tip amount"
                         |> unpack
                             (\err ->
                                 ( { model
@@ -1125,8 +1127,8 @@ submitTxn model chain listeners txParams =
             )
 
 
-getBurnAmount : Float -> String -> Result String TokenValue
-getBurnAmount price txt =
+getPostBurnAmount : Float -> String -> Result String TokenValue
+getPostBurnAmount price txt =
     if String.isEmpty txt then
         Ok TokenValue.zero
 

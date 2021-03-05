@@ -98,8 +98,8 @@ type Msg
     | ShowOrHideAddress PhaceIconId
     | AddUserNotice UN.UserNotice
     | SubmitDraft
-    | SubmitTip PostId
-    | SubmitBurn PostId
+    | SubmitTip String PostId
+    | SubmitBurn String PostId
     | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool
     | EthPriceFetched (Result Http.Error Float)

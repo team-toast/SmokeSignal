@@ -1,5 +1,6 @@
 module View.Post exposing (view)
 
+import Chain
 import Element exposing (Color, Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border
@@ -297,22 +298,24 @@ viewActions post =
         )
         (\state ->
             let
+                name =
+                    Chain.getName post.chain
+
                 title =
                     case state.showInput of
                         Tip ->
-                            "Tip Ether for this post, rewarding the author."
+                            "Tip " ++ name ++ " for this post, rewarding the author."
 
                         Burn ->
-                            "Burn Ether to increase the visibility of this post."
+                            "Burn " ++ name ++ " to increase the visibility of this post."
 
                 msg =
                     case state.showInput of
                         Tip ->
-                            SubmitTip post.id
+                            SubmitTip state.input post.id
 
                         Burn ->
-                            --"Burn DAI to increase this post's visibility"
-                            SubmitBurn post.id
+                            SubmitBurn state.input post.id
             in
             [ [ text title ]
                 |> paragraph []
@@ -362,7 +365,7 @@ supportTipButton postId =
         [ height <| px 40
         , Background.color theme.daiTippedBackground
         , width <| px 40
-        , EH.withTitle "Tip DAI for this post, rewarding the author"
+        , EH.withTitle "Tip for this post, rewarding the author."
         , hover
         ]
         { onPress = Just <| SetTipOpen <| PostState postId "" Types.Tip
@@ -380,7 +383,7 @@ supportBurnButton postId =
         [ height <| px 40
         , Background.color theme.daiBurnedBackground
         , width <| px 40
-        , EH.withTitle "Burn DAI to increase this post's visibility"
+        , EH.withTitle "Burn to increase the visibility of this post."
         , hover
         ]
         { onPress = Just <| SetTipOpen <| PostState postId "" Types.Burn

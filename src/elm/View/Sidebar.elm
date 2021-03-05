@@ -1,5 +1,6 @@
 module View.Sidebar exposing (view, viewWallet)
 
+import Chain
 import Element exposing (Element, centerX, centerY, column, el, fill, height, paddingXY, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -156,20 +157,12 @@ viewWallet model =
                     let
                         userHasNoEth =
                             TokenValue.isZero userInfo.balance
-
-                        name =
-                            case userInfo.chain of
-                                Eth ->
-                                    "Eth"
-
-                                XDai ->
-                                    "xDai"
                     in
                     if userHasNoEth then
                         ( "Compose Post"
                         , Nothing
                         , "That address has no "
-                            ++ name
+                            ++ Chain.getName userInfo.chain
                             ++ "! You will need to transfer some to post on SmokeSignal."
                             |> Just
                         )
