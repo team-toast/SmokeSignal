@@ -16,7 +16,7 @@ import Http
 import Json.Decode
 import List.Extra
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (txInfoToNameStr)
+import Misc
 import Ports
 import Post
 import Random
@@ -25,7 +25,7 @@ import Routing exposing (viewToUrlString)
 import Set
 import Task
 import Time
-import TokenValue
+import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import Url
 import UserNotice as UN exposing (UserNotice)
@@ -99,7 +99,7 @@ update msg model =
                     (\info ->
                         ( { model
                             | wallet = Active info
-                            , tipOpen = Nothing
+                            , postState = Nothing
                           }
                         , Cmd.none
                         )
@@ -476,23 +476,6 @@ update msg model =
                     , Cmd.none
                     )
 
-        -- RestoreDraft draft ->
-        --     { model
-        --         | draftModal = Nothing
-        --         --, composeUXModel =
-        --         --model.composeUXModel
-        --         --|> (\composeUXModel ->
-        --         --{ composeUXModel
-        --         --| content = draft.core.content
-        --         --, daiInput =
-        --         --draft.core.authorBurn
-        --         --|> TokenValue.toFloatString Nothing
-        --         --}
-        --         --)
-        --         -- TODO
-        --         --|> identity
-        --     }
-        --         |> (GotoView <| ViewCompose draft.core.metadata.context)
         DismissNotice id ->
             ( { model
                 | userNotices =
@@ -520,11 +503,6 @@ update msg model =
 
                 Err errStr ->
                     ( model
-                        |> addUserNotice
-                            (UN.web3SigError
-                                (txInfoToNameStr txInfo)
-                                errStr
-                            )
                     , Ports.log <| "TxSigned error:\n" ++ errStr
                     )
 
@@ -552,36 +530,6 @@ update msg model =
             , Cmd.none
             )
 
-        StartInlineCompose _ ->
-            ( model, Cmd.none )
-
-        --     case model.dProfile of
-        --         Desktop ->
-        --             ( { model
-        --                 | showHalfComposeUX = True
-        --                 --, composeUXModel =
-        --                 --model.composeUXModel
-        --                 -- TODO
-        --                 --|> ComposeUX.updateContext composeContext
-        --               }
-        --             , Cmd.none
-        --             )
-        --         Mobile ->
-        --             model
-        --                 |> (GotoView <|
-        --                         Routing.Compose composeContext
-        --                    )
-        -- case model.view of
-        --     ViewCompose context ->
-        --         model
-        --             |> gotoView contextToView
-        --     _ ->
-        --         ( model, Cmd.none )
-        -- ( { model
-        --     | showHalfComposeUX = False
-        --   }
-        -- , Cmd.none
-        -- )
         AddUserNotice userNotice ->
             ( model |> addUserNotice userNotice
             , Cmd.none
@@ -591,9 +539,8 @@ update msg model =
             ensureUserInfo
                 (\userInfo ->
                     model.compose.dollar
-                        |> Misc.dollarStringToToken
+                        |> getPostBurnAmount
                             (Misc.getPrice userInfo.chain model)
-                        |> Result.fromMaybe "Invalid input"
                         |> Result.andThen
                             (\burnAmount ->
                                 let
@@ -679,17 +626,20 @@ update msg model =
                             )
                 )
 
-        SubmitBurn postId ->
+        SubmitBurn txt postId ->
             ensureUserInfo
                 (\userInfo ->
-                    model.compose.dollar
+                    txt
                         |> Misc.dollarStringToToken
                             (Misc.getPrice userInfo.chain model)
-                        |> unwrap
-                            ( { model
-                                | userNotices = [ UN.unexpectedError "Invalid input" ]
-                              }
-                            , Cmd.none
+                        |> Result.fromMaybe "Invalid burn amount"
+                        |> unpack
+                            (\err ->
+                                ( { model
+                                    | userNotices = [ UN.unexpectedError err ]
+                                  }
+                                , Cmd.none
+                                )
                             )
                             (\amount ->
                                 let
@@ -710,17 +660,20 @@ update msg model =
                             )
                 )
 
-        SubmitTip postId ->
+        SubmitTip txt postId ->
             ensureUserInfo
                 (\userInfo ->
-                    model.compose.dollar
+                    txt
                         |> Misc.dollarStringToToken
                             (Misc.getPrice userInfo.chain model)
-                        |> unwrap
-                            ( { model
-                                | userNotices = [ UN.unexpectedError "Invalid input" ]
-                              }
-                            , Cmd.none
+                        |> Result.fromMaybe "Invalid tip amount"
+                        |> unpack
+                            (\err ->
+                                ( { model
+                                    | userNotices = [ UN.unexpectedError err ]
+                                  }
+                                , Cmd.none
+                                )
                             )
                             (\amount ->
                                 let
@@ -759,14 +712,14 @@ update msg model =
 
         SetTipOpen state ->
             ( { model
-                | tipOpen = Just state
+                | postState = Just state
               }
             , Cmd.none
             )
 
         CancelTipOpen ->
             ( { model
-                | tipOpen = Nothing
+                | postState = Nothing
               }
             , Cmd.none
             )
@@ -922,6 +875,15 @@ update msg model =
         TopicInputChange str ->
             ( { model
                 | topicInput = str
+              }
+            , Cmd.none
+            )
+
+        PostInputChange str ->
+            ( { model
+                | postState =
+                    model.postState
+                        |> Maybe.map (\r -> { r | input = str })
               }
             , Cmd.none
             )
@@ -1163,3 +1125,14 @@ submitTxn model chain listeners txParams =
               }
             , cmd
             )
+
+
+getPostBurnAmount : Float -> String -> Result String TokenValue
+getPostBurnAmount price txt =
+    if String.isEmpty txt then
+        Ok TokenValue.zero
+
+    else
+        txt
+            |> Misc.dollarStringToToken price
+            |> Result.fromMaybe "Invalid burn amount"

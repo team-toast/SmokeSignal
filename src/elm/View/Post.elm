@@ -1,5 +1,6 @@
 module View.Post exposing (view)
 
+import Chain
 import Element exposing (Color, Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border
@@ -26,24 +27,15 @@ view :
     -> Posix
     -> Set.Set Types.PostKey
     -> Maybe Accounting
-    -> Maybe ShowInputState
-    -> String
+    -> Maybe PostState
     -> Maybe String
     -> Maybe UserInfo
     -> Core
     -> Element Msg
-view dProfile timestamp now replies accounting state input topic wallet post =
+view dProfile timestamp now replies accounting state topic wallet post =
     let
         isMobile =
             dProfile == EH.Mobile
-
-        block =
-            "Block "
-                ++ String.fromInt post.id.block
-                |> text
-
-        timing =
-            viewTiming timestamp now
 
         showActions =
             wallet
@@ -69,10 +61,7 @@ view dProfile timestamp now replies accounting state input topic wallet post =
             |> row [ width fill, spaceEvenly ]
       ]
         |> row [ width fill, spacing 10 ]
-    , [ block
-      , timing
-      ]
-        |> column [ width fill, spacing 10 ]
+    , viewCardMobile timestamp now post
         |> when isMobile
     , [ phaceElement
             ( 60, 60 )
@@ -88,15 +77,22 @@ view dProfile timestamp now replies accounting state input topic wallet post =
                 |> row [ spacing 10, Font.size 23 ]
                 |> linkToPost post.id
                 |> el
+                    [ Element.alignRight
+                    ]
+                |> el
                     [ Font.color almostWhite
                     , Font.size 17
                     , width fill
-                    , Element.alignTop
                     ]
-          , viewActions post input state
+          , viewActions post state
                 |> when showActions
           ]
-            |> row [ width fill, spaceEvenly ]
+            |> (if isMobile then
+                    column [ width fill, spacing 10 ]
+
+                else
+                    row [ width fill, spaceEvenly ]
+               )
         ]
             |> column
                 [ spacing 10
@@ -117,6 +113,50 @@ view dProfile timestamp now replies accounting state input topic wallet post =
             , width fill
             , typeFont
             ]
+
+
+viewCardMobile : Maybe Time.Posix -> Time.Posix -> Core -> Element Msg
+viewCardMobile timestamp now post =
+    let
+        block =
+            "@"
+                ++ String.fromInt post.id.block
+                |> text
+
+        timing =
+            viewTiming timestamp now
+
+        col =
+            case post.chain of
+                Types.XDai ->
+                    Theme.softRed
+
+                Types.Eth ->
+                    Theme.orange
+    in
+    Element.newTabLink
+        [ hover
+        , Background.color col
+        , Font.color white
+        , roundBorder
+        , padding 10
+        , View.Attrs.sansSerifFont
+        , width fill
+        ]
+        { url = Misc.txUrl post.chain post.txHash
+        , label =
+            [ View.Common.viewChain post.chain
+            , View.Common.verticalRule white
+            , block
+            , View.Common.verticalRule white
+            , timing
+            ]
+                |> row
+                    [ spaceEvenly
+                    , Font.size 17
+                    , width fill
+                    ]
+        }
 
 
 viewCard : Maybe Time.Posix -> Time.Posix -> Core -> Element Msg
@@ -248,44 +288,47 @@ viewTiming maybePostTime now =
             )
 
 
-viewActions : Core -> String -> Maybe ShowInputState -> Element Msg
-viewActions post input =
+viewActions : Core -> Maybe PostState -> Element Msg
+viewActions post =
     unwrap
         ([ supportTipButton post.id
          , supportBurnButton post.id
          ]
-            |> row [ spacing 10 ]
+            |> row [ spacing 10, Element.alignRight ]
         )
-        (\showInput ->
+        (\state ->
             let
-                title =
-                    case showInput of
-                        Tip _ ->
-                            "Tip Ether for this post, rewarding the author."
+                name =
+                    Chain.getName post.chain
 
-                        Burn _ ->
-                            "Burn Ether to increase the visibility of this post."
+                title =
+                    case state.showInput of
+                        Tip ->
+                            "Tip " ++ name ++ " for this post, rewarding the author."
+
+                        Burn ->
+                            "Burn " ++ name ++ " to increase the visibility of this post."
 
                 msg =
-                    case showInput of
-                        Tip _ ->
-                            SubmitTip post.id
+                    case state.showInput of
+                        Tip ->
+                            SubmitTip state.input post.id
 
-                        Burn _ ->
-                            --"Burn DAI to increase this post's visibility"
-                            SubmitBurn post.id
+                        Burn ->
+                            SubmitBurn state.input post.id
             in
-            [ text title
+            [ [ text title ]
+                |> paragraph []
             , [ View.Img.dollar 30 white
               , Input.text [ Font.color black ]
-                    { onChange = ComposeDollarChange
+                    { onChange = PostInputChange
                     , label = Input.labelHidden ""
                     , placeholder =
                         "00.00"
                             |> text
                             |> Input.placeholder []
                             |> Just
-                    , text = input
+                    , text = state.input
                     }
               ]
                 |> row [ spacing 5, width fill ]
@@ -305,7 +348,7 @@ viewActions post input =
             ]
                 |> column
                     [ Background.color black
-                    , spacing 20
+                    , spacing 10
                     , padding 10
                     , width fill
                     , Font.color white
@@ -322,10 +365,10 @@ supportTipButton postId =
         [ height <| px 40
         , Background.color theme.daiTippedBackground
         , width <| px 40
-        , EH.withTitle "Tip DAI for this post, rewarding the author"
+        , EH.withTitle "Tip for this post, rewarding the author."
         , hover
         ]
-        { onPress = Just <| SetTipOpen <| PostState postId (Types.Tip "")
+        { onPress = Just <| SetTipOpen <| PostState postId "" Types.Tip
         , label =
             View.Img.dollar 30 white
                 |> el [ centerX, centerY ]
@@ -340,10 +383,10 @@ supportBurnButton postId =
         [ height <| px 40
         , Background.color theme.daiBurnedBackground
         , width <| px 40
-        , EH.withTitle "Burn DAI to increase this post's visibility"
+        , EH.withTitle "Burn to increase the visibility of this post."
         , hover
         ]
-        { onPress = Just <| SetTipOpen <| PostState postId (Types.Burn "")
+        { onPress = Just <| SetTipOpen <| PostState postId "" Types.Burn
         , label =
             View.Img.dollar 30 white
                 |> el [ centerX, centerY ]

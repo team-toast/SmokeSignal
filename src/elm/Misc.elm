@@ -71,7 +71,7 @@ emptyModel key =
         , context = TopLevel Post.defaultTopic
         , preview = False
         }
-    , tipOpen = Nothing
+    , postState = Nothing
     , rootPosts = Dict.empty
     , replyPosts = Dict.empty
     , replyIds = Dict.empty

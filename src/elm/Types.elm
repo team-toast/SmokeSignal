@@ -54,7 +54,7 @@ type alias Model =
     , maybeSeoDescription : Maybe String
     , topicInput : String
     , newUserModal : Bool
-    , tipOpen : Maybe PostState
+    , postState : Maybe PostState
     , config : Config
     , compose : ComposeModel
     , rootPosts : Dict PostKey RootPost
@@ -93,14 +93,13 @@ type Msg
     | ComposeClose
     | BalanceFetched Address (Result Http.Error TokenValue)
     | CookieConsentGranted
-    | StartInlineCompose Context
     | GotoView View
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId
     | AddUserNotice UN.UserNotice
     | SubmitDraft
-    | SubmitTip PostId
-    | SubmitBurn PostId
+    | SubmitTip String PostId
+    | SubmitBurn String PostId
     | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool
     | EthPriceFetched (Result Http.Error Float)
@@ -108,6 +107,7 @@ type Msg
     | ComposeBodyChange String
     | ComposeTitleChange String
     | ComposeDollarChange String
+    | PostInputChange String
     | TopicInputChange String
     | SetTipOpen PostState
     | CancelTipOpen
@@ -181,13 +181,14 @@ type alias Config =
 
 type alias PostState =
     { id : PostId
+    , input : String
     , showInput : ShowInputState
     }
 
 
 type ShowInputState
-    = Burn String
-    | Tip String
+    = Burn
+    | Tip
 
 
 type View

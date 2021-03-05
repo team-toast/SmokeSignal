@@ -40,7 +40,9 @@ view model =
 
 render : Model -> Element Msg -> Html Msg
 render model =
-    modals model
+    viewUserNotices
+        model.dProfile
+        model.userNotices
         |> List.map Element.inFront
         |> (++)
             [ Element.Events.onClick ClickHappened
@@ -71,18 +73,8 @@ viewPage model =
         |> el
             [ width fill
             , height fill
+            , padding 10
             , Element.scrollbarY
-            , View.Modal.viewNewToSmokeSignal model.dProfile
-                |> View.Common.when isDesktop
-                |> Element.inFront
-                |> View.Common.whenAttr model.newUserModal
-            , View.Compose.view model
-                |> Element.inFront
-                |> View.Common.whenAttr model.compose.modal
-            , View.Modal.viewCookieConsent
-                |> View.Common.when isDesktop
-                |> Element.inFront
-                |> View.Common.whenAttr (not model.cookieConsentGranted)
             ]
     , View.Sidebar.viewWallet model
         |> el
@@ -96,6 +88,17 @@ viewPage model =
         |> column
             [ width fill
             , height fill
+            , View.Modal.viewNewToSmokeSignal model.dProfile
+                |> View.Common.when isDesktop
+                |> Element.inFront
+                |> View.Common.whenAttr model.newUserModal
+            , View.Compose.view model
+                |> Element.inFront
+                |> View.Common.whenAttr model.compose.modal
+            , View.Modal.viewCookieConsent
+                |> View.Common.when isDesktop
+                |> Element.inFront
+                |> View.Common.whenAttr (not model.cookieConsentGranted)
             , Background.image "./img/smoke-bg.jpg"
             ]
 
@@ -270,48 +273,6 @@ viewModals showNewToSmokeSignalModal =
           else
             Nothing
         ]
-
-
-modals : Model -> List (Element Msg)
-modals model =
-    Maybe.Extra.values
-        ([--  ,
-          --  let
-          --     showDraftInProgressButton =
-          --         case model.route of
-          --             ViewCompose ->
-          --                 False
-          --             _ ->
-          --                 --(model.showHalfComposeUX == False)
-          --                 --&& (not <| Post.contentIsEmpty model.composeUXModel.content)
-          --                 -- TODO
-          --                 False
-          --    in
-          --    if showDraftInProgressButton then
-          --Just <|
-          --theme.secondaryActionButton
-          --model.dProfile
-          --[ Element.alignBottom
-          --, Element.alignLeft
-          --, Element.paddingXY 20 10
-          --, Border.glow
-          --(Element.rgba 0 0 0 0.5)
-          --5
-          --]
-          --[ "Draft in Progress" ]
-          --(EH.Action <| StartInlineCompose model.composeUXModel.context)
-          -- TODO
-          --     Nothing
-          --    else
-          --     Nothing
-          --, maybeViewDraftModal model
-         ]
-            ++ List.map Just
-                (userNoticeEls
-                    model.dProfile
-                    model.userNotices
-                )
-        )
 
 
 maybeTxTracker : DisplayProfile -> Bool -> Dict.Dict String TrackedTx -> Maybe (Element Msg)
@@ -571,11 +532,8 @@ trackedTxStatusToColor txStatus =
             Theme.softRed
 
 
-userNoticeEls :
-    EH.DisplayProfile
-    -> List UserNotice
-    -> List (Element Msg)
-userNoticeEls dProfile notices =
+viewUserNotices : EH.DisplayProfile -> List UserNotice -> List (Element Msg)
+viewUserNotices dProfile notices =
     if notices == [] then
         []
 

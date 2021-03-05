@@ -32,6 +32,10 @@ view model post =
 
             else
                 50
+
+        walletActive =
+            model.wallet
+                |> Wallet.isActive
     in
     [ [ [ [ text (post.content.title |> Maybe.withDefault ". . .") ]
             |> Element.paragraph
@@ -100,6 +104,7 @@ view model post =
                 ]
                     |> row [ spacing 10, Font.size 20 ]
             }
+            |> when walletActive
         ]
             |> row [ spacing 10, Element.alignRight ]
       ]
@@ -133,17 +138,16 @@ view model post =
                     (model.accounting
                         |> Dict.get reply.core.key
                     )
-                    (model.tipOpen
+                    (model.postState
                         |> Maybe.andThen
                             (\x ->
                                 if x.id == reply.core.id then
-                                    Just x.showInput
+                                    Just x
 
                                 else
                                     Nothing
                             )
                     )
-                    model.compose.dollar
                     Nothing
                     (Wallet.userInfo model.wallet)
                     reply.core

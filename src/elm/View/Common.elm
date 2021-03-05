@@ -151,7 +151,11 @@ wrapModal msg elem =
         |> column [ width fill, height fill ]
     , btn
     ]
-        |> row [ width fill, height fill ]
+        |> row
+            [ width fill
+            , height fill
+            , View.Attrs.style "z-index" "2000"
+            ]
 
 
 verticalRule : Color -> Element msg
