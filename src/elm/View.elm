@@ -40,16 +40,41 @@ view model =
 
 render : Model -> Element Msg -> Html Msg
 render model =
-    viewUserNotices
-        model.dProfile
-        model.userNotices
-        |> List.map Element.inFront
-        |> (++)
-            [ Element.Events.onClick ClickHappened
-            , height fill
-            , width fill
-            , View.Attrs.typeFont
-            ]
+    let
+        isMobile =
+            model.dProfile == Mobile
+
+        disableUserSelect =
+            [ "", "-ms-", "-moz-", "-webkit-" ]
+                |> List.map
+                    (\prefix ->
+                        View.Attrs.style (prefix ++ "user-select") "none"
+                    )
+
+        removeTapColor =
+            View.Attrs.style "-webkit-tap-highlight-color" "transparent"
+
+        mobileAttrs =
+            if isMobile then
+                removeTapColor :: disableUserSelect
+
+            else
+                []
+
+        userNotices =
+            viewUserNotices
+                model.dProfile
+                model.userNotices
+                |> List.map Element.inFront
+    in
+    (userNotices
+        ++ mobileAttrs
+        ++ [ Element.Events.onClick ClickHappened
+           , height fill
+           , width fill
+           , View.Attrs.typeFont
+           ]
+    )
         |> Element.layoutWith
             { options =
                 [ Element.focusStyle
@@ -58,6 +83,12 @@ render model =
                     , shadow = Nothing
                     }
                 ]
+                    |> (if isMobile then
+                            (::) Element.noHover
+
+                        else
+                            identity
+                       )
             }
 
 
