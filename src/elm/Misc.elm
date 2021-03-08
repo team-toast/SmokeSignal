@@ -1,5 +1,6 @@
 module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyModel, formatDollar, formatPosix, getConfig, getPostOrReply, getPrice, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPosts, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
 
+import Array
 import Browser.Navigation
 import Dict exposing (Dict)
 import Eth.Decode
@@ -79,6 +80,8 @@ emptyModel key =
     , topics = Dict.empty
     , hasNavigated = False
     , alphaUrl = ""
+    , pages = Array.empty
+    , currentPage = 0
     }
 
 

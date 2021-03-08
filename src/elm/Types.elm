@@ -1,5 +1,6 @@
 module Types exposing (..)
 
+import Array exposing (Array)
 import Browser
 import Browser.Navigation
 import Dict exposing (Dict)
@@ -64,6 +65,8 @@ type alias Model =
     , topics : Dict String Count
     , hasNavigated : Bool
     , alphaUrl : String
+    , pages : Array (List PostKey)
+    , currentPage : Int
     }
 
 
@@ -118,6 +121,7 @@ type Msg
     | XDaiImport
     | SanitizeTopic
     | PreviewSet Bool
+    | SetPage Int
 
 
 type alias PostKey =
