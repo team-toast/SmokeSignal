@@ -231,16 +231,10 @@ viewFrame model elem =
                 ]
         ]
             |> column
-                ([ width fill
-                 , height fill
-                 , spacing 10
-                 ]
-                    ++ (List.map Element.inFront <|
-                            viewModals
-                                --model.showNewToSmokeSignalModal
-                                False
-                       )
-                )
+                [ width fill
+                , height fill
+                , spacing 10
+                ]
 
 
 banner : Element Msg
@@ -254,25 +248,6 @@ banner =
         { src = "./img/banner.png"
         , description = "Never be silenced"
         }
-
-
-viewModals : Bool -> List (Element Msg)
-viewModals showNewToSmokeSignalModal =
-    Maybe.Extra.values
-        [ if showNewToSmokeSignalModal == True then
-            --Just <|
-            --EH.modal
-            --(Element.rgba 0 0 0 0.25)
-            --False
-            --CloseNewToSmokeSignalModal
-            --CloseNewToSmokeSignalModal
-            --<|
-            --viewNewToSmokeSignalModal dProfile
-            Nothing
-
-          else
-            Nothing
-        ]
 
 
 maybeTxTracker : DisplayProfile -> Bool -> Dict.Dict String TrackedTx -> Maybe (Element Msg)
