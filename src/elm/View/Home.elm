@@ -24,7 +24,6 @@ view model =
         Mobile ->
             Dict.values model.rootPosts
                 |> List.sortBy (.core >> Misc.sortPosts model.blockTimes model.now)
-                |> List.reverse
                 |> List.map (viewPost model (Wallet.userInfo model.wallet))
                 |> column
                     [ width fill
@@ -62,7 +61,6 @@ viewDesktop model =
         }
     , posts
         |> List.sortBy (.core >> Misc.sortPosts model.blockTimes model.now)
-        |> List.reverse
         |> List.map (viewPost model (Wallet.userInfo model.wallet))
         |> column
             [ width fill

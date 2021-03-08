@@ -401,4 +401,6 @@ sortPosts blockTimes now post =
         newnessMultiplier =
             (ageFactor * 4.0) + 1
     in
-    totalBurned * newnessMultiplier
+    totalBurned
+        * newnessMultiplier
+        |> negate
