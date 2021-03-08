@@ -197,10 +197,11 @@ type ShowInputState
 
 type View
     = ViewHome
-    | ViewCompose Context
     | ViewPost PostId
     | ViewTopic String
     | ViewTopics
+    | ViewWallet
+    | ViewTxns
 
 
 type alias UserInfo =
@@ -315,6 +316,8 @@ type Route
     | RouteTopic String
     | RouteInvalid
     | RouteTopics
+    | RouteTxns
+    | RouteWallet
 
 
 type Chain

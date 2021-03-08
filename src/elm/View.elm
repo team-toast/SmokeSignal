@@ -2,13 +2,13 @@ module View exposing (view)
 
 import Browser
 import Dict
-import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spacing, text, width)
+import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal)
+import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal, white)
 import Helpers.Tuple as TupleHelpers
 import Html exposing (Html)
 import Maybe.Extra
@@ -21,6 +21,7 @@ import View.Attrs exposing (cappedWidth, hover, whiteGlowAttribute, whiteGlowAtt
 import View.Common exposing (appStatusMessage, whenAttr)
 import View.Compose
 import View.Home
+import View.Mobile
 import View.Modal
 import View.PostPage
 import View.Sidebar
@@ -107,13 +108,7 @@ viewPage model =
             , padding 10
             , Element.scrollbarY
             ]
-    , View.Sidebar.viewWallet model
-        |> el
-            [ width fill
-            , Element.alignBottom
-            , Background.color black
-            , padding 20
-            ]
+    , View.Mobile.navBar model
         |> View.Common.when (not isDesktop && not model.compose.modal)
     ]
         |> column
@@ -142,7 +137,7 @@ header model =
 
         sidePadding =
             if isMobile then
-                paddingXY 30 0
+                paddingXY 15 0
 
             else
                 paddingXY 100 0
@@ -177,6 +172,7 @@ header model =
             model.showExpandedTrackedTxs
             model.trackedTxs
             |> Maybe.withDefault Element.none
+            |> View.Common.when (not isMobile)
       , Input.button
             [ padding 10
             , Font.color black
@@ -227,9 +223,6 @@ viewBody model =
             View.Topics.view model
                 |> viewFrame model
 
-        ViewCompose _ ->
-            View.Compose.view model
-
         ViewPost postId ->
             Misc.getPostOrReply postId model
                 |> Maybe.Extra.unwrap
@@ -243,6 +236,12 @@ viewBody model =
         ViewTopic topic ->
             View.Topic.view model topic
                 |> viewFrame model
+
+        ViewWallet ->
+            View.Sidebar.viewWallet model
+
+        ViewTxns ->
+            viewTxTracker model.trackedTxs
 
 
 viewFrame : Model -> Element Msg -> Element Msg
@@ -279,6 +278,127 @@ banner =
         { src = "./img/banner.png"
         , description = "Never be silenced"
         }
+
+
+viewTxTracker : Dict.Dict String TrackedTx -> Element Msg
+viewTxTracker trackedTxs =
+    if Dict.isEmpty trackedTxs then
+        [ text "No currently tracked transactions." ]
+            |> Element.paragraph [ Font.color white, Font.center, padding 10 ]
+
+    else
+        trackedTxs
+            |> Dict.values
+            |> List.map
+                (\trackedTx ->
+                    let
+                        linkTextColor =
+                            Element.rgb 0.5 0.5 1
+
+                        etherscanLink label =
+                            Element.newTabLink
+                                [ Font.italic
+                                , Font.color linkTextColor
+                                ]
+                                { url = Misc.txUrl trackedTx.chain trackedTx.txHash
+                                , label = Element.text label
+                                }
+
+                        titleEl =
+                            case ( trackedTx.txInfo, trackedTx.status ) of
+                                ( TipTx postId _, _ ) ->
+                                    Element.row
+                                        []
+                                        [ Element.text "Tip "
+                                        , Element.el
+                                            [ Font.color linkTextColor
+                                            , Element.pointer
+                                            , Element.Events.onClick <|
+                                                GotoView <|
+                                                    ViewPost postId
+                                            ]
+                                            (Element.text "Post")
+                                        ]
+
+                                ( BurnTx postId _, _ ) ->
+                                    Element.row
+                                        []
+                                        [ Element.text "Burn for "
+                                        , Element.el
+                                            [ Font.color linkTextColor
+                                            , Element.pointer
+                                            , Element.Events.onClick <|
+                                                GotoView <|
+                                                    ViewPost postId
+                                            ]
+                                            (Element.text "Post")
+                                        ]
+
+                                ( PostTx _, Mined _ ) ->
+                                    Element.text "Post"
+
+                                ( PostTx draft, _ ) ->
+                                    Element.row
+                                        [ Element.spacing 8
+                                        ]
+                                        [ Element.text "Post"
+                                        , Element.el
+                                            [ Font.color linkTextColor
+                                            , Element.pointer
+                                            , Element.Events.onClick <| ViewDraft <| Just draft
+                                            ]
+                                            (Element.text "(View Draft)")
+                                        ]
+
+                        statusEl =
+                            case trackedTx.status of
+                                Mining ->
+                                    etherscanLink "Mining"
+
+                                Failed failReason ->
+                                    case failReason of
+                                        MinedButExecutionFailed ->
+                                            etherscanLink "Failed"
+
+                                Mined maybePostId ->
+                                    case trackedTx.txInfo of
+                                        PostTx _ ->
+                                            case maybePostId of
+                                                Just postId ->
+                                                    Input.button []
+                                                        { onPress = Just <| GotoView <| ViewPost postId
+                                                        , label =
+                                                            text "Published"
+                                                                |> el
+                                                                    [ Font.color
+                                                                        theme.linkTextColor
+                                                                    ]
+                                                        }
+
+                                                Nothing ->
+                                                    etherscanLink "Mined"
+
+                                        _ ->
+                                            etherscanLink "Mined"
+                    in
+                    [ titleEl
+                        |> el [ Font.color white ]
+                    , statusEl
+                    ]
+                        |> row
+                            [ width fill
+                            , Background.color black
+                            , Element.padding 10
+                            , Font.size 20
+                            , spaceEvenly
+                            , whiteGlowAttributeSmall
+                            ]
+                )
+            |> column
+                [ spacing 5
+                , height fill
+                , width fill
+                ]
 
 
 maybeTxTracker : DisplayProfile -> Bool -> Dict.Dict String TrackedTx -> Maybe (Element Msg)
@@ -389,9 +509,7 @@ maybeTxTracker dProfile showExpanded trackedTxs_ =
                         )
 
 
-trackedTxsColumn :
-    List TrackedTx
-    -> Element Msg
+trackedTxsColumn : List TrackedTx -> Element Msg
 trackedTxsColumn trackedTxs =
     Element.column
         [ Background.color <| Element.rgb 0 0 0
@@ -412,9 +530,7 @@ trackedTxsColumn trackedTxs =
         (List.map viewTrackedTxRow trackedTxs)
 
 
-viewTrackedTxRow :
-    TrackedTx
-    -> Element Msg
+viewTrackedTxRow : TrackedTx -> Element Msg
 viewTrackedTxRow trackedTx =
     let
         linkTextColor =

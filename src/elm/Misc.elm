@@ -125,9 +125,6 @@ getTitle model =
         ViewTopics ->
             defaultMain
 
-        ViewCompose _ ->
-            "Compose | SmokeSignal"
-
         ViewPost postId ->
             Dict.get (postIdToKey postId) model.rootPosts
                 |> Maybe.andThen (.core >> .content >> .title)
@@ -135,6 +132,12 @@ getTitle model =
 
         ViewTopic topic ->
             "#" ++ topic ++ " | SmokeSignal"
+
+        ViewWallet ->
+            defaultMain
+
+        ViewTxns ->
+            defaultMain
 
 
 
@@ -227,6 +230,12 @@ tryRouteToView route =
     case route of
         RouteHome ->
             Ok ViewHome
+
+        RouteWallet ->
+            Ok ViewWallet
+
+        RouteTxns ->
+            Ok ViewTxns
 
         RouteTopics ->
             Ok ViewTopics

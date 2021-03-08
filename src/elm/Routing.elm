@@ -37,6 +37,10 @@ routeParser =
             |> Parser.map (Maybe.Extra.unwrap RouteInvalid RouteTopic)
         , Parser.s "topics"
             |> Parser.map RouteTopics
+        , Parser.s "transactions"
+            |> Parser.map RouteTxns
+        , Parser.s "wallet"
+            |> Parser.map RouteWallet
         ]
 
 
@@ -56,8 +60,11 @@ viewToUrlString view =
         ViewTopic topic ->
             hashBangPath [ "topic", encodeTopic topic ] []
 
-        ViewCompose _ ->
-            hashBangPath [] []
+        ViewTxns ->
+            hashBangPath [ "transactions" ] []
+
+        ViewWallet ->
+            hashBangPath [ "wallet" ] []
 
 
 hashBangPath : List String -> List Builder.QueryParameter -> String

@@ -936,6 +936,20 @@ handleRoute model route =
             , Cmd.none
             )
 
+        RouteTxns ->
+            ( { model
+                | view = ViewTxns
+              }
+            , Cmd.none
+            )
+
+        RouteWallet ->
+            ( { model
+                | view = ViewWallet
+              }
+            , Cmd.none
+            )
+
         RouteInvalid ->
             ( { model
                 | userNotices =
