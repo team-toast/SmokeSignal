@@ -37,11 +37,15 @@ view model post =
             model.wallet
                 |> Wallet.isActive
     in
-    [ [ [ [ text (post.content.title |> Maybe.withDefault ". . .") ]
-            |> Element.paragraph
-                [ Font.size fontSize
-                , Font.bold
-                ]
+    [ [ [ post.content.title
+            |> View.Common.whenJust
+                (text
+                    >> List.singleton
+                    >> Element.paragraph
+                        [ Font.size fontSize
+                        , Font.bold
+                        ]
+                )
         , [ model.blockTimes
                 |> Dict.get post.id.block
                 |> View.Common.whenJust
