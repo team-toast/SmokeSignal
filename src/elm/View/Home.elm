@@ -1,16 +1,17 @@
 module View.Home exposing (view)
 
+import Array
 import Dict
-import Element exposing (Element, centerX, column, el, fill, height, padding, paddingXY, spacing, text, width)
+import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spacing, text, width)
 import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (DisplayProfile(..), white)
-import Misc
 import Set
 import Theme exposing (orange)
 import Types exposing (..)
-import View.Attrs exposing (slightRound, whiteGlowAttributeSmall)
+import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
 import View.Post
 import Wallet
 
@@ -22,9 +23,21 @@ view model =
             viewDesktop model
 
         Mobile ->
-            Dict.values model.rootPosts
-                |> List.sortBy (.core >> Misc.sortPosts model.blockTimes model.now)
-                |> List.reverse
+            let
+                posts =
+                    model.pages
+                        |> Array.get model.currentPage
+                        |> Maybe.withDefault []
+                        |> List.filterMap
+                            (\key ->
+                                Dict.get key model.rootPosts
+                            )
+
+                pages =
+                    viewPagination model
+            in
+            [ pages
+            , posts
                 |> List.map (viewPost model (Wallet.userInfo model.wallet))
                 |> column
                     [ width fill
@@ -32,13 +45,25 @@ view model =
                     , spacing 5
                     , padding 5
                     ]
+            , pages
+            ]
+                |> column [ width fill, height fill, spacing 10 ]
 
 
 viewDesktop : Model -> Element Msg
 viewDesktop model =
     let
         posts =
-            Dict.values model.rootPosts
+            model.pages
+                |> Array.get model.currentPage
+                |> Maybe.withDefault []
+                |> List.filterMap
+                    (\key ->
+                        Dict.get key model.rootPosts
+                    )
+
+        pages =
+            viewPagination model
     in
     [ Input.button
         [ View.Attrs.sansSerifFont
@@ -60,9 +85,8 @@ viewDesktop model =
                 |> text
                 |> Element.el [ centerX ]
         }
+    , pages
     , posts
-        |> List.sortBy (.core >> Misc.sortPosts model.blockTimes model.now)
-        |> List.reverse
         |> List.map (viewPost model (Wallet.userInfo model.wallet))
         |> column
             [ width fill
@@ -70,12 +94,43 @@ viewDesktop model =
             , spacing 5
             , paddingXY 0 5
             ]
+    , pages
     ]
         |> column
             [ spacing 10
             , width fill
             , height fill
             ]
+
+
+viewPagination : Model -> Element Msg
+viewPagination model =
+    List.range 0 (Array.length model.pages - 1)
+        |> List.map
+            (\n ->
+                Input.button
+                    [ Background.color
+                        (if n == model.currentPage then
+                            Theme.orange
+
+                         else
+                            white
+                        )
+                    , width <| px 30
+                    , height <| px 30
+                    , Border.rounded 20
+                    , View.Attrs.sansSerifFont
+                    , hover
+                    ]
+                    { onPress = Just <| SetPage n
+                    , label =
+                        (n + 1)
+                            |> String.fromInt
+                            |> text
+                            |> el [ centerX, centerY ]
+                    }
+            )
+        |> row [ spacing 10, centerX ]
 
 
 viewPost : Model -> Maybe UserInfo -> RootPost -> Element Msg

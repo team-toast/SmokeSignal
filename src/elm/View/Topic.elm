@@ -11,6 +11,7 @@ import Set
 import Theme exposing (orange)
 import Types exposing (..)
 import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
+import View.Common exposing (when)
 import View.Post
 import Wallet
 
@@ -27,8 +28,11 @@ view model topic =
                         >> (==) (String.toLower topic)
                     )
                 |> List.sortBy (.core >> Misc.sortPosts model.blockTimes model.now)
+
+        walletActive =
+            Wallet.isActive model.wallet
     in
-    [ topicHeader topic
+    [ topicHeader topic walletActive
     , if List.isEmpty posts then
         text "Be the first to create a post on this topic."
             |> el
@@ -83,14 +87,13 @@ view model topic =
             ]
 
 
-topicHeader : String -> Element Msg
-topicHeader topic =
-    [ topic
-        |> text
-        |> el [ Font.size 35 ]
-        |> el
-            [ width fill
-            , Font.color white
+topicHeader : String -> Bool -> Element Msg
+topicHeader topic walletActive =
+    [ [ text topic
+      ]
+        |> Element.paragraph
+            [ Font.color white
+            , Font.size 35
             ]
     , Input.button
         [ View.Attrs.sansSerifFont
@@ -107,6 +110,7 @@ topicHeader topic =
             [ text "+" |> el [ Font.size 30 ], text "New Post" ]
                 |> row [ spacing 5 ]
         }
+        |> when walletActive
     ]
         |> row
             [ width fill

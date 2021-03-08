@@ -1,5 +1,6 @@
 module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyModel, formatDollar, formatPosix, getConfig, getPostOrReply, getPrice, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPosts, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
 
+import Array
 import Browser.Navigation
 import Dict exposing (Dict)
 import Eth.Decode
@@ -79,6 +80,8 @@ emptyModel key =
     , topics = Dict.empty
     , hasNavigated = False
     , alphaUrl = ""
+    , pages = Array.empty
+    , currentPage = 0
     }
 
 
@@ -122,9 +125,6 @@ getTitle model =
         ViewTopics ->
             defaultMain
 
-        ViewCompose _ ->
-            "Compose | SmokeSignal"
-
         ViewPost postId ->
             Dict.get (postIdToKey postId) model.rootPosts
                 |> Maybe.andThen (.core >> .content >> .title)
@@ -132,6 +132,12 @@ getTitle model =
 
         ViewTopic topic ->
             "#" ++ topic ++ " | SmokeSignal"
+
+        ViewWallet ->
+            defaultMain
+
+        ViewTxns ->
+            defaultMain
 
 
 
@@ -224,6 +230,12 @@ tryRouteToView route =
     case route of
         RouteHome ->
             Ok ViewHome
+
+        RouteWallet ->
+            Ok ViewWallet
+
+        RouteTxns ->
+            Ok ViewTxns
 
         RouteTopics ->
             Ok ViewTopics
@@ -401,4 +413,6 @@ sortPosts blockTimes now post =
         newnessMultiplier =
             (ageFactor * 4.0) + 1
     in
-    totalBurned * newnessMultiplier
+    totalBurned
+        * newnessMultiplier
+        |> negate

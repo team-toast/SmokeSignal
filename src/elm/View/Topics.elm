@@ -1,6 +1,6 @@
 module View.Topics exposing (view)
 
-import Element exposing (Element, column, el, fill, height, padding, row, spacing, text, width)
+import Element exposing (Element, column, el, fill, height, padding, paragraph, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -89,9 +89,8 @@ viewTopics =
                 ]
                 { onPress = Just <| GotoView <| ViewTopic topic
                 , label =
-                    [ [ topic
-                            |> text
-                            |> el [ width fill, Font.size 40 ]
+                    [ [ [ text topic ]
+                            |> paragraph [ width fill, Font.size 40 ]
                       , [ View.Img.dollar 25 white
                         , count.total
                             |> Misc.formatDollar

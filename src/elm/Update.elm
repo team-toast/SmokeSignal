@@ -1,5 +1,6 @@
 module Update exposing (update)
 
+import Array
 import Browser
 import Browser.Navigation
 import Contracts.SmokeSignal as SSContract
@@ -710,6 +711,13 @@ update msg model =
             , Cmd.none
             )
 
+        SetPage n ->
+            ( { model
+                | currentPage = n
+              }
+            , Cmd.none
+            )
+
         SetTipOpen state ->
             ( { model
                 | postState = Just state
@@ -928,6 +936,20 @@ handleRoute model route =
             , Cmd.none
             )
 
+        RouteTxns ->
+            ( { model
+                | view = ViewTxns
+              }
+            , Cmd.none
+            )
+
+        RouteWallet ->
+            ( { model
+                | view = ViewWallet
+              }
+            , Cmd.none
+            )
+
         RouteInvalid ->
             ( { model
                 | userNotices =
@@ -980,10 +1002,13 @@ addPost : LogPost -> Model -> Model
 addPost log model =
     case log of
         LogRoot post ->
-            { model
-                | rootPosts =
+            let
+                rootPosts =
                     model.rootPosts
                         |> Dict.insert post.core.key post
+            in
+            { model
+                | rootPosts = rootPosts
                 , topics =
                     model.topics
                         |> Dict.update
@@ -994,6 +1019,16 @@ addPost log model =
                                 }
                                 >> Just
                             )
+                , pages =
+                    rootPosts
+                        |> Dict.values
+                        |> List.sortBy
+                            (.core
+                                >> Misc.sortPosts model.blockTimes model.now
+                            )
+                        |> List.map (.core >> .key)
+                        |> List.Extra.greedyGroupsOf 10
+                        |> Array.fromList
             }
 
         LogReply post ->
