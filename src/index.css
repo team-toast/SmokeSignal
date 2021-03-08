@@ -18,7 +18,7 @@ body {
 
 @font-face {
   font-family: "SmallType";
-  src: url("./fonts/SmallTypeWriting.ttf") format("truetype");
+  src: url("./fonts/Oswald-VariableFont_wght.ttf") format("truetype");
 }
 
 @font-face {
