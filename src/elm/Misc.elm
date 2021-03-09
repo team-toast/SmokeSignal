@@ -1,4 +1,4 @@
-module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyModel, formatDollar, formatPosix, getConfig, getPostOrReply, getPrice, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPosts, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
+module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getConfig, getPostOrReply, getPrice, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPosts, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
 
 import Array
 import Browser.Navigation
@@ -57,21 +57,12 @@ emptyModel key =
     , userNotices = []
     , trackedTxs = Dict.empty
     , showExpandedTrackedTxs = False
-    , draftModal = Nothing
     , demoPhaceSrc = initDemoPhaceSrc
     , cookieConsentGranted = False
     , maybeSeoDescription = Nothing
     , topicInput = ""
     , config = emptyConfig
-    , compose =
-        { title = ""
-        , dollar = ""
-        , body = ""
-        , modal = False
-        , donate = True
-        , context = TopLevel Post.defaultTopic
-        , preview = False
-        }
+    , compose = emptyComposeModel
     , postState = Nothing
     , rootPosts = Dict.empty
     , replyPosts = Dict.empty
@@ -82,6 +73,20 @@ emptyModel key =
     , alphaUrl = ""
     , pages = Array.empty
     , currentPage = 0
+    }
+
+
+emptyComposeModel : ComposeModel
+emptyComposeModel =
+    { title = ""
+    , dollar = ""
+    , body = ""
+    , modal = False
+    , donate = True
+    , context = TopLevel Post.defaultTopic
+    , preview = False
+    , inProgress = False
+    , error = Nothing
     }
 
 
@@ -169,7 +174,7 @@ defaultSeoDescription =
 txInfoToNameStr : TxInfo -> String
 txInfoToNameStr txInfo =
     case txInfo of
-        PostTx _ ->
+        PostTx ->
             "Post Submit"
 
         TipTx _ _ ->

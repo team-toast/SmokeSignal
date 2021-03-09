@@ -5,6 +5,7 @@ const {
   requestAccounts,
   handleWalletEvents,
   xDaiImport,
+  sendTransaction,
 } = require("./metamask.js");
 const chains = require("../config.json");
 
@@ -45,6 +46,12 @@ window.addEventListener("load", () => {
     })().catch((e) => {
       app.ports.walletResponse.send(e);
     })
+  );
+
+  app.ports.submitPost.subscribe((params) =>
+    sendTransaction(params)
+      .then(app.ports.postResponse.send)
+      .catch(app.ports.postResponse.send)
   );
 
   txSentry(app.ports.txOut, app.ports.txIn);

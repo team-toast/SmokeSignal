@@ -1,4 +1,4 @@
-module View.Common exposing (appStatusMessage, cancel, ellipsisText, phaceElement, verticalRule, viewChain, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (appStatusMessage, cancel, ellipsisText, phaceElement, spinner, verticalRule, viewChain, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
@@ -195,3 +195,9 @@ cancel msg =
         { onPress = Just msg
         , label = text "Cancel"
         }
+
+
+spinner : Int -> Color -> Element msg
+spinner size color =
+    View.Img.spinner size color
+        |> el [ View.Attrs.rotate ]

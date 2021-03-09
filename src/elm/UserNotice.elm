@@ -1,4 +1,4 @@
-module UserNotice exposing (Alignment(..), NoticeType(..), UserNotice, cantConnectNoWeb3, debugMsg, eventDecodeError, inputError, noWeb3Account, noWeb3Provider, routeNotFound, screenTooSmall, unexpectedError, walletError, web3BroadcastError, web3FetchError, web3MiningError, web3SigError, wrongWeb3Network)
+module UserNotice exposing (Alignment(..), NoticeType(..), UserNotice, cantConnectNoWeb3, debugMsg, eventDecodeError, inputError, noWeb3Account, noWeb3Provider, notify, routeNotFound, screenTooSmall, unexpectedError, walletError, web3BroadcastError, web3FetchError, web3MiningError, web3SigError, wrongWeb3Network)
 
 import Element exposing (Element)
 import Element.Font
@@ -88,6 +88,15 @@ wrongWeb3Network =
     , mainParagraphs =
         [ [ Element.text "SmokeSignal only works on Ethereum mainnet. Make sure your wallet is set to Ethereum mainnet." ]
         ]
+    , align = BottomRight
+    }
+
+
+notify : String -> UserNotice
+notify text =
+    { uniqueLabel = text
+    , noticeType = Update
+    , mainParagraphs = [ [ Element.text text ] ]
     , align = BottomRight
     }
 

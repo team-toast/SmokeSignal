@@ -241,4 +241,5 @@ subscriptions model =
         , Eth.Sentry.Tx.listen model.txSentry
         , Eth.Sentry.Tx.listen model.txSentryX
         , Browser.Events.onResize Types.Resize
+        , Ports.postResponse (Wallet.postResponseDecoder >> Types.PostResponse)
         ]

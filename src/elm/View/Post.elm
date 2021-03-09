@@ -276,8 +276,8 @@ viewTiming : Maybe Time.Posix -> Time.Posix -> Element Msg
 viewTiming maybePostTime now =
     maybePostTime
         |> unwrap
-            (View.Img.spinner 20 white
-                |> el [ centerX, View.Attrs.rotate ]
+            (View.Common.spinner 20 white
+                |> el [ centerX ]
             )
             (\time ->
                 TimeHelpers.sub now time
@@ -357,9 +357,7 @@ viewActions post =
         )
 
 
-supportTipButton :
-    PostId
-    -> Element Msg
+supportTipButton : PostId -> Element Msg
 supportTipButton postId =
     Input.button
         [ height <| px 40
@@ -368,16 +366,14 @@ supportTipButton postId =
         , EH.withTitle "Tip for this post, rewarding the author."
         , hover
         ]
-        { onPress = Just <| SetTipOpen <| PostState postId "" Types.Tip
+        { onPress = Just <| SetPostInput postId Types.Tip
         , label =
             View.Img.dollar 30 white
                 |> el [ centerX, centerY ]
         }
 
 
-supportBurnButton :
-    PostId
-    -> Element Msg
+supportBurnButton : PostId -> Element Msg
 supportBurnButton postId =
     Input.button
         [ height <| px 40
@@ -386,7 +382,7 @@ supportBurnButton postId =
         , EH.withTitle "Burn to increase the visibility of this post."
         , hover
         ]
-        { onPress = Just <| SetTipOpen <| PostState postId "" Types.Burn
+        { onPress = Just <| SetPostInput postId Types.Burn
         , label =
             View.Img.dollar 30 white
                 |> el [ centerX, centerY ]
