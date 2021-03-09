@@ -1,10 +1,37 @@
-module Wallet exposing (decodeConnectResponse, isActive, userInfo)
+module Wallet exposing (decodeConnectResponse, isActive, postResponseDecoder, userInfo)
 
 import Chain
 import Eth.Decode
+import Eth.Types exposing (TxHash)
 import Json.Decode as Decode exposing (Decoder, Value)
+import Result.Extra
 import TokenValue
 import Types exposing (UserInfo, Wallet(..))
+
+
+postResponseDecoder : Value -> Result Types.TxErr TxHash
+postResponseDecoder =
+    Decode.decodeValue
+        ([ Eth.Decode.txHash
+            |> Decode.map Ok
+         , Decode.field "code" Decode.int
+            |> Decode.map
+                (\n ->
+                    case n of
+                        4001 ->
+                            Types.UserRejected
+                                |> Err
+
+                        _ ->
+                            Types.OtherErr ("Code: " ++ String.fromInt n)
+                                |> Err
+                )
+         ]
+            |> Decode.oneOf
+        )
+        >> Result.Extra.unpack
+            (Decode.errorToString >> Types.OtherErr >> Err)
+            identity
 
 
 connectResponseDecoder : Decoder Types.WalletConnectResponse

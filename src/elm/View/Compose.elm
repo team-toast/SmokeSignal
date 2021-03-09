@@ -13,7 +13,7 @@ import Misc
 import Theme exposing (orange, theme)
 import Types exposing (..)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
-import View.Common exposing (when, whenAttr, wrapModal)
+import View.Common exposing (when, whenAttr, whenJust, wrapModal)
 import View.Img
 import View.Markdown
 import Wallet
@@ -158,6 +158,8 @@ viewBox model userInfo =
         ]
             |> column [ width fill, spacing 10, sansSerifFont ]
       , viewMarkdown model
+      , model.compose.error
+            |> whenJust (text >> el [ Background.color white, Element.alignRight, slightRound, padding 10 ])
       , [ [ Input.checkbox
                 [ width <| px 30
                 , height <| px 30
@@ -205,7 +207,13 @@ viewBox model userInfo =
 
                     else
                         Nothing
-                , label = text "Submit"
+                , label =
+                    if model.compose.inProgress then
+                        View.Common.spinner 20 black
+                            |> el [ centerX ]
+
+                    else
+                        text "Submit"
                 }
           ]
             |> row [ Element.alignRight, spacing 10 ]

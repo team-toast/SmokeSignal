@@ -49,7 +49,6 @@ type alias Model =
     , userNotices : List UserNotice
     , trackedTxs : Dict String TrackedTx -- Keyed by (Eth.Utils.txHashToString hash)
     , showExpandedTrackedTxs : Bool
-    , draftModal : Maybe Draft
     , demoPhaceSrc : String
     , cookieConsentGranted : Bool
     , maybeSeoDescription : Maybe String
@@ -87,9 +86,7 @@ type Msg
     | CheckTrackedTxsStatus
     | TrackedTxStatusResult (Result Http.Error (Maybe TxReceipt))
     | TxSigned Chain TxInfo (Result String TxHash)
-    | ViewDraft (Maybe Draft)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
-      -- | RestoreDraft Draft
     | DismissNotice Int
     | ClickHappened
     | ComposeOpen
@@ -112,7 +109,7 @@ type Msg
     | ComposeDollarChange String
     | PostInputChange String
     | TopicInputChange String
-    | SetTipOpen PostState
+    | SetPostInput PostId ShowInputState
     | CancelTipOpen
     | GoBack
     | WalletResponse WalletConnectResponse
@@ -122,6 +119,13 @@ type Msg
     | SanitizeTopic
     | PreviewSet Bool
     | SetPage Int
+    | PostResponse (Result TxErr TxHash)
+    | PriceResponse (Result Http.Error Float)
+
+
+type TxErr
+    = UserRejected
+    | OtherErr String
 
 
 type alias PostKey =
@@ -174,6 +178,8 @@ type alias ComposeModel =
     , donate : Bool
     , context : Context
     , preview : Bool
+    , inProgress : Bool
+    , error : Maybe String
     }
 
 
@@ -187,6 +193,7 @@ type alias PostState =
     { id : PostId
     , input : String
     , showInput : ShowInputState
+    , inProgress : Bool
     }
 
 
@@ -253,7 +260,7 @@ type alias TrackedTx =
 
 
 type TxInfo
-    = PostTx Draft
+    = PostTx
     | TipTx PostId TokenValue
     | BurnTx PostId TokenValue
 

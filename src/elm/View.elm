@@ -334,10 +334,10 @@ viewTxTracker trackedTxs =
                                             (Element.text "Post")
                                         ]
 
-                                ( PostTx _, Mined _ ) ->
+                                ( PostTx, Mined _ ) ->
                                     Element.text "Post"
 
-                                ( PostTx draft, _ ) ->
+                                ( PostTx, _ ) ->
                                     Element.row
                                         [ Element.spacing 8
                                         ]
@@ -345,7 +345,6 @@ viewTxTracker trackedTxs =
                                         , Element.el
                                             [ Font.color linkTextColor
                                             , Element.pointer
-                                            , Element.Events.onClick <| ViewDraft <| Just draft
                                             ]
                                             (Element.text "(View Draft)")
                                         ]
@@ -362,7 +361,7 @@ viewTxTracker trackedTxs =
 
                                 Mined maybePostId ->
                                     case trackedTx.txInfo of
-                                        PostTx _ ->
+                                        PostTx ->
                                             case maybePostId of
                                                 Just postId ->
                                                     Input.button []
@@ -575,10 +574,10 @@ viewTrackedTxRow trackedTx =
                             (Element.text "Post")
                         ]
 
-                ( PostTx _, Mined _ ) ->
+                ( PostTx, Mined _ ) ->
                     Element.text "Post"
 
-                ( PostTx draft, _ ) ->
+                ( PostTx, _ ) ->
                     Element.row
                         [ Element.spacing 8
                         ]
@@ -586,7 +585,6 @@ viewTrackedTxRow trackedTx =
                         , Element.el
                             [ Font.color linkTextColor
                             , Element.pointer
-                            , Element.Events.onClick <| ViewDraft <| Just draft
                             ]
                             (Element.text "(View Draft)")
                         ]
@@ -603,7 +601,7 @@ viewTrackedTxRow trackedTx =
 
                 Mined maybePostId ->
                     case trackedTx.txInfo of
-                        PostTx _ ->
+                        PostTx ->
                             case maybePostId of
                                 Just postId ->
                                     Element.el

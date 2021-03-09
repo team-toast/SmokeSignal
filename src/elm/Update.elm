@@ -17,7 +17,7 @@ import Http
 import Json.Decode
 import List.Extra
 import Maybe.Extra exposing (unwrap)
-import Misc
+import Misc exposing (emptyComposeModel)
 import Ports
 import Post
 import Random
@@ -106,6 +106,71 @@ update msg model =
                         )
                     )
 
+        PostResponse res ->
+            ensureUserInfo
+                (\userInfo ->
+                    res
+                        |> unpack
+                            (\err ->
+                                case err of
+                                    Types.UserRejected ->
+                                        ( { model
+                                            | compose =
+                                                model.compose
+                                                    |> (\r ->
+                                                            { r
+                                                                | inProgress = False
+                                                                , error =
+                                                                    Just "Your transaction was cancelled."
+                                                            }
+                                                       )
+                                          }
+                                        , Cmd.none
+                                        )
+
+                                    Types.OtherErr e ->
+                                        ( { model
+                                            | compose =
+                                                model.compose
+                                                    |> (\r ->
+                                                            { r
+                                                                | inProgress = False
+                                                                , error =
+                                                                    Just "There has been a problem."
+                                                            }
+                                                       )
+                                          }
+                                        , Ports.log e
+                                        )
+                            )
+                            (\txHash ->
+                                ( { model
+                                    | compose =
+                                        model.compose
+                                            |> (\r ->
+                                                    { r
+                                                        | inProgress = False
+                                                        , modal = False
+                                                    }
+                                               )
+                                    , showExpandedTrackedTxs = True
+                                    , userNotices =
+                                        model.userNotices
+                                            |> List.append [ UN.notify "Your transaction is mining." ]
+                                    , trackedTxs =
+                                        model.trackedTxs
+                                            |> Dict.insert (Eth.Utils.txHashToString txHash)
+                                                { txHash = txHash
+                                                , txInfo = PostTx
+                                                , status = Mining
+                                                , chain = userInfo.chain
+                                                }
+                                  }
+                                , Cmd.none
+                                )
+                            )
+                )
+
         CheckTrackedTxsStatus ->
             ( model
             , model.trackedTxs
@@ -153,7 +218,7 @@ update msg model =
                                                 fetchAccounting =
                                                     (case tx.txInfo of
                                                         -- Rely on PostLogReceived as source of truth for post data.
-                                                        PostTx _ ->
+                                                        PostTx ->
                                                             --maybePublishedPost
                                                             --|> Maybe.map
                                                             --(\r ->
@@ -536,95 +601,128 @@ update msg model =
             , Cmd.none
             )
 
+        PriceResponse res ->
+            ensureUserInfo
+                (\userInfo ->
+                    res
+                        |> unpack
+                            (\_ ->
+                                let
+                                    compose =
+                                        model.compose
+                                            |> (\r ->
+                                                    { r
+                                                        | inProgress = False
+                                                        , error = Just "There has been a problem."
+                                                    }
+                                               )
+                                in
+                                ( { model | compose = compose }, Cmd.none )
+                            )
+                            (\price ->
+                                model.compose.dollar
+                                    |> getPostBurnAmount price
+                                    |> Result.andThen
+                                        (\burnAmount ->
+                                            let
+                                                donateAmount =
+                                                    if model.compose.donate then
+                                                        TokenValue.div burnAmount 100
+
+                                                    else
+                                                        TokenValue.zero
+
+                                                lowBalance =
+                                                    TokenValue.compare
+                                                        (TokenValue.add burnAmount donateAmount)
+                                                        userInfo.balance
+                                                        /= LT
+
+                                                context =
+                                                    case model.compose.context of
+                                                        Types.TopLevel topic ->
+                                                            model.topicInput
+                                                                |> Misc.validateTopic
+                                                                |> Maybe.withDefault topic
+                                                                |> TopLevel
+
+                                                        ctx ->
+                                                            ctx
+
+                                                metadata =
+                                                    { metadataVersion =
+                                                        Post.currentMetadataVersion
+                                                    , context = context
+                                                    , maybeDecodeError = Nothing
+                                                    }
+
+                                                content =
+                                                    { title =
+                                                        if String.isEmpty model.compose.title then
+                                                            Nothing
+
+                                                        else
+                                                            Just model.compose.title
+                                                    , desc = Nothing
+                                                    , body = model.compose.body
+                                                    }
+                                            in
+                                            if lowBalance then
+                                                Err "Not enough funds."
+
+                                            else
+                                                { donateAmount = donateAmount
+                                                , author = userInfo.address
+                                                , authorBurn = burnAmount
+                                                , content = content
+                                                , metadata = metadata
+                                                }
+                                                    |> Ok
+                                        )
+                                    |> unpack
+                                        (\err ->
+                                            ( { model
+                                                | userNotices = [ UN.unexpectedError err ]
+                                              }
+                                            , Cmd.none
+                                            )
+                                        )
+                                        (\postDraft ->
+                                            let
+                                                config =
+                                                    Misc.getConfig userInfo.chain model.config
+
+                                                txParams =
+                                                    postDraft
+                                                        |> SSContract.burnEncodedPost userInfo config.contract
+                                                        |> Eth.toSend
+                                                        |> Eth.encodeSend
+                                            in
+                                            ( model
+                                            , Ports.submitPost txParams
+                                            )
+                                        )
+                            )
+                )
+
         SubmitDraft ->
             ensureUserInfo
                 (\userInfo ->
-                    model.compose.dollar
-                        |> getPostBurnAmount
-                            (Misc.getPrice userInfo.chain model)
-                        |> Result.andThen
-                            (\burnAmount ->
-                                let
-                                    donateAmount =
-                                        if model.compose.donate then
-                                            TokenValue.div burnAmount 100
-
-                                        else
-                                            TokenValue.zero
-
-                                    lowBalance =
-                                        TokenValue.compare
-                                            (TokenValue.add burnAmount donateAmount)
-                                            userInfo.balance
-                                            /= LT
-
-                                    context =
-                                        case model.compose.context of
-                                            Types.TopLevel topic ->
-                                                model.topicInput
-                                                    |> Misc.validateTopic
-                                                    |> Maybe.withDefault topic
-                                                    |> TopLevel
-
-                                            ctx ->
-                                                ctx
-
-                                    metadata =
-                                        { metadataVersion =
-                                            Post.currentMetadataVersion
-                                        , context = context
-                                        , maybeDecodeError = Nothing
+                    let
+                        compose =
+                            model.compose
+                                |> (\r ->
+                                        { r
+                                            | inProgress = True
+                                            , error = Nothing
                                         }
-
-                                    content =
-                                        { title =
-                                            if String.isEmpty model.compose.title then
-                                                Nothing
-
-                                            else
-                                                Just model.compose.title
-                                        , desc = Nothing
-                                        , body = model.compose.body
-                                        }
-                                in
-                                if lowBalance then
-                                    Err "Not enough funds."
-
-                                else
-                                    { donateAmount = donateAmount
-                                    , author = userInfo.address
-                                    , authorBurn = burnAmount
-                                    , content = content
-                                    , metadata = metadata
-                                    }
-                                        |> Ok
-                            )
-                        |> unpack
-                            (\err ->
-                                ( { model
-                                    | userNotices = [ UN.unexpectedError err ]
-                                  }
-                                , Cmd.none
-                                )
-                            )
-                            (\postDraft ->
-                                let
-                                    config =
-                                        Misc.getConfig userInfo.chain model.config
-
-                                    txParams =
-                                        postDraft
-                                            |> SSContract.burnEncodedPost userInfo config.contract
-                                            |> Eth.toSend
-
-                                    listeners =
-                                        { onMined = Nothing
-                                        , onSign = Just <| TxSigned userInfo.chain <| PostTx postDraft
-                                        , onBroadcast = Nothing
-                                        }
-                                in
-                                submitTxn model userInfo.chain listeners txParams
-                            )
+                                   )
+                    in
+                    ( { model | compose = compose }
+                    , SSContract.getEthPriceCmd
+                        (Misc.getConfig userInfo.chain model.config)
+                        |> Task.attempt PriceResponse
+                    )
                 )
 
         SubmitBurn txt postId ->
@@ -704,13 +802,6 @@ update msg model =
             , Cmd.none
             )
 
-        ViewDraft maybeDraft ->
-            ( { model
-                | draftModal = maybeDraft
-              }
-            , Cmd.none
-            )
-
         SetPage n ->
             ( { model
                 | currentPage = n
@@ -718,9 +809,15 @@ update msg model =
             , Cmd.none
             )
 
-        SetTipOpen state ->
+        SetPostInput id val ->
             ( { model
-                | postState = Just state
+                | postState =
+                    { id = id
+                    , input = ""
+                    , showInput = val
+                    , inProgress = False
+                    }
+                        |> Just
               }
             , Cmd.none
             )
@@ -747,7 +844,6 @@ update msg model =
             ( { model
                 | showAddressId = Nothing
                 , showExpandedTrackedTxs = False
-                , draftModal = Nothing
               }
             , Cmd.none
             )
@@ -780,7 +876,12 @@ update msg model =
             )
 
         TopicSubmit ->
-            model.topicInput
+            (if String.isEmpty model.topicInput then
+                Post.defaultTopic
+
+             else
+                model.topicInput
+            )
                 |> Misc.validateTopic
                 |> unwrap
                     ( { model
@@ -790,7 +891,7 @@ update msg model =
                     , Cmd.none
                     )
                     (\topic ->
-                        ( { model | topicInput = "" }
+                        ( model
                         , Browser.Navigation.pushUrl
                             model.navKey
                             (Routing.viewToUrlString <| ViewTopic topic)
@@ -824,17 +925,7 @@ update msg model =
                             t
             in
             ( { model
-                | compose =
-                    model.compose
-                        |> (\r ->
-                                { r
-                                    | modal = True
-                                    , title = ""
-                                    , body = ""
-                                    , dollar = ""
-                                    , context = context
-                                }
-                           )
+                | compose = { emptyComposeModel | modal = True, context = context }
                 , topicInput = topicInput
               }
             , Cmd.none

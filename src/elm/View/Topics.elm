@@ -11,6 +11,7 @@ import Set
 import Theme exposing (orange)
 import Types exposing (..)
 import View.Attrs exposing (hover, sansSerifFont, whiteGlowAttributeSmall)
+import View.Common exposing (whenAttr)
 import View.Img
 
 
@@ -33,6 +34,12 @@ view model =
             , Font.color white
             , View.Attrs.onKeydown [ View.Attrs.onEnter TopicSubmit ]
             , View.Attrs.sansSerifFont
+            , Input.button [ Element.alignRight, Element.centerY, Element.paddingXY 5 0 ]
+                { onPress = Just <| TopicInputChange ""
+                , label = View.Img.close 30 white
+                }
+                |> Element.inFront
+                |> whenAttr (not <| String.isEmpty model.topicInput)
             ]
             { onChange = TopicInputChange
             , text = model.topicInput

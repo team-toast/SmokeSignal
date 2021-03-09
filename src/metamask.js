@@ -10,6 +10,9 @@ const txSentry = (fromElm, toElm) => {
   });
 };
 
+const sendTransaction = (params) =>
+  window.ethereum.request({ method: "eth_sendTransaction", params: [params] });
+
 // https://eth.wiki/json-rpc/API#eth_accounts
 const getAccounts = () => window.ethereum.request({ method: "eth_accounts" });
 
@@ -29,6 +32,7 @@ const xDaiImport = () =>
         rpcUrls: ["https://rpc.xdaichain.com"],
         blockExplorerUrls: ["https://blockscout.com/xdai/mainnet"],
         nativeCurrency: {
+          name: "xDAI",
           symbol: "xDAI",
           decimals: 18,
         },
@@ -97,4 +101,5 @@ module.exports = {
   requestAccounts,
   handleWalletEvents,
   xDaiImport,
+  sendTransaction,
 };
