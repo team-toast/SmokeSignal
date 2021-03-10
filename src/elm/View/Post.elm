@@ -15,7 +15,7 @@ import Theme exposing (almostWhite, theme)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
-import View.Attrs exposing (hover, roundBorder, typeFont, whiteGlowAttributeSmall)
+import View.Attrs exposing (hover, roundBorder, slightRound, typeFont, whiteGlowAttributeSmall)
 import View.Common exposing (phaceElement, when, whenJust)
 import View.Img
 import View.Markdown
@@ -291,8 +291,8 @@ viewTiming maybePostTime now =
 viewActions : Core -> Maybe PostState -> Element Msg
 viewActions post =
     unwrap
-        ([ supportTipButton post.id
-         , supportBurnButton post.id
+        ([ supportBurnButton post.id
+         , supportTipButton post.id
          ]
             |> row [ spacing 10, Element.alignRight ]
         )
@@ -308,14 +308,6 @@ viewActions post =
 
                         Burn ->
                             "Burn " ++ name ++ " to increase the visibility of this post."
-
-                msg =
-                    case state.showInput of
-                        Tip ->
-                            SubmitTip state.input post.id
-
-                        Burn ->
-                            SubmitBurn state.input post.id
             in
             [ [ text title ]
                 |> paragraph []
@@ -332,7 +324,19 @@ viewActions post =
                     }
               ]
                 |> row [ spacing 5, width fill ]
-            , [ View.Common.cancel CancelTipOpen
+            , state.error
+                |> whenJust
+                    (text
+                        >> List.singleton
+                        >> paragraph
+                            [ Background.color white
+                            , Element.alignRight
+                            , slightRound
+                            , padding 10
+                            , Font.color black
+                            ]
+                    )
+            , [ View.Common.cancel CancelPostInput
               , Input.button
                     [ Background.color Theme.orange
                     , padding 10
@@ -340,8 +344,19 @@ viewActions post =
                     , hover
                     , Font.color black
                     ]
-                    { onPress = Just msg
-                    , label = text "Submit"
+                    { onPress =
+                        if state.inProgress then
+                            Nothing
+
+                        else
+                            Just SubmitPostTx
+                    , label =
+                        if state.inProgress then
+                            View.Common.spinner 20 black
+                                |> el [ centerX ]
+
+                        else
+                            text "Submit"
                     }
               ]
                 |> row [ Element.alignRight, spacing 20 ]

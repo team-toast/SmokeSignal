@@ -5,16 +5,16 @@ import Browser.Hashbang
 import Browser.Navigation
 import Chain
 import Contracts.SmokeSignal
+import DemoPhaceSrcMutator
 import Eth.Sentry.Event
-import Eth.Sentry.Tx
 import Eth.Types
 import Helpers.Element
 import Json.Decode
 import Maybe.Extra exposing (unwrap)
 import Misc exposing (tryRouteToView)
 import Ports
+import Random
 import Routing
-import Task
 import Time
 import Types exposing (Flags, Model, Msg)
 import Update exposing (update)
@@ -149,18 +149,6 @@ startApp flags url model =
             else
                 Types.NoneDetected
 
-        txSentry =
-            Eth.Sentry.Tx.init
-                ( Ports.txOut, Ports.txIn )
-                (Types.TxSentryMsg Types.Eth)
-                model.config.ethereum.providerUrl
-
-        txSentryX =
-            Eth.Sentry.Tx.init
-                ( Ports.txOutX, Ports.txInX )
-                (Types.TxSentryMsg Types.XDai)
-                model.config.xDai.providerUrl
-
         ( ethSentry, ethCmd1, ethCmd2 ) =
             startSentry model.config.ethereum
 
@@ -175,8 +163,6 @@ startApp flags url model =
         , wallet = wallet
         , now = now
         , dProfile = Helpers.Element.screenWidthToDisplayProfile flags.width
-        , txSentry = txSentry
-        , txSentryX = txSentryX
         , sentries =
             model.sentries
                 |> (\cs ->
@@ -195,9 +181,7 @@ startApp flags url model =
         , ethCmd2
         , xDaiCmd1
         , xDaiCmd2
-        , Contracts.SmokeSignal.getEthPriceCmd
-            model.config.ethereum
-            |> Task.attempt Types.EthPriceFetched
+        , Random.generate Types.NewDemoSrc DemoPhaceSrcMutator.addressSrcGenerator
         , Ports.setDescription Misc.defaultSeoDescription
         ]
     )
@@ -230,16 +214,14 @@ startSentry config =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.batch
         [ Time.every 1000 Types.Tick
-        , Time.every 2000 (always Types.ChangeDemoPhaceSrc)
-        , Time.every 2500 (always Types.EveryFewSeconds)
+        , Time.every 3000 (always Types.ChangeDemoPhaceSrc)
         , Time.every 5000 (always Types.CheckTrackedTxsStatus)
         , Ports.walletResponse
             (Wallet.connectResponseDecoder >> Types.WalletResponse)
-        , Eth.Sentry.Tx.listen model.txSentry
-        , Eth.Sentry.Tx.listen model.txSentryX
         , Browser.Events.onResize Types.Resize
+        , Ports.txIn (Wallet.postResponseDecoder >> Types.PostTxResponse)
         , Ports.postResponse (Wallet.postResponseDecoder >> Types.PostResponse)
         ]

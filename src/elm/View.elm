@@ -290,7 +290,7 @@ viewTxTracker trackedTxs =
 
                         titleEl =
                             case ( trackedTx.txInfo, trackedTx.status ) of
-                                ( TipTx postId _, _ ) ->
+                                ( TipTx postId, _ ) ->
                                     Element.row
                                         []
                                         [ Element.text "Tip "
@@ -304,7 +304,7 @@ viewTxTracker trackedTxs =
                                             (Element.text "Post")
                                         ]
 
-                                ( BurnTx postId _, _ ) ->
+                                ( BurnTx postId, _ ) ->
                                     Element.row
                                         []
                                         [ Element.text "Burn for "
@@ -530,7 +530,7 @@ viewTrackedTxRow trackedTx =
 
         titleEl =
             case ( trackedTx.txInfo, trackedTx.status ) of
-                ( TipTx postId _, _ ) ->
+                ( TipTx postId, _ ) ->
                     Element.row
                         []
                         [ Element.text "Tip "
@@ -544,7 +544,7 @@ viewTrackedTxRow trackedTx =
                             (Element.text "Post")
                         ]
 
-                ( BurnTx postId _, _ ) ->
+                ( BurnTx postId, _ ) ->
                     Element.row
                         []
                         [ Element.text "Burn for "

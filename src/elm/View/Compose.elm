@@ -99,7 +99,7 @@ viewBox model userInfo =
             { onChange = ComposeTitleChange
             , label = Input.labelHidden ""
             , placeholder =
-                "Title"
+                "Title (Optional)"
                     |> text
                     |> Input.placeholder []
                     |> Just
@@ -159,7 +159,17 @@ viewBox model userInfo =
             |> column [ width fill, spacing 10, sansSerifFont ]
       , viewMarkdown model
       , model.compose.error
-            |> whenJust (text >> el [ Background.color white, Element.alignRight, slightRound, padding 10 ])
+            |> whenJust
+                (text
+                    >> List.singleton
+                    >> Element.paragraph
+                        [ Background.color white
+                        , Element.alignRight
+                        , slightRound
+                        , padding 10
+                        , Font.color black
+                        ]
+                )
       , [ [ Input.checkbox
                 [ width <| px 30
                 , height <| px 30

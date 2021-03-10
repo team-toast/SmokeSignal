@@ -1,4 +1,4 @@
-module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getConfig, getPostOrReply, getPrice, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPosts, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
+module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getConfig, getPostOrReply, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPosts, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
 
 import Array
 import Browser.Navigation
@@ -7,7 +7,6 @@ import Eth.Decode
 import Eth.Encode
 import Eth.RPC
 import Eth.Sentry.Event
-import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (Address, TxHash, TxReceipt)
 import Eth.Utils
 import FormatFloat
@@ -17,7 +16,6 @@ import Helpers.Time
 import Http
 import Json.Decode as Decode
 import Maybe.Extra exposing (unwrap)
-import Ports
 import Post
 import String.Extra
 import Task exposing (Task)
@@ -34,23 +32,11 @@ emptyModel key =
     , newUserModal = False
     , now = Time.millisToPosix 0
     , dProfile = Helpers.Element.Desktop
-    , ethPrice = 1.0
-    , xDaiPrice = 1.0
-    , txSentry =
-        TxSentry.init
-            ( Ports.txOut, Ports.txIn )
-            (TxSentryMsg XDai)
-            ""
-    , txSentryX =
-        TxSentry.init
-            ( Ports.txOut, Ports.txIn )
-            (TxSentryMsg XDai)
-            ""
     , sentries =
         { xDai =
-            Eth.Sentry.Event.init (always Types.CancelTipOpen) "" |> Tuple.first
+            Eth.Sentry.Event.init (always Types.CancelPostInput) "" |> Tuple.first
         , ethereum =
-            Eth.Sentry.Event.init (always Types.CancelTipOpen) "" |> Tuple.first
+            Eth.Sentry.Event.init (always Types.CancelPostInput) "" |> Tuple.first
         }
     , blockTimes = Dict.empty
     , showAddressId = Nothing
@@ -177,10 +163,10 @@ txInfoToNameStr txInfo =
         PostTx ->
             "Post Submit"
 
-        TipTx _ _ ->
+        TipTx _ ->
             "Tip"
 
-        BurnTx _ _ ->
+        BurnTx _ ->
             "Burn"
 
 
@@ -352,16 +338,6 @@ txUrl chain hash =
                 ++ Eth.Utils.txHashToString hash
 
 
-getPrice : Chain -> Model -> Float
-getPrice chain =
-    case chain of
-        Eth ->
-            .ethPrice
-
-        XDai ->
-            .xDaiPrice
-
-
 getPostOrReply : PostId -> Model -> Maybe Core
 getPostOrReply id model =
     let
@@ -392,8 +368,8 @@ getTxReceipt url txHash =
         }
 
 
-sortPosts : Dict Int Time.Posix -> Time.Posix -> Core -> Float
-sortPosts blockTimes now post =
+sortPosts : Dict Int Time.Posix -> Dict PostKey Accounting -> Time.Posix -> Core -> Float
+sortPosts blockTimes accounting now post =
     let
         postTimeDefaultZero =
             blockTimes
@@ -412,7 +388,11 @@ sortPosts blockTimes now post =
                 |> (\ascNum -> 1 - ascNum)
 
         totalBurned =
-            post.authorBurn
+            accounting
+                |> Dict.get post.key
+                |> unwrap
+                    post.authorBurn
+                    .totalBurned
                 |> TokenValue.toFloatWithWarning
 
         newnessMultiplier =

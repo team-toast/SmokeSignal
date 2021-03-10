@@ -126,7 +126,7 @@ view model post =
             (\id ->
                 Dict.get id model.replyPosts
             )
-        |> List.sortBy (.core >> Misc.sortPosts model.blockTimes model.now)
+        |> List.sortBy (.core >> Misc.sortPosts model.blockTimes model.accounting model.now)
         |> List.map
             (\reply ->
                 View.Post.view
