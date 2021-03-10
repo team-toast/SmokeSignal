@@ -68,7 +68,7 @@ view dProfile timestamp now replies accounting state topic wallet post =
             False
             post.author
             False
-            ClickHappened
+            (ShowOrHideAddress <| PhaceForPublishedPost post.id)
       , [ viewContent dProfile post
             |> linkToPost post.id
         , [ [ View.Img.speechBubble 17 almostWhite

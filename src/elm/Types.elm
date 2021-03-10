@@ -88,7 +88,6 @@ type Msg
     | TxSigned Chain TxInfo (Result String TxHash)
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
     | DismissNotice Int
-    | ClickHappened
     | ComposeOpen
     | ComposeClose
     | BalanceFetched Address (Result Http.Error TokenValue)
@@ -112,7 +111,7 @@ type Msg
     | SetPostInput PostId ShowInputState
     | CancelTipOpen
     | GoBack
-    | WalletResponse WalletConnectResponse
+    | WalletResponse (Result WalletConnectErr UserInfo)
     | RpcResponse (Result Http.Error UserInfo)
     | TopicSubmit
     | XDaiImport
@@ -224,11 +223,11 @@ type alias WalletInfo =
     }
 
 
-type WalletConnectResponse
-    = WalletSucceed UserInfo
-    | WalletCancel
+type WalletConnectErr
+    = WalletCancel
     | WalletInProgress
-    | WalletError
+    | WalletError String
+    | NetworkNotSupported
 
 
 type Wallet

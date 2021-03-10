@@ -48,9 +48,9 @@ emptyModel key =
             ""
     , sentries =
         { xDai =
-            Eth.Sentry.Event.init (always Types.ClickHappened) "" |> Tuple.first
+            Eth.Sentry.Event.init (always Types.CancelTipOpen) "" |> Tuple.first
         , ethereum =
-            Eth.Sentry.Event.init (always Types.ClickHappened) "" |> Tuple.first
+            Eth.Sentry.Event.init (always Types.CancelTipOpen) "" |> Tuple.first
         }
     , blockTimes = Dict.empty
     , showAddressId = Nothing

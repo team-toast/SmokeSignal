@@ -237,7 +237,7 @@ subscriptions model =
         , Time.every 2500 (always Types.EveryFewSeconds)
         , Time.every 5000 (always Types.CheckTrackedTxsStatus)
         , Ports.walletResponse
-            (Wallet.decodeConnectResponse >> Types.WalletResponse)
+            (Wallet.connectResponseDecoder >> Types.WalletResponse)
         , Eth.Sentry.Tx.listen model.txSentry
         , Eth.Sentry.Tx.listen model.txSentryX
         , Browser.Events.onResize Types.Resize

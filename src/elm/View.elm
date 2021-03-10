@@ -70,8 +70,7 @@ render model =
     in
     (userNotices
         ++ mobileAttrs
-        ++ [ Element.Events.onClick ClickHappened
-           , height fill
+        ++ [ height fill
            , width fill
            , View.Attrs.typeFont
            ]
@@ -152,21 +151,6 @@ header model =
                 , description = "smokesignal logo"
                 }
         }
-    , Input.text
-        [ fill |> Element.maximum 350 |> width
-        , Background.color black
-        , View.Attrs.whiteGlowAttributeSmall
-        ]
-        { onChange = always ClickHappened
-        , label = Input.labelHidden ""
-        , placeholder =
-            "Search . . ."
-                |> text
-                |> Input.placeholder []
-                |> Just
-        , text = ""
-        }
-        |> View.Common.when False
     , [ maybeTxTracker
             model.dProfile
             model.showExpandedTrackedTxs

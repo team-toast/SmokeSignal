@@ -269,35 +269,47 @@ update msg model =
                             )
 
         WalletResponse res ->
-            case res of
-                WalletSucceed info ->
-                    ( { model
-                        | wallet = Active info
-                      }
-                    , Cmd.none
-                    )
+            res
+                |> unpack
+                    (\err ->
+                        case err of
+                            WalletInProgress ->
+                                ( { model
+                                    | userNotices = UN.unexpectedError "Please complete the wallet connection process" :: model.userNotices
+                                  }
+                                , Cmd.none
+                                )
 
-                WalletInProgress ->
-                    ( { model
-                        | userNotices = UN.unexpectedError "Please complete the wallet connection process" :: model.userNotices
-                      }
-                    , Cmd.none
-                    )
+                            WalletCancel ->
+                                ( { model
+                                    | userNotices = UN.unexpectedError "The wallet connection has been cancelled" :: model.userNotices
+                                    , wallet = NetworkReady
+                                  }
+                                , Cmd.none
+                                )
 
-                WalletCancel ->
-                    ( { model
-                        | userNotices = UN.unexpectedError "The wallet connection has been cancelled" :: model.userNotices
-                        , wallet = NetworkReady
-                      }
-                    , Cmd.none
-                    )
+                            NetworkNotSupported ->
+                                ( { model
+                                    | userNotices = UN.unexpectedError "This network is not supported by SmokeSignal." :: model.userNotices
+                                    , wallet = NetworkReady
+                                  }
+                                , Cmd.none
+                                )
 
-                WalletError ->
-                    ( { model
-                        | wallet =
-                            Types.NetworkReady
-                      }
-                    , Cmd.none
+                            WalletError e ->
+                                ( { model
+                                    | wallet =
+                                        Types.NetworkReady
+                                  }
+                                , Ports.log e
+                                )
+                    )
+                    (\info ->
+                        ( { model
+                            | wallet = Active info
+                          }
+                        , Cmd.none
+                        )
                     )
 
         TxSentryMsg chain subMsg ->
@@ -837,14 +849,6 @@ update msg model =
 
         NewDemoSrc src ->
             ( { model | demoPhaceSrc = src }
-            , Cmd.none
-            )
-
-        ClickHappened ->
-            ( { model
-                | showAddressId = Nothing
-                , showExpandedTrackedTxs = False
-              }
             , Cmd.none
             )
 

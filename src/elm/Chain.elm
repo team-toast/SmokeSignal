@@ -3,6 +3,7 @@ module Chain exposing (chainDecoder, decodeChain, getName)
 import Eth.Decode
 import Eth.Net
 import Json.Decode as Decode exposing (Decoder)
+import Result.Extra
 import Types exposing (Chain(..), Flags)
 
 
@@ -32,31 +33,38 @@ chainDecoder flags =
                         flags.xDaiProviderUrl
             }
         )
-        (Decode.field "network" decodeChain)
+        (Decode.field "network" decodeChain
+            |> Decode.andThen
+                (Result.Extra.unpack
+                    (always (Decode.fail "bad network"))
+                    Decode.succeed
+                )
+        )
         (Decode.field "contract" Eth.Decode.address)
         (Decode.field "scan" Decode.int)
         |> Decode.list
 
 
-decodeChain : Decoder Types.Chain
+decodeChain : Decoder (Result Types.WalletConnectErr Types.Chain)
 decodeChain =
     Eth.Net.networkIdDecoder
-        |> Decode.andThen
+        |> Decode.map
             (\network ->
                 case network of
                     Eth.Net.Mainnet ->
                         Types.Eth
-                            |> Decode.succeed
+                            |> Ok
 
                     Eth.Net.Private 100 ->
                         Types.XDai
-                            |> Decode.succeed
+                            |> Ok
 
                     -- Hardhat server
                     Eth.Net.Private 31337 ->
                         Types.Eth
-                            |> Decode.succeed
+                            |> Ok
 
                     _ ->
-                        Decode.fail "bad network"
+                        Types.NetworkNotSupported
+                            |> Err
             )
