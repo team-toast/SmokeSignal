@@ -56,7 +56,7 @@ view model =
         }
     ]
         |> column
-            [ cappedWidth 400
+            [ cappedWidth 350
             , spacing 10
             , height fill
             ]
@@ -70,15 +70,14 @@ viewTopics =
                 [ width fill
                 , Background.color black
                 , Font.color white
-                , paddingXY 15 5
+                , paddingXY 10 5
                 , hover
                 , View.Attrs.title topic
                 ]
                 { onPress = Just <| GotoView <| ViewTopic topic
                 , label =
-                    [ topic
-                        |> View.Common.ellipsisText 30
-                        |> el [ width fill, Font.size 30 ]
+                    [ [ text topic ]
+                        |> Element.paragraph [ width fill, Font.size 30 ]
                     , [ Element.image
                             [ height <| px 25
                             ]
@@ -91,14 +90,14 @@ viewTopics =
                             |> text
                             |> el [ Font.size 25, Font.bold, Font.color softRed ]
                       ]
-                        |> row []
+                        |> row [ Element.alignTop ]
                     ]
                         |> row
                             [ width fill
                             ]
                 }
         )
-        >> column [ width <| px 400 ]
+        >> column [ width fill ]
 
 
 viewWallet : Model -> Element Msg
