@@ -521,6 +521,11 @@ update msg model =
                         , topics =
                             model.topics
                                 |> updateTopics
+                        , pages =
+                            model.rootPosts
+                                |> calculatePagination model.blockTimes
+                                    accounting
+                                    model.now
                       }
                     , Cmd.none
                     )
@@ -1123,14 +1128,9 @@ addPost log model =
                             )
                 , pages =
                     rootPosts
-                        |> Dict.values
-                        |> List.sortBy
-                            (.core
-                                >> Misc.sortPosts model.blockTimes model.accounting model.now
-                            )
-                        |> List.map (.core >> .key)
-                        |> List.Extra.greedyGroupsOf 10
-                        |> Array.fromList
+                        |> calculatePagination model.blockTimes
+                            model.accounting
+                            model.now
             }
 
         LogReply post ->
@@ -1247,3 +1247,15 @@ getPostBurnAmount price txt =
         txt
             |> Misc.dollarStringToToken price
             |> Result.fromMaybe "Invalid burn amount"
+
+
+calculatePagination : Dict Int Time.Posix -> Dict PostKey Accounting -> Time.Posix -> Dict PostKey RootPost -> Array.Array (List PostKey)
+calculatePagination blockTimes accounting now =
+    Dict.values
+        >> List.sortBy
+            (.core
+                >> Misc.sortPosts blockTimes accounting now
+            )
+        >> List.map (.core >> .key)
+        >> List.Extra.greedyGroupsOf 10
+        >> Array.fromList
