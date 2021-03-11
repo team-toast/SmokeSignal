@@ -10,7 +10,7 @@ import Helpers.Element exposing (DisplayProfile(..), black, white)
 import Html.Attributes
 import Maybe.Extra exposing (unwrap)
 import Misc
-import Theme exposing (orange, theme)
+import Theme exposing (orange)
 import Types exposing (..)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
 import View.Common exposing (when, whenAttr, whenJust, wrapModal)
@@ -294,7 +294,7 @@ viewBurnBox donate txt =
             }
       , [ text "Donate an extra 1% to "
         , Element.newTabLink
-            [ Font.color theme.linkTextColor, hover ]
+            [ Font.color Theme.blue, hover ]
             { url = "https://foundrydao.com/"
             , label = text "Foundry"
             }

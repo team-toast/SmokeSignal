@@ -12,6 +12,7 @@ import Markdown.Block
 import Markdown.Html
 import Markdown.Parser
 import Markdown.Renderer exposing (Renderer)
+import Theme
 import View.Attrs exposing (hover)
 
 
@@ -21,6 +22,24 @@ import View.Attrs exposing (hover)
 
 renderString : DisplayProfile -> String -> Element msg
 renderString device src =
+    let
+        isMobile =
+            device == Helpers.Element.Mobile
+
+        fs =
+            if isMobile then
+                17
+
+            else
+                20
+
+        sp =
+            if isMobile then
+                10
+
+            else
+                20
+    in
     src
         |> Markdown.Parser.parse
         |> Result.mapError (always ())
@@ -33,7 +52,7 @@ renderString device src =
                 >> Result.mapError (always ())
             )
         |> Result.withDefault [ text "There has been a problem." ]
-        |> column [ spacing 10, height fill, width fill, Font.size 17 ]
+        |> column [ spacing sp, height fill, width fill, Font.size fs ]
 
 
 renderer : DisplayProfile -> Renderer (Element msg)
@@ -55,15 +74,11 @@ renderer device =
     , link =
         \{ destination } body ->
             Element.newTabLink
-                [ Element.htmlAttribute (Html.Attributes.style "display" "inline-flex")
-                , hover
-                ]
+                [ hover, Font.color Theme.orange, Font.underline ]
                 { url = destination
                 , label =
-                    paragraph
-                        [ Font.color (Element.rgb255 0 0 255)
-                        ]
-                        body
+                    body
+                        |> paragraph []
                 }
     , hardLineBreak = Html.br [] [] |> Element.html
     , image =

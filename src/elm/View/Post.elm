@@ -1,4 +1,4 @@
-module View.Post exposing (view)
+module View.Post exposing (view, viewActions)
 
 import Chain
 import Element exposing (Color, Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spaceEvenly, spacing, text, width)
@@ -7,11 +7,10 @@ import Element.Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile, black, white)
-import Helpers.Time as TimeHelpers
 import Maybe.Extra exposing (unwrap)
 import Misc
 import Set exposing (Set)
-import Theme exposing (almostWhite, theme)
+import Theme exposing (almostWhite)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
@@ -41,21 +40,24 @@ view dProfile timestamp now replies accounting state topic wallet post =
             wallet
                 |> unwrap False (.chain >> (==) post.chain)
     in
-    [ [ accounting
+    [ [ [ accounting
             |> whenJust (viewAccounting dProfile)
+        , View.Common.viewTiming now timestamp
+            |> when (not isMobile)
+        ]
+            |> column [ spacing 10 ]
       , [ topic
             |> whenJust
                 (\t ->
                     Input.button [ Font.size 30, hover, width fill ]
                         { onPress = Just <| GotoView <| ViewTopic t
                         , label =
-                            "#"
-                                ++ t
-                                |> View.Common.ellipsisText 30
+                            [ text ("#" ++ t) ]
+                                |> paragraph []
                         }
                 )
-            |> el [ width fill ]
-        , viewCard timestamp now post
+            |> el [ width fill, Element.alignTop ]
+        , View.Common.viewCard post
             |> when (not isMobile)
         ]
             |> row [ width fill, spaceEvenly ]
@@ -64,25 +66,27 @@ view dProfile timestamp now replies accounting state topic wallet post =
     , viewCardMobile timestamp now post
         |> when isMobile
     , [ phaceElement
-            ( 60, 60 )
-            False
+            60
             post.author
             False
             (ShowOrHideAddress <| PhaceForPublishedPost post.id)
       , [ viewContent dProfile post
             |> linkToPost post.id
         , [ [ View.Img.speechBubble 17 almostWhite
-            , text <| viewReplies replies
+            , viewReplies replies
+                |> text
             ]
                 |> row [ spacing 10, Font.size 23 ]
                 |> linkToPost post.id
                 |> el
                     [ Element.alignRight
+                    , Element.alignBottom
                     ]
                 |> el
                     [ Font.color almostWhite
                     , Font.size 17
                     , width fill
+                    , height fill
                     ]
           , viewActions post state
                 |> when showActions
@@ -91,7 +95,7 @@ view dProfile timestamp now replies accounting state topic wallet post =
                     column [ width fill, spacing 10 ]
 
                 else
-                    row [ width fill, spaceEvenly ]
+                    row [ width fill, spacing 10 ]
                )
         ]
             |> column
@@ -124,15 +128,10 @@ viewCardMobile timestamp now post =
                 |> text
 
         timing =
-            viewTiming timestamp now
+            View.Common.viewTiming now timestamp
 
         col =
-            case post.chain of
-                Types.XDai ->
-                    Theme.softRed
-
-                Types.Eth ->
-                    Theme.orange
+            Chain.getColor post.chain
     in
     Element.newTabLink
         [ hover
@@ -143,7 +142,7 @@ viewCardMobile timestamp now post =
         , View.Attrs.sansSerifFont
         , width fill
         ]
-        { url = Misc.txUrl post.chain post.txHash
+        { url = Chain.txUrl post.chain post.txHash
         , label =
             [ View.Common.viewChain post.chain
             , View.Common.verticalRule white
@@ -153,52 +152,6 @@ viewCardMobile timestamp now post =
             ]
                 |> row
                     [ spaceEvenly
-                    , Font.size 17
-                    , width fill
-                    ]
-        }
-
-
-viewCard : Maybe Time.Posix -> Time.Posix -> Core -> Element Msg
-viewCard timestamp now post =
-    let
-        block =
-            "@"
-                ++ String.fromInt post.id.block
-                |> text
-
-        timing =
-            viewTiming timestamp now
-
-        col =
-            case post.chain of
-                Types.XDai ->
-                    Theme.softRed
-
-                Types.Eth ->
-                    Theme.orange
-    in
-    Element.newTabLink
-        [ hover
-        , Background.color col
-        , Font.color white
-        , roundBorder
-        , padding 10
-        , View.Attrs.sansSerifFont
-        , width <| px 270
-        ]
-        { url = Misc.txUrl post.chain post.txHash
-        , label =
-            [ [ View.Common.viewChain post.chain
-              , block
-              ]
-                |> column [ spacing 10, width fill ]
-            , View.Common.verticalRule white
-            , timing
-                |> el [ width fill ]
-            ]
-                |> row
-                    [ spacing 10
                     , Font.size 17
                     , width fill
                     ]
@@ -249,12 +202,12 @@ viewReplies replies =
 
 viewAccounting : DisplayProfile -> Accounting -> Element Msg
 viewAccounting _ accounting =
-    Element.row
-        [ spacing 5
-        ]
-        [ viewAmount theme.daiBurnedBackground accounting.totalBurned
-        , viewAmount theme.daiTippedBackground accounting.totalTipped
-        ]
+    [ viewAmount Theme.darkRed accounting.totalBurned
+    , viewAmount Theme.darkGreen accounting.totalTipped
+    ]
+        |> row
+            [ spacing 5
+            ]
 
 
 viewAmount : Color -> TokenValue -> Element Msg
@@ -269,23 +222,8 @@ viewAmount color amount =
             , Font.size 22
             , Font.color white
             , Background.color color
+            , height fill
             ]
-
-
-viewTiming : Maybe Time.Posix -> Time.Posix -> Element Msg
-viewTiming maybePostTime now =
-    maybePostTime
-        |> unwrap
-            (View.Common.spinner 20 white
-                |> el [ centerX ]
-            )
-            (\time ->
-                TimeHelpers.sub now time
-                    |> TimeHelpers.roundToSingleUnit
-                    |> (\s -> s ++ " ago")
-                    |> text
-                    |> el [ View.Attrs.title (Misc.formatPosix time) ]
-            )
 
 
 viewActions : Core -> Maybe PostState -> Element Msg
@@ -376,7 +314,7 @@ supportTipButton : PostId -> Element Msg
 supportTipButton postId =
     Input.button
         [ height <| px 40
-        , Background.color theme.daiTippedBackground
+        , Background.color Theme.darkGreen
         , width <| px 40
         , EH.withTitle "Tip for this post, rewarding the author."
         , hover
@@ -392,7 +330,7 @@ supportBurnButton : PostId -> Element Msg
 supportBurnButton postId =
     Input.button
         [ height <| px 40
-        , Background.color theme.daiBurnedBackground
+        , Background.color Theme.darkRed
         , width <| px 40
         , EH.withTitle "Burn to increase the visibility of this post."
         , hover

@@ -1,4 +1,4 @@
-module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getConfig, getPostOrReply, getProviderUrl, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPosts, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, txUrl, validateTopic)
+module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPosts, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, validateTopic)
 
 import Array
 import Browser.Navigation
@@ -11,7 +11,6 @@ import Eth.Types exposing (Address, TxHash, TxReceipt)
 import Eth.Utils
 import FormatFloat
 import Helpers.Element
-import Helpers.Eth
 import Helpers.Time
 import Http
 import Json.Decode as Decode
@@ -172,16 +171,15 @@ txInfoToNameStr txInfo =
 
 formatPosix : Posix -> String
 formatPosix t =
-    [ [ Time.toDay Time.utc t
+    [ [ Time.toYear Time.utc t
             |> String.fromInt
-            |> String.padLeft 2 '0'
       , Time.toMonth Time.utc t
             |> Helpers.Time.monthToInt
             |> String.fromInt
             |> String.padLeft 2 '0'
-      , Time.toYear Time.utc t
+      , Time.toDay Time.utc t
             |> String.fromInt
-            |> String.right 2
+            |> String.padLeft 2 '0'
       ]
         |> String.join "-"
     , [ Time.toHour Time.utc t
@@ -305,37 +303,6 @@ validateTopic =
                 else
                     Just str
            )
-
-
-getProviderUrl : Chain -> Config -> String
-getProviderUrl chain =
-    case chain of
-        Eth ->
-            .ethereum >> .providerUrl
-
-        XDai ->
-            .xDai >> .providerUrl
-
-
-getConfig : Chain -> Config -> ChainConfig
-getConfig chain =
-    case chain of
-        Eth ->
-            .ethereum
-
-        XDai ->
-            .xDai
-
-
-txUrl : Chain -> TxHash -> String
-txUrl chain hash =
-    case chain of
-        Eth ->
-            Helpers.Eth.etherscanTxUrl hash
-
-        XDai ->
-            "https://blockscout.com/poa/xdai/tx/"
-                ++ Eth.Utils.txHashToString hash
 
 
 getPostOrReply : PostId -> Model -> Maybe Core

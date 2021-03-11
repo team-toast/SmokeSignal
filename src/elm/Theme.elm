@@ -1,6 +1,6 @@
-module Theme exposing (almostWhite, blue, blueButton, commonShadow, darkBlue, darkGray, darkGreen, darkRed, darkYellow, darkerBlue, disabledButton, green, inverseBlueButton, lightBlue, lightBlueButton, lightGray, lightGreen, lightRed, orange, redButton, softRed, theme, unscaryButton, veryDarkGray, yellow)
+module Theme exposing (almostWhite, blue, blueButton, commonShadow, darkBlue, darkGray, darkGreen, darkRed, darkYellow, darkerBlue, disabledButton, ethereum, green, inverseBlueButton, lightBlue, lightBlueButton, lightGray, lightGreen, lightRed, orange, redButton, softRed, unscaryButton, veryDarkGray, xDai, yellow)
 
-import Element exposing (Attribute, Color, Element)
+import Element exposing (Attribute, Color, Element, rgb255)
 import Element.Background
 import Element.Border
 import Element.Font
@@ -8,80 +8,14 @@ import Helpers.Element as EH
 import View.Attrs
 
 
-type alias Theme msg =
-    { headerBackground : Color
-    , headerTextColor : Color
-    , appBackground : Color
-    , blockBackground : Color
-    , blockBorderColor : Color
-    , txTrackerBackground : Color
-    , postBodyBackground : Color
-    , draftModalBackground : Color
-    , defaultTextColor : Color
-    , subtleTextColor : Color
-    , linkTextColor : Color
-    , linkTextColorAgainstBackground : Color
-    , emphasizedTextColor : Color
-    , postBodyTextColor : Color
-    , messageInputPlaceholderTextColor : Color
-    , loadingTextColor : Color
-    , errorTextColor : Color
-    , appStatusTextColor : Color
-    , daiBurnedBackground : Color
-    , daiBurnedTextIsWhite : Bool
-    , daiTippedBackground : Color
-    , daiTippedTextIsWhite : Bool
-    , emphasizedActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
-    , secondaryActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
-    , disabledActionButton : EH.DisplayProfile -> List (Attribute msg) -> String -> Element msg
-    , greenActionButton : EH.DisplayProfile -> List (Attribute msg) -> List String -> EH.ButtonAction msg -> Element msg
-    }
+xDai : Color
+xDai =
+    rgb255 7 132 112
 
 
-theme : Theme msg
-theme =
-    { headerBackground = darkBlue
-    , headerTextColor = EH.white
-    , appBackground = EH.black
-    , blockBackground = Element.rgb 0.1 0.1 0.1
-    , blockBorderColor = Element.rgb 0.25 0.25 0.25
-    , postBodyBackground = lightBlue
-    , draftModalBackground = darkBlue
-    , txTrackerBackground = lightBlue
-    , defaultTextColor = Element.rgb 0.9 0.9 0.9
-    , subtleTextColor = Element.rgb 0.5 0.5 0.5
-    , linkTextColor = blue
-    , linkTextColorAgainstBackground = Element.rgb 0.4 0.6 1
-    , emphasizedTextColor = EH.white
-    , postBodyTextColor = EH.black
-    , messageInputPlaceholderTextColor = darkGray
-    , loadingTextColor = darkGray
-    , errorTextColor = softRed
-    , appStatusTextColor = darkGray
-    , daiBurnedBackground = darkRed
-    , daiBurnedTextIsWhite = True
-    , daiTippedBackground = darkGreen
-    , daiTippedTextIsWhite = True
-    , emphasizedActionButton = redButton
-    , secondaryActionButton = blueButton
-    , disabledActionButton = disabledButton
-    , greenActionButton = unscaryButton
-    }
-
-
-
--- darkTheme : Theme msg
--- darkTheme =
---     { basicTheme
---         | appBackground = EH.black
---         , blockBackground = darkBlue
---         , mainTextColor = almostWhite
---         , emphasizedTextColor = EH.white
---         , loadingTextColor = lightGray
---         , appStatusTextColor = lightGray
---         , daiBurnedBackground = darkRed
---         , daiBurnedTextIsWhite = True
---     }
+ethereum : Color
+ethereum =
+    rgb255 37 57 249
 
 
 orange : Color
@@ -177,25 +111,6 @@ commonShadow =
         , blur = 10
         , color = darkGray
         }
-
-
-
--- daiYellow =
---     yellow
--- dollarGreen =
---     green
--- placeholderTextColor =
---     Element.rgb255 213 217 222
--- mediumGray =
---     Element.rgb255 200 205 210
--- activePhaseBackgroundColor =
---     Element.rgb255 9 32 107
--- permanentTextColor =
---     Element.rgba255 1 31 52 0.8
--- submodelBackgroundColor =
---     Element.rgb 0.95 0.98 1
--- pageBackgroundColor =
---     Element.rgb255 242 243 247
 
 
 blueButton :

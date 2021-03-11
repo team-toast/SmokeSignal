@@ -107,8 +107,7 @@ viewWallet model =
             case Wallet.userInfo model.wallet of
                 Nothing ->
                     phaceElement
-                        ( 80, 80 )
-                        True
+                        80
                         (Eth.Utils.unsafeToAddress model.demoPhaceSrc)
                         (model.showAddressId == Just DemoPhace)
                         (ShowOrHideAddress DemoPhace)
@@ -121,8 +120,7 @@ viewWallet model =
 
                 Just userInfo ->
                     phaceElement
-                        ( 100, 100 )
-                        True
+                        100
                         userInfo.address
                         (model.showAddressId == Just UserPhace)
                         (ShowOrHideAddress UserPhace)
@@ -229,19 +227,11 @@ viewWallet model =
 
 viewChain : Types.Chain -> Element msg
 viewChain chain =
-    let
-        col =
-            case chain of
-                Types.XDai ->
-                    softRed
-
-                Types.Eth ->
-                    orange
-    in
     chain
         |> View.Common.viewChain
         |> el
             [ Element.padding 10
             , View.Attrs.roundBorder
-            , Background.color col
+            , Background.color <| Chain.getColor chain
+            , Font.color white
             ]

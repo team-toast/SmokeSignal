@@ -89,10 +89,10 @@ view model topic =
 
 topicHeader : String -> Bool -> Element Msg
 topicHeader topic walletActive =
-    [ [ text topic
+    [ [ text <| "#" ++ topic
       ]
         |> Element.paragraph
-            [ Font.color white
+            [ Font.color black
             , Font.size 35
             ]
     , Input.button
@@ -101,7 +101,7 @@ topicHeader topic walletActive =
         , slightRound
         , Background.color Theme.orange
         , Font.bold
-        , Font.color white
+        , Font.color black
         , Font.size 20
         , hover
         ]
@@ -116,5 +116,6 @@ topicHeader topic walletActive =
             [ width fill
             , whiteGlowAttributeSmall
             , padding 15
-            , Background.color black
+            , Background.color orange
+            , Font.color orange
             ]

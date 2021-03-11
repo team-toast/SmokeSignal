@@ -3,6 +3,7 @@ module Update exposing (update)
 import Array
 import Browser
 import Browser.Navigation
+import Chain
 import Contracts.SmokeSignal as SSContract
 import DemoPhaceSrcMutator
 import Dict exposing (Dict)
@@ -251,7 +252,7 @@ update msg model =
                 |> List.map
                     (\tx ->
                         Misc.getTxReceipt
-                            (Misc.getProviderUrl tx.chain model.config)
+                            (Chain.getProviderUrl tx.chain model.config)
                             tx.txHash
                             |> Task.attempt TrackedTxStatusResult
                     )
@@ -708,7 +709,7 @@ update msg model =
                                         (\postDraft ->
                                             let
                                                 config =
-                                                    Misc.getConfig userInfo.chain model.config
+                                                    Chain.getConfig userInfo.chain model.config
 
                                                 txParams =
                                                     postDraft
@@ -738,7 +739,7 @@ update msg model =
                     in
                     ( { model | compose = compose }
                     , SSContract.getEthPriceCmd
-                        (Misc.getConfig userInfo.chain model.config)
+                        (Chain.getConfig userInfo.chain model.config)
                         |> Task.attempt PriceResponse
                     )
                 )
@@ -758,7 +759,7 @@ update msg model =
                                 in
                                 ( { model | postState = Just newState }
                                 , SSContract.getEthPriceCmd
-                                    (Misc.getConfig userInfo.chain model.config)
+                                    (Chain.getConfig userInfo.chain model.config)
                                     |> Task.attempt (PostTxPriceResponse newState)
                                 )
                             )
@@ -797,7 +798,7 @@ update msg model =
                                         (\amount ->
                                             let
                                                 config =
-                                                    Misc.getConfig userInfo.chain model.config
+                                                    Chain.getConfig userInfo.chain model.config
 
                                                 fn =
                                                     case state.showInput of
@@ -1194,7 +1195,7 @@ handleTxReceipt chain txReceipt =
 fetchPostInfo : Dict Int Time.Posix -> Config -> Core -> Cmd Msg
 fetchPostInfo blockTimes config core =
     [ SSContract.getAccountingCmd
-        (Misc.getConfig core.chain config)
+        (Chain.getConfig core.chain config)
         core.id.messageHash
         |> Task.attempt (PostAccountingFetched core.id)
     , if Dict.member core.id.block blockTimes then
@@ -1202,7 +1203,7 @@ fetchPostInfo blockTimes config core =
 
       else
         Eth.getBlock
-            (Misc.getProviderUrl core.chain config)
+            (Chain.getProviderUrl core.chain config)
             core.id.block
             |> Task.map .timestamp
             |> Task.attempt (BlockTimeFetched core.id.block)
