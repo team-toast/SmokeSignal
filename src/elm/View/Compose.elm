@@ -10,7 +10,7 @@ import Helpers.Element exposing (DisplayProfile(..), black, white)
 import Html.Attributes
 import Maybe.Extra exposing (unwrap)
 import Misc
-import Theme exposing (orange, theme)
+import Theme exposing (orange)
 import Types exposing (..)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
 import View.Common exposing (when, whenAttr, whenJust, wrapModal)
@@ -99,7 +99,7 @@ viewBox model userInfo =
             { onChange = ComposeTitleChange
             , label = Input.labelHidden ""
             , placeholder =
-                "Title"
+                "Title (Optional)"
                     |> text
                     |> Input.placeholder []
                     |> Just
@@ -159,7 +159,17 @@ viewBox model userInfo =
             |> column [ width fill, spacing 10, sansSerifFont ]
       , viewMarkdown model
       , model.compose.error
-            |> whenJust (text >> el [ Background.color white, Element.alignRight, slightRound, padding 10 ])
+            |> whenJust
+                (text
+                    >> List.singleton
+                    >> Element.paragraph
+                        [ Background.color white
+                        , Element.alignRight
+                        , slightRound
+                        , padding 10
+                        , Font.color black
+                        ]
+                )
       , [ [ Input.checkbox
                 [ width <| px 30
                 , height <| px 30
@@ -284,7 +294,7 @@ viewBurnBox donate txt =
             }
       , [ text "Donate an extra 1% to "
         , Element.newTabLink
-            [ Font.color theme.linkTextColor, hover ]
+            [ Font.color Theme.blue, hover ]
             { url = "https://foundrydao.com/"
             , label = text "Foundry"
             }

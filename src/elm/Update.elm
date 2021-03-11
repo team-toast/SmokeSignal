@@ -3,12 +3,12 @@ module Update exposing (update)
 import Array
 import Browser
 import Browser.Navigation
+import Chain
 import Contracts.SmokeSignal as SSContract
 import DemoPhaceSrcMutator
 import Dict exposing (Dict)
 import Eth
 import Eth.Sentry.Event as EventSentry
-import Eth.Sentry.Tx as TxSentry
 import Eth.Types exposing (TxReceipt)
 import Eth.Utils
 import GTag exposing (GTagData, gTagOut)
@@ -75,13 +75,6 @@ update msg model =
                     EH.screenWidthToDisplayProfile width
               }
             , Cmd.none
-            )
-
-        EveryFewSeconds ->
-            ( model
-            , SSContract.getEthPriceCmd
-                model.config.ethereum
-                |> Task.attempt EthPriceFetched
             )
 
         ShowExpandedTrackedTxs flag ->
@@ -171,6 +164,83 @@ update msg model =
                             )
                 )
 
+        PostTxResponse res ->
+            ensureUserInfo
+                (\userInfo ->
+                    res
+                        |> unpack
+                            (\err ->
+                                case err of
+                                    Types.UserRejected ->
+                                        ( { model
+                                            | postState =
+                                                model.postState
+                                                    |> Maybe.map
+                                                        (\r ->
+                                                            { r
+                                                                | inProgress = False
+                                                                , error =
+                                                                    Just "Your transaction was cancelled."
+                                                            }
+                                                        )
+                                          }
+                                        , Cmd.none
+                                        )
+
+                                    Types.OtherErr e ->
+                                        ( { model
+                                            | postState =
+                                                model.postState
+                                                    |> Maybe.map
+                                                        (\r ->
+                                                            { r
+                                                                | inProgress = False
+                                                                , error =
+                                                                    Just "There has been a problem."
+                                                            }
+                                                        )
+                                          }
+                                        , Ports.log e
+                                        )
+                            )
+                            (\txHash ->
+                                let
+                                    trackedTx =
+                                        model.postState
+                                            |> Maybe.map
+                                                (\state ->
+                                                    { txHash = txHash
+                                                    , txInfo =
+                                                        case state.showInput of
+                                                            Tip ->
+                                                                TipTx state.id
+
+                                                            Burn ->
+                                                                TipTx state.id
+                                                    , status = Mining
+                                                    , chain = userInfo.chain
+                                                    }
+                                                )
+                                in
+                                ( { model
+                                    | postState = Nothing
+                                    , userNotices =
+                                        model.userNotices
+                                            |> List.append [ UN.notify "Your transaction is mining." ]
+                                    , trackedTxs =
+                                        model.trackedTxs
+                                            |> (trackedTx
+                                                    |> unwrap identity
+                                                        (Dict.insert
+                                                            (Eth.Utils.txHashToString txHash)
+                                                        )
+                                               )
+                                  }
+                                , Cmd.none
+                                )
+                            )
+                )
+
         CheckTrackedTxsStatus ->
             ( model
             , model.trackedTxs
@@ -182,7 +252,7 @@ update msg model =
                 |> List.map
                     (\tx ->
                         Misc.getTxReceipt
-                            (Misc.getProviderUrl tx.chain model.config)
+                            (Chain.getProviderUrl tx.chain model.config)
                             tx.txHash
                             |> Task.attempt TrackedTxStatusResult
                     )
@@ -230,10 +300,10 @@ update msg model =
                                                             --)
                                                             Nothing
 
-                                                        TipTx id _ ->
+                                                        TipTx id ->
                                                             Misc.getPostOrReply id model
 
-                                                        BurnTx id _ ->
+                                                        BurnTx id ->
                                                             Misc.getPostOrReply id model
                                                     )
                                                         |> unwrap Cmd.none
@@ -269,52 +339,48 @@ update msg model =
                             )
 
         WalletResponse res ->
-            case res of
-                WalletSucceed info ->
-                    ( { model
-                        | wallet = Active info
-                      }
-                    , Cmd.none
+            res
+                |> unpack
+                    (\err ->
+                        case err of
+                            WalletInProgress ->
+                                ( { model
+                                    | userNotices = UN.unexpectedError "Please complete the wallet connection process." :: model.userNotices
+                                  }
+                                , Cmd.none
+                                )
+
+                            WalletCancel ->
+                                ( { model
+                                    | userNotices = UN.unexpectedError "The wallet connection has been cancelled." :: model.userNotices
+                                    , wallet = NetworkReady
+                                  }
+                                , Cmd.none
+                                )
+
+                            NetworkNotSupported ->
+                                ( { model
+                                    | userNotices = UN.unexpectedError "This network is not supported by SmokeSignal." :: model.userNotices
+                                    , wallet = NetworkReady
+                                  }
+                                , Cmd.none
+                                )
+
+                            WalletError e ->
+                                ( { model
+                                    | wallet =
+                                        Types.NetworkReady
+                                  }
+                                , Ports.log e
+                                )
                     )
-
-                WalletInProgress ->
-                    ( { model
-                        | userNotices = UN.unexpectedError "Please complete the wallet connection process" :: model.userNotices
-                      }
-                    , Cmd.none
+                    (\info ->
+                        ( { model
+                            | wallet = Active info
+                          }
+                        , Cmd.none
+                        )
                     )
-
-                WalletCancel ->
-                    ( { model
-                        | userNotices = UN.unexpectedError "The wallet connection has been cancelled" :: model.userNotices
-                        , wallet = NetworkReady
-                      }
-                    , Cmd.none
-                    )
-
-                WalletError ->
-                    ( { model
-                        | wallet =
-                            Types.NetworkReady
-                      }
-                    , Cmd.none
-                    )
-
-        TxSentryMsg chain subMsg ->
-            case chain of
-                Eth ->
-                    let
-                        ( newTxSentry, subCmd ) =
-                            TxSentry.update subMsg model.txSentry
-                    in
-                    ( { model | txSentry = newTxSentry }, subCmd )
-
-                XDai ->
-                    let
-                        ( newTxSentry, subCmd ) =
-                            TxSentry.update subMsg model.txSentryX
-                    in
-                    ( { model | txSentryX = newTxSentry }, subCmd )
 
         EventSentryMsg chain eventMsg ->
             case chain of
@@ -456,6 +522,11 @@ update msg model =
                         , topics =
                             model.topics
                                 |> updateTopics
+                        , pages =
+                            model.rootPosts
+                                |> calculatePagination model.blockTimes
+                                    accounting
+                                    model.now
                       }
                     , Cmd.none
                     )
@@ -495,36 +566,6 @@ update msg model =
                     , logHttpError "BalanceFetched" err
                     )
 
-        EthPriceFetched fetchResult ->
-            case fetchResult of
-                Ok price ->
-                    ( { model
-                        | ethPrice = price
-                      }
-                    , Cmd.none
-                    )
-
-                Err err ->
-                    ( model
-                        |> addUserNotice (UN.web3FetchError "ETH price")
-                    , logHttpError "EthPriceFetched" err
-                    )
-
-        XDaiPriceFetched fetchResult ->
-            case fetchResult of
-                Ok price ->
-                    ( { model
-                        | xDaiPrice = price
-                      }
-                    , Cmd.none
-                    )
-
-                Err err ->
-                    ( model
-                        |> addUserNotice (UN.web3FetchError "xDai price")
-                    , logHttpError "XDaiPriceFetched" err
-                    )
-
         BlockTimeFetched blocknum timeResult ->
             case timeResult of
                 Err err ->
@@ -549,28 +590,6 @@ update msg model =
               }
             , Cmd.none
             )
-
-        TxSigned chain txInfo res ->
-            case res of
-                Ok txHash ->
-                    ( { model
-                        | showExpandedTrackedTxs = True
-                        , trackedTxs =
-                            model.trackedTxs
-                                |> Dict.insert (Eth.Utils.txHashToString txHash)
-                                    { txHash = txHash
-                                    , txInfo = txInfo
-                                    , status = Mining
-                                    , chain = chain
-                                    }
-                      }
-                    , Cmd.none
-                    )
-
-                Err errStr ->
-                    ( model
-                    , Ports.log <| "TxSigned error:\n" ++ errStr
-                    )
 
         GotoView view ->
             ( model
@@ -690,7 +709,7 @@ update msg model =
                                         (\postDraft ->
                                             let
                                                 config =
-                                                    Misc.getConfig userInfo.chain model.config
+                                                    Chain.getConfig userInfo.chain model.config
 
                                                 txParams =
                                                     postDraft
@@ -720,76 +739,82 @@ update msg model =
                     in
                     ( { model | compose = compose }
                     , SSContract.getEthPriceCmd
-                        (Misc.getConfig userInfo.chain model.config)
+                        (Chain.getConfig userInfo.chain model.config)
                         |> Task.attempt PriceResponse
                     )
                 )
 
-        SubmitBurn txt postId ->
+        SubmitPostTx ->
             ensureUserInfo
                 (\userInfo ->
-                    txt
-                        |> Misc.dollarStringToToken
-                            (Misc.getPrice userInfo.chain model)
-                        |> Result.fromMaybe "Invalid burn amount"
-                        |> unpack
-                            (\err ->
-                                ( { model
-                                    | userNotices = [ UN.unexpectedError err ]
-                                  }
-                                , Cmd.none
-                                )
-                            )
-                            (\amount ->
+                    model.postState
+                        |> unwrap ( model, Cmd.none )
+                            (\state ->
                                 let
-                                    config =
-                                        Misc.getConfig userInfo.chain model.config
-
-                                    txParams =
-                                        SSContract.burnForPost userInfo config.contract postId.messageHash amount model.compose.donate
-                                            |> Eth.toSend
-
-                                    listeners =
-                                        { onMined = Nothing
-                                        , onSign = Just <| TxSigned userInfo.chain <| BurnTx postId amount
-                                        , onBroadcast = Nothing
+                                    newState =
+                                        { state
+                                            | inProgress = True
+                                            , error = Nothing
                                         }
                                 in
-                                submitTxn model userInfo.chain listeners txParams
+                                ( { model | postState = Just newState }
+                                , SSContract.getEthPriceCmd
+                                    (Chain.getConfig userInfo.chain model.config)
+                                    |> Task.attempt (PostTxPriceResponse newState)
+                                )
                             )
                 )
 
-        SubmitTip txt postId ->
+        PostTxPriceResponse state res ->
             ensureUserInfo
                 (\userInfo ->
-                    txt
-                        |> Misc.dollarStringToToken
-                            (Misc.getPrice userInfo.chain model)
-                        |> Result.fromMaybe "Invalid tip amount"
+                    res
                         |> unpack
-                            (\err ->
-                                ( { model
-                                    | userNotices = [ UN.unexpectedError err ]
-                                  }
-                                , Cmd.none
-                                )
-                            )
-                            (\amount ->
+                            (\_ ->
                                 let
-                                    config =
-                                        Misc.getConfig userInfo.chain model.config
-
-                                    txParams =
-                                        SSContract.tipForPost userInfo config.contract postId.messageHash amount model.compose.donate
-                                            |> Eth.toSend
-
-                                    listeners =
-                                        { onMined = Nothing
-                                        , onSign = Just <| TxSigned userInfo.chain <| TipTx postId amount
-                                        , onBroadcast = Nothing
-                                        }
+                                    compose =
+                                        model.compose
+                                            |> (\r ->
+                                                    { r
+                                                        | inProgress = False
+                                                        , error = Just "There has been a problem."
+                                                    }
+                                               )
                                 in
-                                submitTxn model userInfo.chain listeners txParams
+                                ( { model | compose = compose }, Cmd.none )
+                            )
+                            (\price ->
+                                state.input
+                                    |> Misc.dollarStringToToken price
+                                    |> Result.fromMaybe "Invalid tip amount"
+                                    |> unpack
+                                        (\err ->
+                                            ( { model
+                                                | userNotices = [ UN.unexpectedError err ]
+                                              }
+                                            , Cmd.none
+                                            )
+                                        )
+                                        (\amount ->
+                                            let
+                                                config =
+                                                    Chain.getConfig userInfo.chain model.config
+
+                                                fn =
+                                                    case state.showInput of
+                                                        Tip ->
+                                                            SSContract.tipForPost
+
+                                                        Burn ->
+                                                            SSContract.burnForPost
+
+                                                txParams =
+                                                    fn userInfo config.contract state.id.messageHash amount model.compose.donate
+                                                        |> Eth.toSend
+                                                        |> Eth.encodeSend
+                                            in
+                                            ( model, Ports.txOut txParams )
+                                        )
                             )
                 )
 
@@ -816,13 +841,14 @@ update msg model =
                     , input = ""
                     , showInput = val
                     , inProgress = False
+                    , error = Nothing
                     }
                         |> Just
               }
             , Cmd.none
             )
 
-        CancelTipOpen ->
+        CancelPostInput ->
             ( { model
                 | postState = Nothing
               }
@@ -831,20 +857,11 @@ update msg model =
 
         ChangeDemoPhaceSrc ->
             ( model
-              --, Random.generate MutateDemoSrcWith mutateInfoGenerator
             , Random.generate NewDemoSrc DemoPhaceSrcMutator.addressSrcGenerator
             )
 
         NewDemoSrc src ->
             ( { model | demoPhaceSrc = src }
-            , Cmd.none
-            )
-
-        ClickHappened ->
-            ( { model
-                | showAddressId = Nothing
-                , showExpandedTrackedTxs = False
-              }
             , Cmd.none
             )
 
@@ -1112,14 +1129,9 @@ addPost log model =
                             )
                 , pages =
                     rootPosts
-                        |> Dict.values
-                        |> List.sortBy
-                            (.core
-                                >> Misc.sortPosts model.blockTimes model.now
-                            )
-                        |> List.map (.core >> .key)
-                        |> List.Extra.greedyGroupsOf 10
-                        |> Array.fromList
+                        |> calculatePagination model.blockTimes
+                            model.accounting
+                            model.now
             }
 
         LogReply post ->
@@ -1183,7 +1195,7 @@ handleTxReceipt chain txReceipt =
 fetchPostInfo : Dict Int Time.Posix -> Config -> Core -> Cmd Msg
 fetchPostInfo blockTimes config core =
     [ SSContract.getAccountingCmd
-        (Misc.getConfig core.chain config)
+        (Chain.getConfig core.chain config)
         core.id.messageHash
         |> Task.attempt (PostAccountingFetched core.id)
     , if Dict.member core.id.block blockTimes then
@@ -1191,7 +1203,7 @@ fetchPostInfo blockTimes config core =
 
       else
         Eth.getBlock
-            (Misc.getProviderUrl core.chain config)
+            (Chain.getProviderUrl core.chain config)
             core.id.block
             |> Task.map .timestamp
             |> Task.attempt (BlockTimeFetched core.id.block)
@@ -1227,32 +1239,6 @@ logHttpError tag =
     Misc.parseHttpError >> (++) (tag ++ ":\n") >> Ports.log
 
 
-submitTxn : Model -> Chain -> TxSentry.CustomSend Msg -> Eth.Types.Send -> ( Model, Cmd Msg )
-submitTxn model chain listeners txParams =
-    case chain of
-        Eth ->
-            let
-                ( newSentry, cmd ) =
-                    TxSentry.customSend model.txSentry listeners txParams
-            in
-            ( { model
-                | txSentry = newSentry
-              }
-            , cmd
-            )
-
-        XDai ->
-            let
-                ( newSentry, cmd ) =
-                    TxSentry.customSend model.txSentryX listeners txParams
-            in
-            ( { model
-                | txSentryX = newSentry
-              }
-            , cmd
-            )
-
-
 getPostBurnAmount : Float -> String -> Result String TokenValue
 getPostBurnAmount price txt =
     if String.isEmpty txt then
@@ -1262,3 +1248,15 @@ getPostBurnAmount price txt =
         txt
             |> Misc.dollarStringToToken price
             |> Result.fromMaybe "Invalid burn amount"
+
+
+calculatePagination : Dict Int Time.Posix -> Dict PostKey Accounting -> Time.Posix -> Dict PostKey RootPost -> Array.Array (List PostKey)
+calculatePagination blockTimes accounting now =
+    Dict.values
+        >> List.sortBy
+            (.core
+                >> Misc.sortPosts blockTimes accounting now
+            )
+        >> List.map (.core >> .key)
+        >> List.Extra.greedyGroupsOf 10
+        >> Array.fromList

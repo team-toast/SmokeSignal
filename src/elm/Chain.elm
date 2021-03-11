@@ -1,9 +1,56 @@
-module Chain exposing (chainDecoder, decodeChain, getName)
+module Chain exposing (chainDecoder, decodeChain, getColor, getConfig, getName, getProviderUrl, txUrl)
 
+import Element exposing (Color)
 import Eth.Decode
 import Eth.Net
+import Eth.Types exposing (TxHash)
+import Eth.Utils
+import Helpers.Eth
 import Json.Decode as Decode exposing (Decoder)
-import Types exposing (Chain(..), Flags)
+import Result.Extra
+import Theme
+import Types exposing (Chain(..), ChainConfig, Config, Flags)
+
+
+getProviderUrl : Chain -> Config -> String
+getProviderUrl chain =
+    case chain of
+        Eth ->
+            .ethereum >> .providerUrl
+
+        XDai ->
+            .xDai >> .providerUrl
+
+
+getConfig : Chain -> Config -> ChainConfig
+getConfig chain =
+    case chain of
+        Eth ->
+            .ethereum
+
+        XDai ->
+            .xDai
+
+
+txUrl : Chain -> TxHash -> String
+txUrl chain hash =
+    case chain of
+        Eth ->
+            Helpers.Eth.etherscanTxUrl hash
+
+        XDai ->
+            "https://blockscout.com/poa/xdai/tx/"
+                ++ Eth.Utils.txHashToString hash
+
+
+getColor : Chain -> Color
+getColor chain =
+    case chain of
+        XDai ->
+            Theme.xDai
+
+        Eth ->
+            Theme.ethereum
 
 
 getName : Chain -> String
@@ -32,31 +79,38 @@ chainDecoder flags =
                         flags.xDaiProviderUrl
             }
         )
-        (Decode.field "network" decodeChain)
+        (Decode.field "network" decodeChain
+            |> Decode.andThen
+                (Result.Extra.unpack
+                    (always (Decode.fail "bad network"))
+                    Decode.succeed
+                )
+        )
         (Decode.field "contract" Eth.Decode.address)
         (Decode.field "scan" Decode.int)
         |> Decode.list
 
 
-decodeChain : Decoder Types.Chain
+decodeChain : Decoder (Result Types.WalletConnectErr Types.Chain)
 decodeChain =
     Eth.Net.networkIdDecoder
-        |> Decode.andThen
+        |> Decode.map
             (\network ->
                 case network of
                     Eth.Net.Mainnet ->
                         Types.Eth
-                            |> Decode.succeed
+                            |> Ok
 
                     Eth.Net.Private 100 ->
                         Types.XDai
-                            |> Decode.succeed
+                            |> Ok
 
                     -- Hardhat server
                     Eth.Net.Private 31337 ->
                         Types.Eth
-                            |> Decode.succeed
+                            |> Ok
 
                     _ ->
-                        Decode.fail "bad network"
+                        Types.NetworkNotSupported
+                            |> Err
             )

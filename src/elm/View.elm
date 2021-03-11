@@ -1,6 +1,7 @@
 module View exposing (view)
 
 import Browser
+import Chain
 import Dict
 import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
@@ -13,7 +14,7 @@ import Helpers.Tuple as TupleHelpers
 import Html exposing (Html)
 import Maybe.Extra
 import Misc exposing (getTitle)
-import Theme exposing (theme)
+import Theme
 import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
@@ -70,10 +71,10 @@ render model =
     in
     (userNotices
         ++ mobileAttrs
-        ++ [ Element.Events.onClick ClickHappened
-           , height fill
+        ++ [ height fill
            , width fill
            , View.Attrs.typeFont
+           , Background.image "./img/bg.webp"
            ]
     )
         |> Element.layoutWith
@@ -125,7 +126,6 @@ viewPage model =
                 |> View.Common.when isDesktop
                 |> Element.inFront
                 |> View.Common.whenAttr (not model.cookieConsentGranted)
-            , Background.image "./img/smoke-bg.jpg"
             ]
 
 
@@ -137,10 +137,10 @@ header model =
 
         sidePadding =
             if isMobile then
-                paddingXY 15 0
+                paddingXY 15 15
 
             else
-                paddingXY 100 0
+                paddingXY 100 20
     in
     [ Input.button [ hover ]
         { onPress = Just <| GotoView ViewHome
@@ -152,21 +152,6 @@ header model =
                 , description = "smokesignal logo"
                 }
         }
-    , Input.text
-        [ fill |> Element.maximum 350 |> width
-        , Background.color black
-        , View.Attrs.whiteGlowAttributeSmall
-        ]
-        { onChange = always ClickHappened
-        , label = Input.labelHidden ""
-        , placeholder =
-            "Search . . ."
-                |> text
-                |> Input.placeholder []
-                |> Just
-        , text = ""
-        }
-        |> View.Common.when False
     , [ maybeTxTracker
             model.dProfile
             model.showExpandedTrackedTxs
@@ -185,6 +170,7 @@ header model =
             , label = text "Import xDai"
             }
             |> View.Common.when (not isMobile)
+            |> View.Common.when False
       , Element.newTabLink [ hover ]
             { url = "https://foundrydao.com/"
             , label =
@@ -205,7 +191,6 @@ header model =
         |> el
             [ width fill
             , sidePadding
-            , height <| px 80
             , Background.color EH.black
             , whiteGlowAttribute
             , EH.moveToFront
@@ -227,7 +212,7 @@ viewBody model =
             Misc.getPostOrReply postId model
                 |> Maybe.Extra.unwrap
                     (appStatusMessage
-                        theme.appStatusTextColor
+                        Theme.darkGray
                         "Loading post..."
                     )
                     (View.PostPage.view model)
@@ -251,6 +236,8 @@ viewFrame model elem =
 
     else
         [ banner
+            |> View.Common.when (model.view == ViewHome)
+            |> View.Common.when False
         , [ elem
           , View.Sidebar.view model
           ]
@@ -300,13 +287,13 @@ viewTxTracker trackedTxs =
                                 [ Font.italic
                                 , Font.color linkTextColor
                                 ]
-                                { url = Misc.txUrl trackedTx.chain trackedTx.txHash
+                                { url = Chain.txUrl trackedTx.chain trackedTx.txHash
                                 , label = Element.text label
                                 }
 
                         titleEl =
                             case ( trackedTx.txInfo, trackedTx.status ) of
-                                ( TipTx postId _, _ ) ->
+                                ( TipTx postId, _ ) ->
                                     Element.row
                                         []
                                         [ Element.text "Tip "
@@ -320,7 +307,7 @@ viewTxTracker trackedTxs =
                                             (Element.text "Post")
                                         ]
 
-                                ( BurnTx postId _, _ ) ->
+                                ( BurnTx postId, _ ) ->
                                     Element.row
                                         []
                                         [ Element.text "Burn for "
@@ -370,7 +357,7 @@ viewTxTracker trackedTxs =
                                                             text "Published"
                                                                 |> el
                                                                     [ Font.color
-                                                                        theme.linkTextColor
+                                                                        Theme.blue
                                                                     ]
                                                         }
 
@@ -540,13 +527,13 @@ viewTrackedTxRow trackedTx =
                 [ Font.italic
                 , Font.color linkTextColor
                 ]
-                { url = Misc.txUrl trackedTx.chain trackedTx.txHash
+                { url = Chain.txUrl trackedTx.chain trackedTx.txHash
                 , label = Element.text label
                 }
 
         titleEl =
             case ( trackedTx.txInfo, trackedTx.status ) of
-                ( TipTx postId _, _ ) ->
+                ( TipTx postId, _ ) ->
                     Element.row
                         []
                         [ Element.text "Tip "
@@ -560,7 +547,7 @@ viewTrackedTxRow trackedTx =
                             (Element.text "Post")
                         ]
 
-                ( BurnTx postId _, _ ) ->
+                ( BurnTx postId, _ ) ->
                     Element.row
                         []
                         [ Element.text "Burn for "
@@ -605,7 +592,7 @@ viewTrackedTxRow trackedTx =
                             case maybePostId of
                                 Just postId ->
                                     Element.el
-                                        [ Font.color theme.linkTextColor
+                                        [ Font.color Theme.blue
                                         , Element.pointer
                                         , Element.Events.onClick <|
                                             GotoView <|

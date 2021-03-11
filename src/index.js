@@ -1,6 +1,5 @@
 require("./index.css");
 const {
-  txSentry,
   getWallet,
   requestAccounts,
   handleWalletEvents,
@@ -54,8 +53,9 @@ window.addEventListener("load", () => {
       .catch(app.ports.postResponse.send)
   );
 
-  txSentry(app.ports.txOut, app.ports.txIn);
-  txSentry(app.ports.txOutX, app.ports.txInX);
+  app.ports.txOut.subscribe((params) =>
+    sendTransaction(params).then(app.ports.txIn.send).catch(app.ports.txIn.send)
+  );
 });
 
 function startDapp() {
