@@ -73,6 +73,7 @@ render model =
         ++ [ height fill
            , width fill
            , View.Attrs.typeFont
+           , Background.image "./img/bg.webp"
            ]
     )
         |> Element.layoutWith
@@ -124,7 +125,6 @@ viewPage model =
                 |> View.Common.when isDesktop
                 |> Element.inFront
                 |> View.Common.whenAttr (not model.cookieConsentGranted)
-            , Background.image "./img/smoke-bg.jpg"
             ]
 
 
