@@ -72,6 +72,7 @@ viewTopics =
                 , Font.color white
                 , paddingXY 15 5
                 , hover
+                , View.Attrs.title topic
                 ]
                 { onPress = Just <| GotoView <| ViewTopic topic
                 , label =
