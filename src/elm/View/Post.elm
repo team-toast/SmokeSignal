@@ -175,6 +175,26 @@ viewContent device post =
         |> el
             [ height <| px 100
             , Element.clip
+            , el
+                [ View.Attrs.cappedHeight 50
+                , width fill
+                , Element.alignBottom
+                , Background.gradient
+                    { angle = degrees 0
+                    , steps =
+                        [ 0.9
+                        , 0.8
+                        , 0.7
+                        , 0.6
+                        , 0.5
+                        , 0.4
+                        , 0.3
+                        ]
+                            |> List.map Theme.blackAlpha
+                    }
+                ]
+                Element.none
+                |> Element.inFront
             ]
     ]
         |> column
