@@ -11,7 +11,7 @@ import Eth
 import Eth.Sentry.Event as EventSentry
 import Eth.Types exposing (TxReceipt)
 import Eth.Utils
-import GTag exposing (GTagData, gTagOut)
+import GTag exposing (GTagData, gTagOut, gTagOutOnlyOnLabelOrValueChange, gTagOutOnlyOnceForEvent)
 import Helpers.Element as EH exposing (DisplayProfile(..))
 import Http
 import Json.Decode
@@ -540,6 +540,15 @@ update msg model =
         BalanceFetched address res ->
             case res of
                 Ok balance ->
+                    let
+                        ( newGtagHistory, gtagCmd ) =
+                            GTagData
+                                "balance fetched"
+                                Nothing
+                                (Just <| TokenValue.toFloatString Nothing balance)
+                                Nothing
+                                |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+                    in
                     ( { model
                         | wallet =
                             model.wallet
@@ -557,8 +566,9 @@ update msg model =
                                                         userInfo.balance
                                             }
                                     )
+                        , gtagHistory = newGtagHistory
                       }
-                    , Cmd.none
+                    , gtagCmd
                     )
 
                 Err err ->
@@ -599,8 +609,20 @@ update msg model =
             )
 
         ConnectToWeb3 ->
-            ( { model | wallet = Connecting }
-            , Ports.connectToWeb3 ()
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "Web3 Connected"
+                        Nothing
+                        Nothing
+                        Nothing
+                        |> gTagOutOnlyOnceForEvent model.gtagHistory
+            in
+            ( { model | wallet = Connecting, gtagHistory = newGtagHistory }
+            , [ Ports.connectToWeb3 ()
+              , gtagCmd
+              ]
+                |> Cmd.batch
             )
 
         ShowOrHideAddress phaceId ->
@@ -780,6 +802,16 @@ update msg model =
                                                         , error = Just "There has been a problem."
                                                     }
                                                )
+
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "[Event]"
+                                            Nothing
+                                            ("error "
+                                                |> Just
+                                            )
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                                 in
                                 ( { model | compose = compose }, Cmd.none )
                             )
