@@ -208,14 +208,10 @@ viewWallet model =
     , [ [ button
         , model.wallet
             |> Wallet.userInfo
-            |> View.Common.whenJust (.chain >> viewChain)
-        ]
-            |> column [ spacing 10, width fill ]
-      , explainerParagraphOrNone
-      , Wallet.userInfo model.wallet
             |> View.Common.whenJust
                 (\userInfo ->
-                    Input.button
+                    [ viewChain userInfo.chain
+                    , Input.button
                         [ padding 10
                         , Font.color black
                         , hover
@@ -235,10 +231,15 @@ viewWallet model =
                                     |> el [ centerX ]
 
                             else
-                                text "Faucet"
+                                text "Get xDai"
                         }
                         |> when (userInfo.chain == Types.XDai)
+                    ]
+                        |> row [ spacing 10 ]
                 )
+        ]
+            |> column [ spacing 10, width fill ]
+      , explainerParagraphOrNone
       ]
         |> column
             [ width fill
