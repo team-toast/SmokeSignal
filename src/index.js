@@ -8,7 +8,9 @@ const {
 } = require("./metamask.js");
 const chains = require("../config.json");
 
-window.navigator.serviceWorker.register("./sw.js");
+if (window.navigator.serviceWorker) {
+  window.navigator.serviceWorker.register("./sw.js");
+}
 
 const { Elm } = require("./elm/App.elm");
 
