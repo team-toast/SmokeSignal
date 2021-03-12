@@ -231,7 +231,7 @@ viewWallet model =
                                     |> el [ centerX ]
 
                             else
-                                text "Get xDai"
+                                text "Get free xDai"
                         }
                         |> when (userInfo.chain == Types.XDai)
                     ]
