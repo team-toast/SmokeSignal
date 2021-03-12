@@ -58,6 +58,8 @@ emptyModel key =
     , alphaUrl = ""
     , pages = Array.empty
     , currentPage = 0
+    , faucetInProgress = False
+    , faucetToken = ""
     }
 
 

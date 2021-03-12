@@ -892,6 +892,44 @@ update msg model =
             , Ports.setVisited ()
             )
 
+        SubmitFaucet ->
+            ensureUserInfo
+                (\userInfo ->
+                    let
+                        addr =
+                            userInfo.address
+                                |> Eth.Utils.addressToString
+                    in
+                    ( { model | faucetInProgress = True }
+                    , Http.get
+                        { url = "https://personal-rxyx.outsystemscloud.com/ERC20FaucetRest/rest/v1/send?In_ReceiverErc20Address=" ++ addr ++ "&In_Token=" ++ model.faucetToken
+                        , expect = Http.expectWhatever FaucetResponse
+                        }
+                    )
+                )
+
+        FaucetResponse res ->
+            res
+                |> unpack
+                    (\e ->
+                        ( { model
+                            | faucetInProgress = False
+                            , userNotices =
+                                [ UN.unexpectedError "There has been a problem." ]
+                          }
+                        , logHttpError "FaucetResponse" e
+                        )
+                    )
+                    (\info ->
+                        ( { model
+                            | userNotices =
+                                [ UN.notify "Your faucet request was successful." ]
+                            , faucetInProgress = False
+                          }
+                        , Cmd.none
+                        )
+                    )
+
         TopicSubmit ->
             (if String.isEmpty model.topicInput then
                 Post.defaultTopic

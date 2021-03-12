@@ -17,6 +17,7 @@ const { Elm } = require("./elm/App.elm");
 /* eslint-disable no-undef */
 const xDaiProviderUrl = XDAI_PROVIDER_URL;
 const ethProviderUrl = ETH_PROVIDER_URL;
+const faucetToken = FAUCET_TOKEN;
 /* eslint-enable no-undef */
 
 // Local storage keys
@@ -75,6 +76,7 @@ function startDapp() {
       xDaiProviderUrl,
       hasWallet,
       chains,
+      faucetToken,
     },
   });
 

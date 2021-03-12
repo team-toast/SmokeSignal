@@ -175,6 +175,7 @@ startApp flags url model =
         , cookieConsentGranted = flags.cookieConsent
         , newUserModal = flags.newUser
         , alphaUrl = alphaUrl
+        , faucetToken = flags.faucetToken
       }
     , Cmd.batch
         [ ethCmd1

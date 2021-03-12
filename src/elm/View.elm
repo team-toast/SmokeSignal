@@ -28,6 +28,7 @@ import View.PostPage
 import View.Sidebar
 import View.Topic
 import View.Topics
+import Wallet
 
 
 view : Model -> Browser.Document Msg
@@ -141,6 +142,11 @@ header model =
 
             else
                 paddingXY 100 20
+
+        showXDaiImport =
+            model.wallet
+                |> Wallet.userInfo
+                |> Maybe.Extra.unwrap True (.chain >> (/=) Types.XDai)
     in
     [ Input.button [ hover ]
         { onPress = Just <| GotoView ViewHome
@@ -169,8 +175,7 @@ header model =
             { onPress = Just XDaiImport
             , label = text "Import xDai"
             }
-            |> View.Common.when (not isMobile)
-            |> View.Common.when False
+            |> View.Common.when (not isMobile && showXDaiImport)
       , Element.newTabLink [ hover ]
             { url = "https://foundrydao.com/"
             , label =

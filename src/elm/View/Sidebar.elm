@@ -1,7 +1,7 @@
 module View.Sidebar exposing (view, viewWallet)
 
 import Chain
-import Element exposing (Element, centerX, centerY, column, el, fill, height, paddingXY, px, row, spacing, text, width)
+import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -212,6 +212,33 @@ viewWallet model =
         ]
             |> column [ spacing 10, width fill ]
       , explainerParagraphOrNone
+      , Wallet.userInfo model.wallet
+            |> View.Common.whenJust
+                (\userInfo ->
+                    Input.button
+                        [ padding 10
+                        , Font.color black
+                        , hover
+                        , Background.color Theme.orange
+                        , View.Attrs.roundBorder
+                        , View.Attrs.sansSerifFont
+                        ]
+                        { onPress =
+                            if model.faucetInProgress then
+                                Nothing
+
+                            else
+                                Just SubmitFaucet
+                        , label =
+                            if model.faucetInProgress then
+                                View.Common.spinner 20 black
+                                    |> el [ centerX ]
+
+                            else
+                                text "Faucet"
+                        }
+                        |> when (userInfo.chain == Types.XDai)
+                )
       ]
         |> column
             [ width fill

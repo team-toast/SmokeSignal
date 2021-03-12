@@ -26,6 +26,7 @@ type alias Flags =
     , xDaiProviderUrl : String
     , hasWallet : Bool
     , chains : Value
+    , faucetToken : String
     }
 
 
@@ -61,6 +62,8 @@ type alias Model =
     , alphaUrl : String
     , pages : Array (List PostKey)
     , currentPage : Int
+    , faucetInProgress : Bool
+    , faucetToken : String
     }
 
 
@@ -111,6 +114,8 @@ type Msg
     | PriceResponse (Result Http.Error Float)
     | PostTxPriceResponse PostState (Result Http.Error Float)
     | SubmitPostTx
+    | SubmitFaucet
+    | FaucetResponse (Result Http.Error ())
 
 
 type TxErr
