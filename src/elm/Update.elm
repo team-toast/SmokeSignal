@@ -11,7 +11,7 @@ import Eth
 import Eth.Sentry.Event as EventSentry
 import Eth.Types exposing (TxReceipt)
 import Eth.Utils
-import GTag exposing (GTagData, gTagOut)
+import GTag exposing (GTagData, gTagOut, gTagOutOnlyOnLabelOrValueChange, gTagOutOnlyOnceForEvent)
 import Helpers.Element as EH exposing (DisplayProfile(..))
 import Http
 import Json.Decode
@@ -30,7 +30,7 @@ import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import Url
 import UserNotice as UN exposing (UserNotice)
-import Wallet
+import Wallet exposing (userInfo)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -78,24 +78,71 @@ update msg model =
             )
 
         ShowExpandedTrackedTxs flag ->
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "show expanded txs"
+                        Nothing
+                        ((if flag == True then
+                            "True"
+
+                          else
+                            "False"
+                         )
+                            |> Just
+                        )
+                        Nothing
+                        |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+            in
             ( { model
                 | showExpandedTrackedTxs = flag
+                , gtagHistory = newGtagHistory
               }
-            , Cmd.none
+            , gtagCmd
             )
 
         RpcResponse res ->
             res
                 |> unpack
                     (\e ->
-                        ( model, logHttpError "RpcResponse" e )
+                        let
+                            gtagCmd =
+                                GTagData
+                                    "rpc response"
+                                    ("Error"
+                                        |> Just
+                                    )
+                                    (e
+                                        |> Misc.parseHttpError
+                                        |> Just
+                                    )
+                                    Nothing
+                                    |> gTagOut
+                        in
+                        ( model
+                        , [ logHttpError "RpcResponse" e
+                          , gtagCmd
+                          ]
+                            |> Cmd.batch
+                        )
                     )
                     (\info ->
+                        let
+                            gtagCmd =
+                                GTagData
+                                    "rpc response"
+                                    ("Success"
+                                        |> Just
+                                    )
+                                    Nothing
+                                    Nothing
+                                    |> gTagOut
+                        in
                         ( { model
                             | wallet = Active info
                             , postState = Nothing
                           }
-                        , Cmd.none
+                        , gtagCmd
                         )
                     )
 
@@ -107,6 +154,15 @@ update msg model =
                             (\err ->
                                 case err of
                                     Types.UserRejected ->
+                                        let
+                                            gtagCmd =
+                                                GTagData
+                                                    "post response"
+                                                    Nothing
+                                                    (Just "transaction cancelled.")
+                                                    Nothing
+                                                    |> gTagOut
+                                        in
                                         ( { model
                                             | compose =
                                                 model.compose
@@ -118,10 +174,19 @@ update msg model =
                                                             }
                                                        )
                                           }
-                                        , Cmd.none
+                                        , gtagCmd
                                         )
 
                                     Types.OtherErr e ->
+                                        let
+                                            gtagCmd =
+                                                GTagData
+                                                    "post response"
+                                                    Nothing
+                                                    (Just "there was a problem")
+                                                    Nothing
+                                                    |> gTagOut
+                                        in
                                         ( { model
                                             | compose =
                                                 model.compose
@@ -133,10 +198,24 @@ update msg model =
                                                             }
                                                        )
                                           }
-                                        , Ports.log e
+                                        , [ Ports.log e
+                                          , gtagCmd
+                                          ]
+                                            |> Cmd.batch
                                         )
                             )
                             (\txHash ->
+                                let
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "post response"
+                                            (Just "transaction mining")
+                                            (Eth.Utils.txHashToString txHash
+                                                |> Just
+                                            )
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+                                in
                                 ( { model
                                     | compose =
                                         model.compose
@@ -158,8 +237,9 @@ update msg model =
                                                 , status = Mining
                                                 , chain = userInfo.chain
                                                 }
+                                    , gtagHistory = newGtagHistory
                                   }
-                                , Cmd.none
+                                , gtagCmd
                                 )
                             )
                 )
@@ -172,6 +252,15 @@ update msg model =
                             (\err ->
                                 case err of
                                     Types.UserRejected ->
+                                        let
+                                            gtagCmd =
+                                                GTagData
+                                                    "post response"
+                                                    Nothing
+                                                    (Just "transaction cancelled.")
+                                                    Nothing
+                                                    |> gTagOut
+                                        in
                                         ( { model
                                             | postState =
                                                 model.postState
@@ -184,10 +273,19 @@ update msg model =
                                                             }
                                                         )
                                           }
-                                        , Cmd.none
+                                        , gtagCmd
                                         )
 
                                     Types.OtherErr e ->
+                                        let
+                                            gtagCmd =
+                                                GTagData
+                                                    "post response"
+                                                    Nothing
+                                                    (Just "there was a problem")
+                                                    Nothing
+                                                    |> gTagOut
+                                        in
                                         ( { model
                                             | postState =
                                                 model.postState
@@ -200,7 +298,10 @@ update msg model =
                                                             }
                                                         )
                                           }
-                                        , Ports.log e
+                                        , [ Ports.log e
+                                          , gtagCmd
+                                          ]
+                                            |> Cmd.batch
                                         )
                             )
                             (\txHash ->
@@ -221,6 +322,16 @@ update msg model =
                                                     , chain = userInfo.chain
                                                     }
                                                 )
+
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "post response"
+                                            (Just "transaction mining")
+                                            (Eth.Utils.txHashToString txHash
+                                                |> Just
+                                            )
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                                 in
                                 ( { model
                                     | postState = Nothing
@@ -235,8 +346,9 @@ update msg model =
                                                             (Eth.Utils.txHashToString txHash)
                                                         )
                                                )
+                                    , gtagHistory = newGtagHistory
                                   }
-                                , Cmd.none
+                                , gtagCmd
                                 )
                             )
                 )
@@ -262,7 +374,9 @@ update msg model =
         TrackedTxStatusResult res ->
             case res of
                 Err err ->
-                    ( model, logHttpError "TrackedTxStatusResult" err )
+                    ( model
+                    , logHttpError "TrackedTxStatusResult" err
+                    )
 
                 Ok data ->
                     data
@@ -344,41 +458,96 @@ update msg model =
                     (\err ->
                         case err of
                             WalletInProgress ->
+                                let
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "wallet response"
+                                            (Just "error")
+                                            (Just "connection incomplete")
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+                                in
                                 ( { model
                                     | userNotices = UN.unexpectedError "Please complete the wallet connection process." :: model.userNotices
+                                    , gtagHistory = newGtagHistory
                                   }
-                                , Cmd.none
+                                , gtagCmd
                                 )
 
                             WalletCancel ->
+                                let
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "wallet response"
+                                            (Just "error")
+                                            (Just "connection cancelled")
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+                                in
                                 ( { model
                                     | userNotices = UN.unexpectedError "The wallet connection has been cancelled." :: model.userNotices
                                     , wallet = NetworkReady
+                                    , gtagHistory = newGtagHistory
                                   }
-                                , Cmd.none
+                                , gtagCmd
                                 )
 
                             NetworkNotSupported ->
+                                let
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "wallet response"
+                                            (Just "error")
+                                            (Just "network not supported")
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+                                in
                                 ( { model
                                     | userNotices = UN.unexpectedError "This network is not supported by SmokeSignal." :: model.userNotices
                                     , wallet = NetworkReady
+                                    , gtagHistory = newGtagHistory
                                   }
-                                , Cmd.none
+                                , gtagCmd
                                 )
 
                             WalletError e ->
+                                let
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "wallet response"
+                                            (Just "error")
+                                            (e
+                                                |> Just
+                                            )
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+                                in
                                 ( { model
                                     | wallet =
                                         Types.NetworkReady
+                                    , gtagHistory = newGtagHistory
                                   }
-                                , Ports.log e
+                                , [ Ports.log e
+                                  , gtagCmd
+                                  ]
+                                    |> Cmd.batch
                                 )
                     )
                     (\info ->
+                        let
+                            ( newGtagHistory, gtagCmd ) =
+                                GTagData
+                                    "wallet response"
+                                    (Just "success")
+                                    (Just "connected")
+                                    Nothing
+                                    |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+                        in
                         ( { model
                             | wallet = Active info
+                            , gtagHistory = newGtagHistory
                           }
-                        , Cmd.none
+                        , gtagCmd
                         )
                     )
 
@@ -427,12 +596,27 @@ update msg model =
         PostLogReceived res ->
             case res.returnData of
                 Err err ->
+                    let
+                        gtagCmd =
+                            GTagData
+                                "post log received"
+                                (Just "error")
+                                (err
+                                    |> Json.Decode.errorToString
+                                    |> Just
+                                )
+                                Nothing
+                                |> gTagOut
+                    in
                     ( model
-                    , err
-                        |> Json.Decode.errorToString
-                        |> String.left 200
-                        |> (++) "PostLogReceived:\n"
-                        |> Ports.log
+                    , [ err
+                            |> Json.Decode.errorToString
+                            |> String.left 200
+                            |> (++) "PostLogReceived:\n"
+                            |> Ports.log
+                      , gtagCmd
+                      ]
+                        |> Cmd.batch
                     )
 
                 Ok log ->
@@ -449,16 +633,27 @@ update msg model =
                     --}
                     --)
                     let
-                        core =
+                        ( core, replyOrPost ) =
                             case log of
                                 LogReply p ->
-                                    p.core
+                                    ( p.core, "reply" )
 
                                 LogRoot p ->
-                                    p.core
+                                    ( p.core, "post" )
+
+                        gtagCmd =
+                            GTagData
+                                "post log received"
+                                (Just "success")
+                                (Just replyOrPost)
+                                Nothing
+                                |> gTagOut
                     in
                     ( addPost log model
-                    , fetchPostInfo model.blockTimes model.config core
+                    , [ fetchPostInfo model.blockTimes model.config core
+                      , gtagCmd
+                      ]
+                        |> Cmd.batch
                     )
 
         PostAccountingFetched postId res ->
@@ -540,6 +735,15 @@ update msg model =
         BalanceFetched address res ->
             case res of
                 Ok balance ->
+                    let
+                        ( newGtagHistory, gtagCmd ) =
+                            GTagData
+                                "balance fetched"
+                                Nothing
+                                (Just <| TokenValue.toFloatString Nothing balance)
+                                Nothing
+                                |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+                    in
                     ( { model
                         | wallet =
                             model.wallet
@@ -557,13 +761,26 @@ update msg model =
                                                         userInfo.balance
                                             }
                                     )
+                        , gtagHistory = newGtagHistory
                       }
-                    , Cmd.none
+                    , gtagCmd
                     )
 
                 Err err ->
+                    let
+                        gtagCmd =
+                            GTagData
+                                "balance fetched"
+                                Nothing
+                                (Just "error")
+                                Nothing
+                                |> gTagOut
+                    in
                     ( model
-                    , logHttpError "BalanceFetched" err
+                    , [ logHttpError "BalanceFetched" err
+                      , gtagCmd
+                      ]
+                        |> Cmd.batch
                     )
 
         BlockTimeFetched blocknum timeResult ->
@@ -599,8 +816,20 @@ update msg model =
             )
 
         ConnectToWeb3 ->
-            ( { model | wallet = Connecting }
-            , Ports.connectToWeb3 ()
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "Web3 Connected"
+                        Nothing
+                        Nothing
+                        Nothing
+                        |> gTagOutOnlyOnceForEvent model.gtagHistory
+            in
+            ( { model | wallet = Connecting, gtagHistory = newGtagHistory }
+            , [ Ports.connectToWeb3 ()
+              , gtagCmd
+              ]
+                |> Cmd.batch
             )
 
         ShowOrHideAddress phaceId ->
@@ -635,8 +864,19 @@ update msg model =
                                                         , error = Just "There has been a problem."
                                                     }
                                                )
+
+                                    gtagCmd =
+                                        GTagData
+                                            "price response"
+                                            (Just "error")
+                                            (userInfo.address
+                                                |> Eth.Utils.addressToString
+                                                |> Just
+                                            )
+                                            Nothing
+                                            |> gTagOut
                                 in
-                                ( { model | compose = compose }, Cmd.none )
+                                ( { model | compose = compose }, gtagCmd )
                             )
                             (\price ->
                                 model.compose.dollar
@@ -700,10 +940,22 @@ update msg model =
                                         )
                                     |> unpack
                                         (\err ->
+                                            let
+                                                gtagCmd =
+                                                    GTagData
+                                                        "price response"
+                                                        (Just "error")
+                                                        ("unexpected error "
+                                                            ++ err
+                                                            |> Just
+                                                        )
+                                                        Nothing
+                                                        |> gTagOut
+                                            in
                                             ( { model
                                                 | userNotices = [ UN.unexpectedError err ]
                                               }
-                                            , Cmd.none
+                                            , gtagCmd
                                             )
                                         )
                                         (\postDraft ->
@@ -716,9 +968,20 @@ update msg model =
                                                         |> SSContract.burnEncodedPost userInfo config.contract
                                                         |> Eth.toSend
                                                         |> Eth.encodeSend
+
+                                                gtagCmd =
+                                                    GTagData
+                                                        "price response"
+                                                        (Just "success")
+                                                        (Just "post draft")
+                                                        Nothing
+                                                        |> gTagOut
                                             in
                                             ( model
-                                            , Ports.submitPost txParams
+                                            , [ Ports.submitPost txParams
+                                              , gtagCmd
+                                              ]
+                                                |> Cmd.batch
                                             )
                                         )
                             )
@@ -736,11 +999,28 @@ update msg model =
                                             , error = Nothing
                                         }
                                    )
+
+                        ( newGtagHistory, gtagCmd ) =
+                            GTagData
+                                "submit draft"
+                                Nothing
+                                ("draft submitted "
+                                    ++ Eth.Utils.addressToString userInfo.address
+                                    |> Just
+                                )
+                                Nothing
+                                |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                     in
-                    ( { model | compose = compose }
-                    , SSContract.getEthPriceCmd
-                        (Chain.getConfig userInfo.chain model.config)
-                        |> Task.attempt PriceResponse
+                    ( { model
+                        | compose = compose
+                        , gtagHistory = newGtagHistory
+                      }
+                    , [ SSContract.getEthPriceCmd
+                            (Chain.getConfig userInfo.chain model.config)
+                            |> Task.attempt PriceResponse
+                      , gtagCmd
+                      ]
+                        |> Cmd.batch
                     )
                 )
 
@@ -756,11 +1036,29 @@ update msg model =
                                             | inProgress = True
                                             , error = Nothing
                                         }
+
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "submit post"
+                                            (Just "success")
+                                            ("post submitted "
+                                                ++ Eth.Utils.addressToString userInfo.address
+                                                |> Just
+                                            )
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                                 in
-                                ( { model | postState = Just newState }
-                                , SSContract.getEthPriceCmd
-                                    (Chain.getConfig userInfo.chain model.config)
-                                    |> Task.attempt (PostTxPriceResponse newState)
+                                ( { model
+                                    | postState = Just newState
+                                    , gtagHistory = newGtagHistory
+                                  }
+                                , [ SSContract.getEthPriceCmd
+                                        (Chain.getConfig userInfo.chain model.config)
+                                        |> Task.attempt
+                                            (PostTxPriceResponse newState)
+                                  , gtagCmd
+                                  ]
+                                    |> Cmd.batch
                                 )
                             )
                 )
@@ -780,8 +1078,26 @@ update msg model =
                                                         , error = Just "There has been a problem."
                                                     }
                                                )
+
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "post price response"
+                                            ("error "
+                                                |> Just
+                                            )
+                                            (userInfo.address
+                                                |> Eth.Utils.addressToString
+                                                |> Just
+                                            )
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                                 in
-                                ( { model | compose = compose }, Cmd.none )
+                                ( { model
+                                    | compose = compose
+                                    , gtagHistory = newGtagHistory
+                                  }
+                                , gtagCmd
+                                )
                             )
                             (\price ->
                                 state.input
@@ -789,10 +1105,19 @@ update msg model =
                                     |> Result.fromMaybe "Invalid tip amount"
                                     |> unpack
                                         (\err ->
+                                            let
+                                                gtagCmd =
+                                                    GTagData
+                                                        "post price response"
+                                                        (Just "error")
+                                                        (Just "invalid tip amount")
+                                                        Nothing
+                                                        |> gTagOut
+                                            in
                                             ( { model
                                                 | userNotices = [ UN.unexpectedError err ]
                                               }
-                                            , Cmd.none
+                                            , gtagCmd
                                             )
                                         )
                                         (\amount ->
@@ -812,8 +1137,26 @@ update msg model =
                                                     fn userInfo config.contract state.id.messageHash amount model.compose.donate
                                                         |> Eth.toSend
                                                         |> Eth.encodeSend
+
+                                                gtagCmd =
+                                                    GTagData
+                                                        "post price response"
+                                                        (Just "success")
+                                                        ((state.id.messageHash
+                                                            |> Eth.Utils.hexToString
+                                                         )
+                                                            ++ " donated"
+                                                            |> Just
+                                                        )
+                                                        Nothing
+                                                        |> gTagOut
                                             in
-                                            ( model, Ports.txOut txParams )
+                                            ( model
+                                            , [ Ports.txOut txParams
+                                              , gtagCmd
+                                              ]
+                                                |> Cmd.batch
+                                            )
                                         )
                             )
                 )
@@ -828,10 +1171,19 @@ update msg model =
             )
 
         SetPage n ->
+            let
+                gtagCmd =
+                    GTagData
+                        "set page"
+                        Nothing
+                        Nothing
+                        (Just n)
+                        |> gTagOut
+            in
             ( { model
                 | currentPage = n
               }
-            , Cmd.none
+            , gtagCmd
             )
 
         SetPostInput id val ->
@@ -866,30 +1218,77 @@ update msg model =
             )
 
         XDaiImport ->
+            let
+                address =
+                    case userInfo model.wallet of
+                        Nothing ->
+                            "not connected"
+
+                        Just userInfo ->
+                            userInfo.address
+                                |> Eth.Utils.addressToString
+
+                gtagCmd =
+                    GTagData
+                        "xdai import"
+                        Nothing
+                        (address
+                            |> Just
+                        )
+                        Nothing
+                        |> gTagOut
+            in
             ( model
-            , Ports.xDaiImport ()
+            , [ Ports.xDaiImport ()
+              , gtagCmd
+              ]
+                |> Cmd.batch
             )
 
         CookieConsentGranted ->
-            ( { model
-                | cookieConsentGranted = True
-              }
-            , Cmd.batch
-                [ Ports.consentToCookies ()
-                , gTagOut <|
+            let
+                gtagCmd =
                     GTagData
                         "accept cookies"
                         Nothing
                         Nothing
                         Nothing
-                ]
+                        |> gTagOut
+            in
+            ( { model
+                | cookieConsentGranted = True
+              }
+            , [ Ports.consentToCookies ()
+              , gtagCmd
+              ]
+                |> Cmd.batch
             )
 
         ShowNewToSmokeSignalModal flag ->
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "show modal"
+                        (Just "new to smokesignal")
+                        ((if flag == True then
+                            "True"
+
+                          else
+                            "False"
+                         )
+                            |> Just
+                        )
+                        Nothing
+                        |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+            in
             ( { model
                 | newUserModal = flag
+                , gtagHistory = newGtagHistory
               }
-            , Ports.setVisited ()
+            , [ Ports.setVisited ()
+              , gtagCmd
+              ]
+                |> Cmd.batch
             )
 
         SubmitFaucet ->
@@ -978,15 +1377,54 @@ update msg model =
 
                         Types.TopLevel t ->
                             t
+
+                address =
+                    case userInfo model.wallet of
+                        Nothing ->
+                            "not connected"
+
+                        Just userInfo ->
+                            userInfo.address
+                                |> Eth.Utils.addressToString
+
+                gtagCmd =
+                    GTagData
+                        "show modal"
+                        (Just "compose post")
+                        (address
+                            |> Just
+                        )
+                        Nothing
+                        |> gTagOut
             in
             ( { model
                 | compose = { emptyComposeModel | modal = True, context = context }
                 , topicInput = topicInput
               }
-            , Cmd.none
+            , gtagCmd
             )
 
         ComposeClose ->
+            let
+                address =
+                    case userInfo model.wallet of
+                        Nothing ->
+                            "not connected"
+
+                        Just userInfo ->
+                            userInfo.address
+                                |> Eth.Utils.addressToString
+
+                gtagCmd =
+                    GTagData
+                        "close modal"
+                        (Just "compose post")
+                        (address
+                            |> Just
+                        )
+                        Nothing
+                        |> gTagOut
+            in
             ( { model
                 | compose =
                     model.compose
@@ -996,7 +1434,7 @@ update msg model =
                                 }
                            )
               }
-            , Cmd.none
+            , gtagCmd
             )
 
         ComposeBodyChange str ->
