@@ -8,3 +8,5 @@ ss-to-foundrydao
 *.envrc
 artifacts/
 flat.sol
+public/index.html
+public/bundle.js
