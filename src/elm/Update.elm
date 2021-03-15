@@ -374,7 +374,9 @@ update msg model =
         TrackedTxStatusResult res ->
             case res of
                 Err err ->
-                    ( model, logHttpError "TrackedTxStatusResult" err )
+                    ( model
+                    , logHttpError "TrackedTxStatusResult" err
+                    )
 
                 Ok data ->
                     data
@@ -456,41 +458,96 @@ update msg model =
                     (\err ->
                         case err of
                             WalletInProgress ->
+                                let
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "wallet response"
+                                            (Just "error")
+                                            (Just "connection incomplete")
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+                                in
                                 ( { model
                                     | userNotices = UN.unexpectedError "Please complete the wallet connection process." :: model.userNotices
+                                    , gtagHistory = newGtagHistory
                                   }
-                                , Cmd.none
+                                , gtagCmd
                                 )
 
                             WalletCancel ->
+                                let
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "wallet response"
+                                            (Just "error")
+                                            (Just "connection cancelled")
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+                                in
                                 ( { model
                                     | userNotices = UN.unexpectedError "The wallet connection has been cancelled." :: model.userNotices
                                     , wallet = NetworkReady
+                                    , gtagHistory = newGtagHistory
                                   }
-                                , Cmd.none
+                                , gtagCmd
                                 )
 
                             NetworkNotSupported ->
+                                let
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "wallet response"
+                                            (Just "error")
+                                            (Just "network not supported")
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+                                in
                                 ( { model
                                     | userNotices = UN.unexpectedError "This network is not supported by SmokeSignal." :: model.userNotices
                                     , wallet = NetworkReady
+                                    , gtagHistory = newGtagHistory
                                   }
-                                , Cmd.none
+                                , gtagCmd
                                 )
 
                             WalletError e ->
+                                let
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "wallet response"
+                                            (Just "error")
+                                            (e
+                                                |> Just
+                                            )
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+                                in
                                 ( { model
                                     | wallet =
                                         Types.NetworkReady
+                                    , gtagHistory = newGtagHistory
                                   }
-                                , Ports.log e
+                                , [ Ports.log e
+                                  , gtagCmd
+                                  ]
+                                    |> Cmd.batch
                                 )
                     )
                     (\info ->
+                        let
+                            ( newGtagHistory, gtagCmd ) =
+                                GTagData
+                                    "wallet response"
+                                    (Just "success")
+                                    (Just "connected")
+                                    Nothing
+                                    |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+                        in
                         ( { model
                             | wallet = Active info
+                            , gtagHistory = newGtagHistory
                           }
-                        , Cmd.none
+                        , gtagCmd
                         )
                     )
 
