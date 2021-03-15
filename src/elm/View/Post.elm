@@ -217,6 +217,7 @@ viewContent device post =
         |> el
             [ height <| px 100
             , Element.clip
+            , width fill
             , el
                 [ View.Attrs.cappedHeight 50
                 , width fill
