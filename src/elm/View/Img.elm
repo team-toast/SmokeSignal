@@ -49,19 +49,19 @@ spinner size color =
         |> wrap
 
 
-eth : Int -> Element msg
-eth size =
+eth : Int -> Color -> Element msg
+eth size color =
     svg
         [ viewBox "0 0 67.2 103.67"
         , height size
         , width size
         ]
-        [ polygon [ points "34.44 76.07 60.29 60.82 34.44 97.13 34.44 76.07" ] []
-        , polygon [ points "34.44 40.3 61.44 52.56 34.44 68.53 34.44 40.3" ] []
-        , polygon [ points "34.44 38.45 34.44 6.27 61.15 50.58 34.44 38.45" ] []
-        , polygon [ points "6.91 60.82 32.76 76.07 32.76 97.13 6.91 60.82" ] []
-        , polygon [ points "5.75 52.56 32.76 40.3 32.76 68.53 5.75 52.56" ] []
-        , polygon [ points "32.76 6.27 32.76 38.45 6.05 50.58 32.76 6.27" ] []
+        [ polygon [ points "34.44 76.07 60.29 60.82 34.44 97.13 34.44 76.07", fill <| rgb color ] []
+        , polygon [ points "34.44 40.3 61.44 52.56 34.44 68.53 34.44 40.3", fill <| rgb color ] []
+        , polygon [ points "34.44 38.45 34.44 6.27 61.15 50.58 34.44 38.45", fill <| rgb color ] []
+        , polygon [ points "6.91 60.82 32.76 76.07 32.76 97.13 6.91 60.82", fill <| rgb color ] []
+        , polygon [ points "5.75 52.56 32.76 40.3 32.76 68.53 5.75 52.56", fill <| rgb color ] []
+        , polygon [ points "32.76 6.27 32.76 38.45 6.05 50.58 32.76 6.27", fill <| rgb color ] []
         ]
         |> wrap
 

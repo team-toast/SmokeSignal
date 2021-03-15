@@ -20,7 +20,7 @@ xDai =
 
 ethereum : Color
 ethereum =
-    rgb255 37 57 249
+    rgb255 90 110 249
 
 
 orange : Color

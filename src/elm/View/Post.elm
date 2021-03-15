@@ -1,9 +1,9 @@
-module View.Post exposing (view, viewActions)
+module View.Post exposing (view, viewActions, viewCard)
 
 import Chain
-import Element exposing (Color, Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spaceEvenly, spacing, text, width)
+import Element exposing (Color, Element, alignBottom, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
-import Element.Border
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile, black, white)
@@ -15,7 +15,7 @@ import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import View.Attrs exposing (hover, roundBorder, slightRound, typeFont, whiteGlowAttributeSmall)
-import View.Common exposing (phaceElement, when, whenJust)
+import View.Common exposing (phaceElement, viewChain, when, whenJust)
 import View.Img
 import View.Markdown
 
@@ -57,10 +57,11 @@ view dProfile timestamp now replies accounting state topic wallet post =
                         }
                 )
             |> el [ width fill, Element.alignTop ]
-        , View.Common.viewCard post
-            |> when (not isMobile)
         ]
-            |> row [ width fill, spaceEvenly ]
+            |> row [ width fill, spaceEvenly , Element.alignTop ]
+      , viewCard post
+            |> el [ Element.alignTop ]
+            |> when (not isMobile)
       ]
         |> row [ width fill, spacing 10 ]
     , viewCardMobile timestamp now post
@@ -117,6 +118,47 @@ view dProfile timestamp now replies accounting state topic wallet post =
             , width fill
             , typeFont
             ]
+
+
+viewCard : Core -> Element Msg
+viewCard post =
+    let
+        block =
+            "@"
+                ++ String.fromInt post.id.block
+                |> text
+
+        col =
+            Chain.getColor post.chain
+    in
+    Element.newTabLink
+        [ hover
+        , Background.color <| EH.withAlpha 0.2 col
+        , Border.width 1
+        , Border.color <| EH.withAlpha 0.5 <| col
+        , Font.color <| EH.withAlpha 0.5 <| EH.white
+        , Element.paddingXY 10 10
+        , View.Attrs.sansSerifFont
+        ]
+        { url = Chain.txUrl post.chain post.txHash
+        , label =
+            [ [ viewChain post.chain
+                    |> el [ Font.bold, Font.color col ]
+              , [ block
+                    |> el [ Font.size 14, alignBottom ]
+                , View.Img.link 17 (Element.rgb 0.8 0.8 0.8)
+                    |> el [ Element.alignRight ]
+                ]
+                    |> row [ spacing 5, width fill ]
+              ]
+                |> column [ spacing 5, Font.size 20 ]
+            ]
+                |> row
+                    [ spacing 10
+                    , Font.size 17
+                    , width fill
+                    ]
+        }
 
 
 viewCardMobile : Maybe Time.Posix -> Time.Posix -> Core -> Element Msg
@@ -238,7 +280,7 @@ viewAmount color amount =
     ]
         |> row
             [ Element.padding 3
-            , Element.Border.rounded 3
+            , Border.rounded 3
             , Font.size 22
             , Font.color white
             , Background.color color

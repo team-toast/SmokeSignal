@@ -4,7 +4,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 const { ENV, ETH_PROVIDER_URL, XDAI_PROVIDER_URL, FAUCET_TOKEN } = process.env;
 
-if ([ETH_PROVIDER_URL, XDAI_PROVIDER_URL].some((x) => !x)) {
+if ([ETH_PROVIDER_URL, XDAI_PROVIDER_URL, FAUCET_TOKEN].some((x) => !x)) {
   throw "Missing environment variable(s).";
 }
 

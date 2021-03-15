@@ -1,4 +1,4 @@
-module View.Common exposing (appStatusMessage, cancel, ellipsisText, horizontalRule, phaceElement, spinner, verticalRule, viewCard, viewChain, viewTiming, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (appStatusMessage, cancel, ellipsisText, horizontalRule, phaceElement, spinner, verticalRule, viewChain, viewTiming, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
@@ -38,12 +38,12 @@ viewChain c =
         img =
             case c of
                 Types.XDai ->
-                    View.Img.xDai
+                    View.Img.xDai 20
 
                 Types.Eth ->
-                    View.Img.eth
+                    View.Img.eth 20 <| Element.rgb 0.5 0.5 1
     in
-    [ img 20, text txt ]
+    [ img, text txt ]
         |> row
             [ spacing 10
             , View.Attrs.sansSerifFont
@@ -215,41 +215,6 @@ spinner : Int -> Color -> Element msg
 spinner size color =
     View.Img.spinner size color
         |> el [ View.Attrs.rotate ]
-
-
-viewCard : Core -> Element Msg
-viewCard post =
-    let
-        block =
-            "@"
-                ++ String.fromInt post.id.block
-                |> text
-
-        col =
-            Chain.getColor post.chain
-    in
-    Element.newTabLink
-        [ hover
-        , Background.color col
-        , Font.color white
-        , roundBorder
-        , Element.paddingXY 25 10
-        , View.Attrs.sansSerifFont
-        ]
-        { url = Chain.txUrl post.chain post.txHash
-        , label =
-            [ [ viewChain post.chain
-                    |> el [ Font.bold ]
-              , block
-              ]
-                |> column [ spacing 10, width fill, Font.size 20 ]
-            ]
-                |> row
-                    [ spacing 10
-                    , Font.size 17
-                    , width fill
-                    ]
-        }
 
 
 viewTiming : Time.Posix -> Maybe Time.Posix -> Element Msg
