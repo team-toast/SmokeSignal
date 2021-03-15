@@ -596,12 +596,27 @@ update msg model =
         PostLogReceived res ->
             case res.returnData of
                 Err err ->
+                    let
+                        gtagCmd =
+                            GTagData
+                                "post log received"
+                                (Just "error")
+                                (err
+                                    |> Json.Decode.errorToString
+                                    |> Just
+                                )
+                                Nothing
+                                |> gTagOut
+                    in
                     ( model
-                    , err
-                        |> Json.Decode.errorToString
-                        |> String.left 200
-                        |> (++) "PostLogReceived:\n"
-                        |> Ports.log
+                    , [ err
+                            |> Json.Decode.errorToString
+                            |> String.left 200
+                            |> (++) "PostLogReceived:\n"
+                            |> Ports.log
+                      , gtagCmd
+                      ]
+                        |> Cmd.batch
                     )
 
                 Ok log ->
@@ -618,16 +633,27 @@ update msg model =
                     --}
                     --)
                     let
-                        core =
+                        ( core, replyOrPost ) =
                             case log of
                                 LogReply p ->
-                                    p.core
+                                    ( p.core, "reply" )
 
                                 LogRoot p ->
-                                    p.core
+                                    ( p.core, "post" )
+
+                        gtagCmd =
+                            GTagData
+                                "post log received"
+                                (Just "success")
+                                (Just replyOrPost)
+                                Nothing
+                                |> gTagOut
                     in
                     ( addPost log model
-                    , fetchPostInfo model.blockTimes model.config core
+                    , [ fetchPostInfo model.blockTimes model.config core
+                      , gtagCmd
+                      ]
+                        |> Cmd.batch
                     )
 
         PostAccountingFetched postId res ->
@@ -741,8 +767,20 @@ update msg model =
                     )
 
                 Err err ->
+                    let
+                        gtagCmd =
+                            GTagData
+                                "balance fetched"
+                                Nothing
+                                (Just "error")
+                                Nothing
+                                |> gTagOut
+                    in
                     ( model
-                    , logHttpError "BalanceFetched" err
+                    , [ logHttpError "BalanceFetched" err
+                      , gtagCmd
+                      ]
+                        |> Cmd.batch
                     )
 
         BlockTimeFetched blocknum timeResult ->
@@ -826,8 +864,19 @@ update msg model =
                                                         , error = Just "There has been a problem."
                                                     }
                                                )
+
+                                    gtagCmd =
+                                        GTagData
+                                            "price response"
+                                            (Just "error")
+                                            (userInfo.address
+                                                |> Eth.Utils.addressToString
+                                                |> Just
+                                            )
+                                            Nothing
+                                            |> gTagOut
                                 in
-                                ( { model | compose = compose }, Cmd.none )
+                                ( { model | compose = compose }, gtagCmd )
                             )
                             (\price ->
                                 model.compose.dollar
@@ -891,10 +940,22 @@ update msg model =
                                         )
                                     |> unpack
                                         (\err ->
+                                            let
+                                                gtagCmd =
+                                                    GTagData
+                                                        "price response"
+                                                        (Just "error")
+                                                        ("unexpected error "
+                                                            ++ err
+                                                            |> Just
+                                                        )
+                                                        Nothing
+                                                        |> gTagOut
+                                            in
                                             ( { model
                                                 | userNotices = [ UN.unexpectedError err ]
                                               }
-                                            , Cmd.none
+                                            , gtagCmd
                                             )
                                         )
                                         (\postDraft ->
@@ -907,9 +968,20 @@ update msg model =
                                                         |> SSContract.burnEncodedPost userInfo config.contract
                                                         |> Eth.toSend
                                                         |> Eth.encodeSend
+
+                                                gtagCmd =
+                                                    GTagData
+                                                        "price response"
+                                                        (Just "success")
+                                                        (Just "post draft")
+                                                        Nothing
+                                                        |> gTagOut
                                             in
                                             ( model
-                                            , Ports.submitPost txParams
+                                            , [ Ports.submitPost txParams
+                                              , gtagCmd
+                                              ]
+                                                |> Cmd.batch
                                             )
                                         )
                             )
