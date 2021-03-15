@@ -18,10 +18,12 @@ import Theme
 import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
+import View.About
 import View.Attrs exposing (cappedWidth, hover, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common exposing (appStatusMessage, whenAttr)
 import View.Compose
 import View.Home
+import View.Img
 import View.Mobile
 import View.Modal
 import View.PostPage
@@ -158,20 +160,12 @@ header model =
             model.trackedTxs
             |> Maybe.withDefault Element.none
             |> View.Common.when (not isMobile)
-      , Input.button
-            [ padding 10
-            , Font.color black
-            , hover
-            , Background.color Theme.orange
-            , View.Attrs.roundBorder
-            , View.Attrs.sansSerifFont
-            ]
-            { onPress = Just XDaiImport
-            , label = text "Import xDai"
+      , [ Input.button
+            [ hover ]
+            { onPress = Just <| GotoView ViewAbout
+            , label = View.Img.help 40 white
             }
-            |> View.Common.when (not isMobile)
-            |> View.Common.when False
-      , Element.newTabLink [ hover ]
+        , Element.newTabLink [ hover ]
             { url = "https://foundrydao.com/"
             , label =
                 Element.image [ height <| px 50 ]
@@ -179,6 +173,8 @@ header model =
                     , description = ""
                     }
             }
+        ]
+            |> row [ spacing 10 ]
       ]
         |> row [ spacing 40 ]
     ]
@@ -227,6 +223,10 @@ viewBody model =
 
         ViewTxns ->
             viewTxTracker model.trackedTxs
+
+        ViewAbout ->
+            View.About.view model
+                |> viewFrame model
 
 
 viewFrame : Model -> Element Msg -> Element Msg

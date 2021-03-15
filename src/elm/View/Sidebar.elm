@@ -1,7 +1,7 @@
 module View.Sidebar exposing (view, viewWallet)
 
 import Chain
-import Element exposing (Element, centerX, centerY, column, el, fill, height, paddingXY, px, row, spacing, text, width)
+import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -42,18 +42,6 @@ view model =
             , slightRound
             ]
         |> when (model.view /= ViewTopics)
-    , Element.newTabLink
-        [ Font.color white
-        , View.Attrs.sansSerifFont
-        , Font.bold
-        , centerX
-        , hover
-        ]
-        { url = model.alphaUrl
-        , label =
-            [ text "SmokeSignal Alpha", View.Img.link 20 white ]
-                |> row [ spacing 10 ]
-        }
     ]
         |> column
             [ cappedWidth 350
@@ -208,7 +196,10 @@ viewWallet model =
     , [ [ button
         , model.wallet
             |> Wallet.userInfo
-            |> View.Common.whenJust (.chain >> viewChain)
+            |> View.Common.whenJust
+                (\userInfo ->
+                    viewChain userInfo.chain
+                )
         ]
             |> column [ spacing 10, width fill ]
       , explainerParagraphOrNone

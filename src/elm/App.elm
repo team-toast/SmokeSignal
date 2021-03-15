@@ -99,14 +99,19 @@ init flags url key =
             )
 
 
+alphaHost : String
+alphaHost =
+    "smokesignalalpha.eth"
+
+
 redirectDomain : Url -> Maybe (Cmd msg)
 redirectDomain url =
     (case url.host of
         "smokesignal.eth.link" ->
-            Just "alpha.smokesignal.eth.link"
+            Just <| alphaHost ++ ".link"
 
         "smokesignal.eth" ->
-            Just "alpha.smokesignal.eth"
+            Just alphaHost
 
         _ ->
             Nothing
@@ -127,10 +132,10 @@ startApp flags url model =
 
         alphaUrl =
             if String.endsWith ".eth" url.host then
-                "http://alpha.smokesignal.eth"
+                "https://" ++ alphaHost
 
             else
-                "http://alpha.smokesignal.eth.link"
+                "https://" ++ alphaHost ++ ".link"
 
         ( view, routingUserNotices ) =
             case tryRouteToView route of
@@ -175,6 +180,7 @@ startApp flags url model =
         , cookieConsentGranted = flags.cookieConsent
         , newUserModal = flags.newUser
         , alphaUrl = alphaUrl
+        , faucetToken = flags.faucetToken
       }
     , Cmd.batch
         [ ethCmd1

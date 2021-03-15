@@ -8,13 +8,16 @@ const {
 } = require("./metamask.js");
 const chains = require("../config.json");
 
-window.navigator.serviceWorker.register("./sw.js");
+if (window.navigator.serviceWorker) {
+  window.navigator.serviceWorker.register("./sw.js");
+}
 
 const { Elm } = require("./elm/App.elm");
 
 /* eslint-disable no-undef */
 const xDaiProviderUrl = XDAI_PROVIDER_URL;
 const ethProviderUrl = ETH_PROVIDER_URL;
+const faucetToken = FAUCET_TOKEN;
 /* eslint-enable no-undef */
 
 // Local storage keys
@@ -73,6 +76,7 @@ function startDapp() {
       xDaiProviderUrl,
       hasWallet,
       chains,
+      faucetToken,
     },
   });
 

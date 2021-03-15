@@ -10,6 +10,7 @@ import Eth.Sentry.Event
 import Eth.Types exposing (Address, TxHash, TxReceipt)
 import Eth.Utils
 import FormatFloat
+import GTag
 import Helpers.Element
 import Helpers.Time
 import Http
@@ -58,6 +59,9 @@ emptyModel key =
     , alphaUrl = ""
     , pages = Array.empty
     , currentPage = 0
+    , faucetInProgress = False
+    , faucetToken = ""
+    , gtagHistory = GTag.emptyGtagHistory
     }
 
 
@@ -127,6 +131,9 @@ getTitle model =
             defaultMain
 
         ViewTxns ->
+            defaultMain
+
+        ViewAbout ->
             defaultMain
 
 
@@ -228,6 +235,9 @@ tryRouteToView route =
 
         RouteTopics ->
             Ok ViewTopics
+
+        RouteAbout ->
+            Ok ViewAbout
 
         RouteViewPost postId ->
             Ok <| ViewPost postId

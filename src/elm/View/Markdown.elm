@@ -13,7 +13,7 @@ import Markdown.Html
 import Markdown.Parser
 import Markdown.Renderer exposing (Renderer)
 import Theme
-import View.Attrs exposing (hover)
+import View.Attrs exposing (hover, style)
 
 
 
@@ -67,7 +67,12 @@ renderer device =
                 [ Element.width Element.fill
                 , Element.paddingXY 10 5
                 ]
-    , text = text
+    , text =
+        text
+            >> List.singleton
+            >> paragraph
+                [ style "word-break" "break-word"
+                ]
     , strong = \content -> row [ Font.bold ] content
     , emphasis = \content -> row [ Font.italic ] content
     , codeSpan = code

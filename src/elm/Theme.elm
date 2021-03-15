@@ -1,4 +1,4 @@
-module Theme exposing (almostWhite, blue, blueButton, commonShadow, darkBlue, darkGray, darkGreen, darkRed, darkYellow, darkerBlue, disabledButton, ethereum, green, inverseBlueButton, lightBlue, lightBlueButton, lightGray, lightGreen, lightRed, orange, redButton, softRed, unscaryButton, veryDarkGray, xDai, yellow)
+module Theme exposing (almostWhite, blackAlpha, blue, blueButton, commonShadow, darkBlue, darkGray, darkGreen, darkRed, darkYellow, darkerBlue, disabledButton, ethereum, green, inverseBlueButton, lightBlue, lightBlueButton, lightGray, lightGreen, lightRed, orange, redButton, softRed, unscaryButton, veryDarkGray, xDai, yellow)
 
 import Element exposing (Attribute, Color, Element, rgb255)
 import Element.Background
@@ -8,6 +8,11 @@ import Helpers.Element as EH
 import View.Attrs
 
 
+blackAlpha : Float -> Color
+blackAlpha =
+    Element.rgba255 0 0 0
+
+
 xDai : Color
 xDai =
     rgb255 7 132 112
@@ -15,7 +20,7 @@ xDai =
 
 ethereum : Color
 ethereum =
-    rgb255 37 57 249
+    rgb255 90 110 249
 
 
 orange : Color

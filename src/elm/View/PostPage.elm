@@ -71,7 +71,7 @@ view model post =
                 post.author
                 (model.showAddressId == Just (PhaceForPublishedPost post.id))
                 (ShowOrHideAddress <| PhaceForPublishedPost post.id)
-          , View.Common.viewCard post
+          , View.Post.viewCard post
           ]
             |> row [ spacing 10 ]
         , [ model.blockTimes

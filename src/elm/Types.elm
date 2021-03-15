@@ -7,6 +7,7 @@ import Dict exposing (Dict)
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
+import GTag
 import Helpers.Element as EH
 import Http
 import Json.Decode exposing (Value)
@@ -26,6 +27,7 @@ type alias Flags =
     , xDaiProviderUrl : String
     , hasWallet : Bool
     , chains : Value
+    , faucetToken : String
     }
 
 
@@ -61,6 +63,9 @@ type alias Model =
     , alphaUrl : String
     , pages : Array (List PostKey)
     , currentPage : Int
+    , faucetInProgress : Bool
+    , faucetToken : String
+    , gtagHistory : GTag.GTagHistory
     }
 
 
@@ -111,6 +116,8 @@ type Msg
     | PriceResponse (Result Http.Error Float)
     | PostTxPriceResponse PostState (Result Http.Error Float)
     | SubmitPostTx
+    | SubmitFaucet
+    | FaucetResponse (Result Http.Error ())
 
 
 type TxErr
@@ -200,6 +207,7 @@ type View
     | ViewTopics
     | ViewWallet
     | ViewTxns
+    | ViewAbout
 
 
 type alias UserInfo =
@@ -316,6 +324,7 @@ type Route
     | RouteTopics
     | RouteTxns
     | RouteWallet
+    | RouteAbout
 
 
 type Chain

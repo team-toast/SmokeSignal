@@ -41,6 +41,8 @@ routeParser =
             |> Parser.map RouteTxns
         , Parser.s "wallet"
             |> Parser.map RouteWallet
+        , Parser.s "about"
+            |> Parser.map RouteAbout
         ]
 
 
@@ -65,6 +67,9 @@ viewToUrlString view =
 
         ViewWallet ->
             hashBangPath [ "wallet" ] []
+
+        ViewAbout ->
+            hashBangPath [ "about" ] []
 
 
 hashBangPath : List String -> List Builder.QueryParameter -> String
