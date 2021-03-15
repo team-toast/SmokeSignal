@@ -7,6 +7,7 @@ import Dict exposing (Dict)
 import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
+import GTag
 import Helpers.Element as EH
 import Http
 import Json.Decode exposing (Value)
@@ -61,6 +62,7 @@ type alias Model =
     , alphaUrl : String
     , pages : Array (List PostKey)
     , currentPage : Int
+    , gtagHistory : GTag.GTagHistory
     }
 
 
