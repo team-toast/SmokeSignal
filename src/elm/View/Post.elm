@@ -133,16 +133,10 @@ viewCard post =
     in
     Element.newTabLink
         [ hover
-
-        -- , Background.color <| Element.rgba 0 0 1 0.1
         , Background.color <| EH.withAlpha 0.2 col
         , Border.width 1
         , Border.color <| EH.withAlpha 0.5 <| col
-
-        -- , Background.color <| EH.withAlpha 0.3 <| col
         , Font.color <| EH.withAlpha 0.5 <| EH.white
-
-        -- , roundBorder
         , Element.paddingXY 10 10
         , View.Attrs.sansSerifFont
         ]
