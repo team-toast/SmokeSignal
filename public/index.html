@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="description" content="SmokeSignal" />
+    <link rel="icon" href="./favicon.svg" />
+    <link rel=”mask-icon” href="./favicon-apple.svg" color=”#ffffff">
+    <meta name="theme-color" content="#233B77" />
+    <link rel="manifest" href="./manifest.json" />
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=UA-143211145-4"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function gtag() {
+        dataLayer.push(arguments);
+      };
+      gtag("js", new Date());
+
+      gtag("config", "UA-143211145-4", {
+        linker: {
+          domains: [
+            "sale.foundrydao.com",
+            "dashboard.foundrydao.com",
+            "foundrydao.com",
+            "foundrydao.eth.link",
+            "smokesignal.eth.link",
+            "daihard.exchange",
+          ],
+          linker: {
+            accept_incoming: true,
+          },
+        },
+      });
+    </script>
+    <title>SmokeSignal</title>
+    <meta name="description" content="SmokeSignal" />
+    <meta name="author" content="Team Toast" />
+  <script defer src="./bundle.js?t=1615552188813"></script></head>
+  <body>
+    <div id="elm"></div>
+  </body>
+</html>
