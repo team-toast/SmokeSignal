@@ -322,6 +322,16 @@ update msg model =
                                                     , chain = userInfo.chain
                                                     }
                                                 )
+
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "post response"
+                                            (Just "transaction mining")
+                                            (Eth.Utils.txHashToString txHash
+                                                |> Just
+                                            )
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                                 in
                                 ( { model
                                     | postState = Nothing
@@ -336,8 +346,9 @@ update msg model =
                                                             (Eth.Utils.txHashToString txHash)
                                                         )
                                                )
+                                    , gtagHistory = newGtagHistory
                                   }
-                                , Cmd.none
+                                , gtagCmd
                                 )
                             )
                 )
