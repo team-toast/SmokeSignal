@@ -154,6 +154,15 @@ update msg model =
                             (\err ->
                                 case err of
                                     Types.UserRejected ->
+                                        let
+                                            gtagCmd =
+                                                GTagData
+                                                    "post response"
+                                                    Nothing
+                                                    (Just "transaction cancelled.")
+                                                    Nothing
+                                                    |> gTagOut
+                                        in
                                         ( { model
                                             | compose =
                                                 model.compose
@@ -165,10 +174,19 @@ update msg model =
                                                             }
                                                        )
                                           }
-                                        , Cmd.none
+                                        , gtagCmd
                                         )
 
                                     Types.OtherErr e ->
+                                        let
+                                            gtagCmd =
+                                                GTagData
+                                                    "post response"
+                                                    Nothing
+                                                    (Just "there was a problem")
+                                                    Nothing
+                                                    |> gTagOut
+                                        in
                                         ( { model
                                             | compose =
                                                 model.compose
@@ -180,10 +198,24 @@ update msg model =
                                                             }
                                                        )
                                           }
-                                        , Ports.log e
+                                        , [ Ports.log e
+                                          , gtagCmd
+                                          ]
+                                            |> Cmd.batch
                                         )
                             )
                             (\txHash ->
+                                let
+                                    ( newGtagHistory, gtagCmd ) =
+                                        GTagData
+                                            "post response"
+                                            (Just "transaction mining")
+                                            (Eth.Utils.txHashToString txHash
+                                                |> Just
+                                            )
+                                            Nothing
+                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+                                in
                                 ( { model
                                     | compose =
                                         model.compose
@@ -205,8 +237,9 @@ update msg model =
                                                 , status = Mining
                                                 , chain = userInfo.chain
                                                 }
+                                    , gtagHistory = newGtagHistory
                                   }
-                                , Cmd.none
+                                , gtagCmd
                                 )
                             )
                 )
@@ -219,6 +252,15 @@ update msg model =
                             (\err ->
                                 case err of
                                     Types.UserRejected ->
+                                        let
+                                            gtagCmd =
+                                                GTagData
+                                                    "post response"
+                                                    Nothing
+                                                    (Just "transaction cancelled.")
+                                                    Nothing
+                                                    |> gTagOut
+                                        in
                                         ( { model
                                             | postState =
                                                 model.postState
@@ -231,10 +273,19 @@ update msg model =
                                                             }
                                                         )
                                           }
-                                        , Cmd.none
+                                        , gtagCmd
                                         )
 
                                     Types.OtherErr e ->
+                                        let
+                                            gtagCmd =
+                                                GTagData
+                                                    "post response"
+                                                    Nothing
+                                                    (Just "there was a problem")
+                                                    Nothing
+                                                    |> gTagOut
+                                        in
                                         ( { model
                                             | postState =
                                                 model.postState
@@ -247,7 +298,10 @@ update msg model =
                                                             }
                                                         )
                                           }
-                                        , Ports.log e
+                                        , [ Ports.log e
+                                          , gtagCmd
+                                          ]
+                                            |> Cmd.batch
                                         )
                             )
                             (\txHash ->
