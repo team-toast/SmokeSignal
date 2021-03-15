@@ -78,24 +78,71 @@ update msg model =
             )
 
         ShowExpandedTrackedTxs flag ->
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "show expanded txs"
+                        Nothing
+                        ((if flag == True then
+                            "True"
+
+                          else
+                            "False"
+                         )
+                            |> Just
+                        )
+                        Nothing
+                        |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+            in
             ( { model
                 | showExpandedTrackedTxs = flag
+                , gtagHistory = newGtagHistory
               }
-            , Cmd.none
+            , gtagCmd
             )
 
         RpcResponse res ->
             res
                 |> unpack
                     (\e ->
-                        ( model, logHttpError "RpcResponse" e )
+                        let
+                            gtagCmd =
+                                GTagData
+                                    "rpc response"
+                                    ("Error"
+                                        |> Just
+                                    )
+                                    (e
+                                        |> Misc.parseHttpError
+                                        |> Just
+                                    )
+                                    Nothing
+                                    |> gTagOut
+                        in
+                        ( model
+                        , [ logHttpError "RpcResponse" e
+                          , gtagCmd
+                          ]
+                            |> Cmd.batch
+                        )
                     )
                     (\info ->
+                        let
+                            gtagCmd =
+                                GTagData
+                                    "rpc response"
+                                    ("Success"
+                                        |> Just
+                                    )
+                                    Nothing
+                                    Nothing
+                                    |> gTagOut
+                        in
                         ( { model
                             | wallet = Active info
                             , postState = Nothing
                           }
-                        , Cmd.none
+                        , gtagCmd
                         )
                     )
 
