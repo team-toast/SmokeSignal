@@ -207,6 +207,7 @@ type View
     | ViewTopics
     | ViewWallet
     | ViewTxns
+    | ViewAbout
 
 
 type alias UserInfo =
@@ -323,6 +324,7 @@ type Route
     | RouteTopics
     | RouteTxns
     | RouteWallet
+    | RouteAbout
 
 
 type Chain

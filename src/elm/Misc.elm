@@ -133,6 +133,9 @@ getTitle model =
         ViewTxns ->
             defaultMain
 
+        ViewAbout ->
+            defaultMain
+
 
 
 -- postContextToViewContext :
@@ -232,6 +235,9 @@ tryRouteToView route =
 
         RouteTopics ->
             Ok ViewTopics
+
+        RouteAbout ->
+            Ok ViewAbout
 
         RouteViewPost postId ->
             Ok <| ViewPost postId

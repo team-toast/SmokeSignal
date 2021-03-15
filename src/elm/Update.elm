@@ -1319,7 +1319,7 @@ update msg model =
                         , logHttpError "FaucetResponse" e
                         )
                     )
-                    (\info ->
+                    (\_ ->
                         ( { model
                             | userNotices =
                                 [ UN.notify "Your faucet request was successful." ]
@@ -1530,6 +1530,13 @@ handleRoute model route =
         RouteWallet ->
             ( { model
                 | view = ViewWallet
+              }
+            , Cmd.none
+            )
+
+        RouteAbout ->
+            ( { model
+                | view = ViewAbout
               }
             , Cmd.none
             )

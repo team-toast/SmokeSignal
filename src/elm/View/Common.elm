@@ -1,9 +1,8 @@
-module View.Common exposing (appStatusMessage, cancel, ellipsisText, horizontalRule, phaceElement, spinner, verticalRule, viewChain, viewTiming, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (appStatusMessage, cancel, ellipsisText, horizontalRule, phaceElement, spinner, verticalRule, viewChain, viewLink, viewTiming, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
 
-import Chain
 import Element exposing (Attribute, Color, Element, centerX, column, el, fill, height, padding, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -18,9 +17,10 @@ import Html.Attributes
 import Maybe.Extra exposing (unwrap)
 import Misc
 import Phace
+import Theme
 import Time
 import Types exposing (..)
-import View.Attrs exposing (hover, roundBorder, style)
+import View.Attrs exposing (hover, style)
 import View.Img
 
 
@@ -230,3 +230,14 @@ viewTiming now =
                 |> text
                 |> el [ View.Attrs.title (Misc.formatPosix time) ]
         )
+
+
+viewLink : String -> String -> Element msg
+viewLink url txt =
+    Element.newTabLink
+        [ hover, Font.color Theme.orange, Font.underline ]
+        { url = url
+        , label =
+            [ text txt ]
+                |> Element.paragraph []
+        }

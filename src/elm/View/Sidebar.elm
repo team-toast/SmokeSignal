@@ -42,18 +42,6 @@ view model =
             , slightRound
             ]
         |> when (model.view /= ViewTopics)
-    , Element.newTabLink
-        [ Font.color white
-        , View.Attrs.sansSerifFont
-        , Font.bold
-        , centerX
-        , hover
-        ]
-        { url = model.alphaUrl
-        , label =
-            [ text "SmokeSignal Alpha", View.Img.link 20 white ]
-                |> row [ spacing 10 ]
-        }
     ]
         |> column
             [ cappedWidth 350
@@ -210,32 +198,7 @@ viewWallet model =
             |> Wallet.userInfo
             |> View.Common.whenJust
                 (\userInfo ->
-                    [ viewChain userInfo.chain
-                    , Input.button
-                        [ padding 10
-                        , Font.color black
-                        , hover
-                        , Background.color Theme.orange
-                        , View.Attrs.roundBorder
-                        , View.Attrs.sansSerifFont
-                        ]
-                        { onPress =
-                            if model.faucetInProgress then
-                                Nothing
-
-                            else
-                                Just SubmitFaucet
-                        , label =
-                            if model.faucetInProgress then
-                                View.Common.spinner 20 black
-                                    |> el [ centerX ]
-
-                            else
-                                text "Get free xDai"
-                        }
-                        |> when (userInfo.chain == Types.XDai)
-                    ]
-                        |> row [ spacing 10 ]
+                    viewChain userInfo.chain
                 )
         ]
             |> column [ spacing 10, width fill ]

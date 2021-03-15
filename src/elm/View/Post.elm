@@ -58,7 +58,7 @@ view dProfile timestamp now replies accounting state topic wallet post =
                 )
             |> el [ width fill, Element.alignTop ]
         ]
-            |> row [ width fill, spaceEvenly , Element.alignTop ]
+            |> row [ width fill, spaceEvenly, Element.alignTop ]
       , viewCard post
             |> el [ Element.alignTop ]
             |> when (not isMobile)
@@ -278,14 +278,14 @@ viewAmount color amount =
     [ View.Img.dollar 22 white
     , Misc.formatDollar amount
         |> text
+        |> el [ Element.moveUp 1 ]
     ]
         |> row
-            [ Element.padding 3
+            [ padding 5
             , Border.rounded 3
             , Font.size 22
             , Font.color white
             , Background.color color
-            , height fill
             ]
 
 

@@ -85,6 +85,7 @@ viewDesktop model =
                 |> text
                 |> Element.el [ centerX ]
         }
+        |> always Element.none
     , pages
     , posts
         |> List.map (viewPost model (Wallet.userInfo model.wallet))
@@ -116,11 +117,12 @@ viewPagination model =
                          else
                             white
                         )
-                    , width <| px 30
-                    , height <| px 30
-                    , Border.rounded 20
+                    , width <| px 50
+                    , height <| px 50
+                    , Border.rounded 25
                     , View.Attrs.sansSerifFont
                     , hover
+                    , Font.size 30
                     ]
                     { onPress = Just <| SetPage n
                     , label =
@@ -130,7 +132,7 @@ viewPagination model =
                             |> el [ centerX, centerY ]
                     }
             )
-        |> row [ spacing 10, centerX ]
+        |> row [ spacing 20, centerX ]
 
 
 viewPost : Model -> Maybe UserInfo -> RootPost -> Element Msg
