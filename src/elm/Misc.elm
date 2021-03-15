@@ -10,6 +10,7 @@ import Eth.Sentry.Event
 import Eth.Types exposing (Address, TxHash, TxReceipt)
 import Eth.Utils
 import FormatFloat
+import GTag
 import Helpers.Element
 import Helpers.Time
 import Http
@@ -60,6 +61,7 @@ emptyModel key =
     , currentPage = 0
     , faucetInProgress = False
     , faucetToken = ""
+    , gtagHistory = GTag.emptyGtagHistory
     }
 
 
