@@ -1265,10 +1265,30 @@ update msg model =
             )
 
         ShowNewToSmokeSignalModal flag ->
+            let
+                ( newGtagHistory, gtagCmd ) =
+                    GTagData
+                        "show modal"
+                        (Just "new to smokesignal")
+                        ((if flag == True then
+                            "True"
+
+                          else
+                            "False"
+                         )
+                            |> Just
+                        )
+                        Nothing
+                        |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+            in
             ( { model
                 | newUserModal = flag
+                , gtagHistory = newGtagHistory
               }
-            , Ports.setVisited ()
+            , [ Ports.setVisited ()
+              , gtagCmd
+              ]
+                |> Cmd.batch
             )
 
         TopicSubmit ->
@@ -1319,15 +1339,54 @@ update msg model =
 
                         Types.TopLevel t ->
                             t
+
+                address =
+                    case userInfo model.wallet of
+                        Nothing ->
+                            "not connected"
+
+                        Just userInfo ->
+                            userInfo.address
+                                |> Eth.Utils.addressToString
+
+                gtagCmd =
+                    GTagData
+                        "show modal"
+                        (Just "compose post")
+                        (address
+                            |> Just
+                        )
+                        Nothing
+                        |> gTagOut
             in
             ( { model
                 | compose = { emptyComposeModel | modal = True, context = context }
                 , topicInput = topicInput
               }
-            , Cmd.none
+            , gtagCmd
             )
 
         ComposeClose ->
+            let
+                address =
+                    case userInfo model.wallet of
+                        Nothing ->
+                            "not connected"
+
+                        Just userInfo ->
+                            userInfo.address
+                                |> Eth.Utils.addressToString
+
+                gtagCmd =
+                    GTagData
+                        "close modal"
+                        (Just "compose post")
+                        (address
+                            |> Just
+                        )
+                        Nothing
+                        |> gTagOut
+            in
             ( { model
                 | compose =
                     model.compose
@@ -1337,7 +1396,7 @@ update msg model =
                                 }
                            )
               }
-            , Cmd.none
+            , gtagCmd
             )
 
         ComposeBodyChange str ->
