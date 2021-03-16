@@ -1,4 +1,4 @@
-module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPosts, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, validateTopic)
+module Misc exposing (decodeFaucetResponse, defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPosts, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, validateTopic)
 
 import Array
 import Browser.Navigation
@@ -14,7 +14,7 @@ import GTag
 import Helpers.Element
 import Helpers.Time
 import Http
-import Json.Decode as Decode
+import Json.Decode as Decode exposing (Decoder)
 import Maybe.Extra exposing (unwrap)
 import Post
 import String.Extra
@@ -378,3 +378,10 @@ sortPosts blockTimes accounting now post =
     totalBurned
         * newnessMultiplier
         |> negate
+
+
+decodeFaucetResponse : Decoder FaucetResult
+decodeFaucetResponse =
+    Decode.map2 FaucetResult
+        (Decode.field "status" Decode.bool)
+        (Decode.field "message" Decode.string)

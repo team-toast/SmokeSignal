@@ -1302,7 +1302,10 @@ update msg model =
                     ( { model | faucetInProgress = True }
                     , Http.get
                         { url = "https://personal-rxyx.outsystemscloud.com/ERC20FaucetRest/rest/v1/send?In_ReceiverErc20Address=" ++ addr ++ "&In_Token=" ++ model.faucetToken
-                        , expect = Http.expectWhatever FaucetResponse
+                        , expect =
+                            Http.expectJson
+                                FaucetResponse
+                                Misc.decodeFaucetResponse
                         }
                     )
                 )
@@ -1314,15 +1317,24 @@ update msg model =
                         ( { model
                             | faucetInProgress = False
                             , userNotices =
-                                [ UN.unexpectedError "There has been a problem." ]
+                                model.userNotices
+                                    |> List.append
+                                        [ UN.unexpectedError "There has been a problem." ]
                           }
                         , logHttpError "FaucetResponse" e
                         )
                     )
-                    (\_ ->
+                    (\data ->
                         ( { model
                             | userNotices =
-                                [ UN.notify "Your faucet request was successful." ]
+                                model.userNotices
+                                    |> List.append
+                                        [ if data.status then
+                                            UN.notify "Your faucet request was successful."
+
+                                          else
+                                            UN.notify data.message
+                                        ]
                             , faucetInProgress = False
                           }
                         , Cmd.none

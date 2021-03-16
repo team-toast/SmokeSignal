@@ -117,12 +117,18 @@ type Msg
     | PostTxPriceResponse PostState (Result Http.Error Float)
     | SubmitPostTx
     | SubmitFaucet
-    | FaucetResponse (Result Http.Error ())
+    | FaucetResponse (Result Http.Error FaucetResult)
 
 
 type TxErr
     = UserRejected
     | OtherErr String
+
+
+type alias FaucetResult =
+    { status : Bool
+    , message : String
+    }
 
 
 type alias PostKey =
