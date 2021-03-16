@@ -167,6 +167,7 @@ startApp flags url model =
         | view = view
         , wallet = wallet
         , now = now
+        , hasOnboarded = flags.hasOnboarded
         , dProfile = Helpers.Element.screenWidthToDisplayProfile flags.width
         , sentries =
             model.sentries

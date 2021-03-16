@@ -1,6 +1,6 @@
 module View.Compose exposing (view)
 
-import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, px, row, spaceEvenly, spacing, text, width)
+import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events
@@ -11,6 +11,7 @@ import Html.Attributes
 import Maybe.Extra exposing (unwrap)
 import Misc
 import Theme exposing (orange)
+import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
 import View.Common exposing (when, whenAttr, whenJust, wrapModal)
@@ -21,27 +22,93 @@ import Wallet
 
 view : Model -> Element Msg
 view model =
-    model.wallet
-        |> Wallet.userInfo
-        |> unwrap
-            ([ text "Please connect your Metamask wallet." ]
-                |> Element.paragraph [ Font.center, centerY ]
-                |> el
-                    [ padding 10
-                    , whiteGlowAttributeSmall
-                    , Background.color black
-                    , Font.color white
-                    , height <| px 250
-                    , width fill
-                    ]
-            )
-            (viewBox model)
+    let
+        onboard =
+            model.wallet
+                |> Wallet.userInfo
+                |> unwrap True
+                    (\userInfo ->
+                        (userInfo.chain /= XDai || TokenValue.isZero userInfo.balance)
+                            && not model.hasOnboarded
+                    )
+    in
+    (if onboard then
+        [ [ text "To post or interact with SmokeSignal, you'll need a crypto identity:" ]
+            |> paragraph [ Font.center ]
+        , [ [ text "Install and setup MetaMask" ]
+                |> viewCheck (not (model.wallet == Types.NoneDetected))
+          , [ Input.button []
+                { onPress = Just ConnectToWeb3
+                , label = text "Connect wallet."
+                }
+            ]
+                |> viewCheck (Wallet.isActive model.wallet)
+          , [ Input.button []
+                { onPress = Just Types.XDaiImport
+                , label = text "Enable xDai support."
+                }
+            ]
+                |> viewCheck
+                    (model.wallet
+                        |> Wallet.userInfo
+                        |> unwrap False (.chain >> (==) XDai)
+                    )
+          , [ Input.button []
+                { onPress = Just SubmitFaucet
+                , label = text "Get free xDai."
+                }
+            ]
+                |> viewCheck
+                    (model.wallet
+                        |> Wallet.userInfo
+                        |> unwrap False (.balance >> TokenValue.isZero >> not)
+                    )
+          ]
+            |> column [ spacing 20, width fill ]
+        ]
+            |> column
+                [ padding 30
+                , spacing 30
+                , whiteGlowAttributeSmall
+                , Background.color black
+                , Font.color white
+                , width fill
+                , centerY
+                    |> View.Common.whenAttr (model.dProfile == Mobile)
+                ]
+
+     else
+        model.wallet
+            |> Wallet.userInfo
+            |> whenJust (viewBox model)
+    )
         |> (if model.dProfile == Mobile then
                 identity
 
             else
                 wrapModal ComposeClose
            )
+
+
+viewCheck : Bool -> List (Element Msg) -> Element Msg
+viewCheck tick elems =
+    [ View.Img.tick 25 black
+        |> el
+            [ centerX
+            , centerY
+            ]
+        |> View.Common.when tick
+        |> el
+            [ width <| px 30
+            , height <| px 30
+            , Background.color white
+            , whiteGlowAttributeSmall
+            , hover
+            ]
+    , elems
+        |> paragraph []
+    ]
+        |> row [ width fill, spacing 20 ]
 
 
 viewBox : Model -> UserInfo -> Element Msg
@@ -180,12 +247,10 @@ viewBox model userInfo =
                 { onChange = Types.PreviewSet
                 , icon =
                     \checked ->
-                        "✔️"
-                            |> text
+                        View.Img.tick 20 black
                             |> el
                                 [ centerX
                                 , centerY
-                                , Font.size 25
                                 ]
                             |> View.Common.when checked
                 , checked = model.compose.preview
@@ -281,12 +346,10 @@ viewBurnBox donate txt =
             { onChange = Types.DonationCheckboxSet
             , icon =
                 \checked ->
-                    "✔️"
-                        |> text
+                    View.Img.tick 20 black
                         |> el
                             [ centerX
                             , centerY
-                            , Font.size 25
                             ]
                         |> View.Common.when checked
             , checked = donate

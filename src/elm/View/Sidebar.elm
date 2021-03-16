@@ -134,10 +134,11 @@ viewWallet model =
                     if userHasNoEth then
                         ( "Compose Post"
                         , Nothing
-                        , "That address has no "
-                            ++ Chain.getName userInfo.chain
-                            ++ "! You will need to transfer some to post on SmokeSignal."
-                            |> Just
+                          --, "That address has no "
+                          --++ Chain.getName userInfo.chain
+                          --++ "! You will need to transfer some to post on SmokeSignal."
+                          --|> Just
+                        , Nothing
                         )
 
                     else

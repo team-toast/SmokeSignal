@@ -30,6 +30,7 @@ emptyModel key =
     , view = ViewHome
     , wallet = Types.NoneDetected
     , newUserModal = False
+    , hasOnboarded = False
     , now = Time.millisToPosix 0
     , dProfile = Helpers.Element.Desktop
     , sentries =

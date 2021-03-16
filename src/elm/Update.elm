@@ -1336,8 +1336,9 @@ update msg model =
                                             UN.notify data.message
                                         ]
                             , faucetInProgress = False
+                            , hasOnboarded = True
                           }
-                        , Cmd.none
+                        , Ports.setOnboarded ()
                         )
                     )
 

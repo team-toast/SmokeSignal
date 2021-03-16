@@ -25,6 +25,7 @@ type alias Flags =
     , newUser : Bool
     , ethProviderUrl : String
     , xDaiProviderUrl : String
+    , hasOnboarded : Bool
     , hasWallet : Bool
     , chains : Value
     , faucetToken : String
@@ -51,6 +52,7 @@ type alias Model =
     , maybeSeoDescription : Maybe String
     , topicInput : String
     , newUserModal : Bool
+    , hasOnboarded : Bool
     , postState : Maybe PostState
     , config : Config
     , compose : ComposeModel

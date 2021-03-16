@@ -120,7 +120,8 @@ viewPage model =
             , View.Modal.viewNewToSmokeSignal model.dProfile
                 |> View.Common.when isDesktop
                 |> Element.inFront
-                |> View.Common.whenAttr model.newUserModal
+                --|> View.Common.whenAttr model.newUserModal
+                |> View.Common.whenAttr False
             , View.Compose.view model
                 |> Element.inFront
                 |> View.Common.whenAttr model.compose.modal

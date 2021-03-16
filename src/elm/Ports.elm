@@ -1,4 +1,4 @@
-port module Ports exposing (connectToWeb3, consentToCookies, log, postResponse, setDescription, setVisited, submitPost, txIn, txOut, walletResponse, xDaiImport)
+port module Ports exposing (connectToWeb3, consentToCookies, log, postResponse, setDescription, setOnboarded, setVisited, submitPost, txIn, txOut, walletResponse, xDaiImport)
 
 import Json.Decode exposing (Value)
 
@@ -23,6 +23,9 @@ port consentToCookies : () -> Cmd msg
 
 
 port setDescription : String -> Cmd msg
+
+
+port setOnboarded : () -> Cmd msg
 
 
 port setVisited : () -> Cmd msg
