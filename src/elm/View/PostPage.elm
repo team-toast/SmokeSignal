@@ -42,10 +42,6 @@ view model post =
             else
                 30
 
-        walletActive =
-            model.wallet
-                |> Wallet.isActive
-
         accounting =
             model.accounting
                 |> Dict.get post.key
@@ -117,7 +113,6 @@ view model post =
                 ]
                     |> row [ spacing 10, Font.size 20 ]
             }
-            |> when walletActive
         , View.Post.viewActions post model.postState
             |> when showActions
         ]
