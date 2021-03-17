@@ -105,44 +105,16 @@ update msg model =
             res
                 |> unpack
                     (\e ->
-                        let
-                            gtagCmd =
-                                GTagData
-                                    "rpc response"
-                                    ("Error"
-                                        |> Just
-                                    )
-                                    (e
-                                        |> Misc.parseHttpError
-                                        |> Just
-                                    )
-                                    Nothing
-                                    |> gTagOut
-                        in
                         ( model
-                        , [ logHttpError "RpcResponse" e
-                          , gtagCmd
-                          ]
-                            |> Cmd.batch
+                        , logHttpError "RpcResponse" e
                         )
                     )
                     (\info ->
-                        let
-                            gtagCmd =
-                                GTagData
-                                    "rpc response"
-                                    ("Success"
-                                        |> Just
-                                    )
-                                    Nothing
-                                    Nothing
-                                    |> gTagOut
-                        in
                         ( { model
                             | wallet = Active info
                             , postState = Nothing
                           }
-                        , gtagCmd
+                        , Cmd.none
                         )
                     )
 
@@ -157,9 +129,9 @@ update msg model =
                                         let
                                             gtagCmd =
                                                 GTagData
-                                                    "post response"
+                                                    "post tx rejected"
+                                                    ("tx rejected" |> Just)
                                                     Nothing
-                                                    (Just "transaction cancelled.")
                                                     Nothing
                                                     |> gTagOut
                                         in
@@ -181,9 +153,9 @@ update msg model =
                                         let
                                             gtagCmd =
                                                 GTagData
-                                                    "post response"
+                                                    "post tx error"
+                                                    ("tx error" |> Just)
                                                     Nothing
-                                                    (Just "there was a problem")
                                                     Nothing
                                                     |> gTagOut
                                         in
@@ -208,8 +180,8 @@ update msg model =
                                 let
                                     ( newGtagHistory, gtagCmd ) =
                                         GTagData
-                                            "post response"
-                                            (Just "transaction mining")
+                                            "post tx confirmed"
+                                            ("tx confirmed" |> Just)
                                             (Eth.Utils.txHashToString txHash
                                                 |> Just
                                             )
@@ -281,9 +253,9 @@ update msg model =
                                         let
                                             gtagCmd =
                                                 GTagData
-                                                    "post response"
+                                                    "burn/tip tx rejected"
+                                                    ("tx rejected" |> Just)
                                                     Nothing
-                                                    (Just "transaction cancelled.")
                                                     Nothing
                                                     |> gTagOut
                                         in
@@ -306,9 +278,9 @@ update msg model =
                                         let
                                             gtagCmd =
                                                 GTagData
-                                                    "post response"
+                                                    "burn/tip tx error"
+                                                    ("tx error" |> Just)
                                                     Nothing
-                                                    (Just "there was a problem")
                                                     Nothing
                                                     |> gTagOut
                                         in
@@ -351,8 +323,8 @@ update msg model =
 
                                     ( newGtagHistory, gtagCmd ) =
                                         GTagData
-                                            "post response"
-                                            (Just "transaction mining")
+                                            "burn/tip tx confirmed"
+                                            ("tx confirmed" |> Just)
                                             (Eth.Utils.txHashToString txHash
                                                 |> Just
                                             )
@@ -634,27 +606,12 @@ update msg model =
         PostLogReceived res ->
             case res.returnData of
                 Err err ->
-                    let
-                        gtagCmd =
-                            GTagData
-                                "post log received"
-                                (Just "error")
-                                (err
-                                    |> Json.Decode.errorToString
-                                    |> Just
-                                )
-                                Nothing
-                                |> gTagOut
-                    in
                     ( model
-                    , [ err
-                            |> Json.Decode.errorToString
-                            |> String.left 200
-                            |> (++) "PostLogReceived:\n"
-                            |> Ports.log
-                      , gtagCmd
-                      ]
-                        |> Cmd.batch
+                    , err
+                        |> Json.Decode.errorToString
+                        |> String.left 200
+                        |> (++) "PostLogReceived:\n"
+                        |> Ports.log
                     )
 
                 Ok log ->
@@ -671,27 +628,16 @@ update msg model =
                     --}
                     --)
                     let
-                        ( core, replyOrPost ) =
+                        core =
                             case log of
                                 LogReply p ->
-                                    ( p.core, "reply" )
+                                    p.core
 
                                 LogRoot p ->
-                                    ( p.core, "post" )
-
-                        gtagCmd =
-                            GTagData
-                                "post log received"
-                                (Just "success")
-                                (Just replyOrPost)
-                                Nothing
-                                |> gTagOut
+                                    p.core
                     in
                     ( addPost log model
-                    , [ fetchPostInfo model.blockTimes model.config core
-                      , gtagCmd
-                      ]
-                        |> Cmd.batch
+                    , fetchPostInfo model.blockTimes model.config core
                     )
 
         PostAccountingFetched postId res ->
@@ -1012,9 +958,7 @@ update msg model =
                                                         |> Eth.encodeSend
                                             in
                                             ( model
-                                            , [ Ports.submitPost txParams
-                                              ]
-                                                |> Cmd.batch
+                                            , Ports.submitPost txParams
                                             )
                                         )
                             )
@@ -1036,11 +980,9 @@ update msg model =
                     ( { model
                         | compose = compose
                       }
-                    , [ SSContract.getEthPriceCmd
-                            (Chain.getConfig userInfo.chain model.config)
-                            |> Task.attempt PriceResponse
-                      ]
-                        |> Cmd.batch
+                    , SSContract.getEthPriceCmd
+                        (Chain.getConfig userInfo.chain model.config)
+                        |> Task.attempt PriceResponse
                     )
                 )
 
@@ -1060,12 +1002,10 @@ update msg model =
                                 ( { model
                                     | postState = Just newState
                                   }
-                                , [ SSContract.getEthPriceCmd
-                                        (Chain.getConfig userInfo.chain model.config)
-                                        |> Task.attempt
-                                            (BurnOrTipPriceResponse newState)
-                                  ]
-                                    |> Cmd.batch
+                                , SSContract.getEthPriceCmd
+                                    (Chain.getConfig userInfo.chain model.config)
+                                    |> Task.attempt
+                                        (BurnOrTipPriceResponse newState)
                                 )
                             )
                 )
