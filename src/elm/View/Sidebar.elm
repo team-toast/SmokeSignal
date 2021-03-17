@@ -133,13 +133,11 @@ viewWallet model =
                     in
                     if userHasNoEth then
                         ( "Compose Post"
-                          --, Nothing
-                          --, "That address has no "
-                          --++ Chain.getName userInfo.chain
-                          --++ "! You will need to transfer some to post on SmokeSignal."
-                          --|> Just
                         , Just <| EH.Action <| ComposeOpen
-                        , Nothing
+                        , "That address has no "
+                            ++ Chain.getName userInfo.chain
+                            ++ "! You will need to transfer some to post on SmokeSignal."
+                            |> Just
                         )
 
                     else

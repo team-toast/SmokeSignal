@@ -27,22 +27,23 @@ view model =
             model.wallet
                 |> Wallet.userInfo
                 |> unwrap True
-                    (\userInfo ->
-                        (userInfo.chain /= XDai || TokenValue.isZero userInfo.balance)
-                            && not model.hasOnboarded
+                    (\_ ->
+                        --(userInfo.chain /= XDai || TokenValue.isZero userInfo.balance)
+                        --|| not model.hasOnboarded
+                        not model.hasOnboarded
                     )
     in
     (if onboard then
         [ [ text "To post or interact with SmokeSignal, you'll need a crypto identity:" ]
             |> paragraph [ Font.center ]
         , [ [ text "Install and setup MetaMask" ]
-                |> viewCheck (not (model.wallet == Types.NoneDetected))
+                |> viewCheck (not (model.wallet == Types.NoneDetected)) True
           , [ Input.button []
                 { onPress = Just ConnectToWeb3
                 , label = text "Connect wallet."
                 }
             ]
-                |> viewCheck (Wallet.isActive model.wallet)
+                |> viewCheck (Wallet.isActive model.wallet) (model.wallet == Connecting)
           , [ Input.button []
                 { onPress = Just Types.XDaiImport
                 , label = text "Enable xDai support."
@@ -53,6 +54,7 @@ view model =
                         |> Wallet.userInfo
                         |> unwrap False (.chain >> (==) XDai)
                     )
+                    model.chainSwitchInProgress
           , [ Input.button []
                 { onPress = Just SubmitFaucet
                 , label = text "Get free xDai."
@@ -61,8 +63,14 @@ view model =
                 |> viewCheck
                     (model.wallet
                         |> Wallet.userInfo
-                        |> unwrap False (.balance >> TokenValue.isZero >> not)
+                        |> unwrap False
+                            (\userInfo ->
+                                userInfo.chain
+                                    == XDai
+                                    && (userInfo.balance |> TokenValue.isZero |> not)
+                            )
                     )
+                    model.faucetInProgress
           ]
             |> column [ spacing 20, width fill ]
         ]
@@ -90,14 +98,21 @@ view model =
            )
 
 
-viewCheck : Bool -> List (Element Msg) -> Element Msg
-viewCheck tick elems =
-    [ View.Img.tick 25 black
+viewCheck : Bool -> Bool -> List (Element Msg) -> Element Msg
+viewCheck tick inProg elems =
+    [ (if tick then
+        View.Img.tick 25 black
+
+       else if inProg then
+        View.Common.spinner 20 black
+
+       else
+        Element.none
+      )
         |> el
             [ centerX
             , centerY
             ]
-        |> View.Common.when tick
         |> el
             [ width <| px 30
             , height <| px 30
@@ -357,7 +372,7 @@ viewBurnBox donate txt =
             }
       , [ text "Donate an extra 1% to "
         , Element.newTabLink
-            [ Font.color Theme.blue, hover ]
+            [ Font.color Theme.orange, hover, Font.bold ]
             { url = "https://foundrydao.com/"
             , label = text "Foundry"
             }
@@ -366,7 +381,7 @@ viewBurnBox donate txt =
             |> Element.paragraph [ spacing 5, Font.color white ]
       ]
         |> row
-            [ Font.size 14
+            [ Font.size 15
             , spacing 10
             ]
     ]

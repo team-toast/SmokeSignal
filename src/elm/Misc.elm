@@ -61,6 +61,7 @@ emptyModel key =
     , pages = Array.empty
     , currentPage = 0
     , faucetInProgress = False
+    , chainSwitchInProgress = False
     , faucetToken = ""
     , gtagHistory = GTag.emptyGtagHistory
     }

@@ -22,7 +22,6 @@ const faucetToken = FAUCET_TOKEN;
 
 // Local storage keys
 const HAS_VISITED = "has-visited";
-const HAS_ENABLED_XDAI = "has-enabled-xdai";
 const HAS_ONBOARDED = "has-onboarded";
 const COOKIE_CONSENT = "cookie-consent";
 
@@ -42,10 +41,8 @@ window.addEventListener("load", () => {
 
   app.ports.xDaiImport.subscribe((_) =>
     xDaiImport()
-      .then((_) => {
-        localStorage.setItem(HAS_ENABLED_XDAI, true);
-      })
-      .catch(console.error)
+      .then(app.ports.chainSwitchResponse.send)
+      .catch(app.ports.chainSwitchResponse.send)
   );
 
   app.ports.connectToWeb3.subscribe(() =>
@@ -66,7 +63,7 @@ window.addEventListener("load", () => {
       .catch(app.ports.postResponse.send)
   );
 
-  app.ports.txOut.subscribe((params) =>
+  app.ports.submitBurnOrTip.subscribe((params) =>
     sendTransaction(params).then(app.ports.txIn.send).catch(app.ports.txIn.send)
   );
 });

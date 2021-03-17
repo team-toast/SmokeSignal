@@ -244,7 +244,33 @@ update msg model =
                             )
                 )
 
-        PostTxResponse res ->
+        ChainSwitchResponse res ->
+            res
+                |> unpack
+                    (\err ->
+                        case err of
+                            Types.UserRejected ->
+                                ( { model
+                                    | chainSwitchInProgress = False
+                                  }
+                                , Cmd.none
+                                )
+
+                            Types.OtherErr e ->
+                                ( { model
+                                    | chainSwitchInProgress = False
+                                  }
+                                , Ports.log e
+                                )
+                    )
+                    (\() ->
+                        ( -- Wait for WalletResponse to update model.chainSwitchInProgress
+                          model
+                        , Cmd.none
+                        )
+                    )
+
+        BurnOrTipResponse res ->
             ensureUserInfo
                 (\userInfo ->
                     res
@@ -526,6 +552,7 @@ update msg model =
                                     | wallet =
                                         Types.NetworkReady
                                     , gtagHistory = newGtagHistory
+                                    , chainSwitchInProgress = False
                                   }
                                 , [ Ports.log e
                                   , gtagCmd
@@ -542,12 +569,23 @@ update msg model =
                                     (Just "connected")
                                     Nothing
                                     |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
+
+                            onboardComplete =
+                                info.chain == XDai && not (TokenValue.isZero info.balance)
                         in
                         ( { model
                             | wallet = Active info
                             , gtagHistory = newGtagHistory
+                            , hasOnboarded = onboardComplete || model.hasOnboarded
                           }
-                        , gtagCmd
+                        , [ gtagCmd
+                          , if onboardComplete then
+                                Ports.setOnboarded ()
+
+                            else
+                                Cmd.none
+                          ]
+                            |> Cmd.batch
                         )
                     )
 
@@ -1152,7 +1190,7 @@ update msg model =
                                                         |> gTagOut
                                             in
                                             ( model
-                                            , [ Ports.txOut txParams
+                                            , [ Ports.submitBurnOrTip txParams
                                               , gtagCmd
                                               ]
                                                 |> Cmd.batch
@@ -1238,7 +1276,7 @@ update msg model =
                         Nothing
                         |> gTagOut
             in
-            ( model
+            ( { model | chainSwitchInProgress = True }
             , [ Ports.xDaiImport ()
               , gtagCmd
               ]

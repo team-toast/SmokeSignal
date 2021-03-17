@@ -66,6 +66,7 @@ type alias Model =
     , pages : Array (List PostKey)
     , currentPage : Int
     , faucetInProgress : Bool
+    , chainSwitchInProgress : Bool
     , faucetToken : String
     , gtagHistory : GTag.GTagHistory
     }
@@ -113,8 +114,9 @@ type Msg
     | SanitizeTopic
     | PreviewSet Bool
     | SetPage Int
+    | ChainSwitchResponse (Result TxErr ())
     | PostResponse (Result TxErr TxHash)
-    | PostTxResponse (Result TxErr TxHash)
+    | BurnOrTipResponse (Result TxErr TxHash)
     | PriceResponse (Result Http.Error Float)
     | PostTxPriceResponse PostState (Result Http.Error Float)
     | SubmitPostTx

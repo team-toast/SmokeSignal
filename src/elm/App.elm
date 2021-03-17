@@ -227,8 +227,9 @@ subscriptions _ =
         , Time.every 3000 (always Types.ChangeDemoPhaceSrc)
         , Time.every 5000 (always Types.CheckTrackedTxsStatus)
         , Ports.walletResponse
-            (Wallet.connectResponseDecoder >> Types.WalletResponse)
+            (Wallet.walletInfoDecoder >> Types.WalletResponse)
         , Browser.Events.onResize Types.Resize
-        , Ports.txIn (Wallet.postResponseDecoder >> Types.PostTxResponse)
-        , Ports.postResponse (Wallet.postResponseDecoder >> Types.PostResponse)
+        , Ports.burnOrTipResponse (Wallet.rpcResponseDecoder >> Types.BurnOrTipResponse)
+        , Ports.postResponse (Wallet.rpcResponseDecoder >> Types.PostResponse)
+        , Ports.chainSwitchResponse (Wallet.chainSwitchDecoder >> Types.ChainSwitchResponse)
         ]

@@ -1,4 +1,4 @@
-module Wallet exposing (connectResponseDecoder, isActive, postResponseDecoder, userInfo)
+module Wallet exposing (chainSwitchDecoder, walletInfoDecoder, isActive, rpcResponseDecoder, userInfo)
 
 import Chain
 import Eth.Decode
@@ -9,8 +9,33 @@ import TokenValue
 import Types exposing (UserInfo, Wallet(..))
 
 
-postResponseDecoder : Value -> Result Types.TxErr TxHash
-postResponseDecoder =
+chainSwitchDecoder : Value -> Result Types.TxErr ()
+chainSwitchDecoder =
+    Decode.decodeValue
+        ([ Decode.null ()
+            |> Decode.map Ok
+         , Decode.field "code" Decode.int
+            |> Decode.map
+                (\n ->
+                    case n of
+                        4001 ->
+                            Types.UserRejected
+                                |> Err
+
+                        _ ->
+                            Types.OtherErr ("Code: " ++ String.fromInt n)
+                                |> Err
+                )
+         ]
+            |> Decode.oneOf
+        )
+        >> Result.Extra.unpack
+            (Decode.errorToString >> Types.OtherErr >> Err)
+            identity
+
+
+rpcResponseDecoder : Value -> Result Types.TxErr TxHash
+rpcResponseDecoder =
     Decode.decodeValue
         ([ Eth.Decode.txHash
             |> Decode.map Ok
@@ -34,8 +59,8 @@ postResponseDecoder =
             identity
 
 
-connectResponseDecoder : Value -> Result Types.WalletConnectErr UserInfo
-connectResponseDecoder =
+walletInfoDecoder : Value -> Result Types.WalletConnectErr UserInfo
+walletInfoDecoder =
     Decode.decodeValue
         ([ Decode.field "network" Chain.decodeChain
             |> Decode.andThen
