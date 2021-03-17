@@ -979,6 +979,15 @@ update msg model =
                                     |> unpack
                                         (\err ->
                                             let
+                                                compose =
+                                                    model.compose
+                                                        |> (\r ->
+                                                                { r
+                                                                    | inProgress = False
+                                                                    , error = Just err
+                                                                }
+                                                           )
+
                                                 gtagCmd =
                                                     GTagData
                                                         "price response"
@@ -991,7 +1000,7 @@ update msg model =
                                                         |> gTagOut
                                             in
                                             ( { model
-                                                | userNotices = [ UN.unexpectedError err ]
+                                                | compose = compose
                                               }
                                             , gtagCmd
                                             )
@@ -1093,7 +1102,7 @@ update msg model =
                                 , [ SSContract.getEthPriceCmd
                                         (Chain.getConfig userInfo.chain model.config)
                                         |> Task.attempt
-                                            (PostTxPriceResponse newState)
+                                            (BurnOrTipPriceResponse newState)
                                   , gtagCmd
                                   ]
                                     |> Cmd.batch
@@ -1101,7 +1110,7 @@ update msg model =
                             )
                 )
 
-        PostTxPriceResponse state res ->
+        BurnOrTipPriceResponse state res ->
             ensureUserInfo
                 (\userInfo ->
                     res

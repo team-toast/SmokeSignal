@@ -118,7 +118,7 @@ type Msg
     | PostResponse (Result TxErr TxHash)
     | BurnOrTipResponse (Result TxErr TxHash)
     | PriceResponse (Result Http.Error Float)
-    | PostTxPriceResponse PostState (Result Http.Error Float)
+    | BurnOrTipPriceResponse PostState (Result Http.Error Float)
     | SubmitPostTx
     | SubmitFaucet
     | FaucetResponse (Result Http.Error FaucetResult)
