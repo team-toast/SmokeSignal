@@ -847,10 +847,27 @@ update msg model =
             )
 
         GotoView view ->
+            let
+                urlString =
+                    Routing.viewToUrlString view
+
+                gtagCmd =
+                    GTagData
+                        "route changed"
+                        Nothing
+                        (urlString
+                            |> Just
+                        )
+                        Nothing
+                        |> gTagOut
+            in
             ( model
-            , Browser.Navigation.pushUrl
-                model.navKey
-                (Routing.viewToUrlString view)
+            , [ Browser.Navigation.pushUrl
+                    model.navKey
+                    urlString
+              , gtagCmd
+              ]
+                |> Cmd.batch
             )
 
         ConnectToWeb3 ->
@@ -902,19 +919,8 @@ update msg model =
                                                         , error = Just "There has been a problem."
                                                     }
                                                )
-
-                                    gtagCmd =
-                                        GTagData
-                                            "price response"
-                                            (Just "error")
-                                            (userInfo.address
-                                                |> Eth.Utils.addressToString
-                                                |> Just
-                                            )
-                                            Nothing
-                                            |> gTagOut
                                 in
-                                ( { model | compose = compose }, gtagCmd )
+                                ( { model | compose = compose }, Cmd.none )
                             )
                             (\price ->
                                 model.compose.dollar
@@ -987,22 +993,11 @@ update msg model =
                                                                     , error = Just err
                                                                 }
                                                            )
-
-                                                gtagCmd =
-                                                    GTagData
-                                                        "price response"
-                                                        (Just "error")
-                                                        ("unexpected error "
-                                                            ++ err
-                                                            |> Just
-                                                        )
-                                                        Nothing
-                                                        |> gTagOut
                                             in
                                             ( { model
                                                 | compose = compose
                                               }
-                                            , gtagCmd
+                                            , Cmd.none
                                             )
                                         )
                                         (\postDraft ->
@@ -1015,18 +1010,9 @@ update msg model =
                                                         |> SSContract.burnEncodedPost userInfo config.contract
                                                         |> Eth.toSend
                                                         |> Eth.encodeSend
-
-                                                gtagCmd =
-                                                    GTagData
-                                                        "price response"
-                                                        (Just "success")
-                                                        (Just "post draft")
-                                                        Nothing
-                                                        |> gTagOut
                                             in
                                             ( model
                                             , [ Ports.submitPost txParams
-                                              , gtagCmd
                                               ]
                                                 |> Cmd.batch
                                             )
@@ -1046,26 +1032,13 @@ update msg model =
                                             , error = Nothing
                                         }
                                    )
-
-                        ( newGtagHistory, gtagCmd ) =
-                            GTagData
-                                "submit draft"
-                                Nothing
-                                ("draft submitted "
-                                    ++ Eth.Utils.addressToString userInfo.address
-                                    |> Just
-                                )
-                                Nothing
-                                |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                     in
                     ( { model
                         | compose = compose
-                        , gtagHistory = newGtagHistory
                       }
                     , [ SSContract.getEthPriceCmd
                             (Chain.getConfig userInfo.chain model.config)
                             |> Task.attempt PriceResponse
-                      , gtagCmd
                       ]
                         |> Cmd.batch
                     )
@@ -1083,27 +1056,14 @@ update msg model =
                                             | inProgress = True
                                             , error = Nothing
                                         }
-
-                                    ( newGtagHistory, gtagCmd ) =
-                                        GTagData
-                                            "submit post"
-                                            (Just "success")
-                                            ("post submitted "
-                                                ++ Eth.Utils.addressToString userInfo.address
-                                                |> Just
-                                            )
-                                            Nothing
-                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                                 in
                                 ( { model
                                     | postState = Just newState
-                                    , gtagHistory = newGtagHistory
                                   }
                                 , [ SSContract.getEthPriceCmd
                                         (Chain.getConfig userInfo.chain model.config)
                                         |> Task.attempt
                                             (BurnOrTipPriceResponse newState)
-                                  , gtagCmd
                                   ]
                                     |> Cmd.batch
                                 )
@@ -1172,13 +1132,13 @@ update msg model =
                                                 config =
                                                     Chain.getConfig userInfo.chain model.config
 
-                                                fn =
+                                                ( fn, tipOrBurn ) =
                                                     case state.showInput of
                                                         Tip ->
-                                                            SSContract.tipForPost
+                                                            ( SSContract.tipForPost, "tip" )
 
                                                         Burn ->
-                                                            SSContract.burnForPost
+                                                            ( SSContract.burnForPost, "burn" )
 
                                                 txParams =
                                                     fn userInfo config.contract state.id.messageHash amount model.compose.donate
@@ -1187,12 +1147,13 @@ update msg model =
 
                                                 gtagCmd =
                                                     GTagData
-                                                        "post price response"
-                                                        (Just "success")
+                                                        tipOrBurn
+                                                        Nothing
                                                         ((state.id.messageHash
                                                             |> Eth.Utils.hexToString
                                                          )
-                                                            ++ " donated"
+                                                            ++ tipOrBurn
+                                                            ++ "ed"
                                                             |> Just
                                                         )
                                                         Nothing
@@ -1372,20 +1333,31 @@ update msg model =
                         )
                     )
                     (\data ->
+                        let
+                            messageText =
+                                if data.status then
+                                    "Your faucet request was successful."
+
+                                else
+                                    data.message
+                        in
                         ( { model
                             | userNotices =
                                 model.userNotices
                                     |> List.append
-                                        [ if data.status then
-                                            UN.notify "Your faucet request was successful."
-
-                                          else
-                                            UN.notify data.message
-                                        ]
+                                        [ UN.notify messageText ]
                             , faucetInProgress = False
                             , hasOnboarded = True
                           }
-                        , Ports.setOnboarded ()
+                        , [ Ports.setOnboarded ()
+                          , GTagData
+                                "faucet response"
+                                Nothing
+                                (messageText |> Just)
+                                Nothing
+                                |> gTagOut
+                          ]
+                            |> Cmd.batch
                         )
                     )
 
@@ -1438,22 +1410,11 @@ update msg model =
                         Types.TopLevel t ->
                             t
 
-                address =
-                    case userInfo model.wallet of
-                        Nothing ->
-                            "not connected"
-
-                        Just userInfo ->
-                            userInfo.address
-                                |> Eth.Utils.addressToString
-
                 gtagCmd =
                     GTagData
-                        "show modal"
-                        (Just "compose post")
-                        (address
-                            |> Just
-                        )
+                        "compose post opened"
+                        Nothing
+                        Nothing
                         Nothing
                         |> gTagOut
             in
@@ -1466,22 +1427,11 @@ update msg model =
 
         ComposeClose ->
             let
-                address =
-                    case userInfo model.wallet of
-                        Nothing ->
-                            "not connected"
-
-                        Just userInfo ->
-                            userInfo.address
-                                |> Eth.Utils.addressToString
-
                 gtagCmd =
                     GTagData
-                        "close modal"
-                        (Just "compose post")
-                        (address
-                            |> Just
-                        )
+                        "compose post closed"
+                        Nothing
+                        Nothing
                         Nothing
                         |> gTagOut
             in
