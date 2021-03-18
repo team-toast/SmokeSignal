@@ -22,7 +22,7 @@ import Ports
 import Post
 import Random
 import Result.Extra exposing (unpack)
-import Routing exposing (viewToUrlString)
+import Routing exposing (viewUrlToPathString)
 import Set
 import Task
 import Time
@@ -47,7 +47,9 @@ update msg model =
                 cmd =
                     case urlRequest of
                         Browser.Internal url ->
-                            Browser.Navigation.pushUrl model.navKey (Url.toString url)
+                            pushUrlPathAndUpdateGtagAnalyticsCmd
+                                model.navKey
+                                ("#" ++ (url.fragment |> Maybe.withDefault "!"))
 
                         Browser.External href ->
                             Browser.Navigation.load href
@@ -850,9 +852,9 @@ update msg model =
 
         GotoView view ->
             ( model
-            , Browser.Navigation.pushUrl
+            , pushUrlPathAndUpdateGtagAnalyticsCmd
                 model.navKey
-                (Routing.viewToUrlString view)
+                (Routing.viewUrlToPathString view)
             )
 
         ConnectToWeb3 ->
@@ -1408,9 +1410,9 @@ update msg model =
                     )
                     (\topic ->
                         ( model
-                        , Browser.Navigation.pushUrl
+                        , pushUrlPathAndUpdateGtagAnalyticsCmd
                             model.navKey
-                            (Routing.viewToUrlString <| ViewTopic topic)
+                            (Routing.viewUrlToPathString <| ViewTopic topic)
                         )
                     )
 
@@ -1559,9 +1561,9 @@ update msg model =
                 Browser.Navigation.back model.navKey 1
 
               else
-                Browser.Navigation.pushUrl
+                pushUrlPathAndUpdateGtagAnalyticsCmd
                     model.navKey
-                    (Routing.viewToUrlString ViewHome)
+                    (Routing.viewUrlToPathString ViewHome)
             )
 
         SetSortType newSortType ->
@@ -1586,6 +1588,16 @@ update msg model =
               }
             , gtagCmd
             )
+
+
+pushUrlPathAndUpdateGtagAnalyticsCmd : Browser.Navigation.Key -> String -> Cmd Msg
+pushUrlPathAndUpdateGtagAnalyticsCmd navKey urlPath =
+    Cmd.batch
+        [ Browser.Navigation.pushUrl
+            navKey
+            urlPath
+        , Ports.setGtagUrlPath ("/" ++ urlPath)
+        ]
 
 
 handleRoute : Model -> Route -> ( Model, Cmd Msg )
