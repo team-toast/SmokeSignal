@@ -357,7 +357,7 @@ sortPosts blockTimes accounting now post =
             Helpers.Time.sub now postTimeDefaultZero
 
         ageFactor =
-            -- 1 at age zero, falls to 0 when 3 days old
+            -- 1 at age zero, falls to 0 when 90 days old
             Helpers.Time.getRatio
                 age
                 (Helpers.Time.mul Helpers.Time.oneDay 90)
