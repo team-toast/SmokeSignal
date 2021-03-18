@@ -25,6 +25,7 @@ type alias Flags =
     , newUser : Bool
     , ethProviderUrl : String
     , xDaiProviderUrl : String
+    , hasOnboarded : Bool
     , hasWallet : Bool
     , chains : Value
     , faucetToken : String
@@ -41,6 +42,7 @@ type alias Model =
         , ethereum : EventSentry Msg
         }
     , view : View
+    , sortType : SortType
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
@@ -51,6 +53,7 @@ type alias Model =
     , maybeSeoDescription : Maybe String
     , topicInput : String
     , newUserModal : Bool
+    , hasOnboarded : Bool
     , postState : Maybe PostState
     , config : Config
     , compose : ComposeModel
@@ -64,6 +67,7 @@ type alias Model =
     , pages : Array (List PostKey)
     , currentPage : Int
     , faucetInProgress : Bool
+    , chainSwitchInProgress : Bool
     , faucetToken : String
     , gtagHistory : GTag.GTagHistory
     }
@@ -111,18 +115,26 @@ type Msg
     | SanitizeTopic
     | PreviewSet Bool
     | SetPage Int
+    | ChainSwitchResponse (Result TxErr ())
     | PostResponse (Result TxErr TxHash)
-    | PostTxResponse (Result TxErr TxHash)
+    | BurnOrTipResponse (Result TxErr TxHash)
     | PriceResponse (Result Http.Error Float)
-    | PostTxPriceResponse PostState (Result Http.Error Float)
+    | BurnOrTipPriceResponse PostState (Result Http.Error Float)
     | SubmitPostTx
     | SubmitFaucet
-    | FaucetResponse (Result Http.Error ())
+    | SetSortType SortType
+    | FaucetResponse (Result Http.Error FaucetResult)
 
 
 type TxErr
     = UserRejected
     | OtherErr String
+
+
+type alias FaucetResult =
+    { status : Bool
+    , message : String
+    }
 
 
 type alias PostKey =
@@ -330,3 +342,9 @@ type Route
 type Chain
     = XDai
     | Eth
+
+
+type SortType
+    = BurnSort
+    | HotSort
+    | NewSort

@@ -1,4 +1,4 @@
-module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPosts, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, validateTopic)
+module Misc exposing (decodeFaucetResponse, defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tokenToDollar, tryRouteToView, txInfoToNameStr, validateTopic)
 
 import Array
 import Browser.Navigation
@@ -14,7 +14,7 @@ import GTag
 import Helpers.Element
 import Helpers.Time
 import Http
-import Json.Decode as Decode
+import Json.Decode as Decode exposing (Decoder)
 import Maybe.Extra exposing (unwrap)
 import Post
 import String.Extra
@@ -30,6 +30,7 @@ emptyModel key =
     , view = ViewHome
     , wallet = Types.NoneDetected
     , newUserModal = False
+    , hasOnboarded = False
     , now = Time.millisToPosix 0
     , dProfile = Helpers.Element.Desktop
     , sentries =
@@ -60,8 +61,10 @@ emptyModel key =
     , pages = Array.empty
     , currentPage = 0
     , faucetInProgress = False
+    , chainSwitchInProgress = False
     , faucetToken = ""
     , gtagHistory = GTag.emptyGtagHistory
+    , sortType = HotSort
     }
 
 
@@ -345,26 +348,26 @@ getTxReceipt url txHash =
         }
 
 
-sortPosts : Dict Int Time.Posix -> Dict PostKey Accounting -> Time.Posix -> Core -> Float
-sortPosts blockTimes accounting now post =
+sortPostsFunc : SortType -> Dict Int Time.Posix -> Dict PostKey Accounting -> Time.Posix -> (Core -> Float)
+sortPostsFunc sortType blockTimes accounting now =
     let
-        postTimeDefaultZero =
+        postTimeDefaultZero post =
             blockTimes
                 |> Dict.get post.id.block
                 |> Maybe.withDefault (Time.millisToPosix 0)
 
-        age =
-            Helpers.Time.sub now postTimeDefaultZero
+        ageOf post =
+            Helpers.Time.sub now (postTimeDefaultZero post)
 
-        ageFactor =
+        ageFactor post =
             -- 1 at age zero, falls to 0 when 90 days old
             Helpers.Time.getRatio
-                age
+                (ageOf post)
                 (Helpers.Time.mul Helpers.Time.oneDay 90)
                 |> clamp 0 1
                 |> (\ascNum -> 1 - ascNum)
 
-        totalBurned =
+        totalBurned post =
             accounting
                 |> Dict.get post.key
                 |> unwrap
@@ -372,9 +375,42 @@ sortPosts blockTimes accounting now post =
                     .totalBurned
                 |> TokenValue.toFloatWithWarning
 
-        newnessMultiplier =
-            (ageFactor * 4.0) + 1
+        newnessMultiplier post =
+            (ageFactor post * 4.0) + 1
     in
-    totalBurned
-        * newnessMultiplier
-        |> negate
+    case sortType of
+        BurnSort ->
+            totalBurned
+                >> negate
+
+        HotSort ->
+            \post ->
+                totalBurned post
+                    * newnessMultiplier post
+                    |> negate
+
+        NewSort ->
+            \post ->
+                ageOf post
+                    |> Time.posixToMillis
+                    |> toFloat
+
+
+sortTypeToString : SortType -> String
+sortTypeToString sortType =
+    case sortType of
+        HotSort ->
+            "Hot"
+
+        BurnSort ->
+            "Burn"
+
+        NewSort ->
+            "New"
+
+
+decodeFaucetResponse : Decoder FaucetResult
+decodeFaucetResponse =
+    Decode.map2 FaucetResult
+        (Decode.field "status" Decode.bool)
+        (Decode.field "message" Decode.string)

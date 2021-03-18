@@ -44,7 +44,12 @@ burnEncodedPost wallet smokeSignalContractAddress draft =
         smokeSignalContractAddress
         (Post.encodePostContent draft)
         (TokenValue.getEvmValue draft.donateAmount)
-        |> EthHelpers.updateCallValue (TokenValue.getEvmValue draft.authorBurn)
+        |> EthHelpers.updateCallValue
+            (TokenValue.add
+                draft.authorBurn
+                draft.donateAmount
+                |> TokenValue.getEvmValue
+            )
         |> (\call ->
                 { call | from = Just wallet.address }
            )

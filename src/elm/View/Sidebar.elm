@@ -3,7 +3,6 @@ module View.Sidebar exposing (view, viewWallet)
 import Chain
 import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spacing, text, width)
 import Element.Background as Background
-import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Eth.Utils
@@ -95,29 +94,17 @@ viewWallet model =
             case Wallet.userInfo model.wallet of
                 Nothing ->
                     phaceElement
-                        80
+                        90
                         (Eth.Utils.unsafeToAddress model.demoPhaceSrc)
                         (model.showAddressId == Just DemoPhace)
                         (ShowOrHideAddress DemoPhace)
-                        |> el
-                            [ Border.rounded 10
-                            , Border.glow
-                                (Element.rgba 1 0 1 0.3)
-                                9
-                            ]
 
                 Just userInfo ->
                     phaceElement
-                        100
+                        90
                         userInfo.address
                         (model.showAddressId == Just UserPhace)
                         (ShowOrHideAddress UserPhace)
-                        |> el
-                            [ Border.rounded 10
-                            , Border.glow
-                                (Element.rgba 0 0.5 1 0.4)
-                                9
-                            ]
 
         ( buttonText, maybeButtonAction, maybeExplainerText ) =
             case model.wallet of
@@ -146,7 +133,7 @@ viewWallet model =
                     in
                     if userHasNoEth then
                         ( "Compose Post"
-                        , Nothing
+                        , Just <| EH.Action <| ComposeOpen
                         , "That address has no "
                             ++ Chain.getName userInfo.chain
                             ++ "! You will need to transfer some to post on SmokeSignal."

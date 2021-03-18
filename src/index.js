@@ -22,6 +22,7 @@ const faucetToken = FAUCET_TOKEN;
 
 // Local storage keys
 const HAS_VISITED = "has-visited";
+const HAS_ONBOARDED = "has-onboarded";
 const COOKIE_CONSENT = "cookie-consent";
 
 window.addEventListener("load", () => {
@@ -32,10 +33,16 @@ window.addEventListener("load", () => {
 
   app.ports.setVisited.subscribe(() => localStorage.setItem(HAS_VISITED, true));
 
+  app.ports.setOnboarded.subscribe(() =>
+    localStorage.setItem(HAS_ONBOARDED, true)
+  );
+
   app.ports.log.subscribe((x) => console.log(x));
 
   app.ports.xDaiImport.subscribe((_) =>
-    xDaiImport().then(console.log).catch(console.error)
+    xDaiImport()
+      .then(app.ports.chainSwitchResponse.send)
+      .catch(app.ports.chainSwitchResponse.send)
   );
 
   app.ports.connectToWeb3.subscribe(() =>
@@ -56,13 +63,14 @@ window.addEventListener("load", () => {
       .catch(app.ports.postResponse.send)
   );
 
-  app.ports.txOut.subscribe((params) =>
+  app.ports.submitBurnOrTip.subscribe((params) =>
     sendTransaction(params).then(app.ports.txIn.send).catch(app.ports.txIn.send)
   );
 });
 
 function startDapp() {
   const hasWallet = Boolean(window.ethereum);
+  const hasOnboarded = Boolean(window.localStorage.getItem(HAS_ONBOARDED));
 
   const app = Elm.App.init({
     node: document.getElementById("elm"),
@@ -74,6 +82,7 @@ function startDapp() {
       newUser: !window.localStorage.getItem(HAS_VISITED),
       ethProviderUrl,
       xDaiProviderUrl,
+      hasOnboarded,
       hasWallet,
       chains,
       faucetToken,
