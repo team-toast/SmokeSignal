@@ -27,7 +27,14 @@ view model topic =
                         >> String.toLower
                         >> (==) (String.toLower topic)
                     )
-                |> List.sortBy (.core >> Misc.sortPosts model.blockTimes model.accounting model.now)
+                |> List.sortBy
+                    (.core
+                        >> Misc.sortPostsFunc
+                            model.sortType
+                            model.blockTimes
+                            model.accounting
+                            model.now
+                    )
 
         walletActive =
             Wallet.isActive model.wallet

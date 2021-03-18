@@ -41,6 +41,7 @@ type alias Model =
         , ethereum : EventSentry Msg
         }
     , view : View
+    , sortType : SortType
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
@@ -330,3 +331,9 @@ type Route
 type Chain
     = XDai
     | Eth
+
+
+type SortType
+    = BurnSort
+    | HotSort
+    | NewSort

@@ -1,4 +1,4 @@
-module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPosts, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, validateTopic)
+module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, validateTopic)
 
 import Array
 import Browser.Navigation
@@ -62,6 +62,7 @@ emptyModel key =
     , faucetInProgress = False
     , faucetToken = ""
     , gtagHistory = GTag.emptyGtagHistory
+    , sortType = NewSort
     }
 
 
@@ -345,26 +346,26 @@ getTxReceipt url txHash =
         }
 
 
-sortPosts : Dict Int Time.Posix -> Dict PostKey Accounting -> Time.Posix -> Core -> Float
-sortPosts blockTimes accounting now post =
+sortPostsFunc : SortType -> Dict Int Time.Posix -> Dict PostKey Accounting -> Time.Posix -> (Core -> Float)
+sortPostsFunc sortType blockTimes accounting now =
     let
-        postTimeDefaultZero =
+        postTimeDefaultZero post =
             blockTimes
                 |> Dict.get post.id.block
                 |> Maybe.withDefault (Time.millisToPosix 0)
 
-        age =
-            Helpers.Time.sub now postTimeDefaultZero
+        ageOf post =
+            Helpers.Time.sub now (postTimeDefaultZero post)
 
-        ageFactor =
-            -- 1 at age zero, falls to 0 when 3 days old
+        ageFactor post =
+            -- 1 at age zero, falls to 0 when 90 days old
             Helpers.Time.getRatio
-                age
+                (ageOf post)
                 (Helpers.Time.mul Helpers.Time.oneDay 90)
                 |> clamp 0 1
                 |> (\ascNum -> 1 - ascNum)
 
-        totalBurned =
+        totalBurned post =
             accounting
                 |> Dict.get post.key
                 |> unwrap
@@ -372,9 +373,22 @@ sortPosts blockTimes accounting now post =
                     .totalBurned
                 |> TokenValue.toFloatWithWarning
 
-        newnessMultiplier =
-            (ageFactor * 4.0) + 1
+        newnessMultiplier post =
+            (ageFactor post * 4.0) + 1
     in
-    totalBurned
-        * newnessMultiplier
-        |> negate
+    case sortType of
+        BurnSort ->
+            totalBurned
+                >> negate
+
+        HotSort ->
+            \post ->
+                totalBurned post
+                    * newnessMultiplier post
+                    |> negate
+
+        NewSort ->
+            \post ->
+                ageOf post
+                    |> Time.posixToMillis
+                    |> toFloat
