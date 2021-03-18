@@ -11,7 +11,6 @@ import Set
 import Theme exposing (orange)
 import Types exposing (..)
 import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
-import View.Common exposing (when)
 import View.Post
 import Wallet
 
@@ -35,11 +34,8 @@ view model topic =
                             model.accounting
                             model.now
                     )
-
-        walletActive =
-            Wallet.isActive model.wallet
     in
-    [ topicHeader topic walletActive
+    [ topicHeader topic
     , if List.isEmpty posts then
         text "Be the first to create a post on this topic."
             |> el
@@ -94,8 +90,8 @@ view model topic =
             ]
 
 
-topicHeader : String -> Bool -> Element Msg
-topicHeader topic walletActive =
+topicHeader : String -> Element Msg
+topicHeader topic =
     [ [ text <| "#" ++ topic
       ]
         |> Element.paragraph
@@ -117,7 +113,6 @@ topicHeader topic walletActive =
             [ text "+" |> el [ Font.size 30 ], text "New Post" ]
                 |> row [ spacing 5 ]
         }
-        |> when walletActive
     ]
         |> row
             [ width fill

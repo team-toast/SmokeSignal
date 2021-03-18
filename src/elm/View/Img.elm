@@ -1,8 +1,24 @@
-module View.Img exposing (bookmark, close, dollar, eth, globe, help, hide, link, logo, replyArrow, speechBubble, spinner, xDai)
+module View.Img exposing (bookmark, close, dollar, eth, globe, help, hide, link, logo, replyArrow, speechBubble, spinner, tick, xDai)
 
 import Element exposing (Color, Element)
 import Svg exposing (Svg, g, path, polygon, svg)
 import Svg.Attributes exposing (d, fill, points, stroke, strokeLinejoin, strokeWidth, viewBox)
+
+
+tick : Int -> Color -> Element msg
+tick size color =
+    svg
+        [ viewBox "0 0 24 24"
+        , height size
+        , width size
+        ]
+        [ Svg.path
+            [ fill <| rgb color
+            , d "M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"
+            ]
+            []
+        ]
+        |> wrap
 
 
 help : Int -> Color -> Element msg

@@ -1,4 +1,4 @@
-module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, validateTopic, sortTypeToString)
+module Misc exposing (decodeFaucetResponse, defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tokenToDollar, tryRouteToView, txInfoToNameStr, validateTopic)
 
 import Array
 import Browser.Navigation
@@ -14,7 +14,7 @@ import GTag
 import Helpers.Element
 import Helpers.Time
 import Http
-import Json.Decode as Decode
+import Json.Decode as Decode exposing (Decoder)
 import Maybe.Extra exposing (unwrap)
 import Post
 import String.Extra
@@ -30,6 +30,7 @@ emptyModel key =
     , view = ViewHome
     , wallet = Types.NoneDetected
     , newUserModal = False
+    , hasOnboarded = False
     , now = Time.millisToPosix 0
     , dProfile = Helpers.Element.Desktop
     , sentries =
@@ -60,6 +61,7 @@ emptyModel key =
     , pages = Array.empty
     , currentPage = 0
     , faucetInProgress = False
+    , chainSwitchInProgress = False
     , faucetToken = ""
     , gtagHistory = GTag.emptyGtagHistory
     , sortType = HotSort
@@ -405,3 +407,10 @@ sortTypeToString sortType =
 
         NewSort ->
             "New"
+
+
+decodeFaucetResponse : Decoder FaucetResult
+decodeFaucetResponse =
+    Decode.map2 FaucetResult
+        (Decode.field "status" Decode.bool)
+        (Decode.field "message" Decode.string)
