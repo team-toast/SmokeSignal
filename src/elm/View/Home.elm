@@ -15,6 +15,7 @@ import Types exposing (..)
 import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
 import View.Post
 import Wallet
+import Helpers.Element exposing (black)
 
 
 view : Model -> Element Msg
@@ -109,6 +110,10 @@ sortTypeUX : SortType -> Element Msg
 sortTypeUX activeSortType =
     Element.row
         [ Element.spacing 10
+        , Element.paddingXY 10 5
+        , Border.rounded 5
+        , Background.color black
+        , Font.color white
         ]
         [ Element.text "Sort by"
         , Element.row
@@ -129,15 +134,19 @@ sortTypeButton sortType isSelected =
         dynamicAttributes =
             if isSelected then
                 [ Background.color Theme.blue
-                , Font.color white
+                , Border.color black
                 ]
 
             else
-                [ Font.color Theme.blue ]
+                [ Border.color Theme.blue]
     in
     Input.button
         (dynamicAttributes
-            ++ [ Font.bold ]
+            ++ [ Font.semiBold
+               , Element.paddingXY 10 5
+               , Border.rounded 3
+               , Border.width 1
+               ]
         )
         { onPress = Just <| SetSortType sortType
         , label =
