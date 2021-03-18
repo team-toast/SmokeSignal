@@ -1,4 +1,4 @@
-module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, validateTopic)
+module Misc exposing (defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, tokenToDollar, tryRouteToView, txInfoToNameStr, validateTopic, sortTypeToString)
 
 import Array
 import Browser.Navigation
@@ -62,7 +62,7 @@ emptyModel key =
     , faucetInProgress = False
     , faucetToken = ""
     , gtagHistory = GTag.emptyGtagHistory
-    , sortType = NewSort
+    , sortType = HotSort
     }
 
 
@@ -392,3 +392,16 @@ sortPostsFunc sortType blockTimes accounting now =
                 ageOf post
                     |> Time.posixToMillis
                     |> toFloat
+
+
+sortTypeToString : SortType -> String
+sortTypeToString sortType =
+    case sortType of
+        HotSort ->
+            "Hot"
+
+        BurnSort ->
+            "Burn"
+
+        NewSort ->
+            "New"

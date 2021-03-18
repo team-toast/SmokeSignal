@@ -8,6 +8,7 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (DisplayProfile(..), white)
+import Misc exposing (sortTypeToString)
 import Set
 import Theme exposing (orange)
 import Types exposing (..)
@@ -36,7 +37,7 @@ view model =
                 pages =
                     viewPagination model
             in
-            [ pages
+            [ sortTypeUX model.sortType
             , posts
                 |> List.map (viewPost model (Wallet.userInfo model.wallet))
                 |> column
@@ -86,7 +87,7 @@ viewDesktop model =
                 |> Element.el [ centerX ]
         }
         |> always Element.none
-    , pages
+    , sortTypeUX model.sortType
     , posts
         |> List.map (viewPost model (Wallet.userInfo model.wallet))
         |> column
@@ -102,6 +103,48 @@ viewDesktop model =
             , width fill
             , height fill
             ]
+
+
+sortTypeUX : SortType -> Element Msg
+sortTypeUX activeSortType =
+    Element.row
+        [ Element.spacing 10
+        ]
+        [ Element.text "Sort by"
+        , Element.row
+            [ Element.spacing 5
+            ]
+            ([ BurnSort, HotSort, NewSort ]
+                |> List.map
+                    (\sortType ->
+                        sortTypeButton sortType (sortType == activeSortType)
+                    )
+            )
+        ]
+
+
+sortTypeButton : SortType -> Bool -> Element Msg
+sortTypeButton sortType isSelected =
+    let
+        dynamicAttributes =
+            if isSelected then
+                [ Background.color Theme.blue
+                , Font.color white
+                ]
+
+            else
+                [ Font.color Theme.blue ]
+    in
+    Input.button
+        (dynamicAttributes
+            ++ [ Font.bold ]
+        )
+        { onPress = Just <| SetSortType sortType
+        , label =
+            sortType
+                |> sortTypeToString
+                |> Element.text
+        }
 
 
 viewPagination : Model -> Element Msg

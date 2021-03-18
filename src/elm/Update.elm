@@ -17,7 +17,7 @@ import Http
 import Json.Decode
 import List.Extra
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (emptyComposeModel)
+import Misc exposing (emptyComposeModel, sortTypeToString)
 import Ports
 import Post
 import Random
@@ -1502,6 +1502,29 @@ update msg model =
                 Browser.Navigation.pushUrl
                     model.navKey
                     (Routing.viewToUrlString ViewHome)
+            )
+
+        SetSortType newSortType ->
+            let
+                gtagCmd =
+                    GTagData
+                        ("change sort type: " ++ sortTypeToString newSortType)
+                        Nothing
+                        Nothing
+                        Nothing
+                        |> gTagOut
+            in
+            ( { model
+                | sortType = newSortType
+                , pages =
+                    calculatePagination
+                        newSortType
+                        model.blockTimes
+                        model.accounting
+                        model.now
+                        model.rootPosts
+              }
+            , gtagCmd
             )
 
 

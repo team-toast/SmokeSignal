@@ -119,6 +119,7 @@ type Msg
     | SubmitPostTx
     | SubmitFaucet
     | FaucetResponse (Result Http.Error ())
+    | SetSortType SortType
 
 
 type TxErr
