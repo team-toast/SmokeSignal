@@ -83,7 +83,12 @@ view model =
                 , View.Attrs.sansSerifFont
                 ]
                 { onPress = Just Types.XDaiImport
-                , label = text "Switch to xDai"
+                , label =
+                    if model.chainSwitchInProgress then
+                        View.Common.spinner 20 black
+
+                    else
+                        text "Switch to xDai"
                 }
                 |> when (not isXDai && walletActive)
           , Input.button
