@@ -17,12 +17,12 @@ import Http
 import Json.Decode
 import List.Extra
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (emptyComposeModel)
+import Misc exposing (emptyComposeModel, sortTypeToString)
 import Ports
 import Post
 import Random
 import Result.Extra exposing (unpack)
-import Routing exposing (viewToUrlString)
+import Routing exposing (viewUrlToPathString)
 import Set
 import Task
 import Time
@@ -47,7 +47,9 @@ update msg model =
                 cmd =
                     case urlRequest of
                         Browser.Internal url ->
-                            Browser.Navigation.pushUrl model.navKey (Url.toString url)
+                            pushUrlPathAndUpdateGtagAnalyticsCmd
+                                model.navKey
+                                ("#" ++ (url.fragment |> Maybe.withDefault "!"))
 
                         Browser.External href ->
                             Browser.Navigation.load href
@@ -703,7 +705,9 @@ update msg model =
                                 |> updateTopics
                         , pages =
                             model.rootPosts
-                                |> calculatePagination model.blockTimes
+                                |> calculatePagination
+                                    model.sortType
+                                    model.blockTimes
                                     accounting
                                     model.now
                       }
@@ -808,7 +812,7 @@ update msg model =
                         |> gTagOut
             in
             ( model
-            , [ Browser.Navigation.pushUrl
+            , [ pushUrlPathAndUpdateGtagAnalyticsCmd
                     model.navKey
                     urlString
               , gtagCmd
@@ -1318,9 +1322,9 @@ update msg model =
                     )
                     (\topic ->
                         ( model
-                        , Browser.Navigation.pushUrl
+                        , pushUrlPathAndUpdateGtagAnalyticsCmd
                             model.navKey
-                            (Routing.viewToUrlString <| ViewTopic topic)
+                            (Routing.viewUrlToPathString <| ViewTopic topic)
                         )
                     )
 
@@ -1447,10 +1451,43 @@ update msg model =
                 Browser.Navigation.back model.navKey 1
 
               else
-                Browser.Navigation.pushUrl
+                pushUrlPathAndUpdateGtagAnalyticsCmd
                     model.navKey
-                    (Routing.viewToUrlString ViewHome)
+                    (Routing.viewUrlToPathString ViewHome)
             )
+
+        SetSortType newSortType ->
+            let
+                gtagCmd =
+                    GTagData
+                        ("change sort type: " ++ sortTypeToString newSortType)
+                        Nothing
+                        Nothing
+                        Nothing
+                        |> gTagOut
+            in
+            ( { model
+                | sortType = newSortType
+                , pages =
+                    calculatePagination
+                        newSortType
+                        model.blockTimes
+                        model.accounting
+                        model.now
+                        model.rootPosts
+              }
+            , gtagCmd
+            )
+
+
+pushUrlPathAndUpdateGtagAnalyticsCmd : Browser.Navigation.Key -> String -> Cmd Msg
+pushUrlPathAndUpdateGtagAnalyticsCmd navKey urlPath =
+    Cmd.batch
+        [ Browser.Navigation.pushUrl
+            navKey
+            urlPath
+        , Ports.setGtagUrlPath ("/" ++ urlPath)
+        ]
 
 
 handleRoute : Model -> Route -> ( Model, Cmd Msg )
@@ -1562,7 +1599,9 @@ addPost log model =
                             )
                 , pages =
                     rootPosts
-                        |> calculatePagination model.blockTimes
+                        |> calculatePagination
+                            model.sortType
+                            model.blockTimes
                             model.accounting
                             model.now
             }
@@ -1683,12 +1722,12 @@ getPostBurnAmount price txt =
             |> Result.fromMaybe "Invalid burn amount"
 
 
-calculatePagination : Dict Int Time.Posix -> Dict PostKey Accounting -> Time.Posix -> Dict PostKey RootPost -> Array.Array (List PostKey)
-calculatePagination blockTimes accounting now =
+calculatePagination : SortType -> Dict Int Time.Posix -> Dict PostKey Accounting -> Time.Posix -> Dict PostKey RootPost -> Array.Array (List PostKey)
+calculatePagination sortType blockTimes accounting now =
     Dict.values
         >> List.sortBy
             (.core
-                >> Misc.sortPosts blockTimes accounting now
+                >> Misc.sortPostsFunc sortType blockTimes accounting now
             )
         >> List.map (.core >> .key)
         >> List.Extra.greedyGroupsOf 10

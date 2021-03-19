@@ -42,6 +42,7 @@ type alias Model =
         , ethereum : EventSentry Msg
         }
     , view : View
+    , sortType : SortType
     , blockTimes : Dict Int Time.Posix
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
@@ -121,6 +122,7 @@ type Msg
     | BurnOrTipPriceResponse PostState (Result Http.Error Float)
     | SubmitPostTx
     | SubmitFaucet
+    | SetSortType SortType
     | FaucetResponse (Result Http.Error FaucetResult)
 
 
@@ -340,3 +342,9 @@ type Route
 type Chain
     = XDai
     | Eth
+
+
+type SortType
+    = BurnSort
+    | HotSort
+    | NewSort

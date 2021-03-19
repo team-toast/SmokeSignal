@@ -107,6 +107,17 @@ function analyticsGtagPortStuff(app) {
     }
   });
 
+  app.ports.setGtagUrlPath.subscribe(function (pagePath) {
+    if (window.gtag) {
+      setTimeout(() => // must set a timeout, because the Elm app only updates the title a moment after this point.
+        window.gtag('config', 'UA-143211145-4', {
+          'page_path': pagePath
+        })
+        , 100
+      )
+    }
+  });
+
   app.ports.consentToCookies.subscribe(function () {
     setCookieConsent();
   });

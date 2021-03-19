@@ -1,4 +1,4 @@
-module Routing exposing (blockParser, encodePostIdQueryParameters, encodeTopic, hexQueryParser, postIdQueryParser, routeParser, topicParser, urlToRoute, viewToUrlString)
+module Routing exposing (blockParser, encodePostIdQueryParameters, encodeTopic, hexQueryParser, postIdQueryParser, routeParser, topicParser, urlToRoute, viewUrlToPathString)
 
 import Eth.Types exposing (Hex)
 import Eth.Utils
@@ -46,8 +46,8 @@ routeParser =
         ]
 
 
-viewToUrlString : View -> String
-viewToUrlString view =
+viewUrlToPathString : View -> String
+viewUrlToPathString view =
     case view of
         ViewHome ->
             hashBangPath [] []
