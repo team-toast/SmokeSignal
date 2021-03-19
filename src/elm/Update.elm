@@ -28,7 +28,6 @@ import Task
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
-import Url
 import UserNotice as UN exposing (UserNotice)
 import Wallet exposing (userInfo)
 
@@ -579,6 +578,7 @@ update msg model =
                             | wallet = Active info
                             , gtagHistory = newGtagHistory
                             , hasOnboarded = onboardComplete || model.hasOnboarded
+                            , chainSwitchInProgress = False
                           }
                         , [ gtagCmd
                           , if onboardComplete then
