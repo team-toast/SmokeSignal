@@ -1032,10 +1032,8 @@ update msg model =
 
                                     ( newGtagHistory, gtagCmd ) =
                                         GTagData
-                                            "post price response"
-                                            ("error "
-                                                |> Just
-                                            )
+                                            "burn or tip error"
+                                            Nothing
                                             (userInfo.address
                                                 |> Eth.Utils.addressToString
                                                 |> Just
@@ -1059,9 +1057,9 @@ update msg model =
                                             let
                                                 gtagCmd =
                                                     GTagData
-                                                        "post price response"
-                                                        (Just "error")
-                                                        (Just "invalid tip amount")
+                                                        "burn or tip amount invalid"
+                                                        Nothing
+                                                        Nothing
                                                         Nothing
                                                         |> gTagOut
                                             in
@@ -1114,12 +1112,28 @@ update msg model =
                 )
 
         DonationCheckboxSet flag ->
+            let
+                gtagCmd =
+                    GTagData
+                        "set donation flag"
+                        Nothing
+                        ((if flag then
+                            "True"
+
+                          else
+                            "False"
+                         )
+                            |> Just
+                        )
+                        Nothing
+                        |> gTagOut
+            in
             ( { model
                 | compose =
                     model.compose
                         |> (\r -> { r | donate = flag })
               }
-            , Cmd.none
+            , gtagCmd
             )
 
         SetPage n ->
@@ -1153,10 +1167,19 @@ update msg model =
             )
 
         CancelPostInput ->
+            let
+                gtagCmd =
+                    GTagData
+                        "compose post cancel"
+                        Nothing
+                        Nothing
+                        Nothing
+                        |> gTagOut
+            in
             ( { model
                 | postState = Nothing
               }
-            , Cmd.none
+            , gtagCmd
             )
 
         ChangeDemoPhaceSrc ->
@@ -1182,7 +1205,7 @@ update msg model =
 
                 gtagCmd =
                     GTagData
-                        "xdai import"
+                        "xdai import clicked"
                         Nothing
                         (address
                             |> Just
@@ -1220,8 +1243,8 @@ update msg model =
             let
                 ( newGtagHistory, gtagCmd ) =
                     GTagData
-                        "show modal"
-                        (Just "new to smokesignal")
+                        "show new to smokesignal"
+                        Nothing
                         ((if flag == True then
                             "True"
 
@@ -1252,13 +1275,21 @@ update msg model =
                                 |> Eth.Utils.addressToString
                     in
                     ( { model | faucetInProgress = True }
-                    , Http.get
-                        { url = "https://personal-rxyx.outsystemscloud.com/ERC20FaucetRest/rest/v1/send?In_ReceiverErc20Address=" ++ addr ++ "&In_Token=" ++ model.faucetToken
-                        , expect =
-                            Http.expectJson
-                                FaucetResponse
-                                Misc.decodeFaucetResponse
-                        }
+                    , [ Http.get
+                            { url = "https://personal-rxyx.outsystemscloud.com/ERC20FaucetRest/rest/v1/send?In_ReceiverErc20Address=" ++ addr ++ "&In_Token=" ++ model.faucetToken
+                            , expect =
+                                Http.expectJson
+                                    FaucetResponse
+                                    Misc.decodeFaucetResponse
+                            }
+                      , GTagData
+                            "faucet request initiated"
+                            Nothing
+                            Nothing
+                            Nothing
+                            |> gTagOut
+                      ]
+                        |> Cmd.batch
                     )
                 )
 
@@ -1293,15 +1324,7 @@ update msg model =
                             , faucetInProgress = False
                             , hasOnboarded = True
                           }
-                        , [ Ports.setOnboarded ()
-                          , GTagData
-                                "faucet response"
-                                Nothing
-                                (messageText |> Just)
-                                Nothing
-                                |> gTagOut
-                          ]
-                            |> Cmd.batch
+                        , Ports.setOnboarded ()
                         )
                     )
 
@@ -1318,13 +1341,30 @@ update msg model =
                         | userNotices =
                             [ UN.unexpectedError "Invalid topic" ]
                       }
-                    , Cmd.none
+                    , GTagData
+                        "search topic invalid"
+                        Nothing
+                        (model.topicInput
+                            |> Just
+                        )
+                        Nothing
+                        |> gTagOut
                     )
                     (\topic ->
                         ( model
-                        , pushUrlPathAndUpdateGtagAnalyticsCmd
-                            model.navKey
-                            (Routing.viewUrlToPathString <| ViewTopic topic)
+                        , [ pushUrlPathAndUpdateGtagAnalyticsCmd
+                                model.navKey
+                                (Routing.viewUrlToPathString <| ViewTopic topic)
+                          , GTagData
+                                "search topic valid"
+                                Nothing
+                                (topic
+                                    |> Just
+                                )
+                                Nothing
+                                |> gTagOut
+                          ]
+                            |> Cmd.batch
                         )
                     )
 
@@ -1463,6 +1503,14 @@ update msg model =
                         ("change sort type: " ++ sortTypeToString newSortType)
                         Nothing
                         Nothing
+                        Nothing
+                        |> gTagOut
+
+                gtagCmd =
+                    GTagData
+                        "change sort type"
+                        Nothing
+                        (sortTypeToString newSortType |> Just)
                         Nothing
                         |> gTagOut
             in
