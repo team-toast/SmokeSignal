@@ -152,6 +152,8 @@ viewOnboarding model =
                )
       ]
         |> column [ spacing 20, width fill ]
+    , View.Common.cancel ComposeClose
+        |> el [ Element.alignRight ]
     ]
         |> column
             [ padding 30
