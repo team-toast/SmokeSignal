@@ -52,6 +52,9 @@ view model =
 viewOnboarding : Model -> Element Msg
 viewOnboarding model =
     let
+        isMobile =
+            model.dProfile == Mobile
+
         step1 =
             not (model.wallet == Types.NoneDetected)
 
@@ -164,6 +167,10 @@ viewOnboarding model =
             , width fill
             , centerY
                 |> View.Common.whenAttr (model.dProfile == Mobile)
+            , height fill
+                |> whenAttr isMobile
+            , View.Attrs.style "z-index" "2000"
+                |> whenAttr isMobile
             ]
 
 
