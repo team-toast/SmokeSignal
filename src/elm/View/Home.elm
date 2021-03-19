@@ -7,7 +7,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Element exposing (DisplayProfile(..), white)
+import Helpers.Element exposing (DisplayProfile(..), black, white)
 import Misc exposing (sortTypeToString)
 import Set
 import Theme exposing (orange)
@@ -15,7 +15,6 @@ import Types exposing (..)
 import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
 import View.Post
 import Wallet
-import Helpers.Element exposing (black)
 
 
 view : Model -> Element Msg
@@ -138,7 +137,7 @@ sortTypeButton sortType isSelected =
                 ]
 
             else
-                [ Border.color Theme.blue]
+                [ Border.color Theme.blue ]
     in
     Input.button
         (dynamicAttributes
