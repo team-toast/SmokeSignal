@@ -742,7 +742,7 @@ update msg model =
         GotoView view ->
             let
                 urlString =
-                    Routing.viewToUrlString view
+                    Routing.viewUrlToPathString view
             in
             ( model
             , pushUrlPathAndUpdateGtagAnalyticsCmd
@@ -1448,14 +1448,6 @@ update msg model =
                         ("change sort type: " ++ sortTypeToString newSortType)
                         Nothing
                         Nothing
-                        Nothing
-                        |> gTagOut
-
-                gtagCmd =
-                    GTagData
-                        "change sort type"
-                        Nothing
-                        (sortTypeToString newSortType |> Just)
                         Nothing
                         |> gTagOut
             in
