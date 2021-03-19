@@ -458,108 +458,51 @@ update msg model =
                     (\err ->
                         case err of
                             WalletInProgress ->
-                                let
-                                    ( newGtagHistory, gtagCmd ) =
-                                        GTagData
-                                            "wallet response"
-                                            (Just "error")
-                                            (Just "connection incomplete")
-                                            Nothing
-                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
-                                in
                                 ( { model
                                     | userNotices = UN.unexpectedError "Please complete the wallet connection process." :: model.userNotices
-                                    , gtagHistory = newGtagHistory
                                   }
-                                , gtagCmd
+                                , Cmd.none
                                 )
 
                             WalletCancel ->
-                                let
-                                    ( newGtagHistory, gtagCmd ) =
-                                        GTagData
-                                            "wallet response"
-                                            (Just "error")
-                                            (Just "connection cancelled")
-                                            Nothing
-                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
-                                in
                                 ( { model
                                     | userNotices = UN.unexpectedError "The wallet connection has been cancelled." :: model.userNotices
                                     , wallet = NetworkReady
-                                    , gtagHistory = newGtagHistory
                                   }
-                                , gtagCmd
+                                , Cmd.none
                                 )
 
                             NetworkNotSupported ->
-                                let
-                                    ( newGtagHistory, gtagCmd ) =
-                                        GTagData
-                                            "wallet response"
-                                            (Just "error")
-                                            (Just "network not supported")
-                                            Nothing
-                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
-                                in
                                 ( { model
                                     | userNotices = UN.unexpectedError "This network is not supported by SmokeSignal." :: model.userNotices
                                     , wallet = NetworkReady
-                                    , gtagHistory = newGtagHistory
                                   }
-                                , gtagCmd
+                                , Cmd.none
                                 )
 
                             WalletError e ->
-                                let
-                                    ( newGtagHistory, gtagCmd ) =
-                                        GTagData
-                                            "wallet response"
-                                            (Just "error")
-                                            (e
-                                                |> Just
-                                            )
-                                            Nothing
-                                            |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
-                                in
                                 ( { model
                                     | wallet =
                                         Types.NetworkReady
-                                    , gtagHistory = newGtagHistory
                                     , chainSwitchInProgress = False
                                   }
-                                , [ Ports.log e
-                                  , gtagCmd
-                                  ]
-                                    |> Cmd.batch
+                                , Ports.log e
                                 )
                     )
                     (\info ->
                         let
-                            ( newGtagHistory, gtagCmd ) =
-                                GTagData
-                                    "wallet response"
-                                    (Just "success")
-                                    (Just "connected")
-                                    Nothing
-                                    |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
-
                             onboardComplete =
                                 info.chain == XDai && not (TokenValue.isZero info.balance)
                         in
                         ( { model
                             | wallet = Active info
-                            , gtagHistory = newGtagHistory
                             , hasOnboarded = onboardComplete || model.hasOnboarded
                           }
-                        , [ gtagCmd
-                          , if onboardComplete then
-                                Ports.setOnboarded ()
+                        , if onboardComplete then
+                            Ports.setOnboarded ()
 
-                            else
-                                Cmd.none
-                          ]
-                            |> Cmd.batch
+                          else
+                            Cmd.none
                         )
                     )
 
@@ -800,24 +743,11 @@ update msg model =
             let
                 urlString =
                     Routing.viewToUrlString view
-
-                gtagCmd =
-                    GTagData
-                        "route changed"
-                        Nothing
-                        (urlString
-                            |> Just
-                        )
-                        Nothing
-                        |> gTagOut
             in
             ( model
-            , [ pushUrlPathAndUpdateGtagAnalyticsCmd
-                    model.navKey
-                    urlString
-              , gtagCmd
-              ]
-                |> Cmd.batch
+            , pushUrlPathAndUpdateGtagAnalyticsCmd
+                model.navKey
+                urlString
             )
 
         ConnectToWeb3 ->
@@ -947,7 +877,14 @@ update msg model =
                                             ( { model
                                                 | compose = compose
                                               }
-                                            , Cmd.none
+                                            , GTagData
+                                                "post failed"
+                                                Nothing
+                                                (err
+                                                    |> Just
+                                                )
+                                                Nothing
+                                                |> gTagOut
                                             )
                                         )
                                         (\postDraft ->
@@ -962,7 +899,15 @@ update msg model =
                                                         |> Eth.encodeSend
                                             in
                                             ( model
-                                            , Ports.submitPost txParams
+                                            , [ Ports.submitPost txParams
+                                              , GTagData
+                                                    "post submitted"
+                                                    Nothing
+                                                    Nothing
+                                                    Nothing
+                                                    |> gTagOut
+                                              ]
+                                                |> Cmd.batch
                                             )
                                         )
                             )
