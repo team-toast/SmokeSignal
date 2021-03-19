@@ -34,56 +34,7 @@ view model =
                     )
     in
     (if onboard then
-        [ [ text "To post or interact with SmokeSignal, you'll need a crypto identity:" ]
-            |> paragraph [ Font.center ]
-        , [ [ text "Install and setup MetaMask" ]
-                |> viewCheck (not (model.wallet == Types.NoneDetected)) True
-          , [ Input.button []
-                { onPress = Just ConnectToWeb3
-                , label = text "Connect wallet."
-                }
-            ]
-                |> viewCheck (Wallet.isActive model.wallet) (model.wallet == Connecting)
-          , [ Input.button []
-                { onPress = Just Types.XDaiImport
-                , label = text "Enable xDai support."
-                }
-            ]
-                |> viewCheck
-                    (model.wallet
-                        |> Wallet.userInfo
-                        |> unwrap False (.chain >> (==) XDai)
-                    )
-                    model.chainSwitchInProgress
-          , [ Input.button []
-                { onPress = Just SubmitFaucet
-                , label = text "Get free xDai."
-                }
-            ]
-                |> viewCheck
-                    (model.wallet
-                        |> Wallet.userInfo
-                        |> unwrap False
-                            (\userInfo ->
-                                userInfo.chain
-                                    == XDai
-                                    && (userInfo.balance |> TokenValue.isZero |> not)
-                            )
-                    )
-                    model.faucetInProgress
-          ]
-            |> column [ spacing 20, width fill ]
-        ]
-            |> column
-                [ padding 30
-                , spacing 30
-                , whiteGlowAttributeSmall
-                , Background.color black
-                , Font.color white
-                , width fill
-                , centerY
-                    |> View.Common.whenAttr (model.dProfile == Mobile)
-                ]
+        viewOnboarding model
 
      else
         model.wallet
@@ -96,6 +47,131 @@ view model =
             else
                 wrapModal ComposeClose
            )
+
+
+viewOnboarding : Model -> Element Msg
+viewOnboarding model =
+    let
+        isMobile =
+            model.dProfile == Mobile
+
+        step1 =
+            not (model.wallet == Types.NoneDetected)
+
+        step2 =
+            Wallet.isActive model.wallet
+
+        step3 =
+            model.wallet
+                |> Wallet.userInfo
+                |> unwrap False (.chain >> (==) XDai)
+
+        step4 =
+            model.wallet
+                |> Wallet.userInfo
+                |> unwrap False
+                    (\userInfo ->
+                        userInfo.chain
+                            == XDai
+                            && (userInfo.balance |> TokenValue.isZero |> not)
+                    )
+    in
+    [ [ text "To post or interact with SmokeSignal, you'll need a crypto identity:" ]
+        |> paragraph [ Font.center, Font.size 22 ]
+    , [ [ text "Install and setup "
+        , Element.newTabLink
+            [ Font.color Theme.orange, hover, Font.bold ]
+            { url = "https://metamask.io/"
+            , label = text "MetaMask"
+            }
+        ]
+            |> viewCheck step1 False
+      , [ text "Connect wallet"
+        ]
+            |> viewCheck step2 (model.wallet == Connecting)
+            |> (\elem ->
+                    if step1 && not step2 then
+                        Input.button [ hover |> whenAttr (not <| model.wallet == Connecting) ]
+                            { onPress =
+                                if model.wallet == Connecting then
+                                    Nothing
+
+                                else
+                                    Just Types.ConnectToWeb3
+                            , label = elem
+                            }
+
+                    else if step2 then
+                        elem
+
+                    else
+                        el [ View.Attrs.fade ] elem
+               )
+      , [ text "Enable xDai support"
+        ]
+            |> viewCheck
+                step3
+                model.chainSwitchInProgress
+            |> (\elem ->
+                    if step1 && step2 && not step3 then
+                        Input.button [ hover |> (whenAttr <| not model.chainSwitchInProgress) ]
+                            { onPress =
+                                if model.chainSwitchInProgress then
+                                    Nothing
+
+                                else
+                                    Just Types.XDaiImport
+                            , label = elem
+                            }
+
+                    else if step3 then
+                        elem
+
+                    else
+                        el [ View.Attrs.fade ] elem
+               )
+      , [ text "Get free xDai"
+        ]
+            |> viewCheck
+                step4
+                model.faucetInProgress
+            |> (\elem ->
+                    if step1 && step2 && step3 && not step4 then
+                        Input.button [ hover |> (whenAttr <| not model.faucetInProgress) ]
+                            { onPress =
+                                if model.faucetInProgress then
+                                    Nothing
+
+                                else
+                                    Just SubmitFaucet
+                            , label = elem
+                            }
+
+                    else if step4 then
+                        elem
+
+                    else
+                        el [ View.Attrs.fade ] elem
+               )
+      ]
+        |> column [ spacing 20, width fill ]
+    , View.Common.cancel ComposeClose
+        |> el [ Element.alignRight ]
+    ]
+        |> column
+            [ padding 30
+            , spacing 30
+            , whiteGlowAttributeSmall
+            , Background.color black
+            , Font.color white
+            , width fill
+            , centerY
+                |> View.Common.whenAttr (model.dProfile == Mobile)
+            , height fill
+                |> whenAttr isMobile
+            , View.Attrs.style "z-index" "2000"
+                |> whenAttr isMobile
+            ]
 
 
 viewCheck : Bool -> Bool -> List (Element Msg) -> Element Msg
@@ -118,7 +194,8 @@ viewCheck tick inProg elems =
             , height <| px 30
             , Background.color white
             , whiteGlowAttributeSmall
-            , hover
+
+            --, hover
             ]
     , elems
         |> paragraph []

@@ -109,7 +109,7 @@ viewWallet model =
         ( buttonText, maybeButtonAction, maybeExplainerText ) =
             case model.wallet of
                 Types.NoneDetected ->
-                    ( "Install Metamask"
+                    ( "Install MetaMask"
                     , Just <| EH.NewTabLink "https://metamask.io/"
                     , Just "Then come back to try on some phaces!"
                     )

@@ -28,7 +28,6 @@ import Task
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
-import Url
 import UserNotice as UN exposing (UserNotice)
 import Wallet exposing (userInfo)
 
@@ -497,6 +496,7 @@ update msg model =
                         ( { model
                             | wallet = Active info
                             , hasOnboarded = onboardComplete || model.hasOnboarded
+                            , chainSwitchInProgress = False
                           }
                         , if onboardComplete then
                             Ports.setOnboarded ()

@@ -43,7 +43,7 @@ noWeb3Provider =
         [ [ Element.text "No web3 provider detected. Is "
           , Element.newTabLink [ Element.Font.color <| Element.rgb 0 0 1 ]
                 { url = "https://metamask.io/"
-                , label = Element.text "Metamask"
+                , label = Element.text "MetaMask"
                 }
           , Element.text " or some other web3 provider installed and unlocked?"
           ]
@@ -71,7 +71,7 @@ cantConnectNoWeb3 =
         [ [ Element.text "You need a web3 provider (such as "
           , Element.newTabLink [ Element.Font.color <| Element.rgb 0 0 1 ]
                 { url = "https://metamask.io/"
-                , label = Element.text "Metamask"
+                , label = Element.text "MetaMask"
                 }
           , Element.text ") to Connect."
           ]

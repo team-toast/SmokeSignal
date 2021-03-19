@@ -33,7 +33,7 @@ viewNewToSmokeSignal _ =
         , Element.newTabLink
             [ Font.color <| Element.rgb 0.5 0.5 1 ]
             { url = "https://metamask.io/"
-            , label = text "Metamask"
+            , label = text "MetaMask"
             }
         , text " and "
         , Element.newTabLink
