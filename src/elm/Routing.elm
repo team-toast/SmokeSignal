@@ -3,6 +3,7 @@ module Routing exposing (blockParser, encodePostIdQueryParameters, encodeTopic, 
 import Eth.Types exposing (Hex)
 import Eth.Utils
 import Maybe.Extra
+import Misc
 import Types exposing (..)
 import Url exposing (Url)
 import Url.Builder as Builder
@@ -109,7 +110,7 @@ encodeTopic =
 topicParser : Parser (Maybe String -> a) a
 topicParser =
     Parser.string
-        |> Parser.map Url.percentDecode
+        |> Parser.map (Url.percentDecode >> Maybe.andThen Misc.validateTopic)
 
 
 

@@ -21,11 +21,7 @@ view model topic =
         posts =
             model.rootPosts
                 |> Dict.values
-                |> List.filter
-                    (.topic
-                        >> String.toLower
-                        >> (==) (String.toLower topic)
-                    )
+                |> List.filter (.topic >> (==) topic)
                 |> List.sortBy
                     (.core
                         >> Misc.sortPostsFunc

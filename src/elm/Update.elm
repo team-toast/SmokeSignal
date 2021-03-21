@@ -1388,7 +1388,7 @@ update msg model =
 
         TopicSubmit ->
             (if String.isEmpty model.topicInput then
-                Post.defaultTopic
+                Misc.defaultTopic
 
              else
                 model.topicInput
@@ -1414,7 +1414,7 @@ update msg model =
                 topic =
                     model.topicInput
                         |> Misc.validateTopic
-                        |> Maybe.withDefault Post.defaultTopic
+                        |> Maybe.withDefault Misc.defaultTopic
 
                 context =
                     case model.view of
@@ -1542,7 +1542,7 @@ update msg model =
                 | topicInput =
                     model.topicInput
                         |> Misc.validateTopic
-                        |> Maybe.withDefault Post.defaultTopic
+                        |> Maybe.withDefault Misc.defaultTopic
               }
             , Cmd.none
             )
