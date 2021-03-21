@@ -66,7 +66,7 @@ view model post =
                 70
                 post.author
                 (model.showAddressId == Just (PhaceForPublishedPost post.id))
-                (ShowOrHideAddress <| PhaceForPublishedPost post.id)
+                (GotoView <| ViewUser post.author)
           , View.Post.viewCard post
           ]
             |> row [ spacing 10 ]

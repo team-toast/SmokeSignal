@@ -1631,6 +1631,13 @@ handleRoute model route =
             , Cmd.none
             )
 
+        RouteUser addr ->
+            ( { model
+                | view = ViewUser addr
+              }
+            , Cmd.none
+            )
+
         RouteInvalid ->
             ( { model
                 | userNotices =
@@ -1646,14 +1653,6 @@ handleRoute model route =
             , Dict.get (Misc.postIdToKey id) model.rootPosts
                 |> Maybe.andThen (.core >> .content >> .desc)
                 |> unwrap Cmd.none Ports.setDescription
-            )
-
-        RouteMalformedPostId ->
-            ( { model
-                | userNotices =
-                    [ UN.routeNotFound Nothing ]
-              }
-            , Cmd.none
             )
 
         RouteTopic topic ->

@@ -219,6 +219,7 @@ type View
     | ViewWallet
     | ViewTxns
     | ViewAbout
+    | ViewUser Address
 
 
 type alias UserInfo =
@@ -329,13 +330,13 @@ type alias PostId =
 type Route
     = RouteHome
     | RouteViewPost PostId
-    | RouteMalformedPostId
     | RouteTopic String
     | RouteInvalid
     | RouteTopics
     | RouteTxns
     | RouteWallet
     | RouteAbout
+    | RouteUser Address
 
 
 type Chain

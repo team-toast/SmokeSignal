@@ -244,6 +244,9 @@ tryRouteToView route =
         RouteAbout ->
             Ok ViewAbout
 
+        RouteUser addr ->
+            Ok <| ViewUser addr
+
         RouteViewPost postId ->
             Ok <| ViewPost postId
 
@@ -252,9 +255,6 @@ tryRouteToView route =
                 |> validateTopic
                 |> Maybe.map ViewTopic
                 |> Result.fromMaybe "Malformed topic"
-
-        RouteMalformedPostId ->
-            Err "Malformed post ID"
 
         RouteInvalid ->
             Err "Path not found"
