@@ -14,7 +14,7 @@ import Json.Decode exposing (Value)
 import Set exposing (Set)
 import Time
 import TokenValue exposing (TokenValue)
-import UserNotice as UN exposing (UserNotice)
+import UserNotice exposing (UserNotice)
 
 
 type alias Flags =
@@ -96,7 +96,6 @@ type Msg
     | GotoView View
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId
-    | AddUserNotice UN.UserNotice
     | SubmitDraft
     | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool

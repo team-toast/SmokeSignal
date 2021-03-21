@@ -770,7 +770,6 @@ update msg model =
 
                 Err err ->
                     ( model
-                        |> addUserNotice (UN.web3FetchError "accounting data")
                     , logHttpError "PostAccountingFetched" err
                     )
 
@@ -829,7 +828,6 @@ update msg model =
             case timeResult of
                 Err err ->
                     ( model
-                        |> addUserNotice (UN.web3FetchError "block time")
                     , logHttpError "BlockTimeFetched" err
                     )
 
@@ -883,11 +881,6 @@ update msg model =
                     else
                         Just phaceId
               }
-            , Cmd.none
-            )
-
-        AddUserNotice userNotice ->
-            ( model |> addUserNotice userNotice
             , Cmd.none
             )
 
@@ -1791,29 +1784,6 @@ fetchPostInfo blockTimes config core =
             |> Task.attempt (BlockTimeFetched core.id.block)
     ]
         |> Cmd.batch
-
-
-addUserNotice :
-    UserNotice
-    -> Model
-    -> Model
-addUserNotice notice model =
-    model
-        |> addUserNotices [ notice ]
-
-
-addUserNotices :
-    List UserNotice
-    -> Model
-    -> Model
-addUserNotices notices model =
-    { model
-        | userNotices =
-            List.append
-                model.userNotices
-                notices
-                |> List.Extra.uniqueBy .uniqueLabel
-    }
 
 
 logHttpError : String -> Http.Error -> Cmd msg
