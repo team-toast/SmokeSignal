@@ -1169,6 +1169,13 @@ update msg model =
                                                 config =
                                                     Chain.getConfig userInfo.chain model.config
 
+                                                donation =
+                                                    if model.compose.donate then
+                                                        TokenValue.div amount 100
+
+                                                    else
+                                                        TokenValue.zero
+
                                                 fn =
                                                     case state.showInput of
                                                         Tip ->
@@ -1178,7 +1185,7 @@ update msg model =
                                                             SSContract.burnForPost
 
                                                 txParams =
-                                                    fn userInfo config.contract state.id.messageHash amount model.compose.donate
+                                                    fn userInfo config.contract state.id.messageHash amount donation
                                                         |> Eth.toSend
                                                         |> Eth.encodeSend
 
