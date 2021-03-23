@@ -670,57 +670,6 @@ update msg model =
                     , logHttpError "PostAccountingFetched" err
                     )
 
-        BalanceFetched address res ->
-            case res of
-                Ok balance ->
-                    let
-                        ( newGtagHistory, gtagCmd ) =
-                            GTagData
-                                "balance fetched"
-                                Nothing
-                                (Just <| TokenValue.toFloatString Nothing balance)
-                                Nothing
-                                |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
-                    in
-                    ( { model
-                        | wallet =
-                            model.wallet
-                                |> Wallet.userInfo
-                                |> unwrap
-                                    model.wallet
-                                    (\userInfo ->
-                                        Active
-                                            { userInfo
-                                                | balance =
-                                                    if userInfo.address == address then
-                                                        balance
-
-                                                    else
-                                                        userInfo.balance
-                                            }
-                                    )
-                        , gtagHistory = newGtagHistory
-                      }
-                    , gtagCmd
-                    )
-
-                Err err ->
-                    let
-                        gtagCmd =
-                            GTagData
-                                "balance fetched"
-                                Nothing
-                                (Just "error")
-                                Nothing
-                                |> gTagOut
-                    in
-                    ( model
-                    , [ logHttpError "BalanceFetched" err
-                      , gtagCmd
-                      ]
-                        |> Cmd.batch
-                    )
-
         BlockTimeFetched blocknum timeResult ->
             case timeResult of
                 Err err ->
@@ -1432,18 +1381,6 @@ update msg model =
                         |> Maybe.withDefault Misc.defaultTopic
               }
             , Cmd.none
-            )
-
-        GoBack ->
-            ( model
-              -- To prevent navigating to a previous website
-            , if model.hasNavigated then
-                Browser.Navigation.back model.navKey 1
-
-              else
-                pushUrlPathAndUpdateGtagAnalyticsCmd
-                    model.navKey
-                    (Routing.viewUrlToPathString ViewHome)
             )
 
         SetSortType newSortType ->

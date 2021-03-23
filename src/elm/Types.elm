@@ -91,7 +91,6 @@ type Msg
     | DismissNotice Int
     | ComposeOpen
     | ComposeClose
-    | BalanceFetched Address (Result Http.Error TokenValue)
     | CookieConsentGranted
     | GotoView View
     | ConnectToWeb3
@@ -106,7 +105,6 @@ type Msg
     | TopicInputChange String
     | SetPostInput PostId ShowInputState
     | CancelPostInput
-    | GoBack
     | WalletResponse (Result WalletConnectErr UserInfo)
     | TopicSubmit
     | XDaiImport
