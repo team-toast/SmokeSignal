@@ -84,8 +84,10 @@ viewOnboarding model =
             { url = "https://metamask.io/"
             , label = text "MetaMask"
             }
+        , text ", then refresh"
         ]
             |> viewCheck step1 False
+
       , [ text "Connect wallet"
         ]
             |> viewCheck step2 (model.wallet == Connecting)
