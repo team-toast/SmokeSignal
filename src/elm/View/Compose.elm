@@ -8,10 +8,8 @@ import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (DisplayProfile(..), black, white)
 import Html.Attributes
-import Maybe.Extra exposing (unwrap)
 import Misc
 import Theme exposing (orange)
-import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
 import View.Common exposing (when, whenAttr, whenJust, wrapModal)
@@ -22,187 +20,15 @@ import Wallet
 
 view : Model -> Element Msg
 view model =
-    let
-        onboard =
-            model.wallet
-                |> Wallet.userInfo
-                |> unwrap True
-                    (\_ ->
-                        --(userInfo.chain /= XDai || TokenValue.isZero userInfo.balance)
-                        --|| not model.hasOnboarded
-                        not model.hasOnboarded
-                    )
-    in
-    (if onboard then
-        viewOnboarding model
-
-     else
-        model.wallet
-            |> Wallet.userInfo
-            |> whenJust (viewBox model)
-    )
+    model.wallet
+        |> Wallet.userInfo
+        |> whenJust (viewBox model)
         |> (if model.dProfile == Mobile then
                 identity
 
             else
                 wrapModal ComposeClose
            )
-
-
-viewOnboarding : Model -> Element Msg
-viewOnboarding model =
-    let
-        isMobile =
-            model.dProfile == Mobile
-
-        step1 =
-            not (model.wallet == Types.NoneDetected)
-
-        step2 =
-            Wallet.isActive model.wallet
-
-        step3 =
-            model.wallet
-                |> Wallet.userInfo
-                |> unwrap False (.chain >> (==) XDai)
-
-        step4 =
-            model.wallet
-                |> Wallet.userInfo
-                |> unwrap False
-                    (\userInfo ->
-                        userInfo.chain
-                            == XDai
-                            && (userInfo.balance |> TokenValue.isZero |> not)
-                    )
-    in
-    [ [ text "To post or interact with SmokeSignal, you'll need a crypto identity:" ]
-        |> paragraph [ Font.center, Font.size 22 ]
-    , [ [ text "Install and setup "
-        , Element.newTabLink
-            [ Font.color Theme.orange, hover, Font.bold ]
-            { url = "https://metamask.io/"
-            , label = text "MetaMask"
-            }
-        , text ", then refresh"
-        ]
-            |> viewCheck step1 False
-
-      , [ text "Connect wallet"
-        ]
-            |> viewCheck step2 (model.wallet == Connecting)
-            |> (\elem ->
-                    if step1 && not step2 then
-                        Input.button [ hover |> whenAttr (not <| model.wallet == Connecting) ]
-                            { onPress =
-                                if model.wallet == Connecting then
-                                    Nothing
-
-                                else
-                                    Just Types.ConnectToWeb3
-                            , label = elem
-                            }
-
-                    else if step2 then
-                        elem
-
-                    else
-                        el [ View.Attrs.fade ] elem
-               )
-      , [ text "Enable xDai support"
-        ]
-            |> viewCheck
-                step3
-                model.chainSwitchInProgress
-            |> (\elem ->
-                    if step1 && step2 && not step3 then
-                        Input.button [ hover |> (whenAttr <| not model.chainSwitchInProgress) ]
-                            { onPress =
-                                if model.chainSwitchInProgress then
-                                    Nothing
-
-                                else
-                                    Just Types.XDaiImport
-                            , label = elem
-                            }
-
-                    else if step3 then
-                        elem
-
-                    else
-                        el [ View.Attrs.fade ] elem
-               )
-      , [ text "Get free xDai"
-        ]
-            |> viewCheck
-                step4
-                model.faucetInProgress
-            |> (\elem ->
-                    if step1 && step2 && step3 && not step4 then
-                        Input.button [ hover |> (whenAttr <| not model.faucetInProgress) ]
-                            { onPress =
-                                if model.faucetInProgress then
-                                    Nothing
-
-                                else
-                                    Just SubmitFaucet
-                            , label = elem
-                            }
-
-                    else if step4 then
-                        elem
-
-                    else
-                        el [ View.Attrs.fade ] elem
-               )
-      ]
-        |> column [ spacing 20, width fill ]
-    , View.Common.cancel ComposeClose
-        |> el [ Element.alignRight ]
-    ]
-        |> column
-            [ padding 30
-            , spacing 30
-            , whiteGlowAttributeSmall
-            , Background.color black
-            , Font.color white
-            , width fill
-            , centerY
-                |> View.Common.whenAttr (model.dProfile == Mobile)
-            , height fill
-                |> whenAttr isMobile
-            , View.Attrs.style "z-index" "2000"
-                |> whenAttr isMobile
-            ]
-
-
-viewCheck : Bool -> Bool -> List (Element Msg) -> Element Msg
-viewCheck tick inProg elems =
-    [ (if tick then
-        View.Img.tick 25 black
-
-       else if inProg then
-        View.Common.spinner 20 black
-
-       else
-        Element.none
-      )
-        |> el
-            [ centerX
-            , centerY
-            ]
-        |> el
-            [ width <| px 30
-            , height <| px 30
-            , Background.color white
-            , whiteGlowAttributeSmall
-
-            --, hover
-            ]
-    , elems
-        |> paragraph []
-    ]
-        |> row [ width fill, spacing 20 ]
 
 
 viewBox : Model -> UserInfo -> Element Msg

@@ -69,6 +69,7 @@ type alias Model =
     , chainSwitchInProgress : Bool
     , faucetToken : String
     , gtagHistory : GTag.GTagHistory
+    , onboardingModal : Bool
     }
 
 
@@ -90,6 +91,7 @@ type Msg
     | DismissNotice Int
     | ComposeOpen
     | ComposeClose
+    | OnboardingClose
     | CookieConsentGranted
     | GotoView View
     | ConnectToWeb3

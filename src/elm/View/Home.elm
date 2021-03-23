@@ -44,7 +44,6 @@ view model =
                     [ width fill
                     , height fill
                     , spacing 5
-                    , padding 5
                     ]
             , pages
             ]

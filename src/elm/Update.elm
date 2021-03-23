@@ -766,10 +766,11 @@ update msg model =
                                                         TokenValue.zero
 
                                                 lowBalance =
-                                                    TokenValue.compare
-                                                        (TokenValue.add burnAmount donateAmount)
-                                                        userInfo.balance
-                                                        /= LT
+                                                    --TokenValue.compare
+                                                    --(TokenValue.add burnAmount donateAmount)
+                                                    --userInfo.balance
+                                                    --/= LT
+                                                    False
 
                                                 context =
                                                     case model.compose.context of
@@ -1268,44 +1269,59 @@ update msg model =
                     )
 
         ComposeOpen ->
-            let
-                topic =
-                    model.topicInput
-                        |> Misc.validateTopic
-                        |> Maybe.withDefault Misc.defaultTopic
+            if model.hasOnboarded then
+                let
+                    topic =
+                        model.topicInput
+                            |> Misc.validateTopic
+                            |> Maybe.withDefault Misc.defaultTopic
 
-                context =
-                    case model.view of
-                        ViewTopic t ->
-                            Types.TopLevel t
+                    context =
+                        case model.view of
+                            ViewTopic t ->
+                                Types.TopLevel t
 
-                        ViewPost id ->
-                            Types.Reply id
+                            ViewPost id ->
+                                Types.Reply id
 
-                        _ ->
-                            Types.TopLevel topic
+                            _ ->
+                                Types.TopLevel topic
 
-                topicInput =
-                    case context of
-                        Types.Reply _ ->
-                            model.topicInput
+                    topicInput =
+                        case context of
+                            Types.Reply _ ->
+                                model.topicInput
 
-                        Types.TopLevel t ->
-                            t
+                            Types.TopLevel t ->
+                                t
 
-                gtagCmd =
-                    GTagData
-                        "compose post opened"
-                        Nothing
-                        Nothing
-                        Nothing
-                        |> gTagOut
-            in
+                    gtagCmd =
+                        GTagData
+                            "compose post opened"
+                            Nothing
+                            Nothing
+                            Nothing
+                            |> gTagOut
+                in
+                ( { model
+                    | compose = { emptyComposeModel | modal = True, context = context }
+                    , topicInput = topicInput
+                  }
+                , gtagCmd
+                )
+
+            else
+                ( { model
+                    | onboardingModal = True
+                  }
+                , Cmd.none
+                )
+
+        OnboardingClose ->
             ( { model
-                | compose = { emptyComposeModel | modal = True, context = context }
-                , topicInput = topicInput
+                | onboardingModal = False
               }
-            , gtagCmd
+            , Cmd.none
             )
 
         ComposeClose ->

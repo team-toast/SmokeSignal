@@ -64,6 +64,7 @@ emptyModel key =
     , faucetToken = ""
     , gtagHistory = GTag.emptyGtagHistory
     , sortType = HotSort
+    , onboardingModal = False
     }
 
 
