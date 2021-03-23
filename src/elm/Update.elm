@@ -299,7 +299,7 @@ update msg model =
                                                                 TipTx state.id
 
                                                             Burn ->
-                                                                TipTx state.id
+                                                                BurnTx state.id
                                                     , status = Mining
                                                     , chain = userInfo.chain
                                                     }
