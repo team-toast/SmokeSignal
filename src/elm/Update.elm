@@ -490,14 +490,22 @@ update msg model =
                             onboardComplete =
                                 info.chain == XDai && not (TokenValue.isZero info.balance)
 
-                            ( newGtagHistory, gtagCmd ) =
-                                if onboardComplete then
+                            ( interimGtagHistory, walletConnectedGtagCmd ) =
+                                gTagOutOnlyOnceForEvent model.gtagHistory <|
                                     GTagData
-                                        "onboard complete"
+                                        "wallet connected"
                                         Nothing
+                                        (Just <| Eth.Utils.addressToString info.address)
                                         Nothing
-                                        Nothing
-                                        |> gTagOutOnlyOnceForEvent model.gtagHistory
+
+                            ( newGtagHistory, onboardingCompleteGtagCmd ) =
+                                if onboardComplete then
+                                    gTagOutOnlyOnceForEvent interimGtagHistory <|
+                                        GTagData
+                                            "onboard complete"
+                                            Nothing
+                                            (Just <| Eth.Utils.addressToString info.address)
+                                            Nothing
 
                                 else
                                     ( model.gtagHistory, Cmd.none )
@@ -510,7 +518,8 @@ update msg model =
                         , if onboardComplete then
                             Cmd.batch
                                 [ Ports.setOnboarded ()
-                                , gtagCmd
+                                , walletConnectedGtagCmd
+                                , onboardingCompleteGtagCmd
                                 ]
 
                           else
