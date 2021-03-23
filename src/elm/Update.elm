@@ -500,6 +500,7 @@ update msg model =
                             | wallet = Active info
                             , hasOnboarded = onboardComplete || model.hasOnboarded
                             , chainSwitchInProgress = False
+                            , gtagHistory = newGtagHistory
                           }
                         , if onboardComplete then
                             Cmd.batch
