@@ -30,6 +30,7 @@ import View.PostPage
 import View.Sidebar
 import View.Topic
 import View.Topics
+import View.User
 
 
 view : Model -> Browser.Document Msg
@@ -227,6 +228,10 @@ viewBody model =
 
         ViewAbout ->
             View.About.view model
+                |> viewFrame model
+
+        ViewUser addr ->
+            View.User.view model addr
                 |> viewFrame model
 
 

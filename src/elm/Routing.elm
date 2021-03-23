@@ -1,13 +1,38 @@
 module Routing exposing (blockParser, encodePostIdQueryParameters, encodeTopic, hexQueryParser, postIdQueryParser, routeParser, topicParser, urlToRoute, viewUrlToPathString)
 
-import Eth.Types exposing (Hex)
+import Eth.Types exposing (Address, Hex)
 import Eth.Utils
 import Maybe.Extra
+import Misc
 import Types exposing (..)
 import Url exposing (Url)
 import Url.Builder as Builder
 import Url.Parser as Parser exposing ((</>), (<?>), Parser)
 import Url.Parser.Query as Query
+
+
+routeParser : Parser (Route -> a) a
+routeParser =
+    Parser.oneOf
+        [ Parser.map RouteHome Parser.top
+        , Parser.s "post"
+            <?> postIdQueryParser
+            |> Parser.map (Maybe.Extra.unwrap RouteInvalid RouteViewPost)
+        , Parser.s "topic"
+            </> topicParser
+            |> Parser.map (Maybe.Extra.unwrap RouteInvalid RouteTopic)
+        , Parser.s "user"
+            </> addressParser
+            |> Parser.map (Maybe.Extra.unwrap RouteInvalid RouteUser)
+        , Parser.s "topics"
+            |> Parser.map RouteTopics
+        , Parser.s "transactions"
+            |> Parser.map RouteTxns
+        , Parser.s "wallet"
+            |> Parser.map RouteWallet
+        , Parser.s "about"
+            |> Parser.map RouteAbout
+        ]
 
 
 blockParser : Url -> Maybe Int
@@ -23,27 +48,6 @@ blockParser =
 pathSucceed : Parser (() -> a) a
 pathSucceed =
     Parser.custom "" (always <| Just ())
-
-
-routeParser : Parser (Route -> a) a
-routeParser =
-    Parser.oneOf
-        [ Parser.map RouteHome Parser.top
-        , Parser.s "post"
-            <?> postIdQueryParser
-            |> Parser.map (Maybe.Extra.unwrap RouteMalformedPostId RouteViewPost)
-        , Parser.s "topic"
-            </> topicParser
-            |> Parser.map (Maybe.Extra.unwrap RouteInvalid RouteTopic)
-        , Parser.s "topics"
-            |> Parser.map RouteTopics
-        , Parser.s "transactions"
-            |> Parser.map RouteTxns
-        , Parser.s "wallet"
-            |> Parser.map RouteWallet
-        , Parser.s "about"
-            |> Parser.map RouteAbout
-        ]
 
 
 viewUrlToPathString : View -> String
@@ -71,34 +75,15 @@ viewUrlToPathString view =
         ViewAbout ->
             hashBangPath [ "about" ] []
 
+        ViewUser addr ->
+            hashBangPath [ "user", Eth.Utils.addressToString addr ] []
+
 
 hashBangPath : List String -> List Builder.QueryParameter -> String
 hashBangPath parts queryParams =
     Builder.relative
         ("#!" :: parts)
         queryParams
-
-
-
--- routeToFullDotEthUrlString : Route -> String
--- routeToFullDotEthUrlString route =
---     routeToString "https://smokesignal.eth/" route
--- contextParser : Parser (Result String Context -> a) a
--- contextParser =
---     Parser.oneOf
---         [ (Parser.s "re" <?> postIdQueryParser)
---             |> Parser.map (Result.map Reply)
---         , (Parser.s "topic" </> topicParser)
---             |> Parser.map (Result.fromMaybe "Couldn't parse topic")
---             |> Parser.map (Result.map TopLevel)
---         ]
--- encodeContextPaths : Context -> List String
--- encodeContextPaths context =
---     case context of
---         Reply _ ->
---             [ "re" ]
---         TopLevel topic ->
---             [ "topic", encodeTopic topic ]
 
 
 encodeTopic : String -> String
@@ -109,21 +94,13 @@ encodeTopic =
 topicParser : Parser (Maybe String -> a) a
 topicParser =
     Parser.string
-        |> Parser.map Url.percentDecode
+        |> Parser.map (Url.percentDecode >> Maybe.andThen Misc.validateTopic)
 
 
-
--- encodePostContextQueryParams : Context -> List Builder.QueryParameter
--- encodePostContextQueryParams context =
---     case context of
---         Reply postId ->
---             encodePostIdQueryParameters postId
---         TopLevel _ ->
---             []
--- encodeContextQueryParams : Context -> List Builder.QueryParameter
--- encodeContextQueryParams context =
---     context
---         |> encodePostContextQueryParams
+addressParser : Parser (Maybe Address -> a) a
+addressParser =
+    Parser.string
+        |> Parser.map (Eth.Utils.toAddress >> Result.toMaybe)
 
 
 postIdQueryParser : Query.Parser (Maybe PostId)

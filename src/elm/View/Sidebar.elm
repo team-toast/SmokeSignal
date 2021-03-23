@@ -115,10 +115,17 @@ viewWallet model =
                     )
 
                 Types.NetworkReady ->
-                    ( "Connect Wallet"
-                    , Just <| EH.Action ConnectToWeb3
-                    , Just "Each address has a unique phace!"
-                    )
+                    if model.hasOnboarded then
+                        ( "Connect Wallet"
+                        , Just <| EH.Action ConnectToWeb3
+                        , Just "Each address has a unique phace!"
+                        )
+
+                    else
+                        ( "Get started"
+                        , Just <| EH.Action ComposeOpen
+                        , Just "Each address has a unique phace!"
+                        )
 
                 Types.Connecting ->
                     ( "Connecting"

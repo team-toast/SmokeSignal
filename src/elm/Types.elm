@@ -14,7 +14,7 @@ import Json.Decode exposing (Value)
 import Set exposing (Set)
 import Time
 import TokenValue exposing (TokenValue)
-import UserNotice as UN exposing (UserNotice)
+import UserNotice exposing (UserNotice)
 
 
 type alias Flags =
@@ -85,7 +85,7 @@ type Msg
     | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error LogPost))
     | PostAccountingFetched PostId (Result Http.Error Accounting)
     | ShowExpandedTrackedTxs Bool
-    | CheckTrackedTxsStatus
+    | FetchBalanceAndCheckTrackedTxsStatus
     | TrackedTxStatusResult (Result Http.Error (Maybe TxReceipt))
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
     | DismissNotice Int
@@ -96,7 +96,6 @@ type Msg
     | GotoView View
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId
-    | AddUserNotice UN.UserNotice
     | SubmitDraft
     | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool
@@ -220,6 +219,7 @@ type View
     | ViewWallet
     | ViewTxns
     | ViewAbout
+    | ViewUser Address
 
 
 type alias UserInfo =
@@ -330,13 +330,13 @@ type alias PostId =
 type Route
     = RouteHome
     | RouteViewPost PostId
-    | RouteMalformedPostId
     | RouteTopic String
     | RouteInvalid
     | RouteTopics
     | RouteTxns
     | RouteWallet
     | RouteAbout
+    | RouteUser Address
 
 
 type Chain

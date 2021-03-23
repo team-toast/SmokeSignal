@@ -225,7 +225,7 @@ subscriptions _ =
     Sub.batch
         [ Time.every 1000 Types.Tick
         , Time.every 3000 (always Types.ChangeDemoPhaceSrc)
-        , Time.every 5000 (always Types.CheckTrackedTxsStatus)
+        , Time.every 5000 (always Types.FetchBalanceAndCheckTrackedTxsStatus)
         , Ports.walletResponse
             (Wallet.walletInfoDecoder >> Types.WalletResponse)
         , Browser.Events.onResize Types.Resize
