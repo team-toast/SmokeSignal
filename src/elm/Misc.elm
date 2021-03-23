@@ -1,4 +1,4 @@
-module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tokenToDollar, tryRouteToView, txInfoToNameStr, validateTopic)
+module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
 
 import Array
 import Browser.Navigation
@@ -9,7 +9,8 @@ import Eth.RPC
 import Eth.Sentry.Event
 import Eth.Types exposing (Address, TxHash, TxReceipt)
 import Eth.Utils
-import FormatFloat
+import FormatNumber
+import FormatNumber.Locales exposing (usLocale)
 import GTag
 import Helpers.Element
 import Helpers.Time
@@ -142,43 +143,9 @@ getTitle model =
             defaultMain
 
 
-
--- postContextToViewContext :
---     Context
---     -> ViewContext
--- postContextToViewContext postContext =
---     case postContext of
---         Reply id ->
---             ViewPost id
---         TopLevel topicStr ->
---             Topic topicStr
--- viewContextToPostContext :
---     ViewContext
---     -> Context
--- viewContextToPostContext viewContext =
---     case viewContext of
---         ViewPost id ->
---             Reply id
---         Topic topicStr ->
---             TopLevel topicStr
-
-
 defaultSeoDescription : String
 defaultSeoDescription =
     "SmokeSignal - Uncensorable, Global, Immutable chat. Burn crypto to cement your writing on the blockchain. Grant your ideas immortality."
-
-
-txInfoToNameStr : TxInfo -> String
-txInfoToNameStr txInfo =
-    case txInfo of
-        PostTx ->
-            "Post Submit"
-
-        TipTx _ ->
-            "Tip"
-
-        BurnTx _ ->
-            "Burn"
 
 
 formatPosix : Posix -> String
@@ -265,17 +232,10 @@ postIdToKey id =
     ( String.fromInt id.block, Eth.Utils.hexToString id.messageHash )
 
 
-tokenToDollar : Float -> TokenValue -> String
-tokenToDollar eth tv =
-    TokenValue.mulFloatWithWarning tv eth
-        |> TokenValue.toFloatWithWarning
-        |> FormatFloat.formatFloat 2
-
-
 formatDollar : TokenValue -> String
 formatDollar =
     TokenValue.toFloatWithWarning
-        >> FormatFloat.formatFloat 2
+        >> formatFloat 2
 
 
 dollarStringToToken : Float -> String -> Maybe TokenValue
@@ -421,3 +381,11 @@ decodeFaucetResponse =
 defaultTopic : String
 defaultTopic =
     "misc"
+
+
+formatFloat : Int -> Float -> String
+formatFloat numDecimals =
+    FormatNumber.format
+        { usLocale
+            | decimals = FormatNumber.Locales.Exact numDecimals
+        }
