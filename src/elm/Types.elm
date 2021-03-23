@@ -85,7 +85,7 @@ type Msg
     | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error LogPost))
     | PostAccountingFetched PostId (Result Http.Error Accounting)
     | ShowExpandedTrackedTxs Bool
-    | CheckTrackedTxsStatus
+    | FetchBalanceAndCheckTrackedTxsStatus
     | TrackedTxStatusResult (Result Http.Error (Maybe TxReceipt))
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
     | DismissNotice Int

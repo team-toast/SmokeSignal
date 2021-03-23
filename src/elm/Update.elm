@@ -9,7 +9,7 @@ import DemoPhaceSrcMutator
 import Dict exposing (Dict)
 import Eth
 import Eth.Sentry.Event as EventSentry
-import Eth.Types exposing (TxReceipt)
+import Eth.Types exposing (Address, TxReceipt)
 import Eth.Utils
 import GTag exposing (GTagData, gTagOut, gTagOutOnlyOnLabelOrValueChange, gTagOutOnlyOnceForEvent)
 import Helpers.Element as EH exposing (DisplayProfile(..))
@@ -380,22 +380,32 @@ update msg model =
                             )
                 )
 
-        CheckTrackedTxsStatus ->
+        FetchBalanceAndCheckTrackedTxsStatus ->
+            let
+                trackedTxChecks =
+                    model.trackedTxs
+                        |> Dict.values
+                        |> List.filter
+                            (\trackedTx ->
+                                trackedTx.status == Mining
+                            )
+                        |> List.map
+                            (\tx ->
+                                Misc.getTxReceipt
+                                    (Chain.getProviderUrl tx.chain model.config)
+                                    tx.txHash
+                                    |> Task.attempt TrackedTxStatusResult
+                            )
+
+                maybeUserBalanceCheck =
+                    Wallet.userInfo model.wallet
+                        |> Maybe.map (fetchBalanceCmd model.config)
+            in
             ( model
-            , model.trackedTxs
-                |> Dict.values
-                |> List.filter
-                    (\trackedTx ->
-                        trackedTx.status == Mining
-                    )
-                |> List.map
-                    (\tx ->
-                        Misc.getTxReceipt
-                            (Chain.getProviderUrl tx.chain model.config)
-                            tx.txHash
-                            |> Task.attempt TrackedTxStatusResult
-                    )
-                |> Cmd.batch
+            , Cmd.batch <|
+                List.append
+                    trackedTxChecks
+                    (Maybe.Extra.values [ maybeUserBalanceCheck ])
             )
 
         TrackedTxStatusResult res ->
@@ -1362,36 +1372,42 @@ update msg model =
                 )
 
         FaucetResponse res ->
-            res
-                |> unpack
-                    (\e ->
-                        ( { model
-                            | faucetInProgress = False
-                            , userNotices =
-                                model.userNotices
-                                    |> List.append
-                                        [ UN.unexpectedError "There has been a problem." ]
-                          }
-                        , logHttpError "FaucetResponse" e
-                        )
-                    )
-                    (\data ->
-                        ( { model
-                            | userNotices =
-                                model.userNotices
-                                    |> List.append
-                                        [ if data.status then
-                                            UN.notify "Your faucet request was successful."
+            ensureUserInfo
+                (\userInfo ->
+                    res
+                        |> unpack
+                            (\e ->
+                                ( { model
+                                    | faucetInProgress = False
+                                    , userNotices =
+                                        model.userNotices
+                                            |> List.append
+                                                [ UN.unexpectedError "There has been a problem." ]
+                                  }
+                                , logHttpError "FaucetResponse" e
+                                )
+                            )
+                            (\data ->
+                                ( { model
+                                    | userNotices =
+                                        model.userNotices
+                                            |> List.append
+                                                [ if data.status then
+                                                    UN.notify "Your faucet request was successful."
 
-                                          else
-                                            UN.notify data.message
-                                        ]
-                            , faucetInProgress = False
-                            , hasOnboarded = True
-                          }
-                        , Ports.setOnboarded ()
-                        )
-                    )
+                                                  else
+                                                    UN.notify data.message
+                                                ]
+                                    , faucetInProgress = False
+                                    , hasOnboarded = True
+                                  }
+                                , Cmd.batch
+                                    [ Ports.setOnboarded ()
+                                    , fetchBalanceCmd model.config userInfo
+                                    ]
+                                )
+                            )
+                )
 
         TopicSubmit ->
             (if String.isEmpty model.topicInput then
@@ -1818,3 +1834,12 @@ calculatePagination sortType blockTimes accounting now =
         >> List.map (.core >> .key)
         >> List.Extra.greedyGroupsOf 10
         >> Array.fromList
+
+
+fetchBalanceCmd : Config -> UserInfo -> Cmd Msg
+fetchBalanceCmd config userInfo =
+    Eth.getBalance
+        (Chain.getProviderUrl userInfo.chain config)
+        userInfo.address
+        |> Task.map TokenValue.tokenValue
+        |> Task.attempt (BalanceFetched userInfo.address)
