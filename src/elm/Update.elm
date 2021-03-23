@@ -435,10 +435,6 @@ update msg model =
                             )
 
         WalletResponse res ->
-            let
-                _ =
-                    Debug.log "walletResponse" res
-            in
             res
                 |> unpack
                     (\err ->
