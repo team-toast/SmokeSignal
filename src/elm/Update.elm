@@ -56,7 +56,7 @@ update msg model =
             ( model, cmd )
 
         RouteChanged route ->
-            handleRoute { model | hasNavigated = True } route
+            handleRoute model route
 
         Tick newTime ->
             ( { model | now = newTime }, Cmd.none )

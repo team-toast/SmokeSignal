@@ -62,7 +62,6 @@ type alias Model =
     , replyIds : Dict PostKey (Set PostKey)
     , accounting : Dict PostKey Accounting
     , topics : Dict String Count
-    , hasNavigated : Bool
     , alphaUrl : String
     , pages : Array (List PostKey)
     , currentPage : Int

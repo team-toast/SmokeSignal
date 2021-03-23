@@ -56,7 +56,6 @@ emptyModel key =
     , replyIds = Dict.empty
     , accounting = Dict.empty
     , topics = Dict.empty
-    , hasNavigated = False
     , alphaUrl = ""
     , pages = Array.empty
     , currentPage = 0
