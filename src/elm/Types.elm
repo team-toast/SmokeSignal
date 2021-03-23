@@ -108,7 +108,6 @@ type Msg
     | CancelPostInput
     | GoBack
     | WalletResponse (Result WalletConnectErr UserInfo)
-    | RpcResponse (Result Http.Error UserInfo)
     | TopicSubmit
     | XDaiImport
     | SanitizeTopic

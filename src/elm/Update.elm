@@ -102,23 +102,6 @@ update msg model =
             , gtagCmd
             )
 
-        RpcResponse res ->
-            res
-                |> unpack
-                    (\e ->
-                        ( model
-                        , logHttpError "RpcResponse" e
-                        )
-                    )
-                    (\info ->
-                        ( { model
-                            | wallet = Active info
-                            , postState = Nothing
-                          }
-                        , Cmd.none
-                        )
-                    )
-
         PostResponse res ->
             ensureUserInfo
                 (\userInfo ->
@@ -462,6 +445,10 @@ update msg model =
                             )
 
         WalletResponse res ->
+            let
+                _ =
+                    Debug.log "walletResponse" res
+            in
             res
                 |> unpack
                     (\err ->
@@ -502,6 +489,18 @@ update msg model =
                         let
                             onboardComplete =
                                 info.chain == XDai && not (TokenValue.isZero info.balance)
+
+                            ( newGtagHistory, gtagCmd ) =
+                                if onboardComplete then
+                                    GTagData
+                                        "onboard complete"
+                                        Nothing
+                                        Nothing
+                                        Nothing
+                                        |> gTagOutOnlyOnceForEvent model.gtagHistory
+
+                                else
+                                    ( model.gtagHistory, Cmd.none )
                         in
                         ( { model
                             | wallet = Active info
@@ -509,7 +508,10 @@ update msg model =
                             , chainSwitchInProgress = False
                           }
                         , if onboardComplete then
-                            Ports.setOnboarded ()
+                            Cmd.batch
+                                [ Ports.setOnboarded ()
+                                , gtagCmd
+                                ]
 
                           else
                             Cmd.none
