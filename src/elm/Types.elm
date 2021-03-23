@@ -14,7 +14,7 @@ import Json.Decode exposing (Value)
 import Set exposing (Set)
 import Time
 import TokenValue exposing (TokenValue)
-import UserNotice as UN exposing (UserNotice)
+import UserNotice exposing (UserNotice)
 
 
 type alias Flags =
@@ -62,7 +62,6 @@ type alias Model =
     , replyIds : Dict PostKey (Set PostKey)
     , accounting : Dict PostKey Accounting
     , topics : Dict String Count
-    , hasNavigated : Bool
     , alphaUrl : String
     , pages : Array (List PostKey)
     , currentPage : Int
@@ -70,6 +69,7 @@ type alias Model =
     , chainSwitchInProgress : Bool
     , faucetToken : String
     , gtagHistory : GTag.GTagHistory
+    , onboardingModal : Bool
     }
 
 
@@ -91,12 +91,11 @@ type Msg
     | DismissNotice Int
     | ComposeOpen
     | ComposeClose
-    | BalanceFetched Address (Result Http.Error TokenValue)
+    | OnboardingClose
     | CookieConsentGranted
     | GotoView View
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId
-    | AddUserNotice UN.UserNotice
     | SubmitDraft
     | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool
@@ -107,9 +106,7 @@ type Msg
     | TopicInputChange String
     | SetPostInput PostId ShowInputState
     | CancelPostInput
-    | GoBack
     | WalletResponse (Result WalletConnectErr UserInfo)
-    | RpcResponse (Result Http.Error UserInfo)
     | TopicSubmit
     | XDaiImport
     | SanitizeTopic
@@ -220,6 +217,7 @@ type View
     | ViewWallet
     | ViewTxns
     | ViewAbout
+    | ViewUser Address
 
 
 type alias UserInfo =
@@ -330,13 +328,13 @@ type alias PostId =
 type Route
     = RouteHome
     | RouteViewPost PostId
-    | RouteMalformedPostId
     | RouteTopic String
     | RouteInvalid
     | RouteTopics
     | RouteTxns
     | RouteWallet
     | RouteAbout
+    | RouteUser Address
 
 
 type Chain

@@ -50,7 +50,7 @@ view model =
         , viewPara "All SmokeSignal posts are permanent and impossible for anyone to delete."
         , viewPara "All SmokeSignal authors are pseudonymous by default and cannot be deplatformed."
         , [ text "All you need to post is a web3 wallet like "
-          , viewLink "https://metamask.io/" "Metamask"
+          , viewLink "https://metamask.io/" "MetaMask"
           , text " and "
           , viewLink "https://www.google.com/search?q=how+to+buy+ether"
                 "ETH to burn"
@@ -83,7 +83,12 @@ view model =
                 , View.Attrs.sansSerifFont
                 ]
                 { onPress = Just Types.XDaiImport
-                , label = text "Switch to xDai"
+                , label =
+                    if model.chainSwitchInProgress then
+                        View.Common.spinner 20 black
+
+                    else
+                        text "Switch to xDai"
                 }
                 |> when (not isXDai && walletActive)
           , Input.button

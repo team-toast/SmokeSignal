@@ -70,7 +70,7 @@ view dProfile timestamp now replies accounting state topic wallet post =
             60
             post.author
             False
-            (ShowOrHideAddress <| PhaceForPublishedPost post.id)
+            (GotoView <| ViewUser post.author)
       , [ viewContent dProfile post
             |> linkToPost post.id
         , [ [ View.Img.speechBubble 17 almostWhite

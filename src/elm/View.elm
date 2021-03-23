@@ -26,10 +26,12 @@ import View.Home
 import View.Img
 import View.Mobile
 import View.Modal
+import View.Onboarding
 import View.PostPage
 import View.Sidebar
 import View.Topic
 import View.Topics
+import View.User
 
 
 view : Model -> Browser.Document Msg
@@ -125,6 +127,9 @@ viewPage model =
             , View.Compose.view model
                 |> Element.inFront
                 |> View.Common.whenAttr model.compose.modal
+            , View.Onboarding.view model
+                |> Element.inFront
+                |> View.Common.whenAttr model.onboardingModal
             , View.Modal.viewCookieConsent
                 |> View.Common.when isDesktop
                 |> Element.inFront
@@ -227,6 +232,10 @@ viewBody model =
 
         ViewAbout ->
             View.About.view model
+                |> viewFrame model
+
+        ViewUser addr ->
+            View.User.view model addr
                 |> viewFrame model
 
 

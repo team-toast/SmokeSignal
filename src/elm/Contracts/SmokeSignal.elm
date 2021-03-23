@@ -4,7 +4,7 @@ import Contracts.Generated.SmokeSignal as G
 import Eth
 import Eth.Decode
 import Eth.Types exposing (Address, BlockId, Call, Hex, LogFilter)
-import Helpers.Eth as EthHelpers
+import Helpers.Eth
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import Misc
@@ -44,7 +44,7 @@ burnEncodedPost wallet smokeSignalContractAddress draft =
         smokeSignalContractAddress
         (Post.encodePostContent draft)
         (TokenValue.getEvmValue draft.donateAmount)
-        |> EthHelpers.updateCallValue
+        |> Helpers.Eth.updateCallValue
             (TokenValue.add
                 draft.authorBurn
                 draft.donateAmount
@@ -83,43 +83,41 @@ getEthPriceCmd config =
             )
 
 
-tipForPost : UserInfo -> Address -> Hex -> TokenValue -> Bool -> Call ()
-tipForPost wallet smokeSignalContractAddress messageHash amount donate =
+tipForPost : UserInfo -> Address -> Hex -> TokenValue -> TokenValue -> Call ()
+tipForPost wallet smokeSignalContractAddress messageHash amount donation =
     G.tipHashOrBurnIfNoAuthor
         smokeSignalContractAddress
         messageHash
-        (if donate then
-            TokenValue.div
-                amount
-                100
-                |> TokenValue.getEvmValue
-
-         else
-            TokenValue.zero |> TokenValue.getEvmValue
-        )
-        |> EthHelpers.updateCallValue (TokenValue.getEvmValue amount)
+        (TokenValue.getEvmValue donation)
         |> (\call ->
-                { call | from = Just wallet.address }
+                { call
+                    | from = Just wallet.address
+                    , value =
+                        TokenValue.add
+                            amount
+                            donation
+                            |> TokenValue.getEvmValue
+                            |> Just
+                }
            )
 
 
-burnForPost : UserInfo -> Address -> Hex -> TokenValue -> Bool -> Call ()
-burnForPost wallet smokeSignalContractAddress messageHash amount donate =
+burnForPost : UserInfo -> Address -> Hex -> TokenValue -> TokenValue -> Call ()
+burnForPost wallet smokeSignalContractAddress messageHash amount donation =
     G.burnHash
         smokeSignalContractAddress
         messageHash
-        (if donate then
-            TokenValue.div
-                amount
-                100
-                |> TokenValue.getEvmValue
-
-         else
-            TokenValue.zero |> TokenValue.getEvmValue
-        )
-        |> EthHelpers.updateCallValue (TokenValue.getEvmValue amount)
+        (TokenValue.getEvmValue donation)
         |> (\call ->
-                { call | from = Just wallet.address }
+                { call
+                    | from = Just wallet.address
+                    , value =
+                        TokenValue.add
+                            amount
+                            donation
+                            |> TokenValue.getEvmValue
+                            |> Just
+                }
            )
 
 

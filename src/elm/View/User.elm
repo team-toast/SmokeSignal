@@ -1,27 +1,29 @@
-module View.Topic exposing (view)
+module View.User exposing (view)
 
 import Dict
 import Element exposing (Element, centerX, column, el, fill, height, padding, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
-import Element.Input as Input
+import Eth.Types exposing (Address)
+import Eth.Utils
 import Helpers.Element exposing (black, white)
 import Misc
 import Set
 import Theme exposing (orange)
 import Types exposing (..)
-import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
+import View.Attrs exposing (whiteGlowAttributeSmall)
+import View.Common
 import View.Post
 import Wallet
 
 
-view : Model -> String -> Element Msg
-view model topic =
+view : Model -> Address -> Element Msg
+view model address =
     let
         posts =
             model.rootPosts
                 |> Dict.values
-                |> List.filter (.topic >> (==) topic)
+                |> List.filter (.core >> .author >> (==) address)
                 |> List.sortBy
                     (.core
                         >> Misc.sortPostsFunc
@@ -31,9 +33,9 @@ view model topic =
                             model.now
                     )
     in
-    [ topicHeader topic
+    [ viewHeader address
     , if List.isEmpty posts then
-        text "Be the first to create a post on this topic."
+        text "This account has not posted on SmokeSignal."
             |> el
                 [ padding 10
                 , whiteGlowAttributeSmall
@@ -69,7 +71,8 @@ view model topic =
                                         Nothing
                                 )
                         )
-                        (Just topic)
+                        --(Just topic)
+                        Nothing
                         (Wallet.userInfo model.wallet)
                         post.core
                 )
@@ -86,29 +89,15 @@ view model topic =
             ]
 
 
-topicHeader : String -> Element Msg
-topicHeader topic =
-    [ [ text <| "#" ++ topic
-      ]
-        |> Element.paragraph
+viewHeader : Address -> Element Msg
+viewHeader address =
+    [ Eth.Utils.addressToString address
+        |> View.Common.ellipsisText 35
+        |> el
             [ Font.color black
             , Font.size 35
+            , width fill
             ]
-    , Input.button
-        [ View.Attrs.sansSerifFont
-        , padding 10
-        , slightRound
-        , Background.color Theme.orange
-        , Font.bold
-        , Font.color black
-        , Font.size 20
-        , hover
-        ]
-        { onPress = Just Types.ComposeOpen
-        , label =
-            [ text "+" |> el [ Font.size 30 ], text "New Post" ]
-                |> row [ spacing 5 ]
-        }
     ]
         |> row
             [ width fill

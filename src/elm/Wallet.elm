@@ -1,4 +1,4 @@
-module Wallet exposing (chainSwitchDecoder, walletInfoDecoder, isActive, rpcResponseDecoder, userInfo)
+module Wallet exposing (chainSwitchDecoder, isActive, rpcResponseDecoder, userInfo, walletInfoDecoder)
 
 import Chain
 import Eth.Decode

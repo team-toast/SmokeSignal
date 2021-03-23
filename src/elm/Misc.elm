@@ -1,4 +1,4 @@
-module Misc exposing (decodeFaucetResponse, defaultSeoDescription, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tokenToDollar, tryRouteToView, txInfoToNameStr, validateTopic)
+module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
 
 import Array
 import Browser.Navigation
@@ -9,14 +9,14 @@ import Eth.RPC
 import Eth.Sentry.Event
 import Eth.Types exposing (Address, TxHash, TxReceipt)
 import Eth.Utils
-import FormatFloat
+import FormatNumber
+import FormatNumber.Locales exposing (usLocale)
 import GTag
 import Helpers.Element
 import Helpers.Time
 import Http
 import Json.Decode as Decode exposing (Decoder)
 import Maybe.Extra exposing (unwrap)
-import Post
 import String.Extra
 import Task exposing (Task)
 import Time exposing (Posix)
@@ -56,7 +56,6 @@ emptyModel key =
     , replyIds = Dict.empty
     , accounting = Dict.empty
     , topics = Dict.empty
-    , hasNavigated = False
     , alphaUrl = ""
     , pages = Array.empty
     , currentPage = 0
@@ -65,6 +64,7 @@ emptyModel key =
     , faucetToken = ""
     , gtagHistory = GTag.emptyGtagHistory
     , sortType = HotSort
+    , onboardingModal = False
     }
 
 
@@ -75,7 +75,7 @@ emptyComposeModel =
     , body = ""
     , modal = False
     , donate = True
-    , context = TopLevel Post.defaultTopic
+    , context = TopLevel defaultTopic
     , preview = False
     , inProgress = False
     , error = Nothing
@@ -139,44 +139,13 @@ getTitle model =
         ViewAbout ->
             defaultMain
 
-
-
--- postContextToViewContext :
---     Context
---     -> ViewContext
--- postContextToViewContext postContext =
---     case postContext of
---         Reply id ->
---             ViewPost id
---         TopLevel topicStr ->
---             Topic topicStr
--- viewContextToPostContext :
---     ViewContext
---     -> Context
--- viewContextToPostContext viewContext =
---     case viewContext of
---         ViewPost id ->
---             Reply id
---         Topic topicStr ->
---             TopLevel topicStr
+        ViewUser _ ->
+            defaultMain
 
 
 defaultSeoDescription : String
 defaultSeoDescription =
     "SmokeSignal - Uncensorable, Global, Immutable chat. Burn crypto to cement your writing on the blockchain. Grant your ideas immortality."
-
-
-txInfoToNameStr : TxInfo -> String
-txInfoToNameStr txInfo =
-    case txInfo of
-        PostTx ->
-            "Post Submit"
-
-        TipTx _ ->
-            "Tip"
-
-        BurnTx _ ->
-            "Burn"
 
 
 formatPosix : Posix -> String
@@ -242,6 +211,9 @@ tryRouteToView route =
         RouteAbout ->
             Ok ViewAbout
 
+        RouteUser addr ->
+            Ok <| ViewUser addr
+
         RouteViewPost postId ->
             Ok <| ViewPost postId
 
@@ -250,9 +222,6 @@ tryRouteToView route =
                 |> validateTopic
                 |> Maybe.map ViewTopic
                 |> Result.fromMaybe "Malformed topic"
-
-        RouteMalformedPostId ->
-            Err "Malformed post ID"
 
         RouteInvalid ->
             Err "Path not found"
@@ -263,17 +232,10 @@ postIdToKey id =
     ( String.fromInt id.block, Eth.Utils.hexToString id.messageHash )
 
 
-tokenToDollar : Float -> TokenValue -> String
-tokenToDollar eth tv =
-    TokenValue.mulFloatWithWarning tv eth
-        |> TokenValue.toFloatWithWarning
-        |> FormatFloat.formatFloat 2
-
-
 formatDollar : TokenValue -> String
 formatDollar =
     TokenValue.toFloatWithWarning
-        >> FormatFloat.formatFloat 2
+        >> formatFloat 2
 
 
 dollarStringToToken : Float -> String -> Maybe TokenValue
@@ -414,3 +376,16 @@ decodeFaucetResponse =
     Decode.map2 FaucetResult
         (Decode.field "status" Decode.bool)
         (Decode.field "message" Decode.string)
+
+
+defaultTopic : String
+defaultTopic =
+    "misc"
+
+
+formatFloat : Int -> Float -> String
+formatFloat numDecimals =
+    FormatNumber.format
+        { usLocale
+            | decimals = FormatNumber.Locales.Exact numDecimals
+        }

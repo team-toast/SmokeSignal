@@ -1,4 +1,4 @@
-module Post exposing (currentMetadataVersion, defaultTopic, encodePostContent, justBodyContent, messageDataDecoder, metadataDecoder)
+module Post exposing (currentMetadataVersion, encodePostContent, justBodyContent, messageDataDecoder, metadataDecoder)
 
 {-| Helpers related to Post management.
 -}
@@ -7,6 +7,8 @@ import Eth.Types exposing (Hex)
 import Eth.Utils
 import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Encode as Encode
+import Maybe.Extra
+import Misc
 import Result.Extra
 import String.Extra
 import Types exposing (..)
@@ -21,13 +23,8 @@ nullMetadata : Metadata
 nullMetadata =
     Metadata
         0
-        (TopLevel defaultTopic)
+        (TopLevel Misc.defaultTopic)
         Nothing
-
-
-defaultTopic : String
-defaultTopic =
-    "misc"
 
 
 messageDataDecoder : Int -> Decoder Content
@@ -77,7 +74,7 @@ versionedMetadataDecoder version =
                             Nothing ->
                                 Metadata
                                     version
-                                    (TopLevel <| defaultTopic)
+                                    (TopLevel <| Misc.defaultTopic)
                                     Nothing
                     )
 
@@ -126,7 +123,13 @@ contextDecoder : Decoder Context
 contextDecoder =
     Decode.oneOf
         [ Decode.map Reply <| Decode.field "re" postIdDecoder
-        , Decode.map TopLevel <| Decode.field "topic" Decode.string
+        , Decode.field "topic" Decode.string
+            |> Decode.andThen
+                (Misc.validateTopic
+                    >> Maybe.Extra.unwrap
+                        (Decode.fail "invalid topic")
+                        (TopLevel >> Decode.succeed)
+                )
         ]
 
 

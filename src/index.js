@@ -64,7 +64,9 @@ window.addEventListener("load", () => {
   );
 
   app.ports.submitBurnOrTip.subscribe((params) =>
-    sendTransaction(params).then(app.ports.txIn.send).catch(app.ports.txIn.send)
+    sendTransaction(params)
+      .then(app.ports.burnOrTipResponse.send)
+      .catch(app.ports.burnOrTipResponse.send)
   );
 });
 
