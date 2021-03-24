@@ -71,6 +71,7 @@ view dProfile timestamp now replies accounting state topic wallet post =
             post.author
             False
             (GotoView <| ViewUser post.author)
+            |> el [ Element.alignTop ]
       , [ viewContent dProfile post
             |> linkToPost post.id
         , [ [ View.Img.speechBubble 17 almostWhite
