@@ -69,6 +69,7 @@ view model topic =
                                         Nothing
                                 )
                         )
+                        model.tooltipState
                         (Just topic)
                         (Wallet.userInfo model.wallet)
                         post.core

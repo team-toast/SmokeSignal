@@ -1,4 +1,4 @@
-module View.Attrs exposing (cappedHeight, cappedWidth, fade, hover, onEnter, onKeydown, rotate, roundBorder, sansSerifFont, slightRound, style, title, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
+module View.Attrs exposing (cappedHeight, cappedWidth, fade, help, hover, notAllowed, onEnter, onKeydown, rotate, roundBorder, sansSerifFont, slightRound, style, title, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
 
 {-| A module for managing elm-ui 'Attribute' values and related functions.
 -}
@@ -122,3 +122,13 @@ onKeydown decoders =
 rotate : Attribute msg
 rotate =
     style "animation" "rotation 0.7s infinite linear"
+
+
+notAllowed : Attribute msg
+notAllowed =
+    style "cursor" "not-allowed"
+
+
+help : Attribute msg
+help =
+    style "cursor" "help"

@@ -216,7 +216,7 @@ viewBox model userInfo =
                     hover
 
                   else
-                    View.Attrs.style "cursor" "not-allowed"
+                    View.Attrs.notAllowed
                 , sansSerifFont
                 ]
                 { onPress =

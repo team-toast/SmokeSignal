@@ -1422,6 +1422,18 @@ update msg model =
             , gtagCmd
             )
 
+        SetTooltipState val ->
+            ( { model
+                | tooltipState =
+                    if Just val == model.tooltipState then
+                        Nothing
+
+                    else
+                        Just val
+              }
+            , Cmd.none
+            )
+
 
 pushUrlPathAndUpdateGtagAnalyticsCmd : Browser.Navigation.Key -> String -> Cmd Msg
 pushUrlPathAndUpdateGtagAnalyticsCmd navKey urlPath =

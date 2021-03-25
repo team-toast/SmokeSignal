@@ -27,11 +27,12 @@ view :
     -> Set.Set Types.PostKey
     -> Maybe Accounting
     -> Maybe PostState
+    -> Maybe TooltipState
     -> Maybe String
     -> Maybe UserInfo
     -> Core
     -> Element Msg
-view dProfile timestamp now replies accounting state topic wallet post =
+view dProfile timestamp now replies accounting state tooltipState topic wallet post =
     let
         isMobile =
             dProfile == EH.Mobile
@@ -41,11 +42,50 @@ view dProfile timestamp now replies accounting state topic wallet post =
                 |> unwrap False (.chain >> (==) post.chain)
     in
     [ [ [ accounting
-            |> whenJust (viewAccounting dProfile)
+            |> whenJust
+                (\data ->
+                    [ viewAmount Theme.darkRed
+                        data.totalBurned
+                        { id = post.id, labelType = Burn }
+                    , viewAmount Theme.darkGreen
+                        data.totalTipped
+                        { id = post.id, labelType = Tip }
+                    ]
+                        |> row
+                            [ spacing 5
+                            , tooltipState
+                                |> whenJust
+                                    (\val ->
+                                        let
+                                            txt =
+                                                case val.labelType of
+                                                    Tip ->
+                                                        "Crowd tipped the author $" ++ Misc.formatDollar data.totalTipped
+
+                                                    Burn ->
+                                                        "Author burned $" ++ Misc.formatDollar post.authorBurn ++ " + crowd amplified $" ++ Misc.formatDollar (TokenValue.sub data.totalBurned post.authorBurn)
+                                        in
+                                        [ text txt ]
+                                            |> paragraph
+                                                [ padding 10
+                                                , (if val.labelType == Burn then
+                                                    Theme.darkRed
+
+                                                   else
+                                                    Theme.darkGreen
+                                                  )
+                                                    |> Background.color
+                                                ]
+                                            |> when (val.id == post.id)
+                                    )
+                                |> Element.below
+                            ]
+                )
+        , el [ height <| px 10, width fill ] Element.none
         , View.Common.viewTiming now timestamp
             |> when (not isMobile)
         ]
-            |> column [ spacing 10 ]
+            |> column [ spacing 0 ]
       , [ topic
             |> whenJust
                 (\t ->
@@ -264,30 +304,26 @@ viewReplies replies =
     String.fromInt len ++ " " ++ word
 
 
-viewAccounting : DisplayProfile -> Accounting -> Element Msg
-viewAccounting _ accounting =
-    [ viewAmount Theme.darkRed accounting.totalBurned
-    , viewAmount Theme.darkGreen accounting.totalTipped
-    ]
-        |> row
-            [ spacing 5
+viewAmount : Color -> TokenValue -> TooltipState -> Element Msg
+viewAmount color amount state =
+    Input.button
+        [ padding 5
+        , Border.rounded 3
+        , Font.size 22
+        , Font.color white
+        , Background.color color
+        , hover
+        , View.Attrs.help
+        ]
+        { onPress = Just <| SetTooltipState state
+        , label =
+            [ View.Img.dollar 22 white
+            , Misc.formatDollar amount
+                |> text
+                |> el [ Element.moveUp 1 ]
             ]
-
-
-viewAmount : Color -> TokenValue -> Element Msg
-viewAmount color amount =
-    [ View.Img.dollar 22 white
-    , Misc.formatDollar amount
-        |> text
-        |> el [ Element.moveUp 1 ]
-    ]
-        |> row
-            [ padding 5
-            , Border.rounded 3
-            , Font.size 22
-            , Font.color white
-            , Background.color color
-            ]
+                |> row []
+        }
 
 
 viewActions : Core -> Maybe PostState -> Element Msg

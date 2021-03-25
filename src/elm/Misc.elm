@@ -51,6 +51,7 @@ emptyModel key =
     , config = emptyConfig
     , compose = emptyComposeModel
     , postState = Nothing
+    , tooltipState = Nothing
     , rootPosts = Dict.empty
     , replyPosts = Dict.empty
     , replyIds = Dict.empty
