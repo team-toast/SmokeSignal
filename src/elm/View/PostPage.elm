@@ -166,6 +166,7 @@ view model post =
                                     Nothing
                             )
                     )
+                    model.tooltipState
                     Nothing
                     (Wallet.userInfo model.wallet)
                     reply.core

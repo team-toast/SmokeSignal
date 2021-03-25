@@ -1,0 +1,31 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+
+env:
+  ENV: production
+  ETH_PROVIDER_URL: ${{ secrets.ETH_PROVIDER_URL }}
+  XDAI_PROVIDER_URL: ${{ secrets.XDAI_PROVIDER_URL }}
+  FAUCET_TOKEN: ${{ secrets.FAUCET_TOKEN }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+      - name: install
+        run: npm install
+      - name: build
+        run: npm run build
+      - uses: aquiladev/ipfs-action@v0.1.5
+        with:
+          path: ./public
+          service: pinata
+          pinataKey: ${{ secrets.PINATA_KEY }}
+          pinataSecret: ${{ secrets.PINATA_SECRET }}

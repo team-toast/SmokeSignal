@@ -55,6 +55,7 @@ type alias Model =
     , newUserModal : Bool
     , hasOnboarded : Bool
     , postState : Maybe PostState
+    , tooltipState : Maybe TooltipState
     , config : Config
     , compose : ComposeModel
     , rootPosts : Dict PostKey RootPost
@@ -121,6 +122,7 @@ type Msg
     | SubmitFaucet
     | SetSortType SortType
     | FaucetResponse (Result Http.Error FaucetResult)
+    | SetTooltipState TooltipState
 
 
 type TxErr
@@ -204,6 +206,12 @@ type alias PostState =
     }
 
 
+type alias TooltipState =
+    { id : PostId
+    , labelType : ShowInputState
+    }
+
+
 type ShowInputState
     = Burn
     | Tip
@@ -269,7 +277,7 @@ type alias TrackedTx =
 
 
 type TxInfo
-    = PostTx
+    = PostTx TxHash
     | TipTx PostId
     | BurnTx PostId
 

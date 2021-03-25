@@ -91,17 +91,9 @@ phaceElement size fromAddress showAddress onClick =
                 ]
                 (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
     in
-    Element.el
-        (if showAddress then
-            [ Element.inFront <| addressOutputEl ()
-            , Element.alignTop
-            ]
-
-         else
-            [ Element.alignTop ]
-        )
-    <|
-        Element.el
+    Phace.fromEthAddress fromAddress size size
+        |> Element.html
+        |> el
             [ Border.rounded 5
             , Element.clip
             , Element.pointer
@@ -110,9 +102,12 @@ phaceElement size fromAddress showAddress onClick =
             -- , Border.width 1
             -- , Border.color Theme.blue
             ]
-        <|
-            Element.html
-                (Phace.fromEthAddress fromAddress size size)
+        |> el
+            [ addressOutputEl ()
+                |> Element.inFront
+                |> whenAttr showAddress
+            , hover
+            ]
 
 
 when : Bool -> Element msg -> Element msg

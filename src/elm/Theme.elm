@@ -226,7 +226,7 @@ disabledButton dProfile attributes text =
          , Element.Background.color lightGray
          , Element.Font.center
          , EH.noSelectText
-         , View.Attrs.style "cursor" "not-allowed"
+         , View.Attrs.notAllowed
          ]
             ++ attributes
         )

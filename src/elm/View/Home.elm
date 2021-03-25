@@ -210,6 +210,7 @@ viewPost model wallet post =
                         Nothing
                 )
         )
+        model.tooltipState
         (Just post.topic)
         wallet
         post.core

@@ -71,6 +71,7 @@ view model address =
                                         Nothing
                                 )
                         )
+                        model.tooltipState
                         --(Just topic)
                         Nothing
                         (Wallet.userInfo model.wallet)

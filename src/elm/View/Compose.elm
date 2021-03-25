@@ -8,6 +8,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (DisplayProfile(..), black, white)
 import Html.Attributes
+import Maybe.Extra
 import Misc
 import Theme exposing (orange)
 import Types exposing (..)
@@ -22,13 +23,34 @@ view : Model -> Element Msg
 view model =
     model.wallet
         |> Wallet.userInfo
-        |> whenJust (viewBox model)
-        |> (if model.dProfile == Mobile then
-                identity
+        |> Maybe.Extra.unwrap
+            (Input.button
+                [ Background.color Theme.orange
+                , padding 10
+                , View.Attrs.roundBorder
+                , hover
+                , Font.color black
+                , centerX
+                , centerY
+                ]
+                { onPress = Just ConnectToWeb3
+                , label =
+                    if model.wallet == Connecting then
+                        View.Common.spinner 20 black
+                            |> el [ centerX ]
 
-            else
-                wrapModal ComposeClose
-           )
+                    else
+                        text "Connect wallet"
+                }
+                |> el
+                    [ width fill
+                    , Background.color black
+                    , whiteGlowAttributeSmall
+                    , height <| px 150
+                    ]
+            )
+            (viewBox model)
+        |> wrapModal ComposeClose
 
 
 viewBox : Model -> UserInfo -> Element Msg
@@ -155,6 +177,7 @@ viewBox model userInfo =
                         , slightRound
                         , padding 10
                         , Font.color black
+                        , Font.alignRight
                         ]
                 )
       , [ [ Input.checkbox
@@ -193,7 +216,7 @@ viewBox model userInfo =
                     hover
 
                   else
-                    View.Attrs.style "cursor" "not-allowed"
+                    View.Attrs.notAllowed
                 , sansSerifFont
                 ]
                 { onPress =
