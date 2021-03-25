@@ -331,10 +331,10 @@ viewTxTracker trackedTxs =
                                             (Element.text "Post")
                                         ]
 
-                                ( PostTx, Mined _ ) ->
+                                ( PostTx _, Mined _ ) ->
                                     Element.text "Post"
 
-                                ( PostTx, _ ) ->
+                                ( PostTx _, _ ) ->
                                     Element.row
                                         [ Element.spacing 8
                                         ]
@@ -358,7 +358,7 @@ viewTxTracker trackedTxs =
 
                                 Mined maybePostId ->
                                     case trackedTx.txInfo of
-                                        PostTx ->
+                                        PostTx _ ->
                                             case maybePostId of
                                                 Just postId ->
                                                     Input.button []
@@ -571,10 +571,10 @@ viewTrackedTxRow trackedTx =
                             (Element.text "Post")
                         ]
 
-                ( PostTx, Mined _ ) ->
+                ( PostTx _ , Mined _ ) ->
                     Element.text "Post"
 
-                ( PostTx, _ ) ->
+                ( PostTx _, _ ) ->
                     Element.row
                         [ Element.spacing 8
                         ]
@@ -598,7 +598,7 @@ viewTrackedTxRow trackedTx =
 
                 Mined maybePostId ->
                     case trackedTx.txInfo of
-                        PostTx ->
+                        PostTx _ ->
                             case maybePostId of
                                 Just postId ->
                                     Element.el

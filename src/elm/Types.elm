@@ -277,7 +277,7 @@ type alias TrackedTx =
 
 
 type TxInfo
-    = PostTx
+    = PostTx TxHash
     | TipTx PostId
     | BurnTx PostId
 

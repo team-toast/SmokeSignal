@@ -1,4 +1,4 @@
-module Post exposing (currentMetadataVersion, encodePostContent, justBodyContent, messageDataDecoder, metadataDecoder)
+module Post exposing (currentMetadataVersion, encodePostContent, justBodyContent, messageDataDecoder, metadataDecoder, postIdToString)
 
 {-| Helpers related to Post management.
 -}
@@ -192,3 +192,10 @@ encodePostId postId =
         |> Encode.string
     ]
         |> Encode.list identity
+
+
+postIdToString : PostId -> String
+postIdToString postId =
+    String.fromInt postId.block
+        ++ "; "
+        ++ Eth.Utils.hexToString postId.messageHash

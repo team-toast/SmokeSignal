@@ -17,7 +17,7 @@ import Http
 import Json.Decode
 import List.Extra
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (emptyComposeModel, sortTypeToString)
+import Misc exposing (emptyComposeModel, postIdToKey, sortTypeToString)
 import Ports
 import Post
 import Random
@@ -189,7 +189,7 @@ update msg model =
                                         model.trackedTxs
                                             |> Dict.insert (Eth.Utils.txHashToString txHash)
                                                 { txHash = txHash
-                                                , txInfo = PostTx
+                                                , txInfo = PostTx txHash
                                                 , status = Mining
                                                 , chain = userInfo.chain
                                                 }
@@ -384,7 +384,7 @@ update msg model =
                                                 fetchAccounting =
                                                     (case tx.txInfo of
                                                         -- Rely on PostLogReceived as source of truth for post data.
-                                                        PostTx ->
+                                                        PostTx _ ->
                                                             --maybePublishedPost
                                                             --|> Maybe.map
                                                             --(\r ->
@@ -404,6 +404,40 @@ update msg model =
                                                     )
                                                         |> unwrap Cmd.none
                                                             (fetchPostInfo model.blockTimes model.config)
+
+                                                ( newGtagHistory, maybeGtagCmd ) =
+                                                    if isMined then
+                                                        let
+                                                            ( actionName, label ) =
+                                                                -- question:
+                                                                -- is there a way to get postId here for a post?
+                                                                case tx.txInfo of
+                                                                    PostTx txHash ->
+                                                                        ( "post tx mined"
+                                                                        , Eth.Utils.txHashToString txHash
+                                                                        )
+
+                                                                    TipTx postId ->
+                                                                        ( "tip tx mined"
+                                                                        , Post.postIdToString postId
+                                                                        )
+
+                                                                    BurnTx postId ->
+                                                                        ( "burn tx mined"
+                                                                        , Post.postIdToString postId
+                                                                        )
+                                                        in
+                                                        GTag.gTagOutOnlyOnLabelOrValueChange model.gtagHistory <|
+                                                            GTagData
+                                                                actionName
+                                                                Nothing
+                                                                (Just label)
+                                                                Nothing
+
+                                                    else
+                                                        ( model.gtagHistory
+                                                        , Cmd.none
+                                                        )
                                             in
                                             ( { model
                                                 | trackedTxs =
@@ -424,12 +458,16 @@ update msg model =
                                                         ++ (maybeUserNotice
                                                                 |> unwrap [] List.singleton
                                                            )
+                                                , gtagHistory = newGtagHistory
                                               }
-                                            , if isMined then
-                                                fetchAccounting
+                                            , Cmd.batch
+                                                [ if isMined then
+                                                    fetchAccounting
 
-                                              else
-                                                Cmd.none
+                                                  else
+                                                    Cmd.none
+                                                , maybeGtagCmd
+                                                ]
                                             )
                                         )
                             )
@@ -852,7 +890,7 @@ update msg model =
                                             ( model
                                             , [ Ports.submitPost txParams
                                               , GTagData
-                                                    "post submitted"
+                                                    "post tx mining"
                                                     Nothing
                                                     Nothing
                                                     Nothing
