@@ -1,4 +1,4 @@
-module View.Onboarding exposing (view)
+module View.Onboarding exposing (view, viewOnboarding__)
 
 import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
@@ -16,13 +16,166 @@ import Wallet
 
 view : Model -> Element Msg
 view model =
-    viewOnboarding model
+    (if model.wallet == NoneDetected then
+        viewOnboarding_ model
+
+     else
+        viewOnboarding model
+    )
         |> (if model.dProfile == Mobile then
                 identity
 
             else
                 wrapModal OnboardingClose
            )
+
+
+viewOnboarding_ : Model -> Element Msg
+viewOnboarding_ model =
+    let
+        isMobile =
+            model.dProfile == Mobile
+    in
+    [ [ text "To post or interact with ", el [ Font.bold ] (text "SmokeSignal"), text ", you'll need a crypto identity." ]
+        |> paragraph [ Font.center, Font.size 22 ]
+    , [ text "Install and setup "
+      , Element.newTabLink
+            [ Font.color Theme.orange, hover, Font.bold ]
+            { url = "https://metamask.io/"
+            , label = text "MetaMask"
+            }
+      , text ", then refresh."
+      ]
+        |> paragraph [ Font.center, Font.size 22 ]
+    , Input.button
+        [ Font.underline
+        , View.Attrs.hover
+        , View.Attrs.sansSerifFont
+        , Element.alignRight
+        ]
+        { onPress = Just OnboardingClose
+        , label = text "Back"
+        }
+    ]
+        |> column
+            [ padding 30
+            , spacing 30
+            , whiteGlowAttributeSmall
+            , Background.color black
+            , Font.color white
+            , width fill
+            , centerY
+                |> View.Common.whenAttr (model.dProfile == Mobile)
+            , height fill
+                |> whenAttr isMobile
+            , View.Attrs.style "z-index" "2000"
+                |> whenAttr isMobile
+            ]
+
+
+viewOnboarding__ : Model -> Element Msg
+viewOnboarding__ model =
+    let
+        isMobile =
+            model.dProfile == Mobile
+
+        step1 =
+            not (model.wallet == Types.NoneDetected)
+
+        step2 =
+            Wallet.isActive model.wallet
+
+        step3 =
+            model.wallet
+                |> Wallet.userInfo
+                |> unwrap False (.chain >> (==) XDai)
+
+        step4 =
+            --model.wallet
+            --|> Wallet.userInfo
+            --|> unwrap False
+            --(\userInfo ->
+            --userInfo.chain
+            --== XDai
+            --&& (userInfo.balance |> TokenValue.isZero |> not)
+            --)
+            model.hasOnboarded
+    in
+    [ [ text "Using xDai with SmokeSignal will result in much lower transaction fees than using Ethereum." ]
+        |> paragraph [ Font.center, Font.size 22 ]
+    , [ [ text "Switch to xDai chain"
+        ]
+            |> viewCheck
+                step3
+                model.chainSwitchInProgress
+            |> (\elem ->
+                    if step1 && step2 && not step3 then
+                        Input.button [ hover |> (whenAttr <| not model.chainSwitchInProgress) ]
+                            { onPress =
+                                if model.chainSwitchInProgress then
+                                    Nothing
+
+                                else
+                                    Just Types.XDaiImport
+                            , label = elem
+                            }
+
+                    else if step3 then
+                        elem
+
+                    else
+                        el [ View.Attrs.fade ] elem
+               )
+      , [ text "Request an xDai transfer"
+        ]
+            |> viewCheck
+                step4
+                model.faucetInProgress
+            |> (\elem ->
+                    if step1 && step2 && step3 && not step4 then
+                        Input.button [ hover |> (whenAttr <| not model.faucetInProgress) ]
+                            { onPress =
+                                if model.faucetInProgress then
+                                    Nothing
+
+                                else
+                                    Just SubmitFaucet
+                            , label = elem
+                            }
+
+                    else if step4 then
+                        elem
+
+                    else
+                        el [ View.Attrs.fade ] elem
+               )
+      , model.onboardMessage
+            |> View.Common.whenJust
+                (text
+                    >> List.singleton
+                    >> paragraph
+                        [ Background.color white
+                        , Element.alignRight
+                        , View.Attrs.slightRound
+                        , padding 10
+                        , Font.color black
+                        , Font.alignRight
+                        ]
+                )
+      ]
+        |> column [ spacing 20, width fill ]
+    ]
+        |> column
+            [ padding 30
+            , spacing 30
+            , whiteGlowAttributeSmall
+            , Background.color black
+            , Font.color white
+            , width fill
+            , height fill
+                |> whenAttr isMobile
+            , Element.alignTop
+            ]
 
 
 viewOnboarding : Model -> Element Msg

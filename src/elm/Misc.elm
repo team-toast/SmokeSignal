@@ -66,6 +66,7 @@ emptyModel key =
     , gtagHistory = GTag.emptyGtagHistory
     , sortType = HotSort
     , onboardingModal = False
+    , onboardMessage = Nothing
     }
 
 
@@ -141,6 +142,9 @@ getTitle model =
             defaultMain
 
         ViewUser _ ->
+            defaultMain
+
+        ViewOnboard ->
             defaultMain
 
 

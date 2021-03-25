@@ -1252,17 +1252,14 @@ update msg model =
                     )
                     (\data ->
                         ( { model
-                            | userNotices =
-                                model.userNotices
-                                    |> List.append
-                                        [ if data.status then
-                                            UN.notify "Your faucet request was successful."
-
-                                          else
-                                            UN.notify data.message
-                                        ]
-                            , faucetInProgress = False
+                            | faucetInProgress = False
                             , hasOnboarded = True
+                            , onboardMessage =
+                                if data.status then
+                                    Just "Your faucet request was successful."
+
+                                else
+                                    Just data.message
                           }
                         , Ports.setOnboarded ()
                         )
@@ -1308,8 +1305,35 @@ update msg model =
                         )
                     )
 
+        GotoOnboard ->
+            ( { model
+                | view = ViewOnboard
+                , compose =
+                    model.compose
+                        |> (\r ->
+                                { r
+                                    | modal = False
+                                }
+                           )
+              }
+            , Cmd.none
+            )
+
         ComposeOpen ->
-            if model.hasOnboarded then
+            if model.wallet == NoneDetected then
+                ( { model
+                    | onboardingModal = True
+                  }
+                , Cmd.none
+                  --, gTagOut <|
+                  --GTagData
+                  --"onboarding initiated"
+                  --Nothing
+                  --Nothing
+                  --Nothing
+                )
+
+            else
                 let
                     topic =
                         model.topicInput
@@ -1348,18 +1372,6 @@ update msg model =
                     , topicInput = topicInput
                   }
                 , gtagCmd
-                )
-
-            else
-                ( { model
-                    | onboardingModal = True
-                  }
-                , gTagOut <|
-                    GTagData
-                        "onboarding initiated"
-                        Nothing
-                        Nothing
-                        Nothing
                 )
 
         OnboardingClose ->

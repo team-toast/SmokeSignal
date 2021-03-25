@@ -93,14 +93,36 @@ viewBox model userInfo =
             , Font.size 20
             , width fill
             ]
-    , [ [ View.Common.viewChain userInfo.chain
-            |> el
-                [ Background.color white
-                , View.Attrs.roundBorder
-                , padding 5
-                , Element.alignRight
-                ]
-            |> when (not isMobile)
+    , [ [ [ [ el [ Font.bold ] (text "Note:")
+            , text " Posting on SmokeSignal using Ethereum can result in very high gas fees. Please see our "
+            , Input.button [ Font.bold, Font.underline, hover ]
+                { onPress = Just GotoOnboard
+                , label = text "xDai guide"
+                }
+            , text " for a cheaper alternative."
+            ]
+                |> paragraph [ padding 10, Background.color orange, View.Attrs.roundBorder ]
+                |> when (userInfo.chain == Eth)
+          , [ el [ Font.bold ] (text "Note:")
+            , text " You currently have no xDai funds. Please see our "
+            , Input.button [ Font.bold, Font.underline, hover ]
+                { onPress = Just GotoOnboard
+                , label = text "xDai guide"
+                }
+            , text " for some help getting started."
+            ]
+                |> paragraph [ padding 10, Background.color orange, View.Attrs.roundBorder ]
+                |> when (userInfo.chain == XDai)
+          , View.Common.viewChain userInfo.chain
+                |> el
+                    [ Background.color white
+                    , View.Attrs.roundBorder
+                    , padding 5
+                    , Element.alignRight
+                    ]
+                |> when (not isMobile)
+          ]
+            |> row [ width fill, spacing 10 ]
         , Input.text
             [ width fill
             , View.Attrs.whiteGlowAttributeSmall
@@ -171,7 +193,7 @@ viewBox model userInfo =
             |> whenJust
                 (text
                     >> List.singleton
-                    >> Element.paragraph
+                    >> paragraph
                         [ Background.color white
                         , Element.alignRight
                         , slightRound
@@ -306,7 +328,7 @@ viewBurnBox donate txt =
             }
         , text " so we can build more cool stuff!"
         ]
-            |> Element.paragraph [ spacing 5, Font.color white ]
+            |> paragraph [ spacing 5, Font.color white ]
       ]
         |> row
             [ Font.size 15

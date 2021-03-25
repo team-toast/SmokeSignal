@@ -78,6 +78,9 @@ viewUrlToPathString view =
         ViewUser addr ->
             hashBangPath [ "user", Eth.Utils.addressToString addr ] []
 
+        ViewOnboard ->
+            hashBangPath [] []
+
 
 hashBangPath : List String -> List Builder.QueryParameter -> String
 hashBangPath parts queryParams =

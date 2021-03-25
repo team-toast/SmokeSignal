@@ -238,6 +238,10 @@ viewBody model =
             View.User.view model addr
                 |> viewFrame model
 
+        ViewOnboard ->
+            View.Onboarding.viewOnboarding__ model
+                |> viewFrame model
+
 
 viewFrame : Model -> Element Msg -> Element Msg
 viewFrame model elem =
@@ -571,7 +575,7 @@ viewTrackedTxRow trackedTx =
                             (Element.text "Post")
                         ]
 
-                ( PostTx _ , Mined _ ) ->
+                ( PostTx _, Mined _ ) ->
                     Element.text "Post"
 
                 ( PostTx _, _ ) ->

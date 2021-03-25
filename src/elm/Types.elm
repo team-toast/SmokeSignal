@@ -71,6 +71,7 @@ type alias Model =
     , faucetToken : String
     , gtagHistory : GTag.GTagHistory
     , onboardingModal : Bool
+    , onboardMessage : Maybe String
     }
 
 
@@ -123,6 +124,7 @@ type Msg
     | SetSortType SortType
     | FaucetResponse (Result Http.Error FaucetResult)
     | SetTooltipState TooltipState
+    | GotoOnboard
 
 
 type TxErr
@@ -226,6 +228,7 @@ type View
     | ViewTxns
     | ViewAbout
     | ViewUser Address
+    | ViewOnboard
 
 
 type alias UserInfo =
