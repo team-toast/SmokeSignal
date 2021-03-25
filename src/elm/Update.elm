@@ -1352,7 +1352,12 @@ update msg model =
                 ( { model
                     | onboardingModal = True
                   }
-                , Cmd.none
+                , gTagOut <|
+                    GTagData
+                        "onboarding initiated"
+                        Nothing
+                        Nothing
+                        Nothing
                 )
 
         OnboardingClose ->
