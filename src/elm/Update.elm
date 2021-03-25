@@ -745,15 +745,17 @@ update msg model =
 
         ConnectToWeb3 ->
             let
-                ( newGtagHistory, gtagCmd ) =
+                gtagCmd =
                     GTagData
-                        "Web3 Connected"
+                        "wallet connect initiated"
                         Nothing
                         Nothing
                         Nothing
-                        |> gTagOutOnlyOnceForEvent model.gtagHistory
+                        |> gTagOut
             in
-            ( { model | wallet = Connecting, gtagHistory = newGtagHistory }
+            ( { model
+                | wallet = Connecting
+              }
             , [ Ports.connectToWeb3 ()
               , gtagCmd
               ]
