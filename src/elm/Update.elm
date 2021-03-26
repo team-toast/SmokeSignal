@@ -540,15 +540,16 @@ update msg model =
                             , chainSwitchInProgress = False
                             , gtagHistory = newGtagHistory
                           }
-                        , if onboardComplete then
-                            Cmd.batch
-                                [ Ports.setOnboarded ()
-                                , walletConnectedGtagCmd
-                                , onboardingCompleteGtagCmd
-                                ]
+                        , Cmd.batch <|
+                            [ walletConnectedGtagCmd ]
+                                ++ (if onboardComplete then
+                                        [ Ports.setOnboarded ()
+                                        , onboardingCompleteGtagCmd
+                                        ]
 
-                          else
-                            Cmd.none
+                                    else
+                                        []
+                                   )
                         )
                     )
 
