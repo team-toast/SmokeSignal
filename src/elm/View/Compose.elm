@@ -97,7 +97,7 @@ viewBox model userInfo =
     , [ [ [ [ [ el [ Font.bold ] (text "Note:")
               , text " Posting on SmokeSignal using Ethereum can result in very high gas fees. Using xDai is a cheaper alternative."
               ]
-                |> paragraph [ padding 10, Background.color orange, View.Attrs.roundBorder ]
+                |> paragraph []
             , Input.button
                 [ Background.color Theme.green
                 , padding 10
@@ -105,7 +105,6 @@ viewBox model userInfo =
                 , hover
                 , Font.color black
                 , width <| px 180
-                , whiteGlowAttributeSmall
                 ]
                 { onPress = Just XDaiImport
                 , label =
@@ -118,20 +117,19 @@ viewBox model userInfo =
                             |> el [ centerX ]
                 }
             ]
-                |> row [ width fill, spacing 10 ]
+                |> row [ width fill, spacing 10, padding 10, Background.color orange, View.Attrs.roundBorder ]
                 |> when (userInfo.chain == Eth)
           , [ [ el [ Font.bold ] (text "Note:")
               , text " Your xDai wallet is currently empty."
               ]
-                |> paragraph [ padding 10, Background.color orange, View.Attrs.roundBorder ]
+                |> paragraph []
             , Input.button
                 [ Background.color Theme.green
                 , padding 10
                 , View.Attrs.roundBorder
                 , hover
                 , Font.color black
-                , width <| px 180
-                , whiteGlowAttributeSmall
+                , width <| px 240
                 ]
                 { onPress = Just SubmitFaucet
                 , label =
@@ -144,7 +142,7 @@ viewBox model userInfo =
                             |> paragraph [ Font.center ]
                 }
             ]
-                |> row [ width fill, spacing 10 ]
+                |> row [ width fill, spacing 10, padding 10, Background.color orange, View.Attrs.roundBorder ]
                 |> when (userInfo.chain == XDai && TokenValue.isZero userInfo.balance)
           ]
             |> row [ width fill, spacing 10 ]
