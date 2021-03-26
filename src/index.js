@@ -23,7 +23,6 @@ const faucetToken = FAUCET_TOKEN;
 
 // Local storage keys
 const HAS_VISITED = "has-visited";
-const HAS_ONBOARDED = "has-onboarded";
 const COOKIE_CONSENT = "cookie-consent";
 
 window.addEventListener("load", () => {
@@ -63,7 +62,7 @@ window.addEventListener("load", () => {
       const balance = await getBalance(account);
 
       app.ports.balanceResponse.send(balance);
-    })().catch((_e) => {})
+    })().catch(app.ports.balanceResponse.send)
   );
 
   app.ports.submitPost.subscribe((params) =>
@@ -81,7 +80,6 @@ window.addEventListener("load", () => {
 
 function startDapp() {
   const hasWallet = Boolean(window.ethereum);
-  const hasOnboarded = Boolean(window.localStorage.getItem(HAS_ONBOARDED));
 
   const app = Elm.App.init({
     node: document.getElementById("elm"),
@@ -93,7 +91,6 @@ function startDapp() {
       newUser: !window.localStorage.getItem(HAS_VISITED),
       ethProviderUrl,
       xDaiProviderUrl,
-      hasOnboarded,
       hasWallet,
       chains,
       faucetToken,

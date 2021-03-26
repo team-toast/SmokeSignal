@@ -30,7 +30,6 @@ emptyModel key =
     , view = ViewHome
     , wallet = Types.NoneDetected
     , newUserModal = False
-    , hasOnboarded = False
     , now = Time.millisToPosix 0
     , dProfile = Helpers.Element.Desktop
     , sentries =
@@ -60,7 +59,6 @@ emptyModel key =
     , alphaUrl = ""
     , pages = Array.empty
     , currentPage = 0
-    , faucetInProgress = False
     , chainSwitchInProgress = False
     , faucetToken = ""
     , gtagHistory = GTag.emptyGtagHistory
@@ -142,9 +140,6 @@ getTitle model =
             defaultMain
 
         ViewUser _ ->
-            defaultMain
-
-        ViewOnboard ->
             defaultMain
 
 

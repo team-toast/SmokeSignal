@@ -82,6 +82,7 @@ walletInfoDecoder =
                                         { address = addr
                                         , balance = bal
                                         , chain = chain
+                                        , xDaiStatus = Types.XDaiStandby
                                         }
                                     )
                         )

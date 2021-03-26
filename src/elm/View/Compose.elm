@@ -133,7 +133,7 @@ viewBox model userInfo =
                 ]
                 { onPress = Just SubmitFaucet
                 , label =
-                    if model.faucetInProgress then
+                    if userInfo.xDaiStatus == WaitingForApi || userInfo.xDaiStatus == WaitingForBalance then
                         View.Common.spinner 20 black
                             |> el [ centerX ]
 

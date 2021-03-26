@@ -25,7 +25,6 @@ type alias Flags =
     , newUser : Bool
     , ethProviderUrl : String
     , xDaiProviderUrl : String
-    , hasOnboarded : Bool
     , hasWallet : Bool
     , chains : Value
     , faucetToken : String
@@ -53,7 +52,6 @@ type alias Model =
     , maybeSeoDescription : Maybe String
     , topicInput : String
     , newUserModal : Bool
-    , hasOnboarded : Bool
     , postState : Maybe PostState
     , tooltipState : Maybe TooltipState
     , config : Config
@@ -66,7 +64,6 @@ type alias Model =
     , alphaUrl : String
     , pages : Array (List PostKey)
     , currentPage : Int
-    , faucetInProgress : Bool
     , chainSwitchInProgress : Bool
     , faucetToken : String
     , gtagHistory : GTag.GTagHistory
@@ -124,13 +121,19 @@ type Msg
     | SetSortType SortType
     | FaucetResponse (Result Http.Error FaucetResult)
     | SetTooltipState TooltipState
-    | GotoOnboard
     | BalanceResponse (Maybe TokenValue)
+    | ExecuteDelayedPort (Cmd Msg)
 
 
 type TxErr
     = UserRejected
     | OtherErr String
+
+
+type XDaiStatus
+    = XDaiStandby
+    | WaitingForApi
+    | WaitingForBalance
 
 
 type alias FaucetResult =
@@ -229,13 +232,13 @@ type View
     | ViewTxns
     | ViewAbout
     | ViewUser Address
-    | ViewOnboard
 
 
 type alias UserInfo =
     { address : Address
     , balance : TokenValue
     , chain : Chain
+    , xDaiStatus : XDaiStatus
     }
 
 

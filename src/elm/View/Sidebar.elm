@@ -109,10 +109,6 @@ viewWallet model =
         ( buttonText, maybeButtonAction, maybeExplainerText ) =
             case model.wallet of
                 Types.NoneDetected ->
-                    --( "Install MetaMask"
-                    --, Just <| EH.NewTabLink "https://metamask.io/"
-                    --, Just "Then come back to try on some phaces!"
-                    --)
                     ( "Get started"
                     , Just <| EH.Action ComposeOpen
                       --, Just "Each address has a unique phace!"
@@ -120,17 +116,11 @@ viewWallet model =
                     )
 
                 Types.NetworkReady ->
-                    --if model.hasOnboarded then
                     ( "Connect Wallet"
                     , Just <| EH.Action ConnectToWeb3
                     , Just "Each address has a unique phace!"
                     )
 
-                --else
-                --( "Get started"
-                --, Just <| EH.Action ComposeOpen
-                --, Just "Each address has a unique phace!"
-                --)
                 Types.Connecting ->
                     ( "Connecting"
                     , Nothing

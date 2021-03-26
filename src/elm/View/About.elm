@@ -74,48 +74,6 @@ view model =
         , [ text "The xDai chain is a stable payments blockchain designed for fast and inexpensive transactions."
           ]
             |> paragraph []
-        , [ Input.button
-                [ padding 10
-                , Font.color black
-                , hover
-                , Background.color Theme.orange
-                , View.Attrs.roundBorder
-                , View.Attrs.sansSerifFont
-                ]
-                { onPress = Just Types.XDaiImport
-                , label =
-                    if model.chainSwitchInProgress then
-                        View.Common.spinner 20 black
-
-                    else
-                        text "Switch to xDai"
-                }
-                |> when (not isXDai && walletActive)
-          , Input.button
-                [ padding 10
-                , Font.color black
-                , hover
-                , Background.color Theme.orange
-                , View.Attrs.roundBorder
-                , View.Attrs.sansSerifFont
-                ]
-                { onPress =
-                    if model.faucetInProgress then
-                        Nothing
-
-                    else
-                        Just Types.SubmitFaucet
-                , label =
-                    if model.faucetInProgress then
-                        View.Common.spinner 20 black
-                            |> el [ centerX ]
-
-                    else
-                        text "Get free xDai"
-                }
-                |> when (isXDai && balanceEmpty)
-          ]
-            |> row [ spacing 10 ]
         ]
             |> column [ spacing 20 ]
       , Element.newTabLink [ hover, centerX ]
