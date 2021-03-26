@@ -125,6 +125,7 @@ type Msg
     | FaucetResponse (Result Http.Error FaucetResult)
     | SetTooltipState TooltipState
     | GotoOnboard
+    | BalanceResponse (Maybe TokenValue)
 
 
 type TxErr

@@ -7,9 +7,10 @@ import Element.Input as Input
 import Helpers.Element exposing (DisplayProfile(..), black, white)
 import Maybe.Extra exposing (unwrap)
 import Theme exposing (orange)
+import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (hover, whiteGlowAttributeSmall)
-import View.Common exposing (whenAttr, wrapModal)
+import View.Common exposing (when, whenAttr, wrapModal)
 import View.Img
 import Wallet
 
@@ -100,6 +101,14 @@ viewOnboarding__ model =
             --&& (userInfo.balance |> TokenValue.isZero |> not)
             --)
             model.hasOnboarded
+
+        showFaucet =
+            model.wallet
+                |> Wallet.userInfo
+                |> unwrap False
+                    (\userInfo ->
+                        userInfo.chain == XDai && TokenValue.isZero userInfo.balance
+                    )
     in
     [ [ text "Using xDai with SmokeSignal will result in much lower transaction fees than using Ethereum." ]
         |> paragraph [ Font.center, Font.size 22 ]
@@ -126,7 +135,7 @@ viewOnboarding__ model =
                     else
                         el [ View.Attrs.fade ] elem
                )
-      , [ text "Request an xDai transfer"
+      , [ text "Add xDai funds"
         ]
             |> viewCheck
                 step4
@@ -149,6 +158,23 @@ viewOnboarding__ model =
                     else
                         el [ View.Attrs.fade ] elem
                )
+      , Input.button
+            [ Background.color Theme.orange
+            , padding 10
+            , View.Attrs.roundBorder
+            , hover
+            , Font.color black
+            ]
+            { onPress = Just SubmitFaucet
+            , label =
+                if model.faucetInProgress then
+                    View.Common.spinner 20 black
+                        |> el [ centerX ]
+
+                else
+                    text "Request xDai from faucet"
+            }
+            |> when showFaucet
       , model.onboardMessage
             |> View.Common.whenJust
                 (text

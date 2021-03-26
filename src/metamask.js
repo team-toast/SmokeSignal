@@ -28,11 +28,14 @@ const xDaiImport = () =>
     ],
   });
 
-const getWallet = async (address) => {
-  const balance = await window.ethereum.request({
+const getBalance = (address) =>
+  window.ethereum.request({
     method: "eth_getBalance",
     params: [address, "latest"],
   });
+
+const getWallet = async (address) => {
+  const balance = await getBalance(address);
 
   const network = await window.ethereum.request({
     method: "net_version",
@@ -85,6 +88,7 @@ const handleWalletEvents = (port) => {
 module.exports = {
   getAccounts,
   getWallet,
+  getBalance,
   requestAccounts,
   handleWalletEvents,
   xDaiImport,

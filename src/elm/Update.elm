@@ -552,6 +552,23 @@ update msg model =
                         )
                     )
 
+        BalanceResponse val ->
+            val
+                |> unwrap ( model, Ports.log "Missing balance" )
+                    (\balance ->
+                        ( { model
+                            | wallet =
+                                case model.wallet of
+                                    Active wallet ->
+                                        Active { wallet | balance = balance }
+
+                                    _ ->
+                                        model.wallet
+                          }
+                        , Cmd.none
+                        )
+                    )
+
         EventSentryMsg chain eventMsg ->
             case chain of
                 Eth ->
@@ -1217,7 +1234,10 @@ update msg model =
                             userInfo.address
                                 |> Eth.Utils.addressToString
                     in
-                    ( { model | faucetInProgress = True }
+                    ( { model
+                        | faucetInProgress = True
+                        , onboardMessage = Nothing
+                      }
                     , [ Http.get
                             { url = "https://personal-rxyx.outsystemscloud.com/ERC20FaucetRest/rest/v1/send?In_ReceiverErc20Address=" ++ addr ++ "&In_Token=" ++ model.faucetToken
                             , expect =
@@ -1253,10 +1273,10 @@ update msg model =
                     (\data ->
                         ( { model
                             | faucetInProgress = False
-                            , hasOnboarded = True
+                            , hasOnboarded = data.status
                             , onboardMessage =
                                 if data.status then
-                                    Just "Your faucet request was successful."
+                                    Just "Your faucet request was successful. Check your wallet for updated balance."
 
                                 else
                                     Just data.message
@@ -1308,6 +1328,7 @@ update msg model =
         GotoOnboard ->
             ( { model
                 | view = ViewOnboard
+                , onboardMessage = Nothing
                 , compose =
                     model.compose
                         |> (\r ->
@@ -1371,7 +1392,16 @@ update msg model =
                     | compose = { emptyComposeModel | modal = True, context = context }
                     , topicInput = topicInput
                   }
-                , gtagCmd
+                , Cmd.batch
+                    [ gtagCmd
+                    , model.wallet
+                        |> Wallet.userInfo
+                        |> unwrap Cmd.none
+                            (.address
+                                >> Eth.Utils.addressToString
+                                >> Ports.refreshWallet
+                            )
+                    ]
                 )
 
         OnboardingClose ->

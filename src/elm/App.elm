@@ -232,4 +232,5 @@ subscriptions _ =
         , Ports.burnOrTipResponse (Wallet.rpcResponseDecoder >> Types.BurnOrTipResponse)
         , Ports.postResponse (Wallet.rpcResponseDecoder >> Types.PostResponse)
         , Ports.chainSwitchResponse (Wallet.chainSwitchDecoder >> Types.ChainSwitchResponse)
+        , Ports.balanceResponse (Wallet.balanceDecoder >> Types.BalanceResponse)
         ]

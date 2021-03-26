@@ -1,5 +1,6 @@
 require("./index.css");
 const {
+  getBalance,
   getWallet,
   requestAccounts,
   handleWalletEvents,
@@ -57,6 +58,14 @@ window.addEventListener("load", () => {
     })
   );
 
+  app.ports.refreshWallet.subscribe((account) =>
+    (async () => {
+      const balance = await getBalance(account);
+
+      app.ports.balanceResponse.send(balance);
+    })().catch((_e) => {})
+  );
+
   app.ports.submitPost.subscribe((params) =>
     sendTransaction(params)
       .then(app.ports.postResponse.send)
@@ -111,12 +120,14 @@ function analyticsGtagPortStuff(app) {
 
   app.ports.setGtagUrlPath.subscribe(function (pagePath) {
     if (window.gtag) {
-      setTimeout(() => // must set a timeout, because the Elm app only updates the title a moment after this point.
-        window.gtag('config', 'UA-143211145-4', {
-          'page_path': pagePath
-        })
-        , 100
-      )
+      setTimeout(
+        () =>
+          // must set a timeout, because the Elm app only updates the title a moment after this point.
+          window.gtag("config", "UA-143211145-4", {
+            page_path: pagePath,
+          }),
+        100
+      );
     }
   });
 

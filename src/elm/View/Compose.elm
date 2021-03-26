@@ -11,6 +11,7 @@ import Html.Attributes
 import Maybe.Extra
 import Misc
 import Theme exposing (orange)
+import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
 import View.Common exposing (when, whenAttr, whenJust, wrapModal)
@@ -104,7 +105,7 @@ viewBox model userInfo =
                 |> paragraph [ padding 10, Background.color orange, View.Attrs.roundBorder ]
                 |> when (userInfo.chain == Eth)
           , [ el [ Font.bold ] (text "Note:")
-            , text " You currently have no xDai funds. Please see our "
+            , text " Your xDai wallet is currently empty. Please see our "
             , Input.button [ Font.bold, Font.underline, hover ]
                 { onPress = Just GotoOnboard
                 , label = text "xDai guide"
@@ -112,7 +113,7 @@ viewBox model userInfo =
             , text " for some help getting started."
             ]
                 |> paragraph [ padding 10, Background.color orange, View.Attrs.roundBorder ]
-                |> when (userInfo.chain == XDai)
+                |> when (userInfo.chain == XDai && TokenValue.isZero userInfo.balance)
           , View.Common.viewChain userInfo.chain
                 |> el
                     [ Background.color white
