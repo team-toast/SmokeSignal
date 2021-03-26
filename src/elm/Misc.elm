@@ -73,7 +73,7 @@ emptyModel key =
 emptyComposeModel : ComposeModel
 emptyComposeModel =
     { title = ""
-    , dollar = ""
+    , dollar = "0"
     , body = ""
     , modal = False
     , donate = True

@@ -13,7 +13,7 @@ import Misc
 import Theme exposing (orange)
 import TokenValue
 import Types exposing (..)
-import View.Attrs exposing (hover, sansSerifFont, slightRound, whiteGlowAttributeSmall)
+import View.Attrs exposing (hover, roundBorder, sansSerifFont, slightRound, whiteGlowAttributeSmall)
 import View.Common exposing (when, whenAttr, whenJust, wrapModal)
 import View.Img
 import View.Markdown
@@ -114,14 +114,6 @@ viewBox model userInfo =
             ]
                 |> paragraph [ padding 10, Background.color orange, View.Attrs.roundBorder ]
                 |> when (userInfo.chain == XDai && TokenValue.isZero userInfo.balance)
-          , View.Common.viewChain userInfo.chain
-                |> el
-                    [ Background.color white
-                    , View.Attrs.roundBorder
-                    , padding 5
-                    , Element.alignRight
-                    ]
-                |> when (not isMobile)
           ]
             |> row [ width fill, spacing 10 ]
         , Input.text
@@ -137,55 +129,37 @@ viewBox model userInfo =
                     |> Just
             , text = model.compose.title
             }
-        , [ case model.compose.context of
-                TopLevel _ ->
-                    Input.text
-                        [ Background.color white
-                        , width <| px 250
-                        , Border.roundEach
-                            { bottomLeft = 0
-                            , topLeft = 0
-                            , bottomRight = 5
-                            , topRight = 5
-                            }
-                        , spacing 0
-                        , Element.Events.onLoseFocus SanitizeTopic
-                        ]
-                        { onChange = TopicInputChange
-                        , label =
-                            "Topic"
-                                |> text
-                                |> el [ centerY ]
-                                |> Input.labelLeft
-                                    [ Background.color orange
-                                    , Border.roundEach
-                                        { bottomLeft = 5
-                                        , topLeft = 5
-                                        , bottomRight = 0
-                                        , topRight = 0
-                                        }
-                                    , height fill
-                                    , Element.paddingXY 10 0
-                                    , sansSerifFont
-                                    ]
-                        , placeholder = Nothing
-                        , text = model.topicInput
-                        }
+        , [ [ viewBurnAmountUX model.compose.donate model.compose.dollar
+            , let
+                inputIsNonzero =
+                    model.compose.dollar
+                        |> String.toFloat
+                        |> Maybe.map (\f -> f /= 0)
+                        |> Maybe.withDefault False
+              in
+              if inputIsNonzero then
+                viewDonateCheckbox model.compose.donate
 
-                Reply _ ->
-                    [ View.Img.replyArrow 25 orange
-                    , "Reply"
-                        |> text
-                        |> el [ Font.color orange ]
+              else
+                Element.none
+            ]
+                |> row [ spacing 15 ]
+          , viewComposeContext model.compose.context model.topicInput
+            |> el [ Element.alignRight ]
+          , View.Common.viewChain userInfo.chain
+                |> el
+                    [ Background.color white
+                    , View.Attrs.roundBorder
+                    , padding 5
+                    , Element.alignRight
                     ]
-                        |> row [ spacing 10 ]
-          , viewBurnBox model.compose.donate model.compose.dollar
+                |> when (not isMobile)
           ]
             |> (if isMobile then
                     column [ width fill, spacing 10 ]
 
                 else
-                    row [ width fill, spaceEvenly ]
+                    row [ width fill, spacing 10 ]
                )
         ]
             |> column [ width fill, spacing 10, sansSerifFont ]
@@ -257,7 +231,7 @@ viewBox model userInfo =
                         text "Submit"
                 }
           ]
-            |> row [ Element.alignRight, spacing 10 ]
+            |> row [ Element.alignRight, spacing 20 ]
         ]
             |> row [ width fill ]
       ]
@@ -282,61 +256,130 @@ viewBox model userInfo =
             , sansSerifFont
             ]
 
+viewComposeContext : Context -> String -> Element Msg
+viewComposeContext context topicInput =
+    case context of
+        TopLevel _ ->
+            Input.text
+                [ Background.color white
+                , width <| px 250
+                , Border.roundEach
+                    { bottomLeft = 0
+                    , topLeft = 0
+                    , bottomRight = 5
+                    , topRight = 5
+                    }
+                , spacing 0
+                , Element.Events.onLoseFocus SanitizeTopic
+                ]
+                { onChange = TopicInputChange
+                , label =
+                    "Topic"
+                        |> text
+                        |> el [ centerY ]
+                        |> Input.labelLeft
+                            [ Background.color orange
+                            , Border.roundEach
+                                { bottomLeft = 5
+                                , topLeft = 5
+                                , bottomRight = 0
+                                , topRight = 0
+                                }
+                            , height fill
+                            , Element.paddingXY 10 0
+                            , sansSerifFont
+                            ]
+                , placeholder = Nothing
+                , text = topicInput
+                }
 
-viewBurnBox : Bool -> String -> Element Msg
-viewBurnBox donate txt =
-    [ [ View.Img.dollar 30 white
+        Reply _ ->
+            [ View.Img.replyArrow 25 orange
+            , "Reply"
+                |> text
+                |> el [ Font.color orange ]
+            ]
+                |> row [ spacing 10 ]
+
+
+viewBurnAmountUX : Bool -> String -> Element Msg
+viewBurnAmountUX donateChecked amountInput =
+    [ [ [ "A higher burn", "means more visibility!" ]
+            |> List.map text
+            |> List.map (el [ Element.centerX ])
+            |> column
+                [ Font.size 14
+                , spacing 3
+                , Font.color white
+                , Font.italic
+                ]
+      , View.Img.dollar 26 white
       , Input.text
             [ View.Attrs.whiteGlowAttributeSmall
-            , Background.color white
-            , width <| px 250
+            , Background.color <| Element.rgb 0 0 0
+            , Font.color white
+            , Font.center
+            , width <| px 100
+            , height <| px 34
+            , padding 3
+            , Font.size 26
             ]
             { onChange = ComposeDollarChange
             , label = Input.labelHidden ""
             , placeholder =
-                "Burn amount (USD)"
-                    |> text
-                    |> Input.placeholder []
-                    |> Just
-            , text = txt
+                Nothing
+            , text = amountInput
             }
       ]
-        |> row [ spacing 5 ]
-    , [ Input.checkbox
-            [ width <| px 30
-            , height <| px 30
-            , Background.color white
-            , whiteGlowAttributeSmall
-            , hover
+        |> row
+            [ spacing 5
             ]
-            { onChange = Types.DonationCheckboxSet
-            , icon =
-                \checked ->
-                    View.Img.tick 20 black
-                        |> el
-                            [ centerX
-                            , centerY
-                            ]
-                        |> View.Common.when checked
-            , checked = donate
-            , label = Input.labelHidden "Donate an extra 1% to Foundry"
-            }
-      , [ text "Donate an extra 1% to "
+    ]
+        |> column
+            [ spacing 10
+            , padding 5
+            , Background.color <| Element.rgb 0.4 0.2 0.2
+            , roundBorder
+            ]
+
+
+viewDonateCheckbox : Bool -> Element Msg
+viewDonateCheckbox donateChecked =
+    [ Input.checkbox
+        [ width <| px 20
+        , height <| px 20
+        , Background.color white
+        , whiteGlowAttributeSmall
+        , hover
+        ]
+        { onChange = Types.DonationCheckboxSet
+        , icon =
+            \checked ->
+                View.Img.tick 20 black
+                    |> el
+                        [ centerX
+                        , centerY
+                        ]
+                    |> View.Common.when checked
+        , checked = donateChecked
+        , label = Input.labelHidden "Donate an extra 1% to Foundry"
+        }
+    , [ [ text "Donate an extra 1% to "
         , Element.newTabLink
             [ Font.color Theme.orange, hover, Font.bold ]
             { url = "https://foundrydao.com/"
             , label = text "Foundry"
             }
-        , text " so we can build more cool stuff!"
         ]
-            |> paragraph [ spacing 5, Font.color white ]
+      , [ text "so we can build more cool stuff!" ]
       ]
+        |> List.map (row [])
+        |> column [ spacing 2, Font.color white, Font.size 14 ]
+    ]
         |> row
             [ Font.size 15
             , spacing 10
             ]
-    ]
-        |> column [ spacing 10 ]
 
 
 viewMarkdown : Model -> Element Msg
