@@ -1391,6 +1391,7 @@ update msg model =
                 ( { model
                     | compose = { emptyComposeModel | modal = True, context = context }
                     , topicInput = topicInput
+                    , onboardMessage = Nothing
                   }
                 , Cmd.batch
                     [ gtagCmd
