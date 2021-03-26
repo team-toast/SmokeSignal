@@ -94,28 +94,73 @@ viewBox model userInfo =
             , Font.size 20
             , width fill
             ]
-    , [ [ [ [ el [ Font.bold ] (text "Note:")
-            , text " Posting on SmokeSignal using Ethereum can result in very high gas fees. Please see our "
-            , Input.button [ Font.bold, Font.underline, hover ]
-                { onPress = Just GotoOnboard
-                , label = text "xDai guide"
-                }
-            , text " for a cheaper alternative."
-            ]
+    , [ [ [ [ [ el [ Font.bold ] (text "Note:")
+              , text " Posting on SmokeSignal using Ethereum can result in very high gas fees. Using xDai is a cheaper alternative."
+              ]
                 |> paragraph [ padding 10, Background.color orange, View.Attrs.roundBorder ]
+            , Input.button
+                [ Background.color Theme.green
+                , padding 10
+                , View.Attrs.roundBorder
+                , hover
+                , Font.color black
+                , width <| px 180
+                , whiteGlowAttributeSmall
+                ]
+                { onPress = Just XDaiImport
+                , label =
+                    if model.chainSwitchInProgress then
+                        View.Common.spinner 20 black
+                            |> el [ centerX ]
+
+                    else
+                        text "Switch to xDai"
+                            |> el [ centerX ]
+                }
+            ]
+                |> row [ width fill, spacing 10 ]
                 |> when (userInfo.chain == Eth)
-          , [ el [ Font.bold ] (text "Note:")
-            , text " Your xDai wallet is currently empty. Please see our "
-            , Input.button [ Font.bold, Font.underline, hover ]
-                { onPress = Just GotoOnboard
-                , label = text "xDai guide"
-                }
-            , text " for some help getting started."
-            ]
+          , [ [ el [ Font.bold ] (text "Note:")
+              , text " Your xDai wallet is currently empty."
+              ]
                 |> paragraph [ padding 10, Background.color orange, View.Attrs.roundBorder ]
+            , Input.button
+                [ Background.color Theme.green
+                , padding 10
+                , View.Attrs.roundBorder
+                , hover
+                , Font.color black
+                , width <| px 180
+                , whiteGlowAttributeSmall
+                ]
+                { onPress = Just SubmitFaucet
+                , label =
+                    if model.faucetInProgress then
+                        View.Common.spinner 20 black
+                            |> el [ centerX ]
+
+                    else
+                        [ text "Request xDai from faucet" ]
+                            |> paragraph [ Font.center ]
+                }
+            ]
+                |> row [ width fill, spacing 10 ]
                 |> when (userInfo.chain == XDai && TokenValue.isZero userInfo.balance)
           ]
             |> row [ width fill, spacing 10 ]
+        , model.onboardMessage
+            |> View.Common.whenJust
+                (text
+                    >> List.singleton
+                    >> paragraph
+                        [ Background.color white
+                        , Element.alignRight
+                        , View.Attrs.slightRound
+                        , padding 10
+                        , Font.color black
+                        , Font.alignRight
+                        ]
+                )
         , Input.text
             [ width fill
             , View.Attrs.whiteGlowAttributeSmall
@@ -145,7 +190,7 @@ viewBox model userInfo =
             ]
                 |> row [ spacing 15 ]
           , viewComposeContext model.compose.context model.topicInput
-            |> el [ Element.alignRight ]
+                |> el [ Element.alignRight ]
           , View.Common.viewChain userInfo.chain
                 |> el
                     [ Background.color white
@@ -255,6 +300,7 @@ viewBox model userInfo =
             , View.Attrs.style "z-index" "2000"
             , sansSerifFont
             ]
+
 
 viewComposeContext : Context -> String -> Element Msg
 viewComposeContext context topicInput =
