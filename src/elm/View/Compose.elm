@@ -1,6 +1,6 @@
 module View.Compose exposing (view)
 
-import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spaceEvenly, spacing, text, width)
+import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events
@@ -8,54 +8,18 @@ import Element.Font as Font
 import Element.Input as Input
 import Helpers.Element exposing (DisplayProfile(..), black, white)
 import Html.Attributes
-import Maybe.Extra
 import Misc
 import Theme exposing (orange)
 import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (hover, roundBorder, sansSerifFont, slightRound, whiteGlowAttributeSmall)
-import View.Common exposing (when, whenAttr, whenJust, wrapModal)
+import View.Common exposing (when, whenAttr, whenJust)
 import View.Img
 import View.Markdown
-import Wallet
 
 
-view : Model -> Element Msg
-view model =
-    model.wallet
-        |> Wallet.userInfo
-        |> Maybe.Extra.unwrap
-            (Input.button
-                [ Background.color Theme.orange
-                , padding 10
-                , View.Attrs.roundBorder
-                , hover
-                , Font.color black
-                , centerX
-                , centerY
-                ]
-                { onPress = Just ConnectToWeb3
-                , label =
-                    if model.wallet == Connecting then
-                        View.Common.spinner 20 black
-                            |> el [ centerX ]
-
-                    else
-                        text "Connect wallet"
-                }
-                |> el
-                    [ width fill
-                    , Background.color black
-                    , whiteGlowAttributeSmall
-                    , height <| px 150
-                    ]
-            )
-            (viewBox model)
-        |> wrapModal ComposeClose
-
-
-viewBox : Model -> UserInfo -> Element Msg
-viewBox model userInfo =
+view : Model -> UserInfo -> Element Msg
+view model userInfo =
     let
         isMobile =
             model.dProfile == Helpers.Element.Mobile
@@ -172,7 +136,7 @@ viewBox model userInfo =
                     |> Just
             , text = model.compose.title
             }
-        , [ [ viewBurnAmountUX model.compose.donate model.compose.dollar
+        , [ [ viewBurnAmountUX model.compose.dollar
             , let
                 inputIsNonzero =
                     model.compose.dollar
@@ -346,8 +310,8 @@ viewComposeContext context topicInput =
                 |> row [ spacing 10 ]
 
 
-viewBurnAmountUX : Bool -> String -> Element Msg
-viewBurnAmountUX donateChecked amountInput =
+viewBurnAmountUX : String -> Element Msg
+viewBurnAmountUX amountInput =
     [ [ [ "A higher burn", "means more visibility!" ]
             |> List.map text
             |> List.map (el [ Element.centerX ])

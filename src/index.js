@@ -33,10 +33,6 @@ window.addEventListener("load", () => {
 
   app.ports.setVisited.subscribe(() => localStorage.setItem(HAS_VISITED, true));
 
-  app.ports.setOnboarded.subscribe(() =>
-    localStorage.setItem(HAS_ONBOARDED, true)
-  );
-
   app.ports.log.subscribe((x) => console.log(x));
 
   app.ports.xDaiImport.subscribe((_) =>

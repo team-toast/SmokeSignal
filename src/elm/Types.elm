@@ -90,7 +90,6 @@ type Msg
     | DismissNotice Int
     | ComposeOpen
     | ComposeClose
-    | OnboardingClose
     | CookieConsentGranted
     | GotoView View
     | ConnectToWeb3

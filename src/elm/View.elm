@@ -21,7 +21,6 @@ import UserNotice as UN exposing (UserNotice)
 import View.About
 import View.Attrs exposing (cappedWidth, hover, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common exposing (appStatusMessage, whenAttr)
-import View.Compose
 import View.Home
 import View.Img
 import View.Mobile
@@ -118,14 +117,9 @@ viewPage model =
         |> column
             [ width fill
             , height fill
-            , View.Modal.viewNewToSmokeSignal model.dProfile
-                |> View.Common.when isDesktop
+            , View.Modal.view model
                 |> Element.inFront
-                --|> View.Common.whenAttr model.newUserModal
-                |> View.Common.whenAttr False
-            , View.Compose.view model
-                |> Element.inFront
-                |> View.Common.whenAttr model.compose.modal
+                |> whenAttr model.compose.modal
             , View.Modal.viewCookieConsent
                 |> View.Common.when isDesktop
                 |> Element.inFront

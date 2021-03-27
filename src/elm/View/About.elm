@@ -3,15 +3,10 @@ module View.About exposing (view)
 import Element exposing (Element, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
-import Element.Input as Input
 import Helpers.Element exposing (black, white)
-import Maybe.Extra
-import Theme
-import TokenValue
 import Types exposing (Model, Msg)
 import View.Attrs exposing (cappedWidth, hover, whiteGlowAttribute)
 import View.Common exposing (viewLink, when)
-import Wallet
 
 
 view : Model -> Element Msg
@@ -19,21 +14,6 @@ view model =
     let
         isMobile =
             model.dProfile == Helpers.Element.Mobile
-
-        isXDai =
-            model.wallet
-                |> Wallet.userInfo
-                |> Maybe.Extra.unwrap False (.chain >> (==) Types.XDai)
-
-        walletActive =
-            model.wallet
-                |> Wallet.isActive
-
-        balanceEmpty =
-            model.wallet
-                |> Wallet.userInfo
-                |> Maybe.Extra.unwrap False
-                    (.balance >> TokenValue.isZero)
     in
     [ Element.image
         [ width fill

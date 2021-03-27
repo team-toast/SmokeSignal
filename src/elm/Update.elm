@@ -527,10 +527,7 @@ update msg model =
                             , chainSwitchInProgress = False
                             , gtagHistory = gtagHistory
                           }
-                        , [ Ports.setOnboarded ()
-                          , walletConnectedGtagCmd
-                          ]
-                            |> Cmd.batch
+                        , walletConnectedGtagCmd
                         )
                     )
 
@@ -541,12 +538,12 @@ update msg model =
                         fetchBalance =
                             Process.sleep 1000
                                 |> Task.perform
-                                    (ExecuteDelayedPort
-                                        (userInfo.address
-                                            |> Eth.Utils.addressToString
-                                            |> Ports.refreshWallet
-                                        )
-                                        |> always
+                                    (\_ ->
+                                        ExecuteDelayedPort
+                                            (userInfo.address
+                                                |> Eth.Utils.addressToString
+                                                |> Ports.refreshWallet
+                                            )
                                     )
                     in
                     val
@@ -1363,15 +1360,14 @@ update msg model =
         ComposeOpen ->
             if model.wallet == NoneDetected then
                 ( { model
-                    | onboardingModal = True
+                    | compose = { emptyComposeModel | modal = True }
                   }
-                , Cmd.none
-                  --, gTagOut <|
-                  --GTagData
-                  --"onboarding initiated"
-                  --Nothing
-                  --Nothing
-                  --Nothing
+                , gTagOut <|
+                    GTagData
+                        "onboarding initiated"
+                        Nothing
+                        Nothing
+                        Nothing
                 )
 
             else
@@ -1401,12 +1397,16 @@ update msg model =
                                 t
 
                     gtagCmd =
-                        GTagData
-                            "compose post opened"
-                            Nothing
-                            Nothing
-                            Nothing
-                            |> gTagOut
+                        if Wallet.isActive model.wallet then
+                            GTagData
+                                "compose post opened"
+                                Nothing
+                                Nothing
+                                Nothing
+                                |> gTagOut
+
+                        else
+                            Cmd.none
                 in
                 ( { model
                     | compose = { emptyComposeModel | modal = True, context = context }
@@ -1424,13 +1424,6 @@ update msg model =
                             )
                     ]
                 )
-
-        OnboardingClose ->
-            ( { model
-                | onboardingModal = False
-              }
-            , Cmd.none
-            )
 
         ComposeClose ->
             let
