@@ -18,7 +18,11 @@ import Wallet
 
 view : Model -> Element Msg
 view model =
-    (if model.wallet == NoneDetected then
+    let
+        isMobile =
+            model.dProfile == Mobile
+    in
+    if model.wallet == NoneDetected then
         [ [ text "To post or interact with ", el [ Font.bold ] (text "SmokeSignal"), text ", you'll need a crypto identity." ]
             |> paragraph [ Font.center, Font.size 22 ]
         , [ text "Install and setup "
@@ -46,17 +50,15 @@ view model =
                 , whiteGlowAttributeSmall
                 , Background.color black
                 , Font.color white
-                , width fill
+                , fill
+                    |> Element.minimum 240
+                    |> width
                 , centerY
                     |> View.Common.whenAttr (model.dProfile == Mobile)
-
-                --, height fill
-                --|> whenAttr isMobile
-                --, View.Attrs.style "z-index" "2000"
-                --|> whenAttr isMobile
                 ]
+            |> View.Common.wrapModal ComposeClose
 
-     else
+    else
         model.wallet
             |> Wallet.userInfo
             |> Maybe.Extra.unwrap
@@ -79,15 +81,23 @@ view model =
                             text "Connect wallet"
                     }
                     |> el
-                        [ width fill
-                        , Background.color black
+                        [ Background.color black
                         , whiteGlowAttributeSmall
                         , height <| px 150
+                        , fill
+                            |> Element.minimum 240
+                            |> width
                         ]
+                    |> View.Common.wrapModal ComposeClose
                 )
-                (View.Compose.view model)
-    )
-        |> View.Common.wrapModal ComposeClose
+                (View.Compose.view model
+                    >> (if isMobile then
+                            identity
+
+                        else
+                            View.Common.wrapModal ComposeClose
+                       )
+                )
 
 
 viewNewToSmokeSignal : DisplayProfile -> Element Msg
