@@ -30,6 +30,7 @@ import View.Sidebar
 import View.Topic
 import View.Topics
 import View.User
+import View.Wallet
 
 
 view : Model -> Browser.Document Msg
@@ -215,7 +216,7 @@ viewBody model =
                 |> viewFrame model
 
         ViewWallet ->
-            View.Sidebar.viewWallet model
+            View.Wallet.view model
 
         ViewTxns ->
             viewTxTracker model.trackedTxs
