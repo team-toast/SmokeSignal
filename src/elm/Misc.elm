@@ -63,8 +63,6 @@ emptyModel key =
     , faucetToken = ""
     , gtagHistory = GTag.emptyGtagHistory
     , sortType = HotSort
-    , onboardingModal = False
-    , onboardMessage = Nothing
     }
 
 
@@ -79,6 +77,7 @@ emptyComposeModel =
     , preview = False
     , inProgress = False
     , error = Nothing
+    , message = Nothing
     }
 
 

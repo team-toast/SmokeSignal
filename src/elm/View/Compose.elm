@@ -110,7 +110,7 @@ view model userInfo =
                 |> when (userInfo.chain == XDai && TokenValue.isZero userInfo.balance)
           ]
             |> row [ width fill, spacing 10 ]
-        , model.onboardMessage
+        , model.compose.message
             |> View.Common.whenJust
                 (text
                     >> List.singleton
