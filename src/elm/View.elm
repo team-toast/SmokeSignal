@@ -21,12 +21,10 @@ import UserNotice as UN exposing (UserNotice)
 import View.About
 import View.Attrs exposing (cappedWidth, hover, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common exposing (appStatusMessage, whenAttr)
-import View.Compose
 import View.Home
 import View.Img
 import View.Mobile
 import View.Modal
-import View.Onboarding
 import View.PostPage
 import View.Sidebar
 import View.Topic
@@ -119,17 +117,9 @@ viewPage model =
         |> column
             [ width fill
             , height fill
-            , View.Modal.viewNewToSmokeSignal model.dProfile
-                |> View.Common.when isDesktop
+            , View.Modal.view model
                 |> Element.inFront
-                --|> View.Common.whenAttr model.newUserModal
-                |> View.Common.whenAttr False
-            , View.Compose.view model
-                |> Element.inFront
-                |> View.Common.whenAttr model.compose.modal
-            , View.Onboarding.view model
-                |> Element.inFront
-                |> View.Common.whenAttr model.onboardingModal
+                |> whenAttr model.compose.modal
             , View.Modal.viewCookieConsent
                 |> View.Common.when isDesktop
                 |> Element.inFront
@@ -571,7 +561,7 @@ viewTrackedTxRow trackedTx =
                             (Element.text "Post")
                         ]
 
-                ( PostTx _ , Mined _ ) ->
+                ( PostTx _, Mined _ ) ->
                     Element.text "Post"
 
                 ( PostTx _, _ ) ->

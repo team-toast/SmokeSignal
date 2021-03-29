@@ -167,7 +167,6 @@ startApp flags url model =
         | view = view
         , wallet = wallet
         , now = now
-        , hasOnboarded = flags.hasOnboarded
         , dProfile = Helpers.Element.screenWidthToDisplayProfile flags.width
         , sentries =
             model.sentries
@@ -232,4 +231,5 @@ subscriptions _ =
         , Ports.burnOrTipResponse (Wallet.rpcResponseDecoder >> Types.BurnOrTipResponse)
         , Ports.postResponse (Wallet.rpcResponseDecoder >> Types.PostResponse)
         , Ports.chainSwitchResponse (Wallet.chainSwitchDecoder >> Types.ChainSwitchResponse)
+        , Ports.balanceResponse (Wallet.balanceDecoder >> Types.BalanceResponse)
         ]

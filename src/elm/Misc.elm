@@ -30,7 +30,6 @@ emptyModel key =
     , view = ViewHome
     , wallet = Types.NoneDetected
     , newUserModal = False
-    , hasOnboarded = False
     , now = Time.millisToPosix 0
     , dProfile = Helpers.Element.Desktop
     , sentries =
@@ -60,19 +59,19 @@ emptyModel key =
     , alphaUrl = ""
     , pages = Array.empty
     , currentPage = 0
-    , faucetInProgress = False
     , chainSwitchInProgress = False
     , faucetToken = ""
     , gtagHistory = GTag.emptyGtagHistory
     , sortType = HotSort
     , onboardingModal = False
+    , onboardMessage = Nothing
     }
 
 
 emptyComposeModel : ComposeModel
 emptyComposeModel =
     { title = ""
-    , dollar = ""
+    , dollar = "0"
     , body = ""
     , modal = False
     , donate = True

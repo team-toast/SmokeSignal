@@ -81,11 +81,10 @@ view dProfile timestamp now replies accounting state tooltipState topic wallet p
                                 |> Element.below
                             ]
                 )
-        , el [ height <| px 10, width fill ] Element.none
         , View.Common.viewTiming now timestamp
             |> when (not isMobile)
         ]
-            |> column [ spacing 0 ]
+            |> column [ spacing 10 ]
       , [ topic
             |> whenJust
                 (\t ->

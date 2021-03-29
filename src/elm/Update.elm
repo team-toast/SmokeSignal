@@ -20,6 +20,7 @@ import Maybe.Extra exposing (unwrap)
 import Misc exposing (emptyComposeModel, postIdToKey, sortTypeToString)
 import Ports
 import Post
+import Process
 import Random
 import Result.Extra exposing (unpack)
 import Routing exposing (viewUrlToPathString)
@@ -488,6 +489,7 @@ update msg model =
                                 ( { model
                                     | userNotices = UN.unexpectedError "The wallet connection has been cancelled." :: model.userNotices
                                     , wallet = NetworkReady
+                                    , chainSwitchInProgress = False
                                   }
                                 , Cmd.none
                                 )
@@ -496,6 +498,7 @@ update msg model =
                                 ( { model
                                     | userNotices = UN.unexpectedError "This network is not supported by SmokeSignal." :: model.userNotices
                                     , wallet = NetworkReady
+                                    , chainSwitchInProgress = False
                                   }
                                 , Cmd.none
                                 )
@@ -511,46 +514,78 @@ update msg model =
                     )
                     (\info ->
                         let
-                            onboardComplete =
-                                info.chain == XDai && not (TokenValue.isZero info.balance)
-
-                            ( interimGtagHistory, walletConnectedGtagCmd ) =
+                            ( gtagHistory, walletConnectedGtagCmd ) =
                                 gTagOutOnlyOnceForEvent model.gtagHistory <|
                                     GTagData
                                         "wallet connected"
                                         Nothing
                                         (Just <| Eth.Utils.addressToString info.address)
                                         Nothing
-
-                            ( newGtagHistory, onboardingCompleteGtagCmd ) =
-                                if onboardComplete then
-                                    gTagOutOnlyOnceForEvent interimGtagHistory <|
-                                        GTagData
-                                            "onboard complete"
-                                            Nothing
-                                            (Just <| Eth.Utils.addressToString info.address)
-                                            Nothing
-
-                                else
-                                    ( model.gtagHistory, Cmd.none )
                         in
                         ( { model
                             | wallet = Active info
-                            , hasOnboarded = onboardComplete || model.hasOnboarded
                             , chainSwitchInProgress = False
-                            , gtagHistory = newGtagHistory
+                            , gtagHistory = gtagHistory
                           }
-                        , if onboardComplete then
-                            Cmd.batch
-                                [ Ports.setOnboarded ()
-                                , walletConnectedGtagCmd
-                                , onboardingCompleteGtagCmd
-                                ]
-
-                          else
-                            Cmd.none
+                        , walletConnectedGtagCmd
                         )
                     )
+
+        BalanceResponse val ->
+            ensureUserInfo
+                (\userInfo ->
+                    let
+                        fetchBalance =
+                            Process.sleep 1000
+                                |> Task.perform
+                                    (\_ ->
+                                        ExecuteDelayedPort
+                                            (userInfo.address
+                                                |> Eth.Utils.addressToString
+                                                |> Ports.refreshWallet
+                                            )
+                                    )
+                    in
+                    val
+                        |> unwrap
+                            ( { model
+                                | wallet =
+                                    Active { userInfo | xDaiStatus = XDaiStandby }
+                              }
+                            , Ports.log "Missing balance"
+                            )
+                            (\balance ->
+                                let
+                                    balanceEmpty =
+                                        TokenValue.isZero balance
+
+                                    shouldFetch =
+                                        balanceEmpty && userInfo.xDaiStatus == WaitingForBalance
+                                in
+                                ( { model
+                                    | wallet =
+                                        Active
+                                            { userInfo
+                                                | balance = balance
+                                                , xDaiStatus =
+                                                    if shouldFetch then
+                                                        WaitingForBalance
+
+                                                    else
+                                                        userInfo.xDaiStatus
+                                            }
+                                  }
+                                , if shouldFetch then
+                                    fetchBalance
+
+                                  else
+                                    Cmd.none
+                                )
+                            )
+                )
+
+        ExecuteDelayedPort cmd ->
+            ( model, cmd )
 
         EventSentryMsg chain eventMsg ->
             case chain of
@@ -1217,7 +1252,10 @@ update msg model =
                             userInfo.address
                                 |> Eth.Utils.addressToString
                     in
-                    ( { model | faucetInProgress = True }
+                    ( { model
+                        | onboardMessage = Nothing
+                        , wallet = Active { userInfo | xDaiStatus = WaitingForApi }
+                      }
                     , [ Http.get
                             { url = "https://personal-rxyx.outsystemscloud.com/ERC20FaucetRest/rest/v1/send?In_ReceiverErc20Address=" ++ addr ++ "&In_Token=" ++ model.faucetToken
                             , expect =
@@ -1237,36 +1275,47 @@ update msg model =
                 )
 
         FaucetResponse res ->
-            res
-                |> unpack
-                    (\e ->
-                        ( { model
-                            | faucetInProgress = False
-                            , userNotices =
-                                model.userNotices
-                                    |> List.append
-                                        [ UN.unexpectedError "There has been a problem." ]
-                          }
-                        , logHttpError "FaucetResponse" e
-                        )
-                    )
-                    (\data ->
-                        ( { model
-                            | userNotices =
-                                model.userNotices
-                                    |> List.append
-                                        [ if data.status then
-                                            UN.notify "Your faucet request was successful."
+            ensureUserInfo
+                (\userInfo ->
+                    res
+                        |> unpack
+                            (\e ->
+                                ( { model
+                                    | onboardMessage = Just "There has been a problem."
+                                    , wallet = Active { userInfo | xDaiStatus = XDaiStandby }
+                                  }
+                                , logHttpError "FaucetResponse" e
+                                )
+                            )
+                            (\data ->
+                                ( { model
+                                    | wallet =
+                                        Active
+                                            { userInfo
+                                                | xDaiStatus =
+                                                    if data.status then
+                                                        XDaiStandby
 
-                                          else
-                                            UN.notify data.message
-                                        ]
-                            , faucetInProgress = False
-                            , hasOnboarded = True
-                          }
-                        , Ports.setOnboarded ()
-                        )
-                    )
+                                                    else
+                                                        WaitingForBalance
+                                            }
+                                    , onboardMessage =
+                                        if data.status then
+                                            Just "Your faucet request was successful. Check your wallet for updated balance."
+
+                                        else
+                                            Just data.message
+                                  }
+                                , if data.status then
+                                    userInfo.address
+                                        |> Eth.Utils.addressToString
+                                        |> Ports.refreshWallet
+
+                                  else
+                                    Cmd.none
+                                )
+                            )
+                )
 
         TopicSubmit ->
             (if String.isEmpty model.topicInput then
@@ -1309,7 +1358,19 @@ update msg model =
                     )
 
         ComposeOpen ->
-            if model.hasOnboarded then
+            if model.wallet == NoneDetected then
+                ( { model
+                    | compose = { emptyComposeModel | modal = True }
+                  }
+                , gTagOut <|
+                    GTagData
+                        "onboarding initiated"
+                        Nothing
+                        Nothing
+                        Nothing
+                )
+
+            else
                 let
                     topic =
                         model.topicInput
@@ -1336,38 +1397,33 @@ update msg model =
                                 t
 
                     gtagCmd =
-                        GTagData
-                            "compose post opened"
-                            Nothing
-                            Nothing
-                            Nothing
-                            |> gTagOut
+                        if Wallet.isActive model.wallet then
+                            GTagData
+                                "compose post opened"
+                                Nothing
+                                Nothing
+                                Nothing
+                                |> gTagOut
+
+                        else
+                            Cmd.none
                 in
                 ( { model
                     | compose = { emptyComposeModel | modal = True, context = context }
                     , topicInput = topicInput
+                    , onboardMessage = Nothing
                   }
-                , gtagCmd
+                , Cmd.batch
+                    [ gtagCmd
+                    , model.wallet
+                        |> Wallet.userInfo
+                        |> unwrap Cmd.none
+                            (.address
+                                >> Eth.Utils.addressToString
+                                >> Ports.refreshWallet
+                            )
+                    ]
                 )
-
-            else
-                ( { model
-                    | onboardingModal = True
-                  }
-                , gTagOut <|
-                    GTagData
-                        "onboarding initiated"
-                        Nothing
-                        Nothing
-                        Nothing
-                )
-
-        OnboardingClose ->
-            ( { model
-                | onboardingModal = False
-              }
-            , Cmd.none
-            )
 
         ComposeClose ->
             let

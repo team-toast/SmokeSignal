@@ -3,15 +3,10 @@ module View.About exposing (view)
 import Element exposing (Element, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
-import Element.Input as Input
 import Helpers.Element exposing (black, white)
-import Maybe.Extra
-import Theme
-import TokenValue
 import Types exposing (Model, Msg)
 import View.Attrs exposing (cappedWidth, hover, whiteGlowAttribute)
 import View.Common exposing (viewLink, when)
-import Wallet
 
 
 view : Model -> Element Msg
@@ -19,21 +14,6 @@ view model =
     let
         isMobile =
             model.dProfile == Helpers.Element.Mobile
-
-        isXDai =
-            model.wallet
-                |> Wallet.userInfo
-                |> Maybe.Extra.unwrap False (.chain >> (==) Types.XDai)
-
-        walletActive =
-            model.wallet
-                |> Wallet.isActive
-
-        balanceEmpty =
-            model.wallet
-                |> Wallet.userInfo
-                |> Maybe.Extra.unwrap False
-                    (.balance >> TokenValue.isZero)
     in
     [ Element.image
         [ width fill
@@ -74,48 +54,6 @@ view model =
         , [ text "The xDai chain is a stable payments blockchain designed for fast and inexpensive transactions."
           ]
             |> paragraph []
-        , [ Input.button
-                [ padding 10
-                , Font.color black
-                , hover
-                , Background.color Theme.orange
-                , View.Attrs.roundBorder
-                , View.Attrs.sansSerifFont
-                ]
-                { onPress = Just Types.XDaiImport
-                , label =
-                    if model.chainSwitchInProgress then
-                        View.Common.spinner 20 black
-
-                    else
-                        text "Switch to xDai"
-                }
-                |> when (not isXDai && walletActive)
-          , Input.button
-                [ padding 10
-                , Font.color black
-                , hover
-                , Background.color Theme.orange
-                , View.Attrs.roundBorder
-                , View.Attrs.sansSerifFont
-                ]
-                { onPress =
-                    if model.faucetInProgress then
-                        Nothing
-
-                    else
-                        Just Types.SubmitFaucet
-                , label =
-                    if model.faucetInProgress then
-                        View.Common.spinner 20 black
-                            |> el [ centerX ]
-
-                    else
-                        text "Get free xDai"
-                }
-                |> when (isXDai && balanceEmpty)
-          ]
-            |> row [ spacing 10 ]
         ]
             |> column [ spacing 20 ]
       , Element.newTabLink [ hover, centerX ]

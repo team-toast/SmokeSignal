@@ -1,4 +1,4 @@
-module Wallet exposing (chainSwitchDecoder, isActive, rpcResponseDecoder, userInfo, walletInfoDecoder)
+module Wallet exposing (balanceDecoder, chainSwitchDecoder, isActive, rpcResponseDecoder, userInfo, walletInfoDecoder)
 
 import Chain
 import Eth.Decode
@@ -7,6 +7,15 @@ import Json.Decode as Decode exposing (Value)
 import Result.Extra
 import TokenValue
 import Types exposing (UserInfo, Wallet(..))
+
+
+balanceDecoder : Value -> Maybe TokenValue.TokenValue
+balanceDecoder =
+    Decode.decodeValue
+        (Eth.Decode.bigInt
+            |> Decode.map TokenValue.tokenValue
+        )
+        >> Result.toMaybe
 
 
 chainSwitchDecoder : Value -> Result Types.TxErr ()
@@ -73,6 +82,7 @@ walletInfoDecoder =
                                         { address = addr
                                         , balance = bal
                                         , chain = chain
+                                        , xDaiStatus = Types.XDaiStandby
                                         }
                                     )
                         )

@@ -1,5 +1,6 @@
 require("./index.css");
 const {
+  getBalance,
   getWallet,
   requestAccounts,
   handleWalletEvents,
@@ -22,7 +23,6 @@ const faucetToken = FAUCET_TOKEN;
 
 // Local storage keys
 const HAS_VISITED = "has-visited";
-const HAS_ONBOARDED = "has-onboarded";
 const COOKIE_CONSENT = "cookie-consent";
 
 window.addEventListener("load", () => {
@@ -32,10 +32,6 @@ window.addEventListener("load", () => {
   seoPortStuff(app);
 
   app.ports.setVisited.subscribe(() => localStorage.setItem(HAS_VISITED, true));
-
-  app.ports.setOnboarded.subscribe(() =>
-    localStorage.setItem(HAS_ONBOARDED, true)
-  );
 
   app.ports.log.subscribe((x) => console.log(x));
 
@@ -57,6 +53,14 @@ window.addEventListener("load", () => {
     })
   );
 
+  app.ports.refreshWallet.subscribe((account) =>
+    (async () => {
+      const balance = await getBalance(account);
+
+      app.ports.balanceResponse.send(balance);
+    })().catch(app.ports.balanceResponse.send)
+  );
+
   app.ports.submitPost.subscribe((params) =>
     sendTransaction(params)
       .then(app.ports.postResponse.send)
@@ -72,7 +76,6 @@ window.addEventListener("load", () => {
 
 function startDapp() {
   const hasWallet = Boolean(window.ethereum);
-  const hasOnboarded = Boolean(window.localStorage.getItem(HAS_ONBOARDED));
 
   const app = Elm.App.init({
     node: document.getElementById("elm"),
@@ -84,7 +87,6 @@ function startDapp() {
       newUser: !window.localStorage.getItem(HAS_VISITED),
       ethProviderUrl,
       xDaiProviderUrl,
-      hasOnboarded,
       hasWallet,
       chains,
       faucetToken,
@@ -111,12 +113,14 @@ function analyticsGtagPortStuff(app) {
 
   app.ports.setGtagUrlPath.subscribe(function (pagePath) {
     if (window.gtag) {
-      setTimeout(() => // must set a timeout, because the Elm app only updates the title a moment after this point.
-        window.gtag('config', 'UA-143211145-4', {
-          'page_path': pagePath
-        })
-        , 100
-      )
+      setTimeout(
+        () =>
+          // must set a timeout, because the Elm app only updates the title a moment after this point.
+          window.gtag("config", "UA-143211145-4", {
+            page_path: pagePath,
+          }),
+        100
+      );
     }
   });
 
