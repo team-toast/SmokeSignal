@@ -1310,13 +1310,21 @@ update msg model =
                                         else
                                             Just data.message
                                   }
-                                , if faucetSuccess then
-                                    userInfo.address
-                                        |> Eth.Utils.addressToString
-                                        |> Ports.refreshWallet
+                                , Cmd.batch
+                                    [ gTagOut <|
+                                        GTagData
+                                            "xdai import successful"
+                                            Nothing
+                                            Nothing
+                                            Nothing
+                                    , if faucetSuccess then
+                                        userInfo.address
+                                            |> Eth.Utils.addressToString
+                                            |> Ports.refreshWallet
 
-                                  else
-                                    Cmd.none
+                                      else
+                                        Cmd.none
+                                    ]
                                 )
                             )
                 )
