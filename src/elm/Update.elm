@@ -1288,25 +1288,29 @@ update msg model =
                                 )
                             )
                             (\data ->
+                                let
+                                    faucetSuccess =
+                                        data.status
+                                in
                                 ( { model
                                     | wallet =
                                         Active
                                             { userInfo
                                                 | xDaiStatus =
-                                                    if data.status then
-                                                        XDaiStandby
+                                                    if faucetSuccess then
+                                                        WaitingForBalance
 
                                                     else
-                                                        WaitingForBalance
+                                                        XDaiStandby
                                             }
                                     , onboardMessage =
-                                        if data.status then
+                                        if faucetSuccess then
                                             Just "Your faucet request was successful. Check your wallet for updated balance."
 
                                         else
                                             Just data.message
                                   }
-                                , if data.status then
+                                , if faucetSuccess then
                                     userInfo.address
                                         |> Eth.Utils.addressToString
                                         |> Ports.refreshWallet
