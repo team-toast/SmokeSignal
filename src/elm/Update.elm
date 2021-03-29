@@ -526,6 +526,13 @@ update msg model =
                             | wallet = Active info
                             , chainSwitchInProgress = False
                             , gtagHistory = gtagHistory
+                            , compose =
+                                model.compose
+                                    |> (\r ->
+                                            { r
+                                                | message = Nothing
+                                            }
+                                       )
                           }
                         , walletConnectedGtagCmd
                         )
@@ -1439,7 +1446,13 @@ update msg model =
                             Cmd.none
                 in
                 ( { model
-                    | compose = { emptyComposeModel | modal = True, context = context }
+                    | compose =
+                        { emptyComposeModel
+                            | modal = True
+                            , context = context
+                            , title = model.compose.title
+                            , body = model.compose.body
+                        }
                     , topicInput = topicInput
                   }
                 , Cmd.batch

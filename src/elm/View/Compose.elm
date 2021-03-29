@@ -44,6 +44,12 @@ view model userInfo =
 
             else
                 20
+
+        inputIsNonzero =
+            model.compose.dollar
+                |> String.toFloat
+                |> Maybe.map (\f -> f /= 0)
+                |> Maybe.withDefault False
     in
     [ "Compose"
         |> text
@@ -58,58 +64,8 @@ view model userInfo =
             , Font.size 20
             , width fill
             ]
-    , [ [ [ [ [ el [ Font.bold ] (text "Note:")
-              , text " Posting on SmokeSignal using Ethereum can result in very high gas fees. Using xDai is a cheaper alternative."
-              ]
-                |> paragraph []
-            , Input.button
-                [ Background.color Theme.green
-                , padding 10
-                , View.Attrs.roundBorder
-                , hover
-                , Font.color black
-                , width <| px 180
-                ]
-                { onPress = Just XDaiImport
-                , label =
-                    if model.chainSwitchInProgress then
-                        View.Common.spinner 20 black
-                            |> el [ centerX ]
-
-                    else
-                        text "Switch to xDai"
-                            |> el [ centerX ]
-                }
-            ]
-                |> row [ width fill, spacing 10, padding 10, Background.color orange, View.Attrs.roundBorder ]
-                |> when (userInfo.chain == Eth)
-          , [ [ el [ Font.bold ] (text "Note:")
-              , text " Your xDai wallet is currently empty."
-              ]
-                |> paragraph []
-            , Input.button
-                [ Background.color Theme.green
-                , padding 10
-                , View.Attrs.roundBorder
-                , hover
-                , Font.color black
-                , width <| px 240
-                ]
-                { onPress = Just SubmitFaucet
-                , label =
-                    if userInfo.xDaiStatus == WaitingForApi || userInfo.xDaiStatus == WaitingForBalance then
-                        View.Common.spinner 20 black
-                            |> el [ centerX ]
-
-                    else
-                        [ text "Request xDai from faucet" ]
-                            |> paragraph [ Font.center ]
-                }
-            ]
-                |> row [ width fill, spacing 10, padding 10, Background.color orange, View.Attrs.roundBorder ]
-                |> when (userInfo.chain == XDai && TokenValue.isZero userInfo.balance)
-          ]
-            |> row [ width fill, spacing 10 ]
+    , [ [ viewInstructions model userInfo
+            |> when (not isMobile)
         , model.compose.message
             |> View.Common.whenJust
                 (text
@@ -137,20 +93,11 @@ view model userInfo =
             , text = model.compose.title
             }
         , [ [ viewBurnAmountUX model.compose.dollar
-            , let
-                inputIsNonzero =
-                    model.compose.dollar
-                        |> String.toFloat
-                        |> Maybe.map (\f -> f /= 0)
-                        |> Maybe.withDefault False
-              in
-              if inputIsNonzero then
-                viewDonateCheckbox model.compose.donate
-
-              else
-                Element.none
+            , viewDonateCheckbox model.compose.donate
+                |> when inputIsNonzero
+                |> el [ width fill ]
             ]
-                |> row [ spacing 15 ]
+                |> row [ spacing 10, width fill ]
           , viewComposeContext model.compose.context model.topicInput
                 |> el [ Element.alignRight ]
           , View.Common.viewChain userInfo.chain
@@ -264,6 +211,70 @@ view model userInfo =
             ]
 
 
+viewInstructions : Model -> UserInfo -> Element Msg
+viewInstructions model userInfo =
+    case userInfo.chain of
+        Eth ->
+            [ [ el [ Font.bold ] (text "Note:")
+              , text " Posting on SmokeSignal using Ethereum can result in very high gas fees. Using xDai is a cheaper alternative."
+              ]
+                |> paragraph []
+            , Input.button
+                [ Background.color Theme.green
+                , padding 10
+                , View.Attrs.roundBorder
+                , hover
+                , Font.color black
+                , width <| px 180
+                , Element.alignRight
+                ]
+                { onPress = Just XDaiImport
+                , label =
+                    if model.chainSwitchInProgress then
+                        View.Common.spinner 20 black
+                            |> el [ centerX ]
+
+                    else
+                        text "Switch to xDai"
+                            |> el [ centerX ]
+                }
+            ]
+                |> row
+                    [ width fill
+                    , spacing 10
+                    , padding 10
+                    , Background.color orange
+                    , View.Attrs.roundBorder
+                    ]
+
+        XDai ->
+            [ [ el [ Font.bold ] (text "Note:")
+              , text " Your xDai wallet is currently empty."
+              ]
+                |> paragraph []
+            , Input.button
+                [ Background.color Theme.green
+                , padding 10
+                , View.Attrs.roundBorder
+                , hover
+                , Font.color black
+                , width <| px 240
+                ]
+                { onPress = Just SubmitFaucet
+                , label =
+                    if userInfo.xDaiStatus == WaitingForApi || userInfo.xDaiStatus == WaitingForBalance then
+                        View.Common.spinner 20 black
+                            |> el [ centerX ]
+
+                    else
+                        [ text "Request xDai from faucet" ]
+                            |> paragraph [ Font.center ]
+                }
+            ]
+                |> row [ width fill, spacing 10, padding 10, Background.color orange, View.Attrs.roundBorder ]
+                |> when (TokenValue.isZero userInfo.balance)
+
+
 viewComposeContext : Context -> String -> Element Msg
 viewComposeContext context topicInput =
     case context of
@@ -312,42 +323,39 @@ viewComposeContext context topicInput =
 
 viewBurnAmountUX : String -> Element Msg
 viewBurnAmountUX amountInput =
-    [ [ [ "A higher burn", "means more visibility!" ]
-            |> List.map text
-            |> List.map (el [ Element.centerX ])
-            |> column
-                [ Font.size 14
-                , spacing 3
-                , Font.color white
-                , Font.italic
-                ]
-      , View.Img.dollar 26 white
+    [ [ text "A higher burn means more visibility!" ]
+        |> paragraph
+            [ Font.size 14
+            , spacing 3
+            , Font.color white
+            , Font.italic
+            , Font.center
+            , width fill
+            ]
+    , [ View.Img.dollar 26 white
       , Input.text
             [ View.Attrs.whiteGlowAttributeSmall
             , Background.color <| Element.rgb 0 0 0
             , Font.color white
-            , Font.center
-            , width <| px 100
+            , width <| px 60
             , height <| px 34
             , padding 3
             , Font.size 26
             ]
             { onChange = ComposeDollarChange
             , label = Input.labelHidden ""
-            , placeholder =
-                Nothing
+            , placeholder = Just <| Input.placeholder [] <| text "0.00"
             , text = amountInput
             }
       ]
+        |> row [ spacing 5 ]
+    ]
         |> row
             [ spacing 5
-            ]
-    ]
-        |> column
-            [ spacing 10
             , padding 5
             , Background.color <| Element.rgb 0.4 0.2 0.2
             , roundBorder
+            , width fill
             ]
 
 
@@ -372,21 +380,20 @@ viewDonateCheckbox donateChecked =
         , checked = donateChecked
         , label = Input.labelHidden "Donate an extra 1% to Foundry"
         }
-    , [ [ text "Donate an extra 1% to "
-        , Element.newTabLink
+    , [ text "Donate an extra 1% to "
+      , Element.newTabLink
             [ Font.color Theme.orange, hover, Font.bold ]
             { url = "https://foundrydao.com/"
             , label = text "Foundry"
             }
-        ]
-      , [ text "so we can build more cool stuff!" ]
+      , text " so we can build more cool stuff!"
       ]
-        |> List.map (row [])
-        |> column [ spacing 2, Font.color white, Font.size 14 ]
+        |> paragraph [ spacing 2, Font.color white, Font.size 14 ]
     ]
         |> row
             [ Font.size 15
             , spacing 10
+            , width fill
             ]
 
 
