@@ -63,15 +63,13 @@ emptyModel key =
     , faucetToken = ""
     , gtagHistory = GTag.emptyGtagHistory
     , sortType = HotSort
-    , onboardingModal = False
-    , onboardMessage = Nothing
     }
 
 
 emptyComposeModel : ComposeModel
 emptyComposeModel =
     { title = ""
-    , dollar = "0"
+    , dollar = ""
     , body = ""
     , modal = False
     , donate = True
@@ -79,6 +77,7 @@ emptyComposeModel =
     , preview = False
     , inProgress = False
     , error = Nothing
+    , message = Nothing
     }
 
 

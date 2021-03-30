@@ -1,7 +1,7 @@
 module View.Sidebar exposing (view, viewWallet)
 
 import Chain
-import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spacing, text, width)
+import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paddingXY, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
@@ -9,10 +9,9 @@ import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Misc
 import Theme exposing (orange, softRed)
-import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttributeSmall)
-import View.Common exposing (phaceElement, when)
+import View.Common exposing (phaceElement, when, whenJust)
 import View.Img
 import Wallet
 
@@ -111,8 +110,7 @@ viewWallet model =
                 Types.NoneDetected ->
                     ( "Get started"
                     , Just <| EH.Action ComposeOpen
-                      --, Just "Each address has a unique phace!"
-                    , Nothing
+                    , Just "Each address has a unique phace!"
                     )
 
                 Types.NetworkReady ->
@@ -127,25 +125,11 @@ viewWallet model =
                     , Just "Please complete the MetaMask connection process"
                     )
 
-                Types.Active userInfo ->
-                    let
-                        userHasNoEth =
-                            TokenValue.isZero userInfo.balance
-                    in
-                    if userHasNoEth then
-                        ( "Compose Post"
-                        , Just <| EH.Action <| ComposeOpen
-                        , "That address has no "
-                            ++ Chain.getName userInfo.chain
-                            ++ "! You will need to transfer some to post on SmokeSignal."
-                            |> Just
-                        )
-
-                    else
-                        ( "Compose Post"
-                        , Just <| EH.Action <| ComposeOpen
-                        , Nothing
-                        )
+                Types.Active _ ->
+                    ( "Compose Post"
+                    , Just <| EH.Action <| ComposeOpen
+                    , Nothing
+                    )
 
         button =
             case maybeButtonAction of
@@ -165,19 +149,6 @@ viewWallet model =
                         , width fill
                         ]
                         buttonText
-
-        explainerParagraphOrNone =
-            maybeExplainerText
-                |> Maybe.map
-                    (\text ->
-                        Element.paragraph
-                            [ Font.color EH.white
-                            , Font.size 17
-                            , View.Attrs.sansSerifFont
-                            ]
-                            [ Element.text text ]
-                    )
-                |> Maybe.withDefault Element.none
     in
     [ phaceEl
         |> el [ Element.alignTop ]
@@ -190,7 +161,16 @@ viewWallet model =
                 )
         ]
             |> column [ spacing 10, width fill ]
-      , explainerParagraphOrNone
+      , maybeExplainerText
+            |> whenJust
+                (\text ->
+                    [ Element.text text ]
+                        |> paragraph
+                            [ Font.color EH.white
+                            , Font.size 17
+                            , View.Attrs.sansSerifFont
+                            ]
+                )
       ]
         |> column
             [ width fill

@@ -526,6 +526,13 @@ update msg model =
                             | wallet = Active info
                             , chainSwitchInProgress = False
                             , gtagHistory = gtagHistory
+                            , compose =
+                                model.compose
+                                    |> (\r ->
+                                            { r
+                                                | message = Nothing
+                                            }
+                                       )
                           }
                         , walletConnectedGtagCmd
                         )
@@ -539,11 +546,10 @@ update msg model =
                             Process.sleep 1000
                                 |> Task.perform
                                     (\_ ->
-                                        ExecuteDelayedPort
-                                            (userInfo.address
-                                                |> Eth.Utils.addressToString
-                                                |> Ports.refreshWallet
-                                            )
+                                        userInfo.address
+                                            |> Eth.Utils.addressToString
+                                            |> Ports.refreshWallet
+                                            |> ExecuteDelayedCmd
                                     )
                     in
                     val
@@ -584,7 +590,7 @@ update msg model =
                             )
                 )
 
-        ExecuteDelayedPort cmd ->
+        ExecuteDelayedCmd cmd ->
             ( model, cmd )
 
         EventSentryMsg chain eventMsg ->
@@ -1253,7 +1259,13 @@ update msg model =
                                 |> Eth.Utils.addressToString
                     in
                     ( { model
-                        | onboardMessage = Nothing
+                        | compose =
+                            model.compose
+                                |> (\r ->
+                                        { r
+                                            | message = Nothing
+                                        }
+                                   )
                         , wallet = Active { userInfo | xDaiStatus = WaitingForApi }
                       }
                     , [ Http.get
@@ -1281,7 +1293,14 @@ update msg model =
                         |> unpack
                             (\e ->
                                 ( { model
-                                    | onboardMessage = Just "There has been a problem."
+                                    | compose =
+                                        model.compose
+                                            |> (\r ->
+                                                    { r
+                                                        | message =
+                                                            Just "There has been a problem."
+                                                    }
+                                               )
                                     , wallet = Active { userInfo | xDaiStatus = XDaiStandby }
                                   }
                                 , logHttpError "FaucetResponse" e
@@ -1303,12 +1322,18 @@ update msg model =
                                                     else
                                                         XDaiStandby
                                             }
-                                    , onboardMessage =
-                                        if faucetSuccess then
-                                            Just "Your faucet request was successful. Check your wallet for updated balance."
+                                    , compose =
+                                        model.compose
+                                            |> (\r ->
+                                                    { r
+                                                        | message =
+                                                            if faucetSuccess then
+                                                                Just "Your faucet request was successful. Check your wallet for updated balance."
 
-                                        else
-                                            Just data.message
+                                                            else
+                                                                Just data.message
+                                                    }
+                                               )
                                   }
                                 , if faucetSuccess then
                                     Cmd.batch
@@ -1421,9 +1446,14 @@ update msg model =
                             Cmd.none
                 in
                 ( { model
-                    | compose = { emptyComposeModel | modal = True, context = context }
+                    | compose =
+                        { emptyComposeModel
+                            | modal = True
+                            , context = context
+                            , title = model.compose.title
+                            , body = model.compose.body
+                        }
                     , topicInput = topicInput
-                    , onboardMessage = Nothing
                   }
                 , Cmd.batch
                     [ gtagCmd

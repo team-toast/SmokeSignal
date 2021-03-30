@@ -13,6 +13,7 @@ import View.Attrs exposing (cappedWidth, hover, roundBorder, sansSerifFont, whit
 import View.Common
 import View.Compose
 import View.Img
+import View.Wallet
 import Wallet
 
 
@@ -23,40 +24,45 @@ view model =
             model.dProfile == Mobile
     in
     if model.wallet == NoneDetected then
-        [ [ text "To post or interact with ", el [ Font.bold ] (text "SmokeSignal"), text ", you'll need a crypto identity." ]
-            |> paragraph [ Font.center, Font.size 22 ]
-        , [ text "Install and setup "
-          , Element.newTabLink
-                [ Font.color Theme.orange, hover, Font.bold ]
-                { url = "https://metamask.io/"
-                , label = text "MetaMask"
-                }
-          , text ", then refresh."
-          ]
-            |> paragraph [ Font.center, Font.size 22 ]
-        , Input.button
-            [ Font.underline
-            , View.Attrs.hover
-            , View.Attrs.sansSerifFont
-            , Element.alignRight
-            ]
-            { onPress = Just ComposeClose
-            , label = text "Back"
-            }
-        ]
-            |> column
-                [ padding 30
-                , spacing 30
-                , whiteGlowAttributeSmall
-                , Background.color black
-                , Font.color white
-                , fill
-                    |> Element.minimum 240
-                    |> width
-                , centerY
-                    |> View.Common.whenAttr (model.dProfile == Mobile)
+        if isMobile then
+            View.Wallet.viewMobileWalletSuggestion
+                |> View.Common.wrapModal ComposeClose
+
+        else
+            [ [ text "To post or interact with ", el [ Font.bold ] (text "SmokeSignal"), text ", you'll need a crypto identity." ]
+                |> paragraph [ Font.center, Font.size 22 ]
+            , [ text "Install and setup "
+              , Element.newTabLink
+                    [ Font.color Theme.orange, hover, Font.bold ]
+                    { url = "https://metamask.io/"
+                    , label = text "MetaMask"
+                    }
+              , text ", then refresh."
+              ]
+                |> paragraph [ Font.center, Font.size 22 ]
+            , Input.button
+                [ Font.underline
+                , View.Attrs.hover
+                , View.Attrs.sansSerifFont
+                , Element.alignRight
                 ]
-            |> View.Common.wrapModal ComposeClose
+                { onPress = Just ComposeClose
+                , label = text "Back"
+                }
+            ]
+                |> column
+                    [ padding 30
+                    , spacing 30
+                    , whiteGlowAttributeSmall
+                    , Background.color black
+                    , Font.color white
+                    , fill
+                        |> Element.minimum 240
+                        |> width
+                    , centerY
+                        |> View.Common.whenAttr (model.dProfile == Mobile)
+                    ]
+                |> View.Common.wrapModal ComposeClose
 
     else
         model.wallet
@@ -172,8 +178,16 @@ viewNewToSmokeSignal _ =
         |> View.Common.wrapModal (ShowNewToSmokeSignalModal False)
 
 
-viewCookieConsent : Element Msg
-viewCookieConsent =
+viewCookieConsent : Bool -> Element Msg
+viewCookieConsent mobile =
+    let
+        layout =
+            if mobile then
+                column
+
+            else
+                row
+    in
     [ [ Element.newTabLink [ Font.bold, hover ]
             { url = "https://foundrydao.com/"
             , label = text "Foundry"
@@ -191,12 +205,18 @@ viewCookieConsent =
       , text "."
       ]
         |> paragraph [ Font.color white, sansSerifFont ]
-    , Input.button [ Background.color Theme.orange, padding 20, roundBorder, hover ]
+    , Input.button
+        [ Background.color Theme.orange
+        , padding 20
+        , roundBorder
+        , hover
+        , centerX
+        ]
         { onPress = Just CookieConsentGranted
         , label = text "Understood"
         }
     ]
-        |> row
+        |> layout
             [ Background.color blue
             , Element.alignBottom
             , cappedWidth 900

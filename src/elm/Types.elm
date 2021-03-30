@@ -67,8 +67,6 @@ type alias Model =
     , chainSwitchInProgress : Bool
     , faucetToken : String
     , gtagHistory : GTag.GTagHistory
-    , onboardingModal : Bool
-    , onboardMessage : Maybe String
     }
 
 
@@ -121,7 +119,7 @@ type Msg
     | FaucetResponse (Result Http.Error FaucetResult)
     | SetTooltipState TooltipState
     | BalanceResponse (Maybe TokenValue)
-    | ExecuteDelayedPort (Cmd Msg)
+    | ExecuteDelayedCmd (Cmd Msg)
 
 
 type TxErr
@@ -193,6 +191,7 @@ type alias ComposeModel =
     , preview : Bool
     , inProgress : Bool
     , error : Maybe String
+    , message : Maybe String
     }
 
 
