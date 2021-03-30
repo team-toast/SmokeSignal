@@ -4,13 +4,13 @@ import Array exposing (Array)
 import Browser
 import Browser.Navigation
 import Dict exposing (Dict)
-import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
 import GTag
 import Helpers.Element as EH
 import Http
 import Json.Decode exposing (Value)
+import Sentry as EventSentry exposing (EventSentry)
 import Set exposing (Set)
 import Time
 import TokenValue exposing (TokenValue)
@@ -37,8 +37,8 @@ type alias Model =
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
     , sentries :
-        { xDai : EventSentry Msg
-        , ethereum : EventSentry Msg
+        { xDai : Maybe (EventSentry Msg)
+        , ethereum : Maybe (EventSentry Msg)
         }
     , view : View
     , sortType : SortType

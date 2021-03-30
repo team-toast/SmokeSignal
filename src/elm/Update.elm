@@ -8,7 +8,6 @@ import Contracts.SmokeSignal as SSContract
 import DemoPhaceSrcMutator
 import Dict exposing (Dict)
 import Eth
-import Eth.Sentry.Event as EventSentry
 import Eth.Types exposing (TxReceipt)
 import Eth.Utils
 import GTag exposing (GTagData, gTagOut, gTagOutOnlyOnLabelOrValueChange, gTagOutOnlyOnceForEvent)
@@ -24,6 +23,7 @@ import Process
 import Random
 import Result.Extra exposing (unpack)
 import Routing exposing (viewUrlToPathString)
+import Sentry
 import Set
 import Task
 import Time
@@ -615,9 +615,12 @@ update msg model =
                 Eth ->
                     let
                         ( newEventSentry, cmd ) =
-                            EventSentry.update
-                                eventMsg
-                                model.sentries.ethereum
+                            model.sentries.ethereum
+                                |> unwrap ( Nothing, Cmd.none )
+                                    (Sentry.update
+                                        eventMsg
+                                        >> Tuple.mapFirst Just
+                                    )
                     in
                     ( { model
                         | sentries =
@@ -635,9 +638,12 @@ update msg model =
                 XDai ->
                     let
                         ( newEventSentry, cmd ) =
-                            EventSentry.update
-                                eventMsg
-                                model.sentries.xDai
+                            model.sentries.xDai
+                                |> unwrap ( Nothing, Cmd.none )
+                                    (Sentry.update
+                                        eventMsg
+                                        >> Tuple.mapFirst Just
+                                    )
                     in
                     ( { model
                         | sentries =

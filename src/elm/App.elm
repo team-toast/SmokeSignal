@@ -6,7 +6,6 @@ import Browser.Navigation
 import Chain
 import Contracts.SmokeSignal
 import DemoPhaceSrcMutator
-import Eth.Sentry.Event
 import Eth.Types
 import Helpers.Element
 import Json.Decode
@@ -15,6 +14,7 @@ import Misc exposing (tryRouteToView)
 import Ports
 import Random
 import Routing
+import Sentry
 import Time
 import Types exposing (Flags, Model, Msg)
 import Update exposing (update)
@@ -154,10 +154,10 @@ startApp flags url model =
             else
                 Types.NoneDetected
 
-        ( ethSentry, ethCmd1, ethCmd2 ) =
+        ( ethSentry, ethCmd ) =
             startSentry model.config.ethereum
 
-        ( xDaiSentry, xDaiCmd1, xDaiCmd2 ) =
+        ( xDaiSentry, xDaiCmd ) =
             startSentry model.config.xDai
 
         now =
@@ -172,8 +172,8 @@ startApp flags url model =
             model.sentries
                 |> (\cs ->
                         { cs
-                            | xDai = xDaiSentry
-                            , ethereum = ethSentry
+                            | xDai = Just xDaiSentry
+                            , ethereum = Just ethSentry
                         }
                    )
         , userNotices = routingUserNotices
@@ -183,17 +183,15 @@ startApp flags url model =
         , faucetToken = flags.faucetToken
       }
     , Cmd.batch
-        [ ethCmd1
-        , ethCmd2
-        , xDaiCmd1
-        , xDaiCmd2
+        [ ethCmd
+        , xDaiCmd
         , Random.generate Types.NewDemoSrc DemoPhaceSrcMutator.addressSrcGenerator
         , Ports.setDescription Misc.defaultSeoDescription
         ]
     )
 
 
-startSentry : Types.ChainConfig -> ( Eth.Sentry.Event.EventSentry Msg, Cmd Msg, Cmd Msg )
+startSentry : Types.ChainConfig -> ( Sentry.EventSentry Msg, Cmd Msg )
 startSentry config =
     let
         scan =
@@ -205,18 +203,23 @@ startSentry config =
                 Nothing
 
         ( initEventSentry, initEventSentryCmd ) =
-            Eth.Sentry.Event.init (Types.EventSentryMsg config.chain)
+            Sentry.init (Types.EventSentryMsg config.chain)
                 config.providerUrl
 
         ( eventSentry, secondEventSentryCmd, _ ) =
-            Eth.Sentry.Event.watch
+            Sentry.watch
                 (Contracts.SmokeSignal.decodePost config.chain
                     >> Types.PostLogReceived
                 )
                 initEventSentry
                 scan
     in
-    ( eventSentry, initEventSentryCmd, secondEventSentryCmd )
+    ( eventSentry
+    , Cmd.batch
+        [ initEventSentryCmd
+        , secondEventSentryCmd
+        ]
+    )
 
 
 subscriptions : Model -> Sub Msg

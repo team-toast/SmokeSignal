@@ -6,7 +6,6 @@ import Dict exposing (Dict)
 import Eth.Decode
 import Eth.Encode
 import Eth.RPC
-import Eth.Sentry.Event
 import Eth.Types exposing (Address, TxHash, TxReceipt)
 import Eth.Utils
 import FormatNumber
@@ -33,10 +32,8 @@ emptyModel key =
     , now = Time.millisToPosix 0
     , dProfile = Helpers.Element.Desktop
     , sentries =
-        { xDai =
-            Eth.Sentry.Event.init (always Types.CancelPostInput) "" |> Tuple.first
-        , ethereum =
-            Eth.Sentry.Event.init (always Types.CancelPostInput) "" |> Tuple.first
+        { xDai = Nothing
+        , ethereum = Nothing
         }
     , blockTimes = Dict.empty
     , showAddressId = Nothing
