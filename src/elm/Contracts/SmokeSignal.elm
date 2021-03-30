@@ -1,5 +1,6 @@
 module Contracts.SmokeSignal exposing (burnEncodedPost, burnForPost, decodePost, getAccountingCmd, getEthPriceCmd, messageBurnEventFilter, tipForPost)
 
+import BigInt
 import Contracts.Generated.SmokeSignal as G
 import Eth
 import Eth.Decode
@@ -51,7 +52,16 @@ burnEncodedPost wallet smokeSignalContractAddress draft =
                 |> TokenValue.getEvmValue
             )
         |> (\call ->
-                { call | from = Just wallet.address }
+                { call
+                    | from = Just wallet.address
+                    , gasPrice =
+                        case wallet.chain of
+                            Eth ->
+                                Nothing
+
+                            XDai ->
+                                Just bigIntOne
+                }
            )
 
 
@@ -98,6 +108,13 @@ tipForPost wallet smokeSignalContractAddress messageHash amount donation =
                             donation
                             |> TokenValue.getEvmValue
                             |> Just
+                    , gasPrice =
+                        case wallet.chain of
+                            Eth ->
+                                Nothing
+
+                            XDai ->
+                                Just bigIntOne
                 }
            )
 
@@ -117,6 +134,13 @@ burnForPost wallet smokeSignalContractAddress messageHash amount donation =
                             donation
                             |> TokenValue.getEvmValue
                             |> Just
+                    , gasPrice =
+                        case wallet.chain of
+                            Eth ->
+                                Nothing
+
+                            XDai ->
+                                Just bigIntOne
                 }
            )
 
@@ -174,3 +198,10 @@ postDecoder chain log messageBurn =
 
         _ ->
             Decode.fail "Missing '!smokesignal'"
+
+
+{-| For specifying 1 gWei to MetaMask.
+-}
+bigIntOne : BigInt.BigInt
+bigIntOne =
+    BigInt.fromInt 1000000000
