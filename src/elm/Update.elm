@@ -1310,31 +1310,42 @@ update msg model =
                                 let
                                     faucetSuccess =
                                         data.status
-                                in
-                                ( { model
-                                    | wallet =
-                                        Active
-                                            { userInfo
-                                                | xDaiStatus =
-                                                    if faucetSuccess then
-                                                        WaitingForBalance
 
-                                                    else
-                                                        XDaiStandby
-                                            }
-                                    , compose =
-                                        model.compose
-                                            |> (\r ->
-                                                    { r
-                                                        | message =
-                                                            if faucetSuccess then
-                                                                Just "Your faucet request was successful. Check your wallet for updated balance."
+                                    ( xDaiStatus, message, newUserNotices ) =
+                                        if faucetSuccess then
+                                            ( WaitingForBalance
+                                            , Nothing
+                                            , model.userNotices
+                                                |> List.append
+                                                    [ UN.faucetRequestSuccessful ]
+                                            )
 
-                                                            else
-                                                                Just data.message
+                                        else
+                                            ( XDaiStandby
+                                            , Just data.message
+                                            , model.userNotices
+                                            )
+
+                                    newModel =
+                                        { model
+                                            | wallet =
+                                                Active
+                                                    { userInfo
+                                                        | xDaiStatus =
+                                                            xDaiStatus
                                                     }
-                                               )
-                                  }
+                                            , compose =
+                                                model.compose
+                                                    |> (\r ->
+                                                            { r
+                                                                | message =
+                                                                    message
+                                                            }
+                                                       )
+                                            , userNotices = newUserNotices
+                                        }
+                                in
+                                ( newModel
                                 , if faucetSuccess then
                                     Cmd.batch
                                         [ gTagOut <|
