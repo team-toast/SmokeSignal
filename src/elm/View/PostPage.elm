@@ -2,11 +2,12 @@ module View.PostPage exposing (view)
 
 import Chain
 import Dict
-import Element exposing (Color, Element, column, el, fill, height, padding, row, spacing, text, width)
+import Element exposing (Color, Element, column, el, fill, height, padding, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Eth.Utils
 import Helpers.Element exposing (DisplayProfile(..), black, white)
 import Maybe.Extra exposing (unwrap)
 import Misc
@@ -57,19 +58,52 @@ view model log =
         attrs =
             [ hover, Background.color black, Font.color white, padding 10, whiteGlowAttributeSmall ]
 
-        breadcrumb =
-            case log of
-                LogReply p ->
-                    Input.button attrs
-                        { onPress = Just <| GotoView <| ViewPost p.parent
-                        , label = text "Parent"
-                        }
+        walk curr xs =
+            let
+                new =
+                    case curr of
+                        LogReply p ->
+                            Input.button attrs
+                                { onPress = Just <| GotoView <| ViewPost p.parent
+                                , label =
+                                    p.core.txHash
+                                        |> Eth.Utils.txHashToString
+                                        |> text
+                                        |> el
+                                            [ width <| px 70
+                                            , View.Attrs.style "overflow" "hidden"
+                                            ]
+                                }
 
-                LogRoot p ->
-                    Input.button attrs
-                        { onPress = Just <| GotoView <| ViewTopic p.topic
-                        , label = text <| "#" ++ p.topic
-                        }
+                        LogRoot p ->
+                            Input.button attrs
+                                { onPress = Just <| GotoView <| ViewTopic p.topic
+                                , label = text <| "#" ++ p.topic
+                                }
+
+                id =
+                    case curr of
+                        LogReply p ->
+                            Just p.parent
+
+                        LogRoot _ ->
+                            Nothing
+
+                res =
+                    new :: xs
+            in
+            id
+                |> Maybe.andThen
+                    (\m ->
+                        Misc.getPostOrReply m model
+                    )
+                |> unwrap res
+                    (\val -> walk val res)
+
+        breadcrumb =
+            walk log []
+                |> List.intersperse (el [ Font.color white, Font.bold ] <| text "/")
+                |> row [ spacing 10 ]
     in
     [ breadcrumb
     , [ post.content.title
