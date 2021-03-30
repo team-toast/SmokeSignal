@@ -619,7 +619,6 @@ update msg model =
                                 |> unwrap ( Nothing, Cmd.none )
                                     (Sentry.update
                                         eventMsg
-                                        >> Tuple.mapFirst Just
                                     )
                     in
                     ( { model
@@ -642,7 +641,6 @@ update msg model =
                                 |> unwrap ( Nothing, Cmd.none )
                                     (Sentry.update
                                         eventMsg
-                                        >> Tuple.mapFirst Just
                                     )
                     in
                     ( { model

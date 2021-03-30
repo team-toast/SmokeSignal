@@ -174,7 +174,7 @@ type Msg
 
 
 {-| -}
-update : Msg -> EventSentry msg -> ( EventSentry msg, Cmd msg )
+update : Msg -> EventSentry msg -> ( Maybe (EventSentry msg), Cmd msg )
 update msg ((EventSentry sentry) as sentry_) =
     case msg of
         BlockNumber (Ok newBlockNum) ->
@@ -193,12 +193,13 @@ update msg ((EventSentry sentry) as sentry_) =
             case sentry.blockNumber of
                 Just oldBlockNum ->
                     if newBlockNum - oldBlockNum == 0 then
-                        ( sentry_
+                        ( Just sentry_
                         , pollBlockNumber sentry.nodePath sentry.tagger
                         )
 
                     else
                         ( EventSentry { sentry | blockNumber = Just newBlockNum }
+                            |> Just
                         , Cmd.batch
                             [ pollBlockNumber sentry.nodePath sentry.tagger
                             , requestHelper ( oldBlockNum + 1, newBlockNum ) sentry.watching requestWatchedEvents
@@ -212,6 +213,7 @@ update msg ((EventSentry sentry) as sentry_) =
                             , pending = Set.empty
                             , watching = Set.union sentry.watching sentry.pending
                         }
+                        |> Just
                     , Cmd.batch
                         [ pollBlockNumber sentry.nodePath sentry.tagger
                         , requestHelper ( newBlockNum, newBlockNum ) sentry.pending requestInitialEvents
@@ -221,6 +223,7 @@ update msg ((EventSentry sentry) as sentry_) =
 
         BlockNumber (Err err) ->
             ( EventSentry { sentry | errors = err :: sentry.errors }
+                |> Just
             , pollBlockNumber sentry.nodePath sentry.tagger
             )
 
@@ -229,6 +232,7 @@ update msg ((EventSentry sentry) as sentry_) =
 
         GetLogs _ (Err err) ->
             ( EventSentry { sentry | errors = err :: sentry.errors }
+                |> Just
             , Cmd.none
             )
 
@@ -279,16 +283,16 @@ requestInitialEvents nodePath logFilter ( fromBlock, toBlock ) =
 -- GetLog Helpers
 
 
-handleLogs : EventSentry msg -> Ref -> List Log -> ( EventSentry msg, Cmd msg )
+handleLogs : EventSentry msg -> Ref -> List Log -> ( Maybe (EventSentry msg), Cmd msg )
 handleLogs (EventSentry sentry) ref logs =
     case Dict.get ref sentry.requests of
         Nothing ->
-            ( EventSentry sentry, Cmd.none )
+            ( EventSentry sentry |> Just, Cmd.none )
 
         Just requestState ->
             case ( requestState.watchOnce, List.head logs ) of
                 ( _, Nothing ) ->
-                    ( EventSentry { sentry | requests = updateRequests ref logs sentry.requests }
+                    ( Nothing
                     , Cmd.none
                     )
 
@@ -298,11 +302,13 @@ handleLogs (EventSentry sentry) ref logs =
                             | watching = Set.remove ref sentry.watching
                             , requests = updateRequests ref logs sentry.requests
                         }
+                        |> Just
                     , Task.perform requestState.tagger (Task.succeed log)
                     )
 
                 ( False, _ ) ->
                     ( EventSentry { sentry | requests = updateRequests ref logs sentry.requests }
+                        |> Just
                     , List.map (\log -> Task.perform requestState.tagger (Task.succeed log)) logs
                         |> Cmd.batch
                     )
