@@ -178,8 +178,16 @@ viewNewToSmokeSignal _ =
         |> View.Common.wrapModal (ShowNewToSmokeSignalModal False)
 
 
-viewCookieConsent : Element Msg
-viewCookieConsent =
+viewCookieConsent : Bool -> Element Msg
+viewCookieConsent mobile =
+    let
+        layout =
+            if mobile then
+                column
+
+            else
+                row
+    in
     [ [ Element.newTabLink [ Font.bold, hover ]
             { url = "https://foundrydao.com/"
             , label = text "Foundry"
@@ -197,12 +205,18 @@ viewCookieConsent =
       , text "."
       ]
         |> paragraph [ Font.color white, sansSerifFont ]
-    , Input.button [ Background.color Theme.orange, padding 20, roundBorder, hover ]
+    , Input.button
+        [ Background.color Theme.orange
+        , padding 20
+        , roundBorder
+        , hover
+        , centerX
+        ]
         { onPress = Just CookieConsentGranted
         , label = text "Understood"
         }
     ]
-        |> row
+        |> layout
             [ Background.color blue
             , Element.alignBottom
             , cappedWidth 900

@@ -10,6 +10,7 @@ import Helpers.Element exposing (black, white)
 import Theme exposing (orange)
 import Types exposing (Model, Msg, View(..))
 import View.Common exposing (whenAttr, whenJust)
+import View.Modal
 
 
 navBar : Model -> Element Msg
@@ -33,6 +34,9 @@ navBar model =
         |> row
             [ width fill
             , Background.color black
+            , View.Modal.viewCookieConsent True
+                |> Element.above
+                |> View.Common.whenAttr (not model.cookieConsentGranted)
             ]
 
 

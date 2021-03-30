@@ -121,7 +121,7 @@ viewPage model =
             , View.Modal.view model
                 |> Element.inFront
                 |> whenAttr model.compose.modal
-            , View.Modal.viewCookieConsent
+            , View.Modal.viewCookieConsent False
                 |> View.Common.when isDesktop
                 |> Element.inFront
                 |> View.Common.whenAttr (not model.cookieConsentGranted)
