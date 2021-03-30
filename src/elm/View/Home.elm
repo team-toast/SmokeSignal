@@ -200,16 +200,7 @@ viewPost model wallet post =
         (model.accounting
             |> Dict.get post.core.key
         )
-        (model.postState
-            |> Maybe.andThen
-                (\x ->
-                    if x.id == post.core.id then
-                        Just x
-
-                    else
-                        Nothing
-                )
-        )
+        model.postState
         model.tooltipState
         (Just post.topic)
         wallet

@@ -1,4 +1,4 @@
-module View.Post exposing (view, viewActions, viewCard)
+module View.Post exposing (view, viewCard, viewTipOrBurn)
 
 import Chain
 import Element exposing (Color, Element, alignBottom, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spaceEvenly, spacing, text, width)
@@ -37,9 +37,8 @@ view dProfile timestamp now replies accounting state tooltipState topic wallet p
         isMobile =
             dProfile == EH.Mobile
 
-        showActions =
-            wallet
-                |> unwrap False (.chain >> (==) post.chain)
+        tipOrBurn =
+            viewTipOrBurn post wallet state
     in
     [ [ [ accounting
             |> whenJust
@@ -129,8 +128,7 @@ view dProfile timestamp now replies accounting state tooltipState topic wallet p
                     , width fill
                     , height fill
                     ]
-          , viewActions post state
-                |> when showActions
+          , tipOrBurn
           ]
             |> (if isMobile then
                     column [ width fill, spacing 10 ]
@@ -158,6 +156,23 @@ view dProfile timestamp now replies accounting state tooltipState topic wallet p
             , width fill
             , typeFont
             ]
+
+
+viewTipOrBurn : Core -> Maybe UserInfo -> Maybe PostState -> Element Msg
+viewTipOrBurn post chain =
+    let
+        showActions =
+            chain
+                |> unwrap False (.chain >> (==) post.chain)
+    in
+    unwrap
+        (viewButtons post
+            |> when showActions
+        )
+        (\data ->
+            viewTipOrBurnInput post data
+                |> when (data.id == post.id)
+        )
 
 
 viewCard : Core -> Element Msg
@@ -325,88 +340,88 @@ viewAmount color amount state =
         }
 
 
-viewActions : Core -> Maybe PostState -> Element Msg
-viewActions post =
-    unwrap
-        ([ supportBurnButton post.id
-         , supportTipButton post.id
-         ]
-            |> row [ spacing 10, Element.alignRight ]
-        )
-        (\state ->
-            let
-                name =
-                    Chain.getName post.chain
+viewTipOrBurnInput : Core -> PostState -> Element Msg
+viewTipOrBurnInput post state =
+    let
+        name =
+            Chain.getName post.chain
 
-                title =
-                    case state.showInput of
-                        Tip ->
-                            "Tip " ++ name ++ " for this post, rewarding the author."
+        title =
+            case state.showInput of
+                Tip ->
+                    "Tip " ++ name ++ " for this post, rewarding the author."
 
-                        Burn ->
-                            "Burn " ++ name ++ " to increase the visibility of this post."
-            in
-            [ [ text title ]
-                |> paragraph []
-            , [ View.Img.dollar 30 white
-              , Input.text [ Font.color black ]
-                    { onChange = PostInputChange
-                    , label = Input.labelHidden ""
-                    , placeholder =
-                        "00.00"
-                            |> text
-                            |> Input.placeholder []
-                            |> Just
-                    , text = state.input
-                    }
-              ]
-                |> row [ spacing 5, width fill ]
-            , state.error
-                |> whenJust
-                    (text
-                        >> List.singleton
-                        >> paragraph
-                            [ Background.color white
-                            , Element.alignRight
-                            , slightRound
-                            , padding 10
-                            , Font.color black
-                            ]
-                    )
-            , [ View.Common.cancel CancelPostInput
-              , Input.button
-                    [ Background.color Theme.orange
+                Burn ->
+                    "Burn " ++ name ++ " to increase the visibility of this post."
+    in
+    [ [ text title ]
+        |> paragraph []
+    , [ View.Img.dollar 30 white
+      , Input.text [ Font.color black ]
+            { onChange = PostInputChange
+            , label = Input.labelHidden ""
+            , placeholder =
+                "00.00"
+                    |> text
+                    |> Input.placeholder []
+                    |> Just
+            , text = state.input
+            }
+      ]
+        |> row [ spacing 5, width fill ]
+    , state.error
+        |> whenJust
+            (text
+                >> List.singleton
+                >> paragraph
+                    [ Background.color white
+                    , Element.alignRight
+                    , slightRound
                     , padding 10
-                    , roundBorder
-                    , hover
                     , Font.color black
                     ]
-                    { onPress =
-                        if state.inProgress then
-                            Nothing
-
-                        else
-                            Just SubmitPostTx
-                    , label =
-                        if state.inProgress then
-                            View.Common.spinner 20 black
-                                |> el [ centerX ]
-
-                        else
-                            text "Submit"
-                    }
-              ]
-                |> row [ Element.alignRight, spacing 20 ]
+            )
+    , [ View.Common.cancel CancelPostInput
+      , Input.button
+            [ Background.color Theme.orange
+            , padding 10
+            , roundBorder
+            , hover
+            , Font.color black
             ]
-                |> column
-                    [ Background.color black
-                    , spacing 10
-                    , padding 10
-                    , width fill
-                    , Font.color white
-                    , View.Attrs.sansSerifFont
-                    ]
-        )
+            { onPress =
+                if state.inProgress then
+                    Nothing
+
+                else
+                    Just SubmitPostTx
+            , label =
+                if state.inProgress then
+                    View.Common.spinner 20 black
+                        |> el [ centerX ]
+
+                else
+                    text "Submit"
+            }
+      ]
+        |> row [ Element.alignRight, spacing 20 ]
+    ]
+        |> column
+            [ Background.color black
+            , spacing 10
+            , padding 10
+            , width fill
+            , Font.color white
+            , View.Attrs.sansSerifFont
+            ]
+
+
+viewButtons : Core -> Element Msg
+viewButtons post =
+    [ supportBurnButton post.id
+    , supportTipButton post.id
+    ]
+        |> row [ spacing 10, Element.alignRight ]
 
 
 supportTipButton : PostId -> Element Msg

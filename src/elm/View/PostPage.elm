@@ -15,7 +15,7 @@ import Theme
 import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (hover, roundBorder, sansSerifFont, whiteGlowAttributeSmall)
-import View.Common exposing (phaceElement, when)
+import View.Common exposing (phaceElement)
 import View.Img
 import View.Markdown
 import View.Post
@@ -47,10 +47,9 @@ view model post =
                 |> Dict.get post.key
                 |> View.Common.whenJust (viewAccounting model.dProfile)
 
-        showActions =
+        userInfo =
             model.wallet
                 |> Wallet.userInfo
-                |> unwrap False (.chain >> (==) post.chain)
     in
     [ [ post.content.title
             |> View.Common.whenJust
@@ -113,8 +112,7 @@ view model post =
                 ]
                     |> row [ spacing 10, Font.size 20 ]
             }
-        , View.Post.viewActions post model.postState
-            |> when showActions
+        , View.Post.viewTipOrBurn post userInfo model.postState
         ]
             |> row [ spacing 10, Element.alignRight ]
       ]
@@ -156,19 +154,10 @@ view model post =
                     (model.accounting
                         |> Dict.get reply.core.key
                     )
-                    (model.postState
-                        |> Maybe.andThen
-                            (\x ->
-                                if x.id == reply.core.id then
-                                    Just x
-
-                                else
-                                    Nothing
-                            )
-                    )
+                    model.postState
                     model.tooltipState
                     Nothing
-                    (Wallet.userInfo model.wallet)
+                    userInfo
                     reply.core
             )
         |> column
