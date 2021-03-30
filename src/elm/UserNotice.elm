@@ -1,4 +1,4 @@
-module UserNotice exposing (Alignment(..), NoticeType(..), UserNotice, cantConnectNoWeb3, debugMsg, eventDecodeError, inputError, noWeb3Account, noWeb3Provider, notify, routeNotFound, screenTooSmall, unexpectedError, walletError, web3BroadcastError, web3FetchError, web3MiningError, web3SigError, wrongWeb3Network)
+module UserNotice exposing (Alignment(..), NoticeType(..), UserNotice, cantConnectNoWeb3, debugMsg, eventDecodeError, faucetRequestSuccessful, inputError, noWeb3Account, noWeb3Provider, notify, routeNotFound, screenTooSmall, unexpectedError, walletError, web3BroadcastError, web3FetchError, web3MiningError, web3SigError, wrongWeb3Network)
 
 import Element exposing (Element)
 import Element.Font
@@ -207,4 +207,14 @@ debugMsg s =
     , mainParagraphs =
         [ [ Element.text <| "debug: " ++ s ] ]
     , align = BottomRight
+    }
+
+
+faucetRequestSuccessful : UserNotice
+faucetRequestSuccessful =
+    { noticeType = Update
+    , mainParagraphs =
+        [ [ Element.text "Faucet request successful! The balance should update in your wallet soon." ] ]
+    , align = BottomRight
+    , uniqueLabel = "faucet request successful"
     }
