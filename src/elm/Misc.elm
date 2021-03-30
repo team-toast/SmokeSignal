@@ -1,4 +1,4 @@
-module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
+module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getCore, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
 
 import Array
 import Browser.Navigation
@@ -276,7 +276,7 @@ validateTopic =
            )
 
 
-getPostOrReply : PostId -> Model -> Maybe Core
+getPostOrReply : PostId -> Model -> Maybe LogPost
 getPostOrReply id model =
     let
         key =
@@ -287,9 +287,19 @@ getPostOrReply id model =
         |> Maybe.Extra.unwrap
             (model.replyPosts
                 |> Dict.get key
-                |> Maybe.map .core
+                |> Maybe.map LogReply
             )
-            (.core >> Just)
+            (LogRoot >> Just)
+
+
+getCore : LogPost -> Core
+getCore log =
+    case log of
+        LogReply p ->
+            p.core
+
+        LogRoot p ->
+            p.core
 
 
 {-| Version of Eth.getTxReceipt that handles the normal outcome of a null response

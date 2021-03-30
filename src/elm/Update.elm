@@ -399,9 +399,11 @@ update msg model =
 
                                                         TipTx id ->
                                                             Misc.getPostOrReply id model
+                                                                |> Maybe.map Misc.getCore
 
                                                         BurnTx id ->
                                                             Misc.getPostOrReply id model
+                                                                |> Maybe.map Misc.getCore
                                                     )
                                                         |> unwrap Cmd.none
                                                             (fetchPostInfo model.blockTimes model.config)
@@ -682,12 +684,7 @@ update msg model =
                     --)
                     let
                         core =
-                            case log of
-                                LogReply p ->
-                                    p.core
-
-                                LogRoot p ->
-                                    p.core
+                            Misc.getCore log
                     in
                     ( addPost log model
                     , fetchPostInfo model.blockTimes model.config core

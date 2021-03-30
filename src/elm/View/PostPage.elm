@@ -22,9 +22,12 @@ import View.Post
 import Wallet
 
 
-view : Model -> Core -> Element Msg
-view model post =
+view : Model -> LogPost -> Element Msg
+view model log =
     let
+        post =
+            Misc.getCore log
+
         isMobile =
             model.dProfile == Mobile
 
@@ -50,8 +53,26 @@ view model post =
         userInfo =
             model.wallet
                 |> Wallet.userInfo
+
+        attrs =
+            [ hover, Background.color black, Font.color white, padding 10, whiteGlowAttributeSmall ]
+
+        breadcrumb =
+            case log of
+                LogReply p ->
+                    Input.button attrs
+                        { onPress = Just <| GotoView <| ViewPost p.parent
+                        , label = text "Parent"
+                        }
+
+                LogRoot p ->
+                    Input.button attrs
+                        { onPress = Just <| GotoView <| ViewTopic p.topic
+                        , label = text <| "#" ++ p.topic
+                        }
     in
-    [ [ post.content.title
+    [ breadcrumb
+    , [ post.content.title
             |> View.Common.whenJust
                 (text
                     >> List.singleton
