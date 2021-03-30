@@ -9,6 +9,7 @@ env:
   ETH_PROVIDER_URL: ${{ secrets.ETH_PROVIDER_URL }}
   XDAI_PROVIDER_URL: ${{ secrets.XDAI_PROVIDER_URL }}
   FAUCET_TOKEN: ${{ secrets.FAUCET_TOKEN }}
+  GA_TRACKING_ID: ${{ secrets.GA_TRACKING_ID }}
 
 jobs:
   build:
