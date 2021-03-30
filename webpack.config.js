@@ -2,9 +2,19 @@ const { resolve } = require("path");
 const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 
-const { ENV, ETH_PROVIDER_URL, XDAI_PROVIDER_URL, FAUCET_TOKEN } = process.env;
+const {
+  ENV,
+  ETH_PROVIDER_URL,
+  XDAI_PROVIDER_URL,
+  FAUCET_TOKEN,
+  GA_TRACKING_ID,
+} = process.env;
 
-if ([ETH_PROVIDER_URL, XDAI_PROVIDER_URL, FAUCET_TOKEN].some((x) => !x)) {
+if (
+  [ETH_PROVIDER_URL, XDAI_PROVIDER_URL, FAUCET_TOKEN, GA_TRACKING_ID].some(
+    (x) => !x
+  )
+) {
   throw "Missing environment variable(s).";
 }
 
@@ -63,12 +73,13 @@ module.exports = {
     new HtmlWebpackPlugin({
       cache: false,
       minify: false,
-      template: "./src/index.html",
+      template: "./src/index.ejs",
     }),
     new webpack.DefinePlugin({
       ETH_PROVIDER_URL: JSON.stringify(ETH_PROVIDER_URL),
       XDAI_PROVIDER_URL: JSON.stringify(XDAI_PROVIDER_URL),
       FAUCET_TOKEN: JSON.stringify(FAUCET_TOKEN),
+      GA_TRACKING_ID: JSON.stringify(GA_TRACKING_ID),
     }),
   ],
 };
