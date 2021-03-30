@@ -531,6 +531,7 @@ update msg model =
                                     |> (\r ->
                                             { r
                                                 | message = Nothing
+                                                , error = Nothing
                                             }
                                        )
                           }
@@ -567,9 +568,21 @@ update msg model =
 
                                     shouldFetch =
                                         balanceEmpty && userInfo.xDaiStatus == WaitingForBalance
-                                in
-                                ( { model
-                                    | wallet =
+
+                                    compose =
+                                        if shouldFetch then
+                                            model.compose
+
+                                        else
+                                            model.compose
+                                                |> (\r ->
+                                                        { r
+                                                            | message = Nothing
+                                                            , error = Nothing
+                                                        }
+                                                   )
+
+                                    wallet =
                                         Active
                                             { userInfo
                                                 | balance = balance
@@ -580,6 +593,10 @@ update msg model =
                                                     else
                                                         userInfo.xDaiStatus
                                             }
+                                in
+                                ( { model
+                                    | wallet = wallet
+                                    , compose = compose
                                   }
                                 , if shouldFetch then
                                     fetchBalance
@@ -1264,6 +1281,7 @@ update msg model =
                                 |> (\r ->
                                         { r
                                             | message = Nothing
+                                            , error = Nothing
                                         }
                                    )
                         , wallet = Active { userInfo | xDaiStatus = WaitingForApi }
@@ -1310,42 +1328,31 @@ update msg model =
                                 let
                                     faucetSuccess =
                                         data.status
-
-                                    ( xDaiStatus, message, newUserNotices ) =
-                                        if faucetSuccess then
-                                            ( WaitingForBalance
-                                            , Nothing
-                                            , model.userNotices
-                                                |> List.append
-                                                    [ UN.faucetRequestSuccessful ]
-                                            )
-
-                                        else
-                                            ( XDaiStandby
-                                            , Just data.message
-                                            , model.userNotices
-                                            )
-
-                                    newModel =
-                                        { model
-                                            | wallet =
-                                                Active
-                                                    { userInfo
-                                                        | xDaiStatus =
-                                                            xDaiStatus
-                                                    }
-                                            , compose =
-                                                model.compose
-                                                    |> (\r ->
-                                                            { r
-                                                                | message =
-                                                                    message
-                                                            }
-                                                       )
-                                            , userNotices = newUserNotices
-                                        }
                                 in
-                                ( newModel
+                                ( { model
+                                    | wallet =
+                                        Active
+                                            { userInfo
+                                                | xDaiStatus =
+                                                    if faucetSuccess then
+                                                        WaitingForBalance
+
+                                                    else
+                                                        XDaiStandby
+                                            }
+                                    , compose =
+                                        model.compose
+                                            |> (\r ->
+                                                    { r
+                                                        | message =
+                                                            if faucetSuccess then
+                                                                Just "Your faucet request was successful. Check your wallet for updated balance."
+
+                                                            else
+                                                                Just data.message
+                                                    }
+                                               )
+                                  }
                                 , if faucetSuccess then
                                     Cmd.batch
                                         [ gTagOut <|
@@ -1494,6 +1501,8 @@ update msg model =
                         |> (\r ->
                                 { r
                                     | modal = False
+                                    , message = Nothing
+                                    , error = Nothing
                                 }
                            )
               }
