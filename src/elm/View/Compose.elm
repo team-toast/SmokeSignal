@@ -355,7 +355,7 @@ viewBurnAmountUX amountInput =
             , padding 5
             , Background.color <| Element.rgb 0.4 0.2 0.2
             , roundBorder
-            , width fill
+            , View.Attrs.cappedWidth 300
             ]
 
 
@@ -393,7 +393,8 @@ viewDonateCheckbox donateChecked =
         |> row
             [ Font.size 15
             , spacing 10
-            , width fill
+            , View.Attrs.cappedWidth 300
+            , Element.alignLeft
             ]
 
 
