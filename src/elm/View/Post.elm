@@ -15,7 +15,7 @@ import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import View.Attrs exposing (hover, roundBorder, slightRound, typeFont, whiteGlowAttributeSmall)
-import View.Common exposing (phaceElement, viewChain, when, whenJust)
+import View.Common exposing (chain, phaceElement, when, whenJust)
 import View.Img
 import View.Markdown
 
@@ -80,7 +80,7 @@ view dProfile timestamp now replies accounting state tooltipState topic wallet p
                                 |> Element.below
                             ]
                 )
-        , View.Common.viewTiming now timestamp
+        , View.Common.timing now timestamp
             |> when (not isMobile)
         ]
             |> column [ spacing 10 ]
@@ -89,9 +89,7 @@ view dProfile timestamp now replies accounting state tooltipState topic wallet p
                 (\t ->
                     Input.button [ Font.size 30, hover, width fill ]
                         { onPress = Just <| GotoView <| ViewTopic t
-                        , label =
-                            [ text ("#" ++ t) ]
-                                |> paragraph []
+                        , label = View.Common.topic t
                         }
                 )
             |> el [ width fill, Element.alignTop ]
@@ -197,7 +195,7 @@ viewCard post =
         ]
         { url = Chain.txUrl post.chain post.txHash
         , label =
-            [ [ viewChain post.chain
+            [ [ chain post.chain
                     |> el [ Font.bold, Font.color col ]
               , [ block
                     |> el [ Font.size 14, alignBottom ]
@@ -225,7 +223,7 @@ viewCardMobile timestamp now post =
                 |> text
 
         timing =
-            View.Common.viewTiming now timestamp
+            View.Common.timing now timestamp
 
         col =
             Chain.getColor post.chain
@@ -241,7 +239,7 @@ viewCardMobile timestamp now post =
         ]
         { url = Chain.txUrl post.chain post.txHash
         , label =
-            [ View.Common.viewChain post.chain
+            [ View.Common.chain post.chain
             , View.Common.verticalRule white
             , block
             , View.Common.verticalRule white

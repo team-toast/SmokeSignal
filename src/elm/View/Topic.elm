@@ -11,6 +11,7 @@ import Set
 import Theme exposing (orange)
 import Types exposing (..)
 import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
+import View.Common
 import View.Post
 import Wallet
 
@@ -80,12 +81,7 @@ view model topic =
 
 topicHeader : String -> Element Msg
 topicHeader topic =
-    [ [ text <| "#" ++ topic
-      ]
-        |> Element.paragraph
-            [ Font.color black
-            , Font.size 35
-            ]
+    [ View.Common.topic topic
     , Input.button
         [ View.Attrs.sansSerifFont
         , padding 10
@@ -106,6 +102,7 @@ topicHeader topic =
             [ width fill
             , whiteGlowAttributeSmall
             , padding 15
-            , Background.color orange
+            , Font.size 35
+            , Background.color black
             , Font.color orange
             ]

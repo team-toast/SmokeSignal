@@ -62,8 +62,7 @@ viewTopics =
                 ]
                 { onPress = Just <| GotoView <| ViewTopic topic
                 , label =
-                    [ [ text topic ]
-                        |> Element.paragraph [ width fill, Font.size 30 ]
+                    [ View.Common.topic topic
                     , [ Element.image
                             [ height <| px 25
                             ]
@@ -80,6 +79,7 @@ viewTopics =
                     ]
                         |> row
                             [ width fill
+                            , Font.size 30
                             ]
                 }
         )
@@ -187,7 +187,7 @@ viewWallet model =
 viewChain : Types.Chain -> Element msg
 viewChain chain =
     chain
-        |> View.Common.viewChain
+        |> View.Common.chain
         |> el
             [ Element.padding 10
             , View.Attrs.roundBorder

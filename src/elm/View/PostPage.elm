@@ -55,31 +55,36 @@ view model log =
             model.wallet
                 |> Wallet.userInfo
 
-        attrs =
-            [ hover, Background.color black, Font.color white, padding 10, whiteGlowAttributeSmall ]
-
         walk curr xs =
             let
                 new =
-                    case curr of
+                    (case curr of
                         LogReply p ->
-                            Input.button attrs
-                                { onPress = Just <| GotoView <| ViewPost p.parent
-                                , label =
-                                    p.core.txHash
-                                        |> Eth.Utils.txHashToString
-                                        |> text
-                                        |> el
-                                            [ width <| px 70
-                                            , View.Attrs.style "overflow" "hidden"
-                                            ]
-                                }
+                            ( ViewPost p.parent
+                            , p.core.txHash
+                                |> Eth.Utils.txHashToString
+                            )
 
                         LogRoot p ->
-                            Input.button attrs
-                                { onPress = Just <| GotoView <| ViewTopic p.topic
-                                , label = text <| "#" ++ p.topic
-                                }
+                            ( ViewTopic p.topic
+                            , "#" ++ p.topic
+                            )
+                    )
+                        |> (\( goTo, label ) ->
+                                Input.button
+                                    [ padding 10
+                                    , whiteGlowAttributeSmall
+                                    , Background.color black
+                                    , hover
+                                    , Font.color white
+                                    , View.Attrs.title label
+                                    ]
+                                    { onPress = Just <| GotoView goTo
+                                    , label =
+                                        View.Common.ellipsisText 20 label
+                                            |> el [ width <| px 90 ]
+                                    }
+                           )
 
                 id =
                     case curr of
@@ -103,7 +108,7 @@ view model log =
         breadcrumb =
             walk log []
                 |> List.intersperse (el [ Font.color white, Font.bold ] <| text "/")
-                |> row [ spacing 10 ]
+                |> Element.wrappedRow [ spacing 10 ]
     in
     [ breadcrumb
     , [ post.content.title
@@ -126,7 +131,7 @@ view model log =
             |> row [ spacing 10 ]
         , [ model.blockTimes
                 |> Dict.get post.id.block
-                |> View.Common.viewTiming model.now
+                |> View.Common.timing model.now
           , Element.newTabLink [ hover ]
                 { url = Chain.txUrl post.chain post.txHash
                 , label =

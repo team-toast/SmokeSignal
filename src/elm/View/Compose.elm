@@ -100,7 +100,7 @@ view model userInfo =
                 |> row [ spacing 10, width fill ]
           , viewComposeContext model.compose.context model.topicInput
                 |> el [ Element.alignRight ]
-          , View.Common.viewChain userInfo.chain
+          , View.Common.chain userInfo.chain
                 |> el
                     [ Background.color white
                     , View.Attrs.roundBorder

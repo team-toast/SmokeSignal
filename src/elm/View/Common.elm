@@ -1,9 +1,9 @@
-module View.Common exposing (appStatusMessage, cancel, ellipsisText, horizontalRule, phaceElement, spinner, verticalRule, viewChain, viewLink, viewTiming, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (appStatusMessage, cancel, chain, ellipsisText, horizontalRule, link, phaceElement, spinner, timing, topic, verticalRule, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
 
-import Element exposing (Attribute, Color, Element, centerX, column, el, fill, height, padding, px, row, spacing, text, width)
+import Element exposing (Attribute, Color, Element, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -24,8 +24,16 @@ import View.Attrs exposing (hover, style)
 import View.Img
 
 
-viewChain : Types.Chain -> Element msg
-viewChain c =
+topic : String -> Element msg
+topic =
+    (++) "#"
+        >> text
+        >> List.singleton
+        >> paragraph [ Font.color Theme.orange ]
+
+
+chain : Types.Chain -> Element msg
+chain c =
     let
         txt =
             case c of
@@ -212,8 +220,8 @@ spinner size color =
         |> el [ View.Attrs.rotate ]
 
 
-viewTiming : Time.Posix -> Maybe Time.Posix -> Element Msg
-viewTiming now =
+timing : Time.Posix -> Maybe Time.Posix -> Element Msg
+timing now =
     unwrap
         (spinner 20 white
             |> el [ centerX ]
@@ -227,8 +235,8 @@ viewTiming now =
         )
 
 
-viewLink : String -> String -> Element msg
-viewLink url txt =
+link : String -> String -> Element msg
+link url txt =
     Element.newTabLink
         [ hover, Font.color Theme.orange, Font.underline ]
         { url = url
