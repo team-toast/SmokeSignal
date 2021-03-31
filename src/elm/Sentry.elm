@@ -1,14 +1,4 @@
-module Sentry exposing
-    ( EventSentry, Msg, Ref, init, stopWatching, update, watch, watchOnce
-    , currentBlock
-    )
-
-{-| Event Sentry - HTTP Style - Polling ftw
-
-@docs EventSentry, Msg, Ref, init, stopWatching, update, watch, watchOnce
-@docs currentBlock
-
--}
+module Sentry exposing (EventSentry, Msg, init, update, watch)
 
 import Dict exposing (Dict)
 import Eth
@@ -74,16 +64,6 @@ init tagger nodePath =
     )
 
 
-{-| Returns the first log found.
-If a block range is defined in the LogFilter,
-this will only return the first log found within that given block range.
--}
-watchOnce : (Log -> msg) -> EventSentry msg -> LogFilter -> ( EventSentry msg, Cmd msg )
-watchOnce onReceive eventSentry logFilter =
-    watch_ True onReceive eventSentry logFilter
-        |> (\( eventSentry_, cmd, _ ) -> ( eventSentry_, cmd ))
-
-
 {-| Continuously polls for logs in newly mined blocks.
 If the range within the LogFilter includes past blocks,
 then all events within the given block range are returned,
@@ -93,19 +73,6 @@ Polling continues until `stopWatching` is called.
 watch : (Log -> msg) -> EventSentry msg -> LogFilter -> ( EventSentry msg, Cmd msg, Ref )
 watch =
     watch_ False
-
-
-{-| -}
-stopWatching : Ref -> EventSentry msg -> EventSentry msg
-stopWatching ref (EventSentry sentry) =
-    EventSentry { sentry | watching = Set.remove ref sentry.watching }
-
-
-{-| The Event Sentry polls for the latest block. Might as well allow the user to see it.
--}
-currentBlock : EventSentry msg -> Maybe Int
-currentBlock (EventSentry { blockNumber }) =
-    blockNumber
 
 
 
