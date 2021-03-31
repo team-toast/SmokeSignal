@@ -100,7 +100,7 @@ type Msg
     | ComposeDollarChange String
     | PostInputChange String
     | TopicInputChange String
-    | SetPostInput PostId ShowInputState
+    | SetPostInput PostId TxType
     | CancelPostInput
     | WalletResponse (Result WalletConnectErr UserInfo)
     | TopicSubmit
@@ -112,8 +112,8 @@ type Msg
     | PostResponse (Result TxErr TxHash)
     | BurnOrTipResponse (Result TxErr TxHash)
     | PriceResponse (Result Http.Error Float)
-    | BurnOrTipPriceResponse PostState (Result Http.Error Float)
-    | SubmitPostTx
+    | BurnOrTipPriceResponse TxState (Result Http.Error Float)
+    | SubmitTipOrBurn
     | SubmitFaucet
     | SetSortType SortType
     | FaucetResponse (Result Http.Error FaucetResult)
@@ -204,7 +204,7 @@ type alias Config =
 type alias PostState =
     { id : PostId
     , input : String
-    , showInput : ShowInputState
+    , txType : TxType
     , inProgress : Bool
     , error : Maybe String
     }
@@ -212,11 +212,11 @@ type alias PostState =
 
 type alias TooltipState =
     { id : PostId
-    , labelType : ShowInputState
+    , labelType : TxType
     }
 
 
-type ShowInputState
+type TxType
     = Burn
     | Tip
 
@@ -335,6 +335,13 @@ type Context
 type alias PostId =
     { block : Int
     , messageHash : Hex
+    }
+
+
+type alias TxState =
+    { postHash : Hex
+    , txType : TxType
+    , amount : Float
     }
 
 

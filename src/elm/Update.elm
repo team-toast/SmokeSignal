@@ -295,7 +295,7 @@ update msg model =
                                                 (\state ->
                                                     { txHash = txHash
                                                     , txInfo =
-                                                        case state.showInput of
+                                                        case state.txType of
                                                             Tip ->
                                                                 TipTx state.id
 
@@ -985,27 +985,48 @@ update msg model =
                     )
                 )
 
-        SubmitPostTx ->
+        SubmitTipOrBurn ->
             ensureUserInfo
                 (\userInfo ->
                     model.postState
                         |> unwrap ( model, Cmd.none )
                             (\state ->
-                                let
-                                    newState =
-                                        { state
-                                            | inProgress = True
-                                            , error = Nothing
-                                        }
-                                in
-                                ( { model
-                                    | postState = Just newState
-                                  }
-                                , SSContract.getEthPriceCmd
-                                    (Chain.getConfig userInfo.chain model.config)
-                                    |> Task.attempt
-                                        (BurnOrTipPriceResponse newState)
-                                )
+                                state.input
+                                    |> String.toFloat
+                                    |> unwrap
+                                        ( { model
+                                            | postState =
+                                                Just
+                                                    { state
+                                                        | error =
+                                                            Just "Invalid tip amount"
+                                                    }
+                                          }
+                                        , Cmd.none
+                                        )
+                                        (\amount ->
+                                            let
+                                                postState =
+                                                    { state
+                                                        | inProgress = True
+                                                        , error = Nothing
+                                                    }
+
+                                                txState =
+                                                    { postHash = state.id.messageHash
+                                                    , amount = amount
+                                                    , txType = state.txType
+                                                    }
+                                            in
+                                            ( { model
+                                                | postState = Just postState
+                                              }
+                                            , SSContract.getEthPriceCmd
+                                                (Chain.getConfig userInfo.chain model.config)
+                                                |> Task.attempt
+                                                    (BurnOrTipPriceResponse txState)
+                                            )
+                                        )
                             )
                 )
 
@@ -1016,14 +1037,15 @@ update msg model =
                         |> unpack
                             (\_ ->
                                 let
-                                    compose =
-                                        model.compose
-                                            |> (\r ->
+                                    postState =
+                                        model.postState
+                                            |> Maybe.map
+                                                (\r ->
                                                     { r
                                                         | inProgress = False
                                                         , error = Just "There has been a problem."
                                                     }
-                                               )
+                                                )
 
                                     ( newGtagHistory, gtagCmd ) =
                                         GTagData
@@ -1037,79 +1059,53 @@ update msg model =
                                             |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                                 in
                                 ( { model
-                                    | compose = compose
+                                    | postState = postState
                                     , gtagHistory = newGtagHistory
                                   }
                                 , gtagCmd
                                 )
                             )
                             (\price ->
-                                state.input
-                                    |> Misc.dollarStringToToken price
-                                    |> Result.fromMaybe "Invalid tip amount"
-                                    |> unpack
-                                        (\err ->
-                                            let
-                                                gtagCmd =
-                                                    GTagData
-                                                        "burn or tip amount invalid"
-                                                        Nothing
-                                                        Nothing
-                                                        Nothing
-                                                        |> gTagOut
-                                            in
-                                            ( { model
-                                                | userNotices = [ UN.unexpectedError err ]
-                                              }
-                                            , gtagCmd
+                                let
+                                    amount =
+                                        TokenValue.fromFloatWithWarning (state.amount / price)
+
+                                    config =
+                                        Chain.getConfig userInfo.chain model.config
+
+                                    ( fn, tipOrBurn ) =
+                                        case state.txType of
+                                            Tip ->
+                                                ( SSContract.tipForPost, "tip" )
+
+                                            Burn ->
+                                                ( SSContract.burnForPost, "burn" )
+
+                                    txParams =
+                                        fn userInfo config.contract state.postHash amount TokenValue.zero
+                                            |> Eth.toSend
+                                            |> Eth.encodeSend
+
+                                    gtagCmd =
+                                        GTagData
+                                            tipOrBurn
+                                            Nothing
+                                            ((state.postHash
+                                                |> Eth.Utils.hexToString
+                                             )
+                                                ++ tipOrBurn
+                                                ++ "ed"
+                                                |> Just
                                             )
-                                        )
-                                        (\amount ->
-                                            let
-                                                config =
-                                                    Chain.getConfig userInfo.chain model.config
-
-                                                donation =
-                                                    if model.compose.donate then
-                                                        TokenValue.div amount 100
-
-                                                    else
-                                                        TokenValue.zero
-
-                                                ( fn, tipOrBurn ) =
-                                                    case state.showInput of
-                                                        Tip ->
-                                                            ( SSContract.tipForPost, "tip" )
-
-                                                        Burn ->
-                                                            ( SSContract.burnForPost, "burn" )
-
-                                                txParams =
-                                                    fn userInfo config.contract state.id.messageHash amount donation
-                                                        |> Eth.toSend
-                                                        |> Eth.encodeSend
-
-                                                gtagCmd =
-                                                    GTagData
-                                                        tipOrBurn
-                                                        Nothing
-                                                        ((state.id.messageHash
-                                                            |> Eth.Utils.hexToString
-                                                         )
-                                                            ++ tipOrBurn
-                                                            ++ "ed"
-                                                            |> Just
-                                                        )
-                                                        Nothing
-                                                        |> gTagOut
-                                            in
-                                            ( model
-                                            , [ Ports.submitBurnOrTip txParams
-                                              , gtagCmd
-                                              ]
-                                                |> Cmd.batch
-                                            )
-                                        )
+                                            Nothing
+                                            |> gTagOut
+                                in
+                                ( model
+                                , [ Ports.submitBurnOrTip txParams
+                                  , gtagCmd
+                                  ]
+                                    |> Cmd.batch
+                                )
                             )
                 )
 
@@ -1159,7 +1155,7 @@ update msg model =
                 | postState =
                     { id = id
                     , input = ""
-                    , showInput = val
+                    , txType = val
                     , inProgress = False
                     , error = Nothing
                     }

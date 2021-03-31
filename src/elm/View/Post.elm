@@ -345,12 +345,19 @@ viewTipOrBurnInput post state =
             Chain.getName post.chain
 
         title =
-            case state.showInput of
+            case state.txType of
                 Tip ->
                     "Tip " ++ name ++ " for this post, rewarding the author."
 
                 Burn ->
                     "Burn " ++ name ++ " to increase the visibility of this post."
+
+        isEmpty =
+            String.isEmpty state.input
+                || (state.input
+                        |> String.toFloat
+                        |> unwrap False ((==) 0.0)
+                   )
     in
     [ [ text title ]
         |> paragraph []
@@ -388,11 +395,11 @@ viewTipOrBurnInput post state =
             , Font.color black
             ]
             { onPress =
-                if state.inProgress then
+                if state.inProgress || isEmpty then
                     Nothing
 
                 else
-                    Just SubmitPostTx
+                    Just SubmitTipOrBurn
             , label =
                 if state.inProgress then
                     View.Common.spinner 20 black
