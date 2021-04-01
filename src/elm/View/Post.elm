@@ -59,7 +59,7 @@ view dProfile timestamp now replies accounting state tooltipState topic wallet p
                                             txt =
                                                 case val.labelType of
                                                     Tip ->
-                                                        "The author has been tipped $" ++ Misc.formatDollar data.totalTipped ++ " for this post"
+                                                        "Author earned $" ++ Misc.formatDollar data.totalTipped ++ " for this post"
 
                                                     Burn ->
                                                         "Author burned $" ++ Misc.formatDollar post.authorBurn ++ " + crowd amplified $" ++ Misc.formatDollar (TokenValue.sub data.totalBurned post.authorBurn)
