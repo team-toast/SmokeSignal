@@ -180,6 +180,7 @@ update msg model =
                                                     { r
                                                         | inProgress = False
                                                         , modal = False
+                                                        , reply = False
                                                     }
                                                )
                                     , showExpandedTrackedTxs = True
@@ -534,6 +535,7 @@ update msg model =
                                             { r
                                                 | message = Nothing
                                                 , error = Nothing
+                                                , modal = False
                                             }
                                        )
                           }
@@ -1409,10 +1411,80 @@ update msg model =
                         )
                     )
 
+        ReplyOpen id ->
+            if model.wallet == NoneDetected || model.wallet == NetworkReady then
+                ( { model
+                    | compose =
+                        { emptyComposeModel | modal = True }
+                  }
+                , gTagOut <|
+                    GTagData
+                        "onboarding initiated"
+                        Nothing
+                        Nothing
+                        Nothing
+                )
+
+            else
+                let
+                    context =
+                        Types.Reply id
+
+                    gtagCmd =
+                        if Wallet.isActive model.wallet then
+                            GTagData
+                                "reply opened"
+                                Nothing
+                                Nothing
+                                Nothing
+                                |> gTagOut
+
+                        else
+                            Cmd.none
+                in
+                ( { model
+                    | compose =
+                        { emptyComposeModel
+                            | reply = True
+                            , context = context
+                            , title = model.compose.title
+                            , body = model.compose.body
+                        }
+                  }
+                , Cmd.batch
+                    [ gtagCmd
+                    , model.wallet
+                        |> Wallet.userInfo
+                        |> unwrap Cmd.none
+                            (.address
+                                >> Eth.Utils.addressToString
+                                >> Ports.refreshWallet
+                            )
+                    ]
+                )
+
+        CloseComposeError ->
+            ( { model
+                | compose =
+                    model.compose
+                        |> (\r ->
+                                { r
+                                    | error = Nothing
+                                }
+                           )
+              }
+            , Cmd.none
+            )
+
         ComposeOpen ->
             if model.wallet == NoneDetected then
                 ( { model
-                    | compose = { emptyComposeModel | modal = True }
+                    | compose =
+                        if Wallet.isActive model.wallet then
+                            { emptyComposeModel | reply = True }
+
+                        else
+                            { emptyComposeModel | modal = True }
                   }
                 , gTagOut <|
                     GTagData
@@ -1500,6 +1572,7 @@ update msg model =
                                     | modal = False
                                     , message = Nothing
                                     , error = Nothing
+                                    , reply = False
                                 }
                            )
               }

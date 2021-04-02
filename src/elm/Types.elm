@@ -87,6 +87,7 @@ type Msg
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
     | DismissNotice Int
     | ComposeOpen
+    | ReplyOpen PostId
     | ComposeClose
     | CookieConsentGranted
     | GotoView View
@@ -120,6 +121,7 @@ type Msg
     | SetTooltipState TooltipState
     | BalanceResponse (Maybe TokenValue)
     | ExecuteDelayedCmd (Cmd Msg)
+    | CloseComposeError
 
 
 type TxErr
@@ -186,6 +188,7 @@ type alias ComposeModel =
     , dollar : String
     , body : String
     , modal : Bool
+    , reply : Bool
     , donate : Bool
     , context : Context
     , preview : Bool

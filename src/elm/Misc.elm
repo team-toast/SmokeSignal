@@ -69,6 +69,7 @@ emptyComposeModel =
     , dollar = ""
     , body = ""
     , modal = False
+    , reply = False
     , donate = True
     , context = TopLevel defaultTopic
     , preview = False
