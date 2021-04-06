@@ -1,7 +1,7 @@
 module View.PostPage exposing (view)
 
 import Chain
-import Dict
+import Dict exposing (Dict)
 import Element exposing (Color, Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -25,10 +25,10 @@ import Wallet
 
 
 view : Model -> LogPost -> Element Msg
-view model log =
+view model post =
     let
-        post =
-            Misc.getCore log
+        core =
+            Misc.getCore post
 
         isMobile =
             model.dProfile == Mobile
@@ -49,70 +49,15 @@ view model log =
 
         accounting =
             model.accounting
-                |> Dict.get post.key
+                |> Dict.get core.key
                 |> View.Common.whenJust (viewAccounting model.dProfile)
 
         userInfo =
             model.wallet
                 |> Wallet.userInfo
-
-        walk curr xs =
-            let
-                new =
-                    (case curr of
-                        LogReply p ->
-                            ( ViewPost p.parent
-                            , p.core.txHash
-                                |> Eth.Utils.txHashToString
-                            )
-
-                        LogRoot p ->
-                            ( ViewTopic p.topic
-                            , "#" ++ p.topic
-                            )
-                    )
-                        |> (\( goTo, label ) ->
-                                Input.button
-                                    [ padding 10
-                                    , whiteGlowAttributeSmall
-                                    , Background.color black
-                                    , hover
-                                    , Font.color white
-                                    , View.Attrs.title label
-                                    ]
-                                    { onPress = Just <| GotoView goTo
-                                    , label =
-                                        View.Common.ellipsisText 20 label
-                                            |> el [ width <| px 90 ]
-                                    }
-                           )
-
-                id =
-                    case curr of
-                        LogReply p ->
-                            Just p.parent
-
-                        LogRoot _ ->
-                            Nothing
-
-                res =
-                    new :: xs
-            in
-            id
-                |> Maybe.andThen
-                    (\m ->
-                        Misc.getPostOrReply m model
-                    )
-                |> unwrap res
-                    (\val -> walk val res)
-
-        breadcrumb =
-            walk log []
-                |> List.intersperse (el [ Font.color white, Font.bold ] <| text "/")
-                |> Element.wrappedRow [ spacing 10 ]
     in
-    [ breadcrumb
-    , [ post.content.title
+    [ viewBreadcrumbs post model.rootPosts model.replyPosts
+    , [ core.content.title
             |> View.Common.whenJust
                 (text
                     >> List.singleton
@@ -124,17 +69,17 @@ view model log =
       , [ [ accounting
           , phaceElement
                 70
-                post.author
-                (model.showAddressId == Just (PhaceForPublishedPost post.id))
-                (GotoView <| ViewUser post.author)
-          , View.Post.viewCard post
+                core.author
+                (model.showAddressId == Just (PhaceForPublishedPost core.id))
+                (GotoView <| ViewUser core.author)
+          , View.Post.viewCard core
           ]
             |> row [ spacing 10 ]
         , [ model.blockTimes
-                |> Dict.get post.id.block
+                |> Dict.get core.id.block
                 |> View.Common.timing model.now
           , Element.newTabLink [ hover ]
-                { url = Chain.txUrl post.chain post.txHash
+                { url = Chain.txUrl core.chain core.txHash
                 , label =
                     [ View.Img.globe 20 white, text "View on block explorer" ]
                         |> row [ spacing 5, Font.underline ]
@@ -151,7 +96,7 @@ view model log =
                     row [ width fill, Element.spaceEvenly ]
                )
       , View.Common.horizontalRule white
-      , post.content.body
+      , core.content.body
             |> View.Markdown.renderString model.dProfile
             |> el
                 [ width fill
@@ -166,14 +111,14 @@ view model log =
             , Font.color black
             , Element.alignBottom
             ]
-            { onPress = Just <| ReplyOpen post.id
+            { onPress = Just <| ReplyOpen core.id
             , label =
                 [ View.Img.replyArrow 15 black
                 , text "Reply"
                 ]
                     |> row [ spacing 10, Font.size 20 ]
             }
-        , View.Post.viewTipOrBurn post userInfo model.postState
+        , View.Post.viewTipOrBurn core userInfo model.postState
         ]
             |> row [ spacing 10, Element.alignRight ]
             |> when (not model.compose.reply)
@@ -191,7 +136,7 @@ view model log =
             , Font.color white
             ]
     , model.replyIds
-        |> Dict.get post.key
+        |> Dict.get core.key
         |> unwrap [] Set.toList
         |> List.filterMap
             (\id ->
@@ -243,6 +188,67 @@ view model log =
             , width fill
             , sansSerifFont
             ]
+
+
+viewBreadcrumbs : LogPost -> Dict PostKey RootPost -> Dict PostKey ReplyPost -> Element Msg
+viewBreadcrumbs log rootPosts replyPosts =
+    let
+        walk curr acc =
+            let
+                label =
+                    case curr of
+                        LogReply p ->
+                            p.core.txHash
+                                |> Eth.Utils.txHashToString
+
+                        LogRoot p ->
+                            "#" ++ p.topic
+
+                linkTarget =
+                    case curr of
+                        LogReply p ->
+                            ViewPost p.parent
+
+                        LogRoot p ->
+                            ViewTopic p.topic
+
+                newElement =
+                    Input.button
+                        [ padding 10
+                        , whiteGlowAttributeSmall
+                        , Background.color black
+                        , hover
+                        , Font.color white
+                        , View.Attrs.title label
+                        ]
+                        { onPress = Just <| GotoView linkTarget
+                        , label =
+                            View.Common.ellipsisText 20 label
+                                |> el [ width <| px 90 ]
+                        }
+
+                newAcc =
+                    newElement :: acc
+
+                parentId =
+                    case curr of
+                        LogReply p ->
+                            Just p.parent
+
+                        LogRoot _ ->
+                            Nothing
+            in
+            parentId
+                |> Maybe.andThen
+                    (\parent ->
+                        Misc.getPostOrReply parent rootPosts replyPosts
+                    )
+                |> unwrap newAcc
+                    (\val -> walk val newAcc)
+    in
+    walk log []
+        |> List.intersperse (el [ Font.color white, Font.bold ] <| text "/")
+        |> Element.wrappedRow [ spacing 10 ]
 
 
 viewReplyInput : ComposeModel -> UserInfo -> Element Msg

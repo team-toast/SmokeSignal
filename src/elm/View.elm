@@ -202,7 +202,7 @@ viewBody model =
                 |> viewFrame model
 
         ViewPost postId ->
-            Misc.getPostOrReply postId model
+            Misc.getPostOrReply postId model.rootPosts model.replyPosts
                 |> Maybe.Extra.unwrap
                     (appStatusMessage
                         Theme.darkGray

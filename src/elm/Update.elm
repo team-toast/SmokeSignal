@@ -399,11 +399,11 @@ update msg model =
                                                             Nothing
 
                                                         TipTx id ->
-                                                            Misc.getPostOrReply id model
+                                                            Misc.getPostOrReply id model.rootPosts model.replyPosts
                                                                 |> Maybe.map Misc.getCore
 
                                                         BurnTx id ->
-                                                            Misc.getPostOrReply id model
+                                                            Misc.getPostOrReply id model.rootPosts model.replyPosts
                                                                 |> Maybe.map Misc.getCore
                                                     )
                                                         |> unwrap Cmd.none

@@ -277,16 +277,16 @@ validateTopic =
            )
 
 
-getPostOrReply : PostId -> Model -> Maybe LogPost
-getPostOrReply id model =
+getPostOrReply : PostId -> Dict PostKey RootPost -> Dict PostKey ReplyPost -> Maybe LogPost
+getPostOrReply id rootPosts replyPosts =
     let
         key =
             postIdToKey id
     in
-    model.rootPosts
+    rootPosts
         |> Dict.get key
         |> Maybe.Extra.unwrap
-            (model.replyPosts
+            (replyPosts
                 |> Dict.get key
                 |> Maybe.map LogReply
             )
