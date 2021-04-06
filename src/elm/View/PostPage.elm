@@ -72,12 +72,12 @@ view model post =
                 core.author
                 (model.showAddressId == Just (PhaceForPublishedPost core.id))
                 (GotoView <| ViewUser core.author)
-          , View.Post.viewCard core
+          , View.Post.viewChainCard model.dProfile core
           ]
             |> row [ spacing 10 ]
         , [ model.blockTimes
                 |> Dict.get core.id.block
-                |> View.Common.timing model.now
+                |> View.Common.timingOrSpinner model.now
           , Element.newTabLink [ hover ]
                 { url = Chain.txUrl core.chain core.txHash
                 , label =
@@ -133,7 +133,7 @@ view model post =
                     ]
                         |> row [ spacing 10, Font.size 20 ]
                 }
-          , View.Post.viewTipOrBurn core userInfo model.postState
+          , View.Post.viewBurnOrTipUX core userInfo model.maybeBurnOrTipUX
           ]
             |> row [ spacing 10, Element.alignRight ]
         ]
@@ -182,8 +182,8 @@ view model post =
                     (model.accounting
                         |> Dict.get reply.core.key
                     )
-                    model.postState
-                    model.tooltipState
+                    model.maybeBurnOrTipUX
+                    model.maybeActiveTooltip
                     Nothing
                     userInfo
                     reply.core

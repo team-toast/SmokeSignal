@@ -220,6 +220,8 @@ update msg model =
                             (\err ->
                                 case err of
                                     Types.UserRejected ->
+                                        -- this could happen if the user clicks twice, accepts the first, then rejects the second.
+                                        -- Even though a tx is mining, the dapp will tell the user it has failed.
                                         let
                                             gtagCmd =
                                                 GTagData
@@ -230,8 +232,8 @@ update msg model =
                                                     |> gTagOut
                                         in
                                         ( { model
-                                            | postState =
-                                                model.postState
+                                            | maybeBurnOrTipUX =
+                                                model.maybeBurnOrTipUX
                                                     |> Maybe.map
                                                         (\r ->
                                                             { r
@@ -255,8 +257,8 @@ update msg model =
                                                     |> gTagOut
                                         in
                                         ( { model
-                                            | postState =
-                                                model.postState
+                                            | maybeBurnOrTipUX =
+                                                model.maybeBurnOrTipUX
                                                     |> Maybe.map
                                                         (\r ->
                                                             { r
@@ -275,17 +277,17 @@ update msg model =
                             (\txHash ->
                                 let
                                     trackedTx =
-                                        model.postState
+                                        model.maybeBurnOrTipUX
                                             |> Maybe.map
-                                                (\state ->
+                                                (\burnOrTipUX ->
                                                     { txHash = txHash
                                                     , txInfo =
-                                                        case state.txType of
+                                                        case burnOrTipUX.burnOrTip of
                                                             Tip ->
-                                                                TipTx state.id
+                                                                TipTx burnOrTipUX.id
 
                                                             Burn ->
-                                                                BurnTx state.id
+                                                                BurnTx burnOrTipUX.id
                                                     , status = Mining
                                                     , chain = userInfo.chain
                                                     }
@@ -302,7 +304,7 @@ update msg model =
                                             |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                                 in
                                 ( { model
-                                    | postState = Nothing
+                                    | maybeBurnOrTipUX = Nothing
                                     , userNotices =
                                         model.userNotices
                                             |> List.append [ UN.notify "Your transaction is mining." ]
@@ -987,16 +989,16 @@ update msg model =
         SubmitTipOrBurn ->
             ensureUserInfo
                 (\userInfo ->
-                    model.postState
+                    model.maybeBurnOrTipUX
                         |> unwrap ( model, Cmd.none )
-                            (\state ->
-                                state.input
+                            (\burnOrTipUX ->
+                                burnOrTipUX.input
                                     |> String.toFloat
                                     |> unwrap
                                         ( { model
-                                            | postState =
+                                            | maybeBurnOrTipUX =
                                                 Just
-                                                    { state
+                                                    { burnOrTipUX
                                                         | error =
                                                             Just "Invalid tip amount"
                                                     }
@@ -1006,19 +1008,19 @@ update msg model =
                                         (\amount ->
                                             let
                                                 postState =
-                                                    { state
+                                                    { burnOrTipUX
                                                         | inProgress = True
                                                         , error = Nothing
                                                     }
 
                                                 txState =
-                                                    { postHash = state.id.messageHash
+                                                    { postHash = burnOrTipUX.id.messageHash
                                                     , amount = amount
-                                                    , txType = state.txType
+                                                    , txType = burnOrTipUX.burnOrTip
                                                     }
                                             in
                                             ( { model
-                                                | postState = Just postState
+                                                | maybeBurnOrTipUX = Just postState
                                               }
                                             , SSContract.getEthPriceCmd
                                                 (Chain.getConfig userInfo.chain model.config)
@@ -1036,8 +1038,8 @@ update msg model =
                         |> unpack
                             (\_ ->
                                 let
-                                    postState =
-                                        model.postState
+                                    maybeBurnOrTipUX =
+                                        model.maybeBurnOrTipUX
                                             |> Maybe.map
                                                 (\r ->
                                                     { r
@@ -1058,7 +1060,7 @@ update msg model =
                                             |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                                 in
                                 ( { model
-                                    | postState = postState
+                                    | maybeBurnOrTipUX = maybeBurnOrTipUX
                                     , gtagHistory = newGtagHistory
                                   }
                                 , gtagCmd
@@ -1149,12 +1151,13 @@ update msg model =
             , gtagCmd
             )
 
-        SetPostInput id val ->
+        StartBurnOrTipUX id burnOrTip ->
+            -- discuss
             ( { model
-                | postState =
+                | maybeBurnOrTipUX =
                     { id = id
                     , input = ""
-                    , txType = val
+                    , burnOrTip = burnOrTip
                     , inProgress = False
                     , error = Nothing
                     }
@@ -1174,7 +1177,7 @@ update msg model =
                         |> gTagOut
             in
             ( { model
-                | postState = Nothing
+                | maybeBurnOrTipUX = Nothing
               }
             , gtagCmd
             )
@@ -1609,10 +1612,10 @@ update msg model =
             , Cmd.none
             )
 
-        PostInputChange str ->
+        BurnOrTipUXInputChange str ->
             ( { model
-                | postState =
-                    model.postState
+                | maybeBurnOrTipUX =
+                    model.maybeBurnOrTipUX
                         |> Maybe.map (\r -> { r | input = str })
               }
             , Cmd.none
@@ -1651,14 +1654,14 @@ update msg model =
             , gtagCmd
             )
 
-        SetTooltipState val ->
+        ToggleTooltip tooltipId ->
             ( { model
-                | tooltipState =
-                    if Just val == model.tooltipState then
+                | maybeActiveTooltip =
+                    if model.maybeActiveTooltip == Just tooltipId then
                         Nothing
 
                     else
-                        Just val
+                        Just tooltipId
               }
             , Cmd.none
             )

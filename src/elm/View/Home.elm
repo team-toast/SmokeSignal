@@ -200,8 +200,8 @@ viewPost model wallet post =
         (model.accounting
             |> Dict.get post.core.key
         )
-        model.postState
-        model.tooltipState
+        model.maybeBurnOrTipUX
+        model.maybeActiveTooltip
         (Just post.topic)
         wallet
         post.core

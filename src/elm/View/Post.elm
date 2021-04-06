@@ -1,4 +1,4 @@
-module View.Post exposing (view, viewCard, viewTipOrBurn)
+module View.Post exposing (view, viewChainCard, viewBurnOrTipUX)
 
 import Chain
 import Element exposing (Color, Element, alignBottom, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spaceEvenly, spacing, text, width)
@@ -6,7 +6,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Element as EH exposing (DisplayProfile, black, white)
+import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal, white)
 import Maybe.Extra exposing (unwrap)
 import Misc
 import Set exposing (Set)
@@ -26,141 +26,327 @@ view :
     -> Posix
     -> Set.Set Types.PostKey
     -> Maybe Accounting
-    -> Maybe PostState
-    -> Maybe TooltipState
+    -> Maybe BurnOrTipUX
+    -> Maybe TooltipId
     -> Maybe String
     -> Maybe UserInfo
     -> Core
     -> Element Msg
-view dProfile timestamp now replies accounting state tooltipState topic wallet post =
-    let
-        isMobile =
-            dProfile == EH.Mobile
-
-        tipOrBurn =
-            viewTipOrBurn post wallet state
-    in
-    [ [ [ accounting
-            |> whenJust
-                (\data ->
-                    [ viewAmount Theme.darkRed
-                        data.totalBurned
-                        { id = post.id, labelType = Burn }
-                    , viewAmount Theme.darkGreen
-                        data.totalTipped
-                        { id = post.id, labelType = Tip }
+view dProfile maybePostTimestamp now replies maybeAccounting maybeBurnOrTipUX maybeTooltipState maybeTopic maybeUserInfo post =
+    column
+        [ Background.color black
+        , Font.color white
+        , whiteGlowAttributeSmall
+        , spacing 10
+        , padding 10
+        , width fill
+        , typeFont
+        ]
+        [ -- header
+          case dProfile of
+            EH.Desktop ->
+                row
+                    [ width fill
+                    , spacing 10
                     ]
-                        |> row
-                            [ spacing 5
-                            , tooltipState
-                                |> whenJust
-                                    (\val ->
-                                        let
-                                            txt =
-                                                case val.labelType of
-                                                    Tip ->
-                                                        "Author earned $" ++ Misc.formatDollar data.totalTipped ++ " for this post"
+                    [ column
+                        [ width fill
+                        , spacing 10
+                        ]
+                        [ postInfoRow dProfile post.id maybePostTimestamp now maybeAccounting maybeTooltipState maybeTopic
+                        , post.content.title
+                            |> Maybe.map (viewTitle dProfile)
+                            |> Maybe.withDefault Element.none
+                        ]
+                    , viewChainCard dProfile post
+                        |> el [ Element.alignTop ]
+                    ]
 
-                                                    Burn ->
-                                                        "Author burned $" ++ Misc.formatDollar post.authorBurn ++ " + crowd amplified $" ++ Misc.formatDollar (TokenValue.sub data.totalBurned post.authorBurn)
-                                        in
-                                        [ text txt ]
-                                            |> paragraph
-                                                [ padding 10
-                                                , (if val.labelType == Burn then
-                                                    Theme.darkRed
+            EH.Mobile ->
+                column
+                    [ width fill
+                    , spacing 10
+                    ]
+                    [ postInfoRow dProfile post.id maybePostTimestamp now maybeAccounting maybeTooltipState maybeTopic
+                    , post.content.title
+                        |> Maybe.map (viewTitle dProfile)
+                        |> Maybe.withDefault Element.none
 
-                                                   else
-                                                    Theme.darkGreen
-                                                  )
-                                                    |> Background.color
-                                                ]
-                                            |> when (val.id == post.id)
-                                    )
-                                |> Element.below
-                            ]
-                )
-        , View.Common.timing now timestamp
-            |> when (not isMobile)
-        ]
-            |> column [ spacing 10 ]
-      , [ topic
-            |> whenJust
-                (\t ->
-                    Input.button [ Font.size 30, hover, width fill ]
-                        { onPress = Just <| GotoView <| ViewTopic t
-                        , label = View.Common.topic t
-                        }
-                )
-            |> el [ width fill, Element.alignTop ]
-        ]
-            |> row [ width fill, spaceEvenly, Element.alignTop ]
-      , viewCard post
-            |> el [ Element.alignTop ]
-            |> when (not isMobile)
-      ]
-        |> row [ width fill, spacing 10 ]
-    , viewCardMobile timestamp now post
-        |> when isMobile
-    , [ phaceElement
-            60
-            post.author
-            False
-            (GotoView <| ViewUser post.author)
-            |> el [ Element.alignTop ]
-      , [ viewContent dProfile post
-            |> linkToPost post.id
-        , [ [ View.Img.speechBubble 17 almostWhite
-            , viewReplies replies
-                |> text
+                    -- , viewChainCard dProfile post
+                    ]
+        , -- body
+          column
+            [ spacing 10
+            , width fill
             ]
-                |> row [ spacing 10, Font.size 23 ]
-                |> linkToPost post.id
-                |> el
-                    [ Element.alignRight
-                    , Element.alignBottom
-                    ]
+            [ row
+                [ spacing 10
+                , width fill
+                ]
+                [ phaceElement
+                    60
+                    post.author
+                    False
+                    (GotoView <| ViewUser post.author)
+                    |> el [ Element.alignTop ]
+                , viewContent dProfile post
+                    |> linkToPost post.id
+                ]
+            , viewUX dProfile replies maybeBurnOrTipUX maybeUserInfo post
+                |> el [ Element.alignRight ]
+            ]
+        ]
+
+
+viewTitle :
+    DisplayProfile
+    -> String
+    -> Element Msg
+viewTitle dProfile title =
+    paragraph
+        [ Font.size (responsiveVal dProfile 30 24)
+        , Font.bold
+        , View.Attrs.sansSerifFont
+        , width fill
+        ]
+        [ Element.text title ]
+
+
+postInfoRow :
+    DisplayProfile
+    -> PostId
+    -> Maybe Posix
+    -> Posix
+    -> Maybe Accounting
+    -> Maybe TooltipId
+    -> Maybe String
+    -> Element Msg
+postInfoRow dProfile postId maybePostTimestamp now maybeAccounting maybeTooltipState maybeTopic =
+    row
+        [ width fill
+        , spacing 10
+        ]
+        [ maybeAccounting
+            |> Maybe.map (viewAccounting dProfile postId)
+            |> Maybe.withDefault Element.none
+        , row
+            [ spacing 10
+            , Element.alignRight
+            , Element.alignTop
+            ]
+            [ maybeTopic
+                |> Maybe.map (viewTopic dProfile)
+                |> Maybe.withDefault Element.none
+            , View.Common.timingOrSpinner now maybePostTimestamp
+            ]
+        ]
+
+
+viewAccounting :
+    DisplayProfile
+    -> PostId
+    -> Accounting
+    -> Element Msg
+viewAccounting dProfile postId accounting =
+    Element.row
+        [ Element.spacing 5 ]
+        [ viewAccountingFigure dProfile
+            Theme.darkRed
+            accounting.totalBurned
+            { id = postId, labelType = Burn }
+        , viewAccountingFigure dProfile
+            Theme.darkGreen
+            accounting.totalTipped
+            { id = postId, labelType = Tip }
+        ]
+
+
+viewTopic :
+    DisplayProfile
+    -> String
+    -> Element Msg
+viewTopic dProfile topic =
+    Input.button
+        [ hover
+        ]
+        { onPress = Just <| GotoView <| ViewTopic topic
+        , label =
+            View.Common.topic topic
+                |> el [ Font.size <| responsiveVal dProfile 16 12 ]
+        }
+
+
+viewUX :
+    DisplayProfile
+    -> Set.Set Types.PostKey
+    -> Maybe BurnOrTipUX
+    -> Maybe UserInfo
+    -> Core
+    -> Element Msg
+viewUX dProfile replies maybeBurnOrTipUX maybeUserInfo post =
+    (case dProfile of
+        Desktop ->
+            row [ width fill, spacing 10 ]
+
+        Mobile ->
+            column [ width fill, spacing 10 ]
+    )
+        [ row
+            [ spacing 10, Font.size 23 ]
+            [ View.Img.speechBubble 17 almostWhite
+            , numRepliesString replies
+                |> text
                 |> el
                     [ Font.color almostWhite
                     , Font.size 17
                     , width fill
                     , height fill
                     ]
-          , tipOrBurn
-          ]
-            |> (if isMobile then
-                    column [ width fill, spacing 10 ]
-
-                else
-                    row [ width fill, spacing 10 ]
-               )
+            ]
+            |> linkToPost post.id
+        , viewBurnOrTipUX post maybeUserInfo maybeBurnOrTipUX
         ]
-            |> column
-                [ spacing 10
-                , width fill
-                ]
-      ]
-        |> row [ width fill, spacing 10 ]
-    ]
-        |> column
-            [ width fill
-            , spacing 10
-            ]
-        |> el
-            [ Background.color black
-            , Font.color white
-            , whiteGlowAttributeSmall
-            , padding 10
-            , width fill
-            , typeFont
-            ]
 
 
-viewTipOrBurn : Core -> Maybe UserInfo -> Maybe PostState -> Element Msg
-viewTipOrBurn post chain =
+
+-- view :
+--     DisplayProfile
+--     -> Maybe Posix
+--     -> Posix
+--     -> Set.Set Types.PostKey
+--     -> Maybe Accounting
+--     -> Maybe PostState
+--     -> Maybe TooltipId
+--     -> Maybe String
+--     -> Maybe UserInfo
+--     -> Core
+--     -> Element Msg
+-- view dProfile timestamp now replies accounting state tooltipState topic wallet post =
+--     let
+--         isMobile =
+--             dProfile == EH.Mobile
+--         tipOrBurn =
+--             viewTipOrBurnUX post wallet state
+--     in
+--     [ [ [ accounting
+--             |> whenJust
+--                 (\data ->
+--                     [ viewAccountingFigure Theme.darkRed
+--                         data.totalBurned
+--                         { id = post.id, labelType = Burn }
+--                     , viewAccountingFigure Theme.darkGreen
+--                         data.totalTipped
+--                         { id = post.id, labelType = Tip }
+--                     ]
+--                         |> row
+--                             [ spacing 5
+--                             , tooltipState
+--                                 |> whenJust
+--                                     (\val ->
+--                                         let
+--                                             txt =
+--                                                 case val.labelType of
+--                                                     Tip ->
+--                                                         "Author earned $" ++ Misc.formatDollar data.totalTipped ++ " for this post"
+--                                                     Burn ->
+--                                                         "Author burned $" ++ Misc.formatDollar post.authorBurn ++ " + crowd amplified $" ++ Misc.formatDollar (TokenValue.sub data.totalBurned post.authorBurn)
+--                                         in
+--                                         [ text txt ]
+--                                             |> paragraph
+--                                                 [ padding 10
+--                                                 , (if val.labelType == Burn then
+--                                                     Theme.darkRed
+--                                                    else
+--                                                     Theme.darkGreen
+--                                                   )
+--                                                     |> Background.color
+--                                                 ]
+--                                             |> when (val.id == post.id)
+--                                     )
+--                                 |> Element.below
+--                             ]
+--                 )
+--         , View.Common.timingOrSpinner now timestamp
+--             |> when (not isMobile)
+--         ]
+--             |> column [ spacing 10 ]
+--       , [ topic
+--             |> whenJust
+--                 (\t ->
+--                     Input.button [ Font.size 30, hover, width fill ]
+--                         { onPress = Just <| GotoView <| ViewTopic t
+--                         , label = View.Common.topic t
+--                         }
+--                 )
+--             |> el [ width fill, Element.alignTop ]
+--         ]
+--             |> row [ width fill, spaceEvenly, Element.alignTop ]
+--       , viewChainCard post
+--             |> el [ Element.alignTop ]
+--             |> when (not isMobile)
+--       ]
+--         |> row [ width fill, spacing 10 ]
+--     , viewCardMobile timestamp now post
+--         |> when isMobile
+--     , [ phaceElement
+--             60
+--             post.author
+--             False
+--             (GotoView <| ViewUser post.author)
+--             |> el [ Element.alignTop ]
+--       , [ viewContent dProfile post
+--             |> linkToPost post.id
+--         , [ [ View.Img.speechBubble 17 almostWhite
+--             , numRepliesString replies
+--                 |> text
+--             ]
+--                 |> row [ spacing 10, Font.size 23 ]
+--                 |> linkToPost post.id
+--                 |> el
+--                     [ Element.alignRight
+--                     , Element.alignBottom
+--                     ]
+--                 |> el
+--                     [ Font.color almostWhite
+--                     , Font.size 17
+--                     , width fill
+--                     , height fill
+--                     ]
+--           , tipOrBurn
+--           ]
+--             |> (if isMobile then
+--                     column [ width fill, spacing 10 ]
+--                 else
+--                     row [ width fill, spacing 10 ]
+--                )
+--         ]
+--             |> column
+--                 [ spacing 10
+--                 , width fill
+--                 ]
+--       ]
+--         |> row [ width fill, spacing 10 ]
+--     ]
+--         |> column
+--             [ width fill
+--             , spacing 10
+--             ]
+--         |> el
+--             [ Background.color black
+--             , Font.color white
+--             , whiteGlowAttributeSmall
+--             , padding 10
+--             , width fill
+--             , typeFont
+--             ]
+-- comment: this seems needlessly opaque
+
+
+viewBurnOrTipUX : Core -> Maybe UserInfo -> Maybe BurnOrTipUX -> Element Msg
+viewBurnOrTipUX post maybeUserInfo =
     let
         showActions =
-            chain
+            maybeUserInfo
                 |> unwrap False (.chain >> (==) post.chain)
     in
     unwrap
@@ -173,8 +359,8 @@ viewTipOrBurn post chain =
         )
 
 
-viewCard : Core -> Element Msg
-viewCard post =
+viewChainCard : DisplayProfile -> Core -> Element Msg
+viewChainCard dProfile post =
     let
         block =
             "@"
@@ -223,7 +409,7 @@ viewCardMobile timestamp now post =
                 |> text
 
         timing =
-            View.Common.timing now timestamp
+            View.Common.timingOrSpinner now timestamp
 
         col =
             Chain.getColor post.chain
@@ -263,9 +449,7 @@ linkToPost id elem =
 
 viewContent : DisplayProfile -> Core -> Element Msg
 viewContent device post =
-    [ post.content.title |> whenJust (text >> List.singleton >> paragraph [ Font.bold ])
-    , post.content.desc |> whenJust (text >> List.singleton >> paragraph [ Font.italic ])
-    , post.content.body
+    [ post.content.body
         |> View.Markdown.renderString device
         |> el
             [ height <| px 100
@@ -300,8 +484,8 @@ viewContent device post =
             ]
 
 
-viewReplies : Set a -> String
-viewReplies replies =
+numRepliesString : Set a -> String
+numRepliesString replies =
     let
         len =
             Set.size replies
@@ -316,8 +500,8 @@ viewReplies replies =
     String.fromInt len ++ " " ++ word
 
 
-viewAmount : Color -> TokenValue -> TooltipState -> Element Msg
-viewAmount color amount state =
+viewAccountingFigure : DisplayProfile -> Color -> TokenValue -> TooltipId -> Element Msg
+viewAccountingFigure dProfile color amount state =
     Input.button
         [ padding 5
         , Border.rounded 3
@@ -327,7 +511,7 @@ viewAmount color amount state =
         , hover
         , View.Attrs.help
         ]
-        { onPress = Just <| SetTooltipState state
+        { onPress = Just <| ToggleTooltip state
         , label =
             [ View.Img.dollar 22 white
             , Misc.formatDollar amount
@@ -338,14 +522,14 @@ viewAmount color amount state =
         }
 
 
-viewTipOrBurnInput : Core -> PostState -> Element Msg
-viewTipOrBurnInput post state =
+viewTipOrBurnInput : Core -> BurnOrTipUX -> Element Msg
+viewTipOrBurnInput post uxState =
     let
         name =
             Chain.getName post.chain
 
         title =
-            case state.txType of
+            case uxState.burnOrTip of
                 Tip ->
                     "Tip " ++ name ++ " for this post, rewarding the author."
 
@@ -353,8 +537,8 @@ viewTipOrBurnInput post state =
                     "Burn " ++ name ++ " to increase the visibility of this post."
 
         isEmpty =
-            String.isEmpty state.input
-                || (state.input
+            String.isEmpty uxState.input
+                || (uxState.input
                         |> String.toFloat
                         |> unwrap False ((==) 0.0)
                    )
@@ -363,18 +547,18 @@ viewTipOrBurnInput post state =
         |> paragraph []
     , [ View.Img.dollar 30 white
       , Input.text [ Font.color black ]
-            { onChange = PostInputChange
+            { onChange = BurnOrTipUXInputChange
             , label = Input.labelHidden ""
             , placeholder =
                 "00.00"
                     |> text
                     |> Input.placeholder []
                     |> Just
-            , text = state.input
+            , text = uxState.input
             }
       ]
         |> row [ spacing 5, width fill ]
-    , state.error
+    , uxState.error
         |> whenJust
             (text
                 >> List.singleton
@@ -395,13 +579,13 @@ viewTipOrBurnInput post state =
             , Font.color black
             ]
             { onPress =
-                if state.inProgress || isEmpty then
+                if uxState.inProgress || isEmpty then
                     Nothing
 
                 else
                     Just SubmitTipOrBurn
             , label =
-                if state.inProgress then
+                if uxState.inProgress then
                     View.Common.spinner 20 black
                         |> el [ centerX ]
 
@@ -423,38 +607,35 @@ viewTipOrBurnInput post state =
 
 viewButtons : Core -> Element Msg
 viewButtons post =
-    [ supportBurnButton post.id
-    , supportTipButton post.id
+    [ burnOrTipButton post.id Burn
+    , burnOrTipButton post.id Tip
     ]
         |> row [ spacing 10, Element.alignRight ]
 
 
-supportTipButton : PostId -> Element Msg
-supportTipButton postId =
+burnOrTipButton : PostId -> BurnOrTip -> Element Msg
+burnOrTipButton postId burnOrTip =
+    let
+        ( bgColor, mouseoverText ) =
+            case burnOrTip of
+                Burn ->
+                    ( Theme.darkRed
+                    , "Burn to increase the visibility of this post."
+                    )
+
+                Tip ->
+                    ( Theme.darkGreen
+                    , "Tip for this post, rewarding the author."
+                    )
+    in
     Input.button
         [ height <| px 40
-        , Background.color Theme.darkGreen
+        , Background.color bgColor
         , width <| px 40
-        , EH.withTitle "Tip for this post, rewarding the author."
+        , EH.withTitle mouseoverText
         , hover
         ]
-        { onPress = Just <| SetPostInput postId Types.Tip
-        , label =
-            View.Img.dollar 30 white
-                |> el [ centerX, centerY ]
-        }
-
-
-supportBurnButton : PostId -> Element Msg
-supportBurnButton postId =
-    Input.button
-        [ height <| px 40
-        , Background.color Theme.darkRed
-        , width <| px 40
-        , EH.withTitle "Burn to increase the visibility of this post."
-        , hover
-        ]
-        { onPress = Just <| SetPostInput postId Types.Burn
+        { onPress = Just <| StartBurnOrTipUX postId burnOrTip
         , label =
             View.Img.dollar 30 white
                 |> el [ centerX, centerY ]
