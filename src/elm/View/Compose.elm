@@ -248,6 +248,18 @@ viewInstructions model userInfo =
                     ]
 
         XDai ->
+            let
+                inProgress =
+                    case userInfo.xDaiStatus of
+                        WaitingForApi ->
+                            True
+
+                        WaitingForBalance ->
+                            True
+
+                        XDaiStandby ->
+                            False
+            in
             [ [ el [ Font.bold ] (text "Note:")
               , text " Your xDai wallet is currently empty."
               ]
@@ -260,9 +272,14 @@ viewInstructions model userInfo =
                 , Font.color black
                 , width <| px 240
                 ]
-                { onPress = Just SubmitFaucet
+                { onPress =
+                    if inProgress then
+                        Nothing
+
+                    else
+                        Just SubmitFaucet
                 , label =
-                    if userInfo.xDaiStatus == WaitingForApi || userInfo.xDaiStatus == WaitingForBalance then
+                    if inProgress then
                         View.Common.spinner 20 black
                             |> el [ centerX ]
 
