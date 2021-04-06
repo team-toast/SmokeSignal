@@ -104,23 +104,40 @@ view model post =
                 , Font.color white
                 ]
       , [ Input.button
-            [ Background.color Theme.orange
+            [ Background.color Theme.green
             , padding 10
             , roundBorder
             , hover
             , Font.color black
-            , Element.alignBottom
             ]
-            { onPress = Just <| ReplyOpen core.id
+            { onPress = Just <| SharePost core
             , label =
-                [ View.Img.replyArrow 15 black
-                , text "Reply"
+                [ View.Img.link 15 black
+                , text "Share"
                 ]
                     |> row [ spacing 10, Font.size 20 ]
             }
-        , View.Post.viewTipOrBurn core userInfo model.postState
-        ]
+            |> when model.shareEnabled
+        , [ Input.button
+                [ Background.color Theme.orange
+                , padding 10
+                , roundBorder
+                , hover
+                , Font.color black
+                , Element.alignBottom
+                ]
+                { onPress = Just <| ReplyOpen core.id
+                , label =
+                    [ View.Img.replyArrow 15 black
+                    , text "Reply"
+                    ]
+                        |> row [ spacing 10, Font.size 20 ]
+                }
+          , View.Post.viewTipOrBurn core userInfo model.postState
+          ]
             |> row [ spacing 10, Element.alignRight ]
+        ]
+            |> row [ width fill, Element.spaceEvenly ]
             |> when (not model.compose.reply)
       , userInfo
             |> whenJust

@@ -181,6 +181,7 @@ startApp flags url model =
         , newUserModal = flags.newUser
         , alphaUrl = alphaUrl
         , faucetToken = flags.faucetToken
+        , shareEnabled = flags.shareEnabled
       }
     , Cmd.batch
         [ ethCmd

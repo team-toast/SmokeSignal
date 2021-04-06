@@ -28,6 +28,7 @@ type alias Flags =
     , hasWallet : Bool
     , chains : Value
     , faucetToken : String
+    , shareEnabled : Bool
     }
 
 
@@ -67,6 +68,7 @@ type alias Model =
     , chainSwitchInProgress : Bool
     , faucetToken : String
     , gtagHistory : GTag.GTagHistory
+    , shareEnabled : Bool
     }
 
 
@@ -122,6 +124,7 @@ type Msg
     | BalanceResponse (Maybe TokenValue)
     | ExecuteDelayedCmd (Cmd Msg)
     | CloseComposeError
+    | SharePost Core
 
 
 type TxErr

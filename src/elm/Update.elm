@@ -965,6 +965,20 @@ update msg model =
                             )
                 )
 
+        SharePost core ->
+            let
+                title =
+                    core.content.title
+                        |> Maybe.withDefault "SmokeSignal"
+
+                url =
+                    Routing.viewUrlToPathString (ViewPost core.id)
+            in
+            ( model
+            , Misc.encodeShare title url
+                |> Ports.share
+            )
+
         SubmitDraft ->
             ensureUserInfo
                 (\userInfo ->

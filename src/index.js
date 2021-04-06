@@ -72,6 +72,8 @@ window.addEventListener("load", () => {
       .then(app.ports.burnOrTipResponse.send)
       .catch(app.ports.burnOrTipResponse.send)
   );
+
+  app.ports.share.subscribe((params) => window.navigator.share(params));
 });
 
 function startDapp() {
@@ -90,6 +92,7 @@ function startDapp() {
       hasWallet,
       chains,
       faucetToken,
+      shareEnabled: typeof window.navigator.share === "function",
     },
   });
 

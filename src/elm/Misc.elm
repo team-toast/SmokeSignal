@@ -1,4 +1,4 @@
-module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getCore, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
+module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatPosix, getCore, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
 
 import Array
 import Browser.Navigation
@@ -14,7 +14,8 @@ import GTag
 import Helpers.Element
 import Helpers.Time
 import Http
-import Json.Decode as Decode exposing (Decoder)
+import Json.Decode as Decode exposing (Decoder, Value)
+import Json.Encode as Encode
 import Maybe.Extra exposing (unwrap)
 import String.Extra
 import Task exposing (Task)
@@ -60,6 +61,7 @@ emptyModel key =
     , faucetToken = ""
     , gtagHistory = GTag.emptyGtagHistory
     , sortType = HotSort
+    , shareEnabled = False
     }
 
 
@@ -396,3 +398,13 @@ formatFloat numDecimals =
         { usLocale
             | decimals = FormatNumber.Locales.Exact numDecimals
         }
+
+
+{-| <https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share#parameters>
+-}
+encodeShare : String -> String -> Value
+encodeShare title url =
+    [ ( "title", Encode.string title )
+    , ( "url", Encode.string url )
+    ]
+        |> Encode.object
