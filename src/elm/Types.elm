@@ -1,8 +1,6 @@
 module Types exposing (..)
 
 import Array exposing (Array)
-import Browser
-import Browser.Navigation
 import Dict exposing (Dict)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
@@ -29,12 +27,12 @@ type alias Flags =
     , chains : Value
     , faucetToken : String
     , shareEnabled : Bool
+    , href : String
     }
 
 
 type alias Model =
-    { navKey : Browser.Navigation.Key
-    , wallet : Wallet
+    { wallet : Wallet
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
     , sentries :
@@ -73,8 +71,7 @@ type alias Model =
 
 
 type Msg
-    = LinkClicked Browser.UrlRequest
-    | RouteChanged Route
+    = RouteChanged Route
     | Tick Time.Posix
     | ChangeDemoPhaceSrc
     | NewDemoSrc String

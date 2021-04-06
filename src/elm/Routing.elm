@@ -1,4 +1,4 @@
-module Routing exposing (blockParser, encodePostIdQueryParameters, encodeTopic, hexQueryParser, postIdQueryParser, routeParser, topicParser, urlToRoute, viewUrlToPathString)
+module Routing exposing (blockParser, encodePostIdQueryParameters, encodeTopic, hexQueryParser, parseRoute, postIdQueryParser, routeParser, topicParser, viewUrlToPathString)
 
 import Eth.Types exposing (Address, Hex)
 import Eth.Utils
@@ -124,6 +124,37 @@ hexQueryParser label =
         |> Query.map (Maybe.andThen (Eth.Utils.toHex >> Result.toMaybe))
 
 
-urlToRoute : Url -> Route
-urlToRoute url =
-    Maybe.withDefault RouteInvalid (Parser.parse routeParser url)
+parseRoute : String -> Route
+parseRoute =
+    Url.fromString
+        >> Maybe.andThen (fixUrl >> Parser.parse routeParser)
+        >> Maybe.withDefault RouteInvalid
+
+
+fixUrl : Url -> Url
+fixUrl url =
+    let
+        newPath =
+            let
+                defaultEmpty =
+                    url.fragment |> Maybe.withDefault ""
+            in
+            if String.startsWith "!" defaultEmpty then
+                String.dropLeft 1 defaultEmpty
+
+            else
+                defaultEmpty
+
+        ( pathResult, newQuery ) =
+            case String.split "?" newPath of
+                path :: query :: _ ->
+                    ( path, Just query )
+
+                _ ->
+                    ( newPath, url.query )
+    in
+    { url
+        | path = pathResult
+        , fragment = Nothing
+        , query = newQuery
+    }

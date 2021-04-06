@@ -1,7 +1,7 @@
 module App exposing (main)
 
+import Browser
 import Browser.Events
-import Browser.Hashbang
 import Browser.Navigation
 import Chain
 import Contracts.SmokeSignal
@@ -10,7 +10,7 @@ import Eth.Types
 import Helpers.Element
 import Json.Decode
 import Maybe.Extra exposing (unwrap)
-import Misc exposing (tryRouteToView)
+import Misc exposing (emptyModel, tryRouteToView)
 import Ports
 import Random
 import Routing
@@ -26,28 +26,22 @@ import Wallet
 
 main : Program Flags Model Msg
 main =
-    Browser.Hashbang.application
+    Browser.element
         { init = init
         , view = view
         , update = update
         , subscriptions = subscriptions
-        , onUrlRequest = Types.LinkClicked
-        , onUrlChange = Routing.urlToRoute >> Types.RouteChanged
         }
 
 
-init : Flags -> Url -> Browser.Navigation.Key -> ( Model, Cmd Msg )
-init flags url key =
-    let
-        model =
-            Misc.emptyModel key
-    in
+init : Flags -> ( Model, Cmd Msg )
+init flags =
     flags.chains
         |> Json.Decode.decodeValue
             (Chain.chainDecoder flags)
         |> Result.toMaybe
         |> unwrap
-            ( { model
+            ( { emptyModel
                 | userNotices =
                     [ UN.unexpectedError "Config decode failure" ]
               }
@@ -72,25 +66,30 @@ init flags url key =
                                                     | ethereum = data
                                                 }
                                 )
-                                model.config
+                                emptyModel.config
 
                     redirectCmd =
-                        Routing.blockParser url
+                        flags.href
+                            |> Url.fromString
                             |> Maybe.andThen
-                                (\block ->
-                                    if block < config.ethereum.startScanBlock then
-                                        redirectDomain url
+                                (\url ->
+                                    Routing.blockParser url
+                                        |> Maybe.andThen
+                                            (\block ->
+                                                if block < config.ethereum.startScanBlock then
+                                                    redirectDomain url
 
-                                    else
-                                        Nothing
+                                                else
+                                                    Nothing
+                                            )
                                 )
 
                     modelWithConfig =
-                        { model | config = config }
+                        { emptyModel | config = config }
                 in
                 redirectCmd
                     |> unwrap
-                        (startApp flags url modelWithConfig)
+                        (startApp flags modelWithConfig)
                         (\redirect ->
                             ( modelWithConfig
                             , redirect
@@ -124,18 +123,24 @@ redirectDomain url =
             )
 
 
-startApp : Flags -> Url -> Model -> ( Model, Cmd Msg )
-startApp flags url model =
+startApp : Flags -> Model -> ( Model, Cmd Msg )
+startApp flags model =
     let
         route =
-            Routing.urlToRoute url
+            Routing.parseRoute flags.href
 
         alphaUrl =
-            if String.endsWith ".eth" url.host then
-                "https://" ++ alphaHost
+            flags.href
+                |> Url.fromString
+                |> unwrap
+                    ("https://" ++ alphaHost)
+                    (\url ->
+                        if String.endsWith ".eth" url.host then
+                            "https://" ++ alphaHost
 
-            else
-                "https://" ++ alphaHost ++ ".link"
+                        else
+                            "https://" ++ alphaHost ++ ".link"
+                    )
 
         ( view, routingUserNotices ) =
             case tryRouteToView route of
@@ -236,4 +241,5 @@ subscriptions _ =
         , Ports.postResponse (Wallet.rpcResponseDecoder >> Types.PostResponse)
         , Ports.chainSwitchResponse (Wallet.chainSwitchDecoder >> Types.ChainSwitchResponse)
         , Ports.balanceResponse (Wallet.balanceDecoder >> Types.BalanceResponse)
+        , Ports.onUrlChange (Routing.parseRoute >> Types.RouteChanged)
         ]

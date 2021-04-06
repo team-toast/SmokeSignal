@@ -1,8 +1,6 @@
 module Update exposing (update)
 
 import Array
-import Browser
-import Browser.Navigation
 import Chain
 import Contracts.SmokeSignal as SSContract
 import DemoPhaceSrcMutator
@@ -42,20 +40,6 @@ update msg model =
                 |> unwrap ( model, Ports.log "Missing wallet" ) fn
     in
     case msg of
-        LinkClicked urlRequest ->
-            let
-                cmd =
-                    case urlRequest of
-                        Browser.Internal url ->
-                            pushUrlPathAndUpdateGtagAnalyticsCmd
-                                model.navKey
-                                ("#" ++ (url.fragment |> Maybe.withDefault "!"))
-
-                        Browser.External href ->
-                            Browser.Navigation.load href
-            in
-            ( model, cmd )
-
         RouteChanged route ->
             handleRoute model route
 
@@ -800,7 +784,6 @@ update msg model =
             in
             ( model
             , pushUrlPathAndUpdateGtagAnalyticsCmd
-                model.navKey
                 urlString
             )
 
@@ -1410,7 +1393,6 @@ update msg model =
                     (\topic ->
                         ( model
                         , [ pushUrlPathAndUpdateGtagAnalyticsCmd
-                                model.navKey
                                 (Routing.viewUrlToPathString <| ViewTopic topic)
                           , GTagData
                                 "search topic valid"
@@ -1682,59 +1664,61 @@ update msg model =
             )
 
 
-pushUrlPathAndUpdateGtagAnalyticsCmd : Browser.Navigation.Key -> String -> Cmd Msg
-pushUrlPathAndUpdateGtagAnalyticsCmd navKey urlPath =
+pushUrlPathAndUpdateGtagAnalyticsCmd : String -> Cmd Msg
+pushUrlPathAndUpdateGtagAnalyticsCmd urlPath =
     Cmd.batch
-        [ Browser.Navigation.pushUrl
-            navKey
-            urlPath
+        [ Ports.pushUrl urlPath
         , Ports.setGtagUrlPath ("/" ++ urlPath)
         ]
 
 
 handleRoute : Model -> Route -> ( Model, Cmd Msg )
 handleRoute model route =
+    let
+        defaultTitle =
+            Ports.setTitle "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
+    in
     case route of
         RouteTopics ->
             ( { model
                 | view = ViewTopics
               }
-            , Cmd.none
+            , defaultTitle
             )
 
         RouteHome ->
             ( { model
                 | view = ViewHome
               }
-            , Cmd.none
+            , defaultTitle
             )
 
         RouteTxns ->
             ( { model
                 | view = ViewTxns
               }
-            , Cmd.none
+            , defaultTitle
             )
 
         RouteWallet ->
             ( { model
                 | view = ViewWallet
               }
-            , Cmd.none
+            , defaultTitle
             )
 
         RouteAbout ->
             ( { model
                 | view = ViewAbout
               }
-            , Cmd.none
+            , defaultTitle
             )
 
         RouteUser addr ->
             ( { model
                 | view = ViewUser addr
               }
-            , Cmd.none
+            , defaultTitle
             )
 
         RouteInvalid ->
@@ -1742,16 +1726,28 @@ handleRoute model route =
                 | userNotices =
                     [ UN.routeNotFound Nothing ]
               }
-            , Cmd.none
+            , defaultTitle
             )
 
         RouteViewPost id ->
             ( { model
                 | view = ViewPost id
               }
-            , Dict.get (Misc.postIdToKey id) model.rootPosts
-                |> Maybe.andThen (.core >> .content >> .desc)
-                |> unwrap Cmd.none Ports.setDescription
+            , Dict.get (postIdToKey id) model.rootPosts
+                |> unwrap defaultTitle
+                    (\post ->
+                        [ post.core.content.title
+                            |> unwrap defaultTitle
+                                (\title ->
+                                    title
+                                        ++ " | SmokeSignal"
+                                        |> Ports.setTitle
+                                )
+                        , post.core.content.desc
+                            |> unwrap Cmd.none Ports.setDescription
+                        ]
+                            |> Cmd.batch
+                    )
             )
 
         RouteTopic topic ->
@@ -1763,16 +1759,22 @@ handleRoute model route =
                             [ UN.routeNotFound Nothing ]
                         , view = ViewHome
                       }
-                    , Cmd.none
+                    , defaultTitle
                     )
                     (\t ->
                         ( { model
                             | view = ViewTopic t
                           }
-                        , "Discussions related to #"
-                            ++ topic
-                            ++ " on SmokeSignal"
-                            |> Ports.setDescription
+                        , [ "Discussions related to #"
+                                ++ topic
+                                ++ " on SmokeSignal"
+                                |> Ports.setDescription
+                          , "#"
+                                ++ topic
+                                ++ " | SmokeSignal"
+                                |> Ports.setTitle
+                          ]
+                            |> Cmd.batch
                         )
                     )
 

@@ -1,7 +1,6 @@
-module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatPosix, getCore, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
+module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatPosix, getCore, getPostOrReply, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
 
 import Array
-import Browser.Navigation
 import Dict exposing (Dict)
 import Eth.Decode
 import Eth.Encode
@@ -24,10 +23,9 @@ import TokenValue exposing (TokenValue)
 import Types exposing (..)
 
 
-emptyModel : Browser.Navigation.Key -> Model
-emptyModel key =
-    { navKey = key
-    , view = ViewHome
+emptyModel : Model
+emptyModel =
+    { view = ViewHome
     , wallet = Types.NoneDetected
     , newUserModal = False
     , now = Time.millisToPosix 0
@@ -106,40 +104,6 @@ emptyAddress =
 initDemoPhaceSrc : String
 initDemoPhaceSrc =
     "2222222222222222222222222228083888c8f222"
-
-
-getTitle : Model -> String
-getTitle model =
-    let
-        defaultMain =
-            "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
-    in
-    case model.view of
-        ViewHome ->
-            defaultMain
-
-        ViewTopics ->
-            defaultMain
-
-        ViewPost postId ->
-            Dict.get (postIdToKey postId) model.rootPosts
-                |> Maybe.andThen (.core >> .content >> .title)
-                |> unwrap defaultMain (\contextTitle -> contextTitle ++ " | SmokeSignal")
-
-        ViewTopic topic ->
-            "#" ++ topic ++ " | SmokeSignal"
-
-        ViewWallet ->
-            defaultMain
-
-        ViewTxns ->
-            defaultMain
-
-        ViewAbout ->
-            defaultMain
-
-        ViewUser _ ->
-            defaultMain
 
 
 defaultSeoDescription : String
