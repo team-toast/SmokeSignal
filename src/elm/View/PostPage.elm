@@ -124,7 +124,7 @@ view model post =
             |> when (not model.compose.reply)
       , userInfo
             |> whenJust
-                (viewReplyInput model.compose)
+                (viewReplyInput isMobile model.compose)
             |> when model.compose.reply
       ]
         |> column
@@ -251,8 +251,8 @@ viewBreadcrumbs log rootPosts replyPosts =
         |> Element.wrappedRow [ spacing 10 ]
 
 
-viewReplyInput : ComposeModel -> UserInfo -> Element Msg
-viewReplyInput compose userInfo =
+viewReplyInput : Bool -> ComposeModel -> UserInfo -> Element Msg
+viewReplyInput isMobile compose userInfo =
     let
         submitEnabled =
             not (String.isEmpty compose.body)
@@ -335,6 +335,7 @@ viewReplyInput compose userInfo =
                 ]
         ]
             |> row [ spacing 10, Element.moveUp 5 ]
+            |> when (not isMobile)
       ]
         |> row [ width fill, Element.spaceEvenly ]
     , [ viewMarkdown compose
@@ -371,6 +372,7 @@ viewReplyInput compose userInfo =
                 |> el [ width fill ]
           ]
             |> row [ spacing 10, width fill ]
+            |> when (not isMobile)
         , [ View.Common.cancel ComposeClose
                 |> el [ Font.color black ]
           , Input.button
