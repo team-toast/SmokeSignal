@@ -1,4 +1,4 @@
-module View.Post exposing (view, viewChainCard, viewBurnOrTipUX)
+module View.Post exposing (view, viewBurnOrTipUX, viewChainCard)
 
 import Chain
 import Element exposing (Color, Element, alignBottom, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spaceEvenly, spacing, text, width)
