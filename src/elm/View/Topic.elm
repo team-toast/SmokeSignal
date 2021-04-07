@@ -5,7 +5,7 @@ import Element exposing (Element, centerX, column, el, fill, height, padding, ro
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Element exposing (black, white)
+import Helpers.Element exposing (DisplayProfile(..), black, white)
 import Misc
 import Set
 import Theme exposing (orange)
@@ -60,8 +60,8 @@ view model topic =
                         (model.accounting
                             |> Dict.get post.core.key
                         )
-                        model.postState
-                        model.tooltipState
+                        model.maybeBurnOrTipUX
+                        model.maybeActiveTooltip
                         (Just topic)
                         (Wallet.userInfo model.wallet)
                         post.core
@@ -81,7 +81,8 @@ view model topic =
 
 topicHeader : String -> Element Msg
 topicHeader topic =
-    [ View.Common.topic topic
+    [ [ View.Common.topic topic ]
+        |> Element.paragraph []
     , Input.button
         [ View.Attrs.sansSerifFont
         , padding 10

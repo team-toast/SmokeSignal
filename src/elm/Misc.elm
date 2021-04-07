@@ -45,8 +45,8 @@ emptyModel =
     , topicInput = ""
     , config = emptyConfig
     , compose = emptyComposeModel
-    , postState = Nothing
-    , tooltipState = Nothing
+    , maybeBurnOrTipUX = Nothing
+    , maybeActiveTooltip = Nothing
     , rootPosts = Dict.empty
     , replyPosts = Dict.empty
     , replyIds = Dict.empty
@@ -295,10 +295,10 @@ sortPostsFunc sortType blockTimes accounting now =
             Helpers.Time.sub now (postTimeDefaultZero post)
 
         ageFactor post =
-            -- 1 at age zero, falls to 0 when 90 days old
+            -- 1 at age zero, falls to 0 when 10 days old
             Helpers.Time.getRatio
                 (ageOf post)
-                (Helpers.Time.mul Helpers.Time.oneDay 90)
+                (Helpers.Time.mul Helpers.Time.oneDay 10)
                 |> clamp 0 1
                 |> (\ascNum -> 1 - ascNum)
 
@@ -311,7 +311,7 @@ sortPostsFunc sortType blockTimes accounting now =
                 |> TokenValue.toFloatWithWarning
 
         newnessMultiplier post =
-            (ageFactor post * 4.0) + 1
+            (ageFactor post * 9.0) + 1
     in
     case sortType of
         BurnSort ->

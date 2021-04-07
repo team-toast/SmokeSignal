@@ -61,8 +61,8 @@ view model address =
                         (model.accounting
                             |> Dict.get post.core.key
                         )
-                        model.postState
-                        model.tooltipState
+                        model.maybeBurnOrTipUX
+                        model.maybeActiveTooltip
                         --(Just topic)
                         Nothing
                         (Wallet.userInfo model.wallet)

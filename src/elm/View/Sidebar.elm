@@ -56,31 +56,38 @@ viewTopics =
                 [ width fill
                 , Background.color black
                 , Font.color white
-                , paddingXY 10 5
+                , padding 5
                 , hover
                 , View.Attrs.title topic
                 ]
                 { onPress = Just <| GotoView <| ViewTopic topic
                 , label =
-                    [ View.Common.topic topic
-                    , [ Element.image
-                            [ height <| px 25
+                    row
+                        [ width fill
+                        , Font.size 26
+                        ]
+                        [ "#"
+                            ++ topic
+                            |> View.Common.ellipsisText 30
+                            |> el [ Font.color Theme.orange, width fill ]
+                        , row
+                            [ Element.alignTop
+                            , Element.alignRight
+                            , spacing 5
                             ]
-                            { src = "./favicon.svg"
-                            , description = "smokesignal logo"
-                            }
-                      , View.Img.dollar 25 softRed
-                      , count.total
-                            |> Misc.formatDollar
-                            |> text
-                            |> el [ Font.size 25, Font.bold, Font.color softRed ]
-                      ]
-                        |> row [ Element.alignTop ]
-                    ]
-                        |> row
-                            [ width fill
-                            , Font.size 30
+                            [ View.Img.dollar 25 softRed
+                            , count.total
+                                |> Misc.formatDollar
+                                |> text
+                                |> el [ Font.size 25, Font.bold, Font.color softRed ]
+                            , Element.image
+                                [ height <| px 25
+                                ]
+                                { src = "./favicon.svg"
+                                , description = "smokesignal logo"
+                                }
                             ]
+                        ]
                 }
         )
         >> column [ width fill ]

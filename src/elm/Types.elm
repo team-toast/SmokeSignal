@@ -51,8 +51,8 @@ type alias Model =
     , maybeSeoDescription : Maybe String
     , topicInput : String
     , newUserModal : Bool
-    , postState : Maybe PostState
-    , tooltipState : Maybe TooltipState
+    , maybeBurnOrTipUX : Maybe BurnOrTipUX
+    , maybeActiveTooltip : Maybe TooltipId
     , config : Config
     , compose : ComposeModel
     , rootPosts : Dict PostKey RootPost
@@ -98,9 +98,9 @@ type Msg
     | ComposeBodyChange String
     | ComposeTitleChange String
     | ComposeDollarChange String
-    | PostInputChange String
+    | BurnOrTipUXInputChange String
     | TopicInputChange String
-    | SetPostInput PostId TxType
+    | StartBurnOrTipUX PostId BurnOrTip
     | CancelPostInput
     | WalletResponse (Result WalletConnectErr UserInfo)
     | TopicSubmit
@@ -117,7 +117,7 @@ type Msg
     | SubmitFaucet
     | SetSortType SortType
     | FaucetResponse (Result Http.Error FaucetResult)
-    | SetTooltipState TooltipState
+    | ToggleTooltip TooltipId
     | BalanceResponse (Maybe TokenValue)
     | ExecuteDelayedCmd (Cmd Msg)
     | CloseComposeError
@@ -204,22 +204,22 @@ type alias Config =
     }
 
 
-type alias PostState =
-    { id : PostId
+type alias BurnOrTipUX =
+    { id : PostId -- What if the interface happens to display the same post twice on a page?
     , input : String
-    , txType : TxType
-    , inProgress : Bool
-    , error : Maybe String
+    , burnOrTip : BurnOrTip
+    , inProgress : Bool -- Should this even be here? Impossible state possible: this is False but there is a tracked transaction for this action
+    , error : Maybe String -- should be a union type. Right?
     }
 
 
-type alias TooltipState =
+type alias TooltipId =
     { id : PostId
-    , labelType : TxType
+    , labelType : BurnOrTip
     }
 
 
-type TxType
+type BurnOrTip
     = Burn
     | Tip
 
@@ -343,7 +343,7 @@ type alias PostId =
 
 type alias TxState =
     { postHash : Hex
-    , txType : TxType
+    , txType : BurnOrTip
     , amount : Float
     }
 

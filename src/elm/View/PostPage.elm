@@ -72,12 +72,12 @@ view model post =
                 core.author
                 (model.showAddressId == Just (PhaceForPublishedPost core.id))
                 (GotoView <| ViewUser core.author)
-          , View.Post.viewCard core
+          , View.Post.viewChainCard model.dProfile core
           ]
             |> row [ spacing 10 ]
         , [ model.blockTimes
                 |> Dict.get core.id.block
-                |> View.Common.timing model.now
+                |> View.Common.timingOrSpinner model.now
           , Element.newTabLink [ hover ]
                 { url = Chain.txUrl core.chain core.txHash
                 , label =
@@ -133,7 +133,7 @@ view model post =
                     ]
                         |> row [ spacing 10, Font.size 20 ]
                 }
-          , View.Post.viewTipOrBurn core userInfo model.postState
+          , View.Post.viewBurnOrTip core userInfo model.maybeBurnOrTipUX
           ]
             |> row [ spacing 10, Element.alignRight ]
         ]
@@ -182,8 +182,8 @@ view model post =
                     (model.accounting
                         |> Dict.get reply.core.key
                     )
-                    model.postState
-                    model.tooltipState
+                    model.maybeBurnOrTipUX
+                    model.maybeActiveTooltip
                     Nothing
                     userInfo
                     reply.core
@@ -210,6 +210,21 @@ view model post =
 viewBreadcrumbs : LogPost -> Dict PostKey RootPost -> Dict PostKey ReplyPost -> Element Msg
 viewBreadcrumbs log rootPosts replyPosts =
     let
+        newBreadcrumb linkTarget label =
+            Input.button
+                [ padding 10
+                , whiteGlowAttributeSmall
+                , Background.color black
+                , hover
+                , Font.color white
+                , View.Attrs.title label
+                ]
+                { onPress = Just <| GotoView linkTarget
+                , label =
+                    View.Common.ellipsisText 20 label
+                        |> el [ width <| px 90 ]
+                }
+
         walk curr acc =
             let
                 label =
@@ -230,19 +245,7 @@ viewBreadcrumbs log rootPosts replyPosts =
                             ViewTopic p.topic
 
                 newElement =
-                    Input.button
-                        [ padding 10
-                        , whiteGlowAttributeSmall
-                        , Background.color black
-                        , hover
-                        , Font.color white
-                        , View.Attrs.title label
-                        ]
-                        { onPress = Just <| GotoView linkTarget
-                        , label =
-                            View.Common.ellipsisText 20 label
-                                |> el [ width <| px 90 ]
-                        }
+                    newBreadcrumb linkTarget label
 
                 newAcc =
                     newElement :: acc
@@ -263,9 +266,27 @@ viewBreadcrumbs log rootPosts replyPosts =
                 |> unwrap newAcc
                     (\val -> walk val newAcc)
     in
-    walk log []
+    walk log [ viewCurrentBreadcrumb log ]
         |> List.intersperse (el [ Font.color white, Font.bold ] <| text "/")
         |> Element.wrappedRow [ spacing 10 ]
+
+
+viewCurrentBreadcrumb : LogPost -> Element Msg
+viewCurrentBreadcrumb curr =
+    let
+        label =
+            Misc.getCore curr
+                |> .txHash
+                |> Eth.Utils.txHashToString
+    in
+    View.Common.ellipsisText 20 label
+        |> el [ width <| px 90 ]
+        |> el
+            [ padding 10
+            , whiteGlowAttributeSmall
+            , Background.color orange
+            , View.Attrs.title label
+            ]
 
 
 viewReplyInput : Bool -> ComposeModel -> UserInfo -> Element Msg

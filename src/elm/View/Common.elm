@@ -1,4 +1,4 @@
-module View.Common exposing (appStatusMessage, cancel, chain, ellipsisText, horizontalRule, link, phaceElement, spinner, timing, topic, verticalRule, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (appStatusMessage, cancel, chain, ellipsisText, horizontalRule, link, phaceElement, spinner, timingOrSpinner, topic, verticalRule, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
@@ -28,8 +28,7 @@ topic : String -> Element msg
 topic =
     (++) "#"
         >> text
-        >> List.singleton
-        >> paragraph [ Font.color Theme.orange ]
+        >> el [ Font.color Theme.orange ]
 
 
 chain : Types.Chain -> Element msg
@@ -220,12 +219,10 @@ spinner size color =
         |> el [ View.Attrs.rotate ]
 
 
-timing : Time.Posix -> Maybe Time.Posix -> Element Msg
-timing now =
+timingOrSpinner : Time.Posix -> Maybe Time.Posix -> Element Msg
+timingOrSpinner now =
     unwrap
-        (spinner 20 white
-            |> el [ centerX ]
-        )
+        (spinner 20 white)
         (\time ->
             TimeHelpers.sub now time
                 |> TimeHelpers.roundToSingleUnit
