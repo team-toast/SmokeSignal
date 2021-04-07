@@ -72,6 +72,15 @@ window.addEventListener("load", () => {
       .then(app.ports.burnOrTipResponse.send)
       .catch(app.ports.burnOrTipResponse.send)
   );
+
+  app.ports.share.subscribe((params) => window.navigator.share(params));
+
+  app.ports.setTitle.subscribe((title) => {
+    // eslint-disable-next-line fp/no-mutation
+    document.title = title;
+  });
+
+  handleUrlChanges(app);
 });
 
 function startDapp() {
@@ -90,6 +99,8 @@ function startDapp() {
       hasWallet,
       chains,
       faucetToken,
+      shareEnabled: typeof window.navigator.share === "function",
+      href: window.location.href,
     },
   });
 
@@ -140,6 +151,19 @@ function seoPortStuff(app) {
 function getCookieConsent() {
   return Boolean(window.localStorage.getItem(COOKIE_CONSENT));
 }
+
 function setCookieConsent() {
   window.localStorage.setItem(COOKIE_CONSENT, true);
 }
+
+const handleUrlChanges = (app) => {
+  // https://github.com/elm/browser/blob/master/notes/navigation-in-elements.md
+  window.addEventListener("popstate", () =>
+    app.ports.onUrlChange.send(location.href)
+  );
+
+  app.ports.pushUrl.subscribe((url) => {
+    history.pushState({}, "", url);
+    app.ports.onUrlChange.send(location.href);
+  });
+};

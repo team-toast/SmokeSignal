@@ -1,16 +1,14 @@
 module Types exposing (..)
 
 import Array exposing (Array)
-import Browser
-import Browser.Navigation
 import Dict exposing (Dict)
-import Eth.Sentry.Event as EventSentry exposing (EventSentry)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
 import GTag
 import Helpers.Element as EH
 import Http
 import Json.Decode exposing (Value)
+import Sentry as EventSentry exposing (EventSentry)
 import Set exposing (Set)
 import Time
 import TokenValue exposing (TokenValue)
@@ -28,17 +26,18 @@ type alias Flags =
     , hasWallet : Bool
     , chains : Value
     , faucetToken : String
+    , shareEnabled : Bool
+    , href : String
     }
 
 
 type alias Model =
-    { navKey : Browser.Navigation.Key
-    , wallet : Wallet
+    { wallet : Wallet
     , now : Time.Posix
     , dProfile : EH.DisplayProfile
     , sentries :
-        { xDai : EventSentry Msg
-        , ethereum : EventSentry Msg
+        { xDai : Maybe (EventSentry Msg)
+        , ethereum : Maybe (EventSentry Msg)
         }
     , view : View
     , sortType : SortType
@@ -52,8 +51,8 @@ type alias Model =
     , maybeSeoDescription : Maybe String
     , topicInput : String
     , newUserModal : Bool
-    , postState : Maybe PostState
-    , tooltipState : Maybe TooltipState
+    , maybeBurnOrTipUX : Maybe BurnOrTipUX
+    , maybeActiveTooltip : Maybe TooltipId
     , config : Config
     , compose : ComposeModel
     , rootPosts : Dict PostKey RootPost
@@ -67,12 +66,12 @@ type alias Model =
     , chainSwitchInProgress : Bool
     , faucetToken : String
     , gtagHistory : GTag.GTagHistory
+    , shareEnabled : Bool
     }
 
 
 type Msg
-    = LinkClicked Browser.UrlRequest
-    | RouteChanged Route
+    = RouteChanged Route
     | Tick Time.Posix
     | ChangeDemoPhaceSrc
     | NewDemoSrc String
@@ -87,6 +86,7 @@ type Msg
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
     | DismissNotice Int
     | ComposeOpen
+    | ReplyOpen PostId
     | ComposeClose
     | CookieConsentGranted
     | GotoView View
@@ -98,9 +98,9 @@ type Msg
     | ComposeBodyChange String
     | ComposeTitleChange String
     | ComposeDollarChange String
-    | PostInputChange String
+    | BurnOrTipUXInputChange String
     | TopicInputChange String
-    | SetPostInput PostId ShowInputState
+    | StartBurnOrTipUX PostId BurnOrTip
     | CancelPostInput
     | WalletResponse (Result WalletConnectErr UserInfo)
     | TopicSubmit
@@ -112,14 +112,16 @@ type Msg
     | PostResponse (Result TxErr TxHash)
     | BurnOrTipResponse (Result TxErr TxHash)
     | PriceResponse (Result Http.Error Float)
-    | BurnOrTipPriceResponse PostState (Result Http.Error Float)
-    | SubmitPostTx
+    | BurnOrTipPriceResponse TxState (Result Http.Error Float)
+    | SubmitTipOrBurn
     | SubmitFaucet
     | SetSortType SortType
     | FaucetResponse (Result Http.Error FaucetResult)
-    | SetTooltipState TooltipState
+    | ToggleTooltip TooltipId
     | BalanceResponse (Maybe TokenValue)
     | ExecuteDelayedCmd (Cmd Msg)
+    | CloseComposeError
+    | SharePost Core
 
 
 type TxErr
@@ -186,6 +188,7 @@ type alias ComposeModel =
     , dollar : String
     , body : String
     , modal : Bool
+    , reply : Bool
     , donate : Bool
     , context : Context
     , preview : Bool
@@ -201,22 +204,22 @@ type alias Config =
     }
 
 
-type alias PostState =
-    { id : PostId
+type alias BurnOrTipUX =
+    { id : PostId -- What if the interface happens to display the same post twice on a page?
     , input : String
-    , showInput : ShowInputState
-    , inProgress : Bool
-    , error : Maybe String
+    , burnOrTip : BurnOrTip
+    , inProgress : Bool -- Should this even be here? Impossible state possible: this is False but there is a tracked transaction for this action
+    , error : Maybe String -- should be a union type. Right?
     }
 
 
-type alias TooltipState =
+type alias TooltipId =
     { id : PostId
-    , labelType : ShowInputState
+    , labelType : BurnOrTip
     }
 
 
-type ShowInputState
+type BurnOrTip
     = Burn
     | Tip
 
@@ -335,6 +338,13 @@ type Context
 type alias PostId =
     { block : Int
     , messageHash : Hex
+    }
+
+
+type alias TxState =
+    { postHash : Hex
+    , txType : BurnOrTip
+    , amount : Float
     }
 
 

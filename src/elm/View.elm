@@ -1,6 +1,5 @@
 module View exposing (view)
 
-import Browser
 import Chain
 import Dict
 import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spaceEvenly, spacing, text, width)
@@ -13,7 +12,7 @@ import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal,
 import Helpers.Tuple as TupleHelpers
 import Html exposing (Html)
 import Maybe.Extra
-import Misc exposing (getTitle)
+import Misc
 import Theme
 import Tuple3
 import Types exposing (..)
@@ -33,14 +32,10 @@ import View.User
 import View.Wallet
 
 
-view : Model -> Browser.Document Msg
+view : Model -> Html Msg
 view model =
-    { title = getTitle model
-    , body =
-        viewPage model
-            |> render model
-            |> List.singleton
-    }
+    viewPage model
+        |> render model
 
 
 render : Model -> Element Msg -> Html Msg
@@ -202,7 +197,7 @@ viewBody model =
                 |> viewFrame model
 
         ViewPost postId ->
-            Misc.getPostOrReply postId model
+            Misc.getPostOrReply postId model.rootPosts model.replyPosts
                 |> Maybe.Extra.unwrap
                     (appStatusMessage
                         Theme.darkGray

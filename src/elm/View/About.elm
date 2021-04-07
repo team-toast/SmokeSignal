@@ -6,7 +6,7 @@ import Element.Font as Font
 import Helpers.Element exposing (black, white)
 import Types exposing (Model, Msg)
 import View.Attrs exposing (cappedWidth, hover, whiteGlowAttribute)
-import View.Common exposing (viewLink, when)
+import View.Common exposing (link, when)
 
 
 view : Model -> Element Msg
@@ -30,9 +30,9 @@ view model =
         , viewPara "All SmokeSignal posts are permanent and impossible for anyone to delete."
         , viewPara "All SmokeSignal authors are pseudonymous by default and cannot be deplatformed."
         , [ text "All you need to post is a web3 wallet like "
-          , viewLink "https://metamask.io/" "MetaMask"
+          , link "https://metamask.io/" "MetaMask"
           , text " and "
-          , viewLink "https://www.google.com/search?q=how+to+buy+ether"
+          , link "https://www.google.com/search?q=how+to+buy+ether"
                 "ETH to burn"
           , text "."
           ]
@@ -42,9 +42,9 @@ view model =
             |> column [ spacing 10 ]
       , [ viewHeader "What tokens are supported?"
         , [ text "SmokeSignal currently supports "
-          , viewLink "https://ethereum.org/" "Ethereum"
+          , link "https://ethereum.org/" "Ethereum"
           , text " and "
-          , viewLink "https://www.xdaichain.com/" "xDai"
+          , link "https://www.xdaichain.com/" "xDai"
           , text "."
           ]
             |> paragraph []

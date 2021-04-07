@@ -1,12 +1,10 @@
-module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, formatDollar, formatPosix, getPostOrReply, getTitle, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
+module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatPosix, getCore, getPostOrReply, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
 
 import Array
-import Browser.Navigation
 import Dict exposing (Dict)
 import Eth.Decode
 import Eth.Encode
 import Eth.RPC
-import Eth.Sentry.Event
 import Eth.Types exposing (Address, TxHash, TxReceipt)
 import Eth.Utils
 import FormatNumber
@@ -15,7 +13,8 @@ import GTag
 import Helpers.Element
 import Helpers.Time
 import Http
-import Json.Decode as Decode exposing (Decoder)
+import Json.Decode as Decode exposing (Decoder, Value)
+import Json.Encode as Encode
 import Maybe.Extra exposing (unwrap)
 import String.Extra
 import Task exposing (Task)
@@ -24,19 +23,16 @@ import TokenValue exposing (TokenValue)
 import Types exposing (..)
 
 
-emptyModel : Browser.Navigation.Key -> Model
-emptyModel key =
-    { navKey = key
-    , view = ViewHome
+emptyModel : Model
+emptyModel =
+    { view = ViewHome
     , wallet = Types.NoneDetected
     , newUserModal = False
     , now = Time.millisToPosix 0
     , dProfile = Helpers.Element.Desktop
     , sentries =
-        { xDai =
-            Eth.Sentry.Event.init (always Types.CancelPostInput) "" |> Tuple.first
-        , ethereum =
-            Eth.Sentry.Event.init (always Types.CancelPostInput) "" |> Tuple.first
+        { xDai = Nothing
+        , ethereum = Nothing
         }
     , blockTimes = Dict.empty
     , showAddressId = Nothing
@@ -49,8 +45,8 @@ emptyModel key =
     , topicInput = ""
     , config = emptyConfig
     , compose = emptyComposeModel
-    , postState = Nothing
-    , tooltipState = Nothing
+    , maybeBurnOrTipUX = Nothing
+    , maybeActiveTooltip = Nothing
     , rootPosts = Dict.empty
     , replyPosts = Dict.empty
     , replyIds = Dict.empty
@@ -63,6 +59,7 @@ emptyModel key =
     , faucetToken = ""
     , gtagHistory = GTag.emptyGtagHistory
     , sortType = HotSort
+    , shareEnabled = False
     }
 
 
@@ -72,6 +69,7 @@ emptyComposeModel =
     , dollar = ""
     , body = ""
     , modal = False
+    , reply = False
     , donate = True
     , context = TopLevel defaultTopic
     , preview = False
@@ -106,40 +104,6 @@ emptyAddress =
 initDemoPhaceSrc : String
 initDemoPhaceSrc =
     "2222222222222222222222222228083888c8f222"
-
-
-getTitle : Model -> String
-getTitle model =
-    let
-        defaultMain =
-            "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
-    in
-    case model.view of
-        ViewHome ->
-            defaultMain
-
-        ViewTopics ->
-            defaultMain
-
-        ViewPost postId ->
-            Dict.get (postIdToKey postId) model.rootPosts
-                |> Maybe.andThen (.core >> .content >> .title)
-                |> unwrap defaultMain (\contextTitle -> contextTitle ++ " | SmokeSignal")
-
-        ViewTopic topic ->
-            "#" ++ topic ++ " | SmokeSignal"
-
-        ViewWallet ->
-            defaultMain
-
-        ViewTxns ->
-            defaultMain
-
-        ViewAbout ->
-            defaultMain
-
-        ViewUser _ ->
-            defaultMain
 
 
 defaultSeoDescription : String
@@ -279,20 +243,30 @@ validateTopic =
            )
 
 
-getPostOrReply : PostId -> Model -> Maybe Core
-getPostOrReply id model =
+getPostOrReply : PostId -> Dict PostKey RootPost -> Dict PostKey ReplyPost -> Maybe LogPost
+getPostOrReply id rootPosts replyPosts =
     let
         key =
             postIdToKey id
     in
-    model.rootPosts
+    rootPosts
         |> Dict.get key
         |> Maybe.Extra.unwrap
-            (model.replyPosts
+            (replyPosts
                 |> Dict.get key
-                |> Maybe.map .core
+                |> Maybe.map LogReply
             )
-            (.core >> Just)
+            (LogRoot >> Just)
+
+
+getCore : LogPost -> Core
+getCore log =
+    case log of
+        LogReply p ->
+            p.core
+
+        LogRoot p ->
+            p.core
 
 
 {-| Version of Eth.getTxReceipt that handles the normal outcome of a null response
@@ -321,10 +295,10 @@ sortPostsFunc sortType blockTimes accounting now =
             Helpers.Time.sub now (postTimeDefaultZero post)
 
         ageFactor post =
-            -- 1 at age zero, falls to 0 when 90 days old
+            -- 1 at age zero, falls to 0 when 10 days old
             Helpers.Time.getRatio
                 (ageOf post)
-                (Helpers.Time.mul Helpers.Time.oneDay 90)
+                (Helpers.Time.mul Helpers.Time.oneDay 10)
                 |> clamp 0 1
                 |> (\ascNum -> 1 - ascNum)
 
@@ -337,7 +311,7 @@ sortPostsFunc sortType blockTimes accounting now =
                 |> TokenValue.toFloatWithWarning
 
         newnessMultiplier post =
-            (ageFactor post * 4.0) + 1
+            (ageFactor post * 9.0) + 1
     in
     case sortType of
         BurnSort ->
@@ -388,3 +362,13 @@ formatFloat numDecimals =
         { usLocale
             | decimals = FormatNumber.Locales.Exact numDecimals
         }
+
+
+{-| <https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share#parameters>
+-}
+encodeShare : String -> String -> Value
+encodeShare title url =
+    [ ( "title", Encode.string title )
+    , ( "url", Encode.string url )
+    ]
+        |> Encode.object

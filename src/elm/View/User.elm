@@ -61,17 +61,8 @@ view model address =
                         (model.accounting
                             |> Dict.get post.core.key
                         )
-                        (model.postState
-                            |> Maybe.andThen
-                                (\x ->
-                                    if x.id == post.core.id then
-                                        Just x
-
-                                    else
-                                        Nothing
-                                )
-                        )
-                        model.tooltipState
+                        model.maybeBurnOrTipUX
+                        model.maybeActiveTooltip
                         --(Just topic)
                         Nothing
                         (Wallet.userInfo model.wallet)

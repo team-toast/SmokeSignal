@@ -1,14 +1,11 @@
 module Update exposing (update)
 
 import Array
-import Browser
-import Browser.Navigation
 import Chain
 import Contracts.SmokeSignal as SSContract
 import DemoPhaceSrcMutator
 import Dict exposing (Dict)
 import Eth
-import Eth.Sentry.Event as EventSentry
 import Eth.Types exposing (TxReceipt)
 import Eth.Utils
 import GTag exposing (GTagData, gTagOut, gTagOutOnlyOnLabelOrValueChange, gTagOutOnlyOnceForEvent)
@@ -24,6 +21,7 @@ import Process
 import Random
 import Result.Extra exposing (unpack)
 import Routing exposing (viewUrlToPathString)
+import Sentry
 import Set
 import Task
 import Time
@@ -42,20 +40,6 @@ update msg model =
                 |> unwrap ( model, Ports.log "Missing wallet" ) fn
     in
     case msg of
-        LinkClicked urlRequest ->
-            let
-                cmd =
-                    case urlRequest of
-                        Browser.Internal url ->
-                            pushUrlPathAndUpdateGtagAnalyticsCmd
-                                model.navKey
-                                ("#" ++ (url.fragment |> Maybe.withDefault "!"))
-
-                        Browser.External href ->
-                            Browser.Navigation.load href
-            in
-            ( model, cmd )
-
         RouteChanged route ->
             handleRoute model route
 
@@ -180,6 +164,7 @@ update msg model =
                                                     { r
                                                         | inProgress = False
                                                         , modal = False
+                                                        , reply = False
                                                     }
                                                )
                                     , showExpandedTrackedTxs = True
@@ -235,6 +220,8 @@ update msg model =
                             (\err ->
                                 case err of
                                     Types.UserRejected ->
+                                        -- this could happen if the user clicks twice, accepts the first, then rejects the second.
+                                        -- Even though a tx is mining, the dapp will tell the user it has failed.
                                         let
                                             gtagCmd =
                                                 GTagData
@@ -245,8 +232,8 @@ update msg model =
                                                     |> gTagOut
                                         in
                                         ( { model
-                                            | postState =
-                                                model.postState
+                                            | maybeBurnOrTipUX =
+                                                model.maybeBurnOrTipUX
                                                     |> Maybe.map
                                                         (\r ->
                                                             { r
@@ -270,8 +257,8 @@ update msg model =
                                                     |> gTagOut
                                         in
                                         ( { model
-                                            | postState =
-                                                model.postState
+                                            | maybeBurnOrTipUX =
+                                                model.maybeBurnOrTipUX
                                                     |> Maybe.map
                                                         (\r ->
                                                             { r
@@ -290,17 +277,17 @@ update msg model =
                             (\txHash ->
                                 let
                                     trackedTx =
-                                        model.postState
+                                        model.maybeBurnOrTipUX
                                             |> Maybe.map
-                                                (\state ->
+                                                (\burnOrTipUX ->
                                                     { txHash = txHash
                                                     , txInfo =
-                                                        case state.showInput of
+                                                        case burnOrTipUX.burnOrTip of
                                                             Tip ->
-                                                                TipTx state.id
+                                                                TipTx burnOrTipUX.id
 
                                                             Burn ->
-                                                                BurnTx state.id
+                                                                BurnTx burnOrTipUX.id
                                                     , status = Mining
                                                     , chain = userInfo.chain
                                                     }
@@ -317,7 +304,7 @@ update msg model =
                                             |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                                 in
                                 ( { model
-                                    | postState = Nothing
+                                    | maybeBurnOrTipUX = Nothing
                                     , userNotices =
                                         model.userNotices
                                             |> List.append [ UN.notify "Your transaction is mining." ]
@@ -398,10 +385,12 @@ update msg model =
                                                             Nothing
 
                                                         TipTx id ->
-                                                            Misc.getPostOrReply id model
+                                                            Misc.getPostOrReply id model.rootPosts model.replyPosts
+                                                                |> Maybe.map Misc.getCore
 
                                                         BurnTx id ->
-                                                            Misc.getPostOrReply id model
+                                                            Misc.getPostOrReply id model.rootPosts model.replyPosts
+                                                                |> Maybe.map Misc.getCore
                                                     )
                                                         |> unwrap Cmd.none
                                                             (fetchPostInfo model.blockTimes model.config)
@@ -531,6 +520,8 @@ update msg model =
                                     |> (\r ->
                                             { r
                                                 | message = Nothing
+                                                , error = Nothing
+                                                , modal = False
                                             }
                                        )
                           }
@@ -567,9 +558,21 @@ update msg model =
 
                                     shouldFetch =
                                         balanceEmpty && userInfo.xDaiStatus == WaitingForBalance
-                                in
-                                ( { model
-                                    | wallet =
+
+                                    compose =
+                                        if shouldFetch then
+                                            model.compose
+
+                                        else
+                                            model.compose
+                                                |> (\r ->
+                                                        { r
+                                                            | message = Nothing
+                                                            , error = Nothing
+                                                        }
+                                                   )
+
+                                    wallet =
                                         Active
                                             { userInfo
                                                 | balance = balance
@@ -580,6 +583,10 @@ update msg model =
                                                     else
                                                         userInfo.xDaiStatus
                                             }
+                                in
+                                ( { model
+                                    | wallet = wallet
+                                    , compose = compose
                                   }
                                 , if shouldFetch then
                                     fetchBalance
@@ -598,9 +605,11 @@ update msg model =
                 Eth ->
                     let
                         ( newEventSentry, cmd ) =
-                            EventSentry.update
-                                eventMsg
-                                model.sentries.ethereum
+                            model.sentries.ethereum
+                                |> unwrap ( Nothing, Cmd.none )
+                                    (Sentry.update
+                                        eventMsg
+                                    )
                     in
                     ( { model
                         | sentries =
@@ -618,9 +627,11 @@ update msg model =
                 XDai ->
                     let
                         ( newEventSentry, cmd ) =
-                            EventSentry.update
-                                eventMsg
-                                model.sentries.xDai
+                            model.sentries.xDai
+                                |> unwrap ( Nothing, Cmd.none )
+                                    (Sentry.update
+                                        eventMsg
+                                    )
                     in
                     ( { model
                         | sentries =
@@ -661,12 +672,7 @@ update msg model =
                     --)
                     let
                         core =
-                            case log of
-                                LogReply p ->
-                                    p.core
-
-                                LogRoot p ->
-                                    p.core
+                            Misc.getCore log
                     in
                     ( addPost log model
                     , fetchPostInfo model.blockTimes model.config core
@@ -780,7 +786,6 @@ update msg model =
             in
             ( model
             , pushUrlPathAndUpdateGtagAnalyticsCmd
-                model.navKey
                 urlString
             )
 
@@ -945,6 +950,20 @@ update msg model =
                             )
                 )
 
+        SharePost core ->
+            let
+                title =
+                    core.content.title
+                        |> Maybe.withDefault "SmokeSignal"
+
+                url =
+                    Routing.viewUrlToPathString (ViewPost core.id)
+            in
+            ( model
+            , Misc.encodeShare title url
+                |> Ports.share
+            )
+
         SubmitDraft ->
             ensureUserInfo
                 (\userInfo ->
@@ -967,27 +986,48 @@ update msg model =
                     )
                 )
 
-        SubmitPostTx ->
+        SubmitTipOrBurn ->
             ensureUserInfo
                 (\userInfo ->
-                    model.postState
+                    model.maybeBurnOrTipUX
                         |> unwrap ( model, Cmd.none )
-                            (\state ->
-                                let
-                                    newState =
-                                        { state
-                                            | inProgress = True
-                                            , error = Nothing
-                                        }
-                                in
-                                ( { model
-                                    | postState = Just newState
-                                  }
-                                , SSContract.getEthPriceCmd
-                                    (Chain.getConfig userInfo.chain model.config)
-                                    |> Task.attempt
-                                        (BurnOrTipPriceResponse newState)
-                                )
+                            (\burnOrTipUX ->
+                                burnOrTipUX.input
+                                    |> String.toFloat
+                                    |> unwrap
+                                        ( { model
+                                            | maybeBurnOrTipUX =
+                                                Just
+                                                    { burnOrTipUX
+                                                        | error =
+                                                            Just "Invalid tip amount"
+                                                    }
+                                          }
+                                        , Cmd.none
+                                        )
+                                        (\amount ->
+                                            let
+                                                postState =
+                                                    { burnOrTipUX
+                                                        | inProgress = True
+                                                        , error = Nothing
+                                                    }
+
+                                                txState =
+                                                    { postHash = burnOrTipUX.id.messageHash
+                                                    , amount = amount
+                                                    , txType = burnOrTipUX.burnOrTip
+                                                    }
+                                            in
+                                            ( { model
+                                                | maybeBurnOrTipUX = Just postState
+                                              }
+                                            , SSContract.getEthPriceCmd
+                                                (Chain.getConfig userInfo.chain model.config)
+                                                |> Task.attempt
+                                                    (BurnOrTipPriceResponse txState)
+                                            )
+                                        )
                             )
                 )
 
@@ -998,14 +1038,15 @@ update msg model =
                         |> unpack
                             (\_ ->
                                 let
-                                    compose =
-                                        model.compose
-                                            |> (\r ->
+                                    maybeBurnOrTipUX =
+                                        model.maybeBurnOrTipUX
+                                            |> Maybe.map
+                                                (\r ->
                                                     { r
                                                         | inProgress = False
                                                         , error = Just "There has been a problem."
                                                     }
-                                               )
+                                                )
 
                                     ( newGtagHistory, gtagCmd ) =
                                         GTagData
@@ -1019,79 +1060,53 @@ update msg model =
                                             |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
                                 in
                                 ( { model
-                                    | compose = compose
+                                    | maybeBurnOrTipUX = maybeBurnOrTipUX
                                     , gtagHistory = newGtagHistory
                                   }
                                 , gtagCmd
                                 )
                             )
                             (\price ->
-                                state.input
-                                    |> Misc.dollarStringToToken price
-                                    |> Result.fromMaybe "Invalid tip amount"
-                                    |> unpack
-                                        (\err ->
-                                            let
-                                                gtagCmd =
-                                                    GTagData
-                                                        "burn or tip amount invalid"
-                                                        Nothing
-                                                        Nothing
-                                                        Nothing
-                                                        |> gTagOut
-                                            in
-                                            ( { model
-                                                | userNotices = [ UN.unexpectedError err ]
-                                              }
-                                            , gtagCmd
+                                let
+                                    amount =
+                                        TokenValue.fromFloatWithWarning (state.amount / price)
+
+                                    config =
+                                        Chain.getConfig userInfo.chain model.config
+
+                                    ( fn, tipOrBurn ) =
+                                        case state.txType of
+                                            Tip ->
+                                                ( SSContract.tipForPost, "tip" )
+
+                                            Burn ->
+                                                ( SSContract.burnForPost, "burn" )
+
+                                    txParams =
+                                        fn userInfo config.contract state.postHash amount TokenValue.zero
+                                            |> Eth.toSend
+                                            |> Eth.encodeSend
+
+                                    gtagCmd =
+                                        GTagData
+                                            tipOrBurn
+                                            Nothing
+                                            ((state.postHash
+                                                |> Eth.Utils.hexToString
+                                             )
+                                                ++ tipOrBurn
+                                                ++ "ed"
+                                                |> Just
                                             )
-                                        )
-                                        (\amount ->
-                                            let
-                                                config =
-                                                    Chain.getConfig userInfo.chain model.config
-
-                                                donation =
-                                                    if model.compose.donate then
-                                                        TokenValue.div amount 100
-
-                                                    else
-                                                        TokenValue.zero
-
-                                                ( fn, tipOrBurn ) =
-                                                    case state.showInput of
-                                                        Tip ->
-                                                            ( SSContract.tipForPost, "tip" )
-
-                                                        Burn ->
-                                                            ( SSContract.burnForPost, "burn" )
-
-                                                txParams =
-                                                    fn userInfo config.contract state.id.messageHash amount donation
-                                                        |> Eth.toSend
-                                                        |> Eth.encodeSend
-
-                                                gtagCmd =
-                                                    GTagData
-                                                        tipOrBurn
-                                                        Nothing
-                                                        ((state.id.messageHash
-                                                            |> Eth.Utils.hexToString
-                                                         )
-                                                            ++ tipOrBurn
-                                                            ++ "ed"
-                                                            |> Just
-                                                        )
-                                                        Nothing
-                                                        |> gTagOut
-                                            in
-                                            ( model
-                                            , [ Ports.submitBurnOrTip txParams
-                                              , gtagCmd
-                                              ]
-                                                |> Cmd.batch
-                                            )
-                                        )
+                                            Nothing
+                                            |> gTagOut
+                                in
+                                ( model
+                                , [ Ports.submitBurnOrTip txParams
+                                  , gtagCmd
+                                  ]
+                                    |> Cmd.batch
+                                )
                             )
                 )
 
@@ -1136,12 +1151,13 @@ update msg model =
             , gtagCmd
             )
 
-        SetPostInput id val ->
+        StartBurnOrTipUX id burnOrTip ->
+            -- discuss
             ( { model
-                | postState =
+                | maybeBurnOrTipUX =
                     { id = id
                     , input = ""
-                    , showInput = val
+                    , burnOrTip = burnOrTip
                     , inProgress = False
                     , error = Nothing
                     }
@@ -1161,7 +1177,7 @@ update msg model =
                         |> gTagOut
             in
             ( { model
-                | postState = Nothing
+                | maybeBurnOrTipUX = Nothing
               }
             , gtagCmd
             )
@@ -1264,6 +1280,7 @@ update msg model =
                                 |> (\r ->
                                         { r
                                             | message = Nothing
+                                            , error = Nothing
                                         }
                                    )
                         , wallet = Active { userInfo | xDaiStatus = WaitingForApi }
@@ -1310,42 +1327,31 @@ update msg model =
                                 let
                                     faucetSuccess =
                                         data.status
-
-                                    ( xDaiStatus, message, newUserNotices ) =
-                                        if faucetSuccess then
-                                            ( WaitingForBalance
-                                            , Nothing
-                                            , model.userNotices
-                                                |> List.append
-                                                    [ UN.faucetRequestSuccessful ]
-                                            )
-
-                                        else
-                                            ( XDaiStandby
-                                            , Just data.message
-                                            , model.userNotices
-                                            )
-
-                                    newModel =
-                                        { model
-                                            | wallet =
-                                                Active
-                                                    { userInfo
-                                                        | xDaiStatus =
-                                                            xDaiStatus
-                                                    }
-                                            , compose =
-                                                model.compose
-                                                    |> (\r ->
-                                                            { r
-                                                                | message =
-                                                                    message
-                                                            }
-                                                       )
-                                            , userNotices = newUserNotices
-                                        }
                                 in
-                                ( newModel
+                                ( { model
+                                    | wallet =
+                                        Active
+                                            { userInfo
+                                                | xDaiStatus =
+                                                    if faucetSuccess then
+                                                        WaitingForBalance
+
+                                                    else
+                                                        XDaiStandby
+                                            }
+                                    , compose =
+                                        model.compose
+                                            |> (\r ->
+                                                    { r
+                                                        | message =
+                                                            if faucetSuccess then
+                                                                Just "Your faucet request was successful. Check your wallet for updated balance."
+
+                                                            else
+                                                                Just data.message
+                                                    }
+                                               )
+                                  }
                                 , if faucetSuccess then
                                     Cmd.batch
                                         [ gTagOut <|
@@ -1390,7 +1396,6 @@ update msg model =
                     (\topic ->
                         ( model
                         , [ pushUrlPathAndUpdateGtagAnalyticsCmd
-                                model.navKey
                                 (Routing.viewUrlToPathString <| ViewTopic topic)
                           , GTagData
                                 "search topic valid"
@@ -1405,10 +1410,80 @@ update msg model =
                         )
                     )
 
+        ReplyOpen id ->
+            if model.wallet == NoneDetected || model.wallet == NetworkReady then
+                ( { model
+                    | compose =
+                        { emptyComposeModel | modal = True }
+                  }
+                , gTagOut <|
+                    GTagData
+                        "onboarding initiated"
+                        Nothing
+                        Nothing
+                        Nothing
+                )
+
+            else
+                let
+                    context =
+                        Types.Reply id
+
+                    gtagCmd =
+                        if Wallet.isActive model.wallet then
+                            GTagData
+                                "reply opened"
+                                Nothing
+                                Nothing
+                                Nothing
+                                |> gTagOut
+
+                        else
+                            Cmd.none
+                in
+                ( { model
+                    | compose =
+                        { emptyComposeModel
+                            | reply = True
+                            , context = context
+                            , title = model.compose.title
+                            , body = model.compose.body
+                        }
+                  }
+                , Cmd.batch
+                    [ gtagCmd
+                    , model.wallet
+                        |> Wallet.userInfo
+                        |> unwrap Cmd.none
+                            (.address
+                                >> Eth.Utils.addressToString
+                                >> Ports.refreshWallet
+                            )
+                    ]
+                )
+
+        CloseComposeError ->
+            ( { model
+                | compose =
+                    model.compose
+                        |> (\r ->
+                                { r
+                                    | error = Nothing
+                                }
+                           )
+              }
+            , Cmd.none
+            )
+
         ComposeOpen ->
             if model.wallet == NoneDetected then
                 ( { model
-                    | compose = { emptyComposeModel | modal = True }
+                    | compose =
+                        if Wallet.isActive model.wallet then
+                            { emptyComposeModel | reply = True }
+
+                        else
+                            { emptyComposeModel | modal = True }
                   }
                 , gTagOut <|
                     GTagData
@@ -1494,6 +1569,9 @@ update msg model =
                         |> (\r ->
                                 { r
                                     | modal = False
+                                    , message = Nothing
+                                    , error = Nothing
+                                    , reply = False
                                 }
                            )
               }
@@ -1534,10 +1612,10 @@ update msg model =
             , Cmd.none
             )
 
-        PostInputChange str ->
+        BurnOrTipUXInputChange str ->
             ( { model
-                | postState =
-                    model.postState
+                | maybeBurnOrTipUX =
+                    model.maybeBurnOrTipUX
                         |> Maybe.map (\r -> { r | input = str })
               }
             , Cmd.none
@@ -1576,72 +1654,74 @@ update msg model =
             , gtagCmd
             )
 
-        SetTooltipState val ->
+        ToggleTooltip tooltipId ->
             ( { model
-                | tooltipState =
-                    if Just val == model.tooltipState then
+                | maybeActiveTooltip =
+                    if model.maybeActiveTooltip == Just tooltipId then
                         Nothing
 
                     else
-                        Just val
+                        Just tooltipId
               }
             , Cmd.none
             )
 
 
-pushUrlPathAndUpdateGtagAnalyticsCmd : Browser.Navigation.Key -> String -> Cmd Msg
-pushUrlPathAndUpdateGtagAnalyticsCmd navKey urlPath =
+pushUrlPathAndUpdateGtagAnalyticsCmd : String -> Cmd Msg
+pushUrlPathAndUpdateGtagAnalyticsCmd urlPath =
     Cmd.batch
-        [ Browser.Navigation.pushUrl
-            navKey
-            urlPath
+        [ Ports.pushUrl urlPath
         , Ports.setGtagUrlPath ("/" ++ urlPath)
         ]
 
 
 handleRoute : Model -> Route -> ( Model, Cmd Msg )
 handleRoute model route =
+    let
+        defaultTitle =
+            Ports.setTitle "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
+    in
     case route of
         RouteTopics ->
             ( { model
                 | view = ViewTopics
               }
-            , Cmd.none
+            , defaultTitle
             )
 
         RouteHome ->
             ( { model
                 | view = ViewHome
               }
-            , Cmd.none
+            , defaultTitle
             )
 
         RouteTxns ->
             ( { model
                 | view = ViewTxns
               }
-            , Cmd.none
+            , defaultTitle
             )
 
         RouteWallet ->
             ( { model
                 | view = ViewWallet
               }
-            , Cmd.none
+            , defaultTitle
             )
 
         RouteAbout ->
             ( { model
                 | view = ViewAbout
               }
-            , Cmd.none
+            , defaultTitle
             )
 
         RouteUser addr ->
             ( { model
                 | view = ViewUser addr
               }
-            , Cmd.none
+            , defaultTitle
             )
 
         RouteInvalid ->
@@ -1649,16 +1729,28 @@ handleRoute model route =
                 | userNotices =
                     [ UN.routeNotFound Nothing ]
               }
-            , Cmd.none
+            , defaultTitle
             )
 
         RouteViewPost id ->
             ( { model
                 | view = ViewPost id
               }
-            , Dict.get (Misc.postIdToKey id) model.rootPosts
-                |> Maybe.andThen (.core >> .content >> .desc)
-                |> unwrap Cmd.none Ports.setDescription
+            , Dict.get (postIdToKey id) model.rootPosts
+                |> unwrap defaultTitle
+                    (\post ->
+                        [ post.core.content.title
+                            |> unwrap defaultTitle
+                                (\title ->
+                                    title
+                                        ++ " | SmokeSignal"
+                                        |> Ports.setTitle
+                                )
+                        , post.core.content.desc
+                            |> unwrap Cmd.none Ports.setDescription
+                        ]
+                            |> Cmd.batch
+                    )
             )
 
         RouteTopic topic ->
@@ -1670,16 +1762,22 @@ handleRoute model route =
                             [ UN.routeNotFound Nothing ]
                         , view = ViewHome
                       }
-                    , Cmd.none
+                    , defaultTitle
                     )
                     (\t ->
                         ( { model
                             | view = ViewTopic t
                           }
-                        , "Discussions related to #"
-                            ++ topic
-                            ++ " on SmokeSignal"
-                            |> Ports.setDescription
+                        , [ "Discussions related to #"
+                                ++ topic
+                                ++ " on SmokeSignal"
+                                |> Ports.setDescription
+                          , "#"
+                                ++ topic
+                                ++ " | SmokeSignal"
+                                |> Ports.setTitle
+                          ]
+                            |> Cmd.batch
                         )
                     )
 

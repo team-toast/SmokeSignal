@@ -1,30 +1,35 @@
 module View.PostPage exposing (view)
 
 import Chain
-import Dict
-import Element exposing (Color, Element, column, el, fill, height, padding, row, spacing, text, width)
+import Dict exposing (Dict)
+import Element exposing (Color, Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Eth.Utils
 import Helpers.Element exposing (DisplayProfile(..), black, white)
+import Html.Attributes
 import Maybe.Extra exposing (unwrap)
 import Misc
 import Set
-import Theme
+import Theme exposing (orange)
 import TokenValue
 import Types exposing (..)
-import View.Attrs exposing (hover, roundBorder, sansSerifFont, whiteGlowAttributeSmall)
-import View.Common exposing (phaceElement, when)
+import View.Attrs exposing (hover, roundBorder, sansSerifFont, slightRound, whiteGlowAttributeSmall)
+import View.Common exposing (phaceElement, when, whenAttr, whenJust)
 import View.Img
 import View.Markdown
 import View.Post
 import Wallet
 
 
-view : Model -> Core -> Element Msg
+view : Model -> LogPost -> Element Msg
 view model post =
     let
+        core =
+            Misc.getCore post
+
         isMobile =
             model.dProfile == Mobile
 
@@ -44,15 +49,15 @@ view model post =
 
         accounting =
             model.accounting
-                |> Dict.get post.key
+                |> Dict.get core.key
                 |> View.Common.whenJust (viewAccounting model.dProfile)
 
-        showActions =
+        userInfo =
             model.wallet
                 |> Wallet.userInfo
-                |> unwrap False (.chain >> (==) post.chain)
     in
-    [ [ post.content.title
+    [ viewBreadcrumbs post model.rootPosts model.replyPosts
+    , [ core.content.title
             |> View.Common.whenJust
                 (text
                     >> List.singleton
@@ -64,17 +69,17 @@ view model post =
       , [ [ accounting
           , phaceElement
                 70
-                post.author
-                (model.showAddressId == Just (PhaceForPublishedPost post.id))
-                (GotoView <| ViewUser post.author)
-          , View.Post.viewCard post
+                core.author
+                (model.showAddressId == Just (PhaceForPublishedPost core.id))
+                (GotoView <| ViewUser core.author)
+          , View.Post.viewChainCard model.dProfile core
           ]
             |> row [ spacing 10 ]
         , [ model.blockTimes
-                |> Dict.get post.id.block
-                |> View.Common.viewTiming model.now
+                |> Dict.get core.id.block
+                |> View.Common.timingOrSpinner model.now
           , Element.newTabLink [ hover ]
-                { url = Chain.txUrl post.chain post.txHash
+                { url = Chain.txUrl core.chain core.txHash
                 , label =
                     [ View.Img.globe 20 white, text "View on block explorer" ]
                         |> row [ spacing 5, Font.underline ]
@@ -91,7 +96,7 @@ view model post =
                     row [ width fill, Element.spaceEvenly ]
                )
       , View.Common.horizontalRule white
-      , post.content.body
+      , core.content.body
             |> View.Markdown.renderString model.dProfile
             |> el
                 [ width fill
@@ -99,24 +104,45 @@ view model post =
                 , Font.color white
                 ]
       , [ Input.button
-            [ Background.color Theme.orange
+            [ Background.color Theme.green
             , padding 10
             , roundBorder
             , hover
             , Font.color black
-            , Element.alignBottom
             ]
-            { onPress = Just ComposeOpen
+            { onPress = Just <| SharePost core
             , label =
-                [ View.Img.replyArrow 15 black
-                , text "Reply"
+                [ View.Img.link 15 black
+                , text "Share"
                 ]
                     |> row [ spacing 10, Font.size 20 ]
             }
-        , View.Post.viewActions post model.postState
-            |> when showActions
-        ]
+            |> when model.shareEnabled
+        , [ Input.button
+                [ Background.color Theme.orange
+                , padding 10
+                , roundBorder
+                , hover
+                , Font.color black
+                , Element.alignBottom
+                ]
+                { onPress = Just <| ReplyOpen core.id
+                , label =
+                    [ View.Img.replyArrow 15 black
+                    , text "Reply"
+                    ]
+                        |> row [ spacing 10, Font.size 20 ]
+                }
+          , View.Post.viewBurnOrTip core userInfo model.maybeBurnOrTipUX
+          ]
             |> row [ spacing 10, Element.alignRight ]
+        ]
+            |> row [ width fill, Element.spaceEvenly ]
+            |> when (not model.compose.reply)
+      , userInfo
+            |> whenJust
+                (viewReplyInput isMobile model.compose)
+            |> when model.compose.reply
       ]
         |> column
             [ spacing 20
@@ -127,7 +153,7 @@ view model post =
             , Font.color white
             ]
     , model.replyIds
-        |> Dict.get post.key
+        |> Dict.get core.key
         |> unwrap [] Set.toList
         |> List.filterMap
             (\id ->
@@ -156,19 +182,10 @@ view model post =
                     (model.accounting
                         |> Dict.get reply.core.key
                     )
-                    (model.postState
-                        |> Maybe.andThen
-                            (\x ->
-                                if x.id == reply.core.id then
-                                    Just x
-
-                                else
-                                    Nothing
-                            )
-                    )
-                    model.tooltipState
+                    model.maybeBurnOrTipUX
+                    model.maybeActiveTooltip
                     Nothing
-                    (Wallet.userInfo model.wallet)
+                    userInfo
                     reply.core
             )
         |> column
@@ -187,6 +204,389 @@ view model post =
             , spacing 20
             , width fill
             , sansSerifFont
+            ]
+
+
+viewBreadcrumbs : LogPost -> Dict PostKey RootPost -> Dict PostKey ReplyPost -> Element Msg
+viewBreadcrumbs log rootPosts replyPosts =
+    let
+        newBreadcrumb linkTarget label =
+            Input.button
+                [ padding 10
+                , whiteGlowAttributeSmall
+                , Background.color black
+                , hover
+                , Font.color white
+                , View.Attrs.title label
+                ]
+                { onPress = Just <| GotoView linkTarget
+                , label =
+                    View.Common.ellipsisText 20 label
+                        |> el [ width <| px 90 ]
+                }
+
+        walk curr acc =
+            let
+                label =
+                    case curr of
+                        LogReply p ->
+                            p.core.txHash
+                                |> Eth.Utils.txHashToString
+
+                        LogRoot p ->
+                            "#" ++ p.topic
+
+                linkTarget =
+                    case curr of
+                        LogReply p ->
+                            ViewPost p.parent
+
+                        LogRoot p ->
+                            ViewTopic p.topic
+
+                newElement =
+                    newBreadcrumb linkTarget label
+
+                newAcc =
+                    newElement :: acc
+
+                parentId =
+                    case curr of
+                        LogReply p ->
+                            Just p.parent
+
+                        LogRoot _ ->
+                            Nothing
+            in
+            parentId
+                |> Maybe.andThen
+                    (\parent ->
+                        Misc.getPostOrReply parent rootPosts replyPosts
+                    )
+                |> unwrap newAcc
+                    (\val -> walk val newAcc)
+    in
+    walk log [ viewCurrentBreadcrumb log ]
+        |> List.intersperse (el [ Font.color white, Font.bold ] <| text "/")
+        |> Element.wrappedRow [ spacing 10 ]
+
+
+viewCurrentBreadcrumb : LogPost -> Element Msg
+viewCurrentBreadcrumb curr =
+    let
+        label =
+            Misc.getCore curr
+                |> .txHash
+                |> Eth.Utils.txHashToString
+    in
+    View.Common.ellipsisText 20 label
+        |> el [ width <| px 90 ]
+        |> el
+            [ padding 10
+            , whiteGlowAttributeSmall
+            , Background.color orange
+            , View.Attrs.title label
+            ]
+
+
+viewReplyInput : Bool -> ComposeModel -> UserInfo -> Element Msg
+viewReplyInput isMobile compose userInfo =
+    let
+        submitEnabled =
+            not (String.isEmpty compose.body)
+                && validTopic
+                && not compose.inProgress
+
+        validTopic =
+            True
+
+        inputIsNonzero =
+            compose.dollar
+                |> String.toFloat
+                |> Maybe.map (\f -> f /= 0)
+                |> Maybe.withDefault False
+
+        topButton txt val =
+            let
+                active =
+                    val == compose.preview
+            in
+            Input.button
+                [ padding 10
+                , Background.color orange
+                    |> whenAttr active
+                , Element.alignRight
+                , Border.roundEach
+                    { bottomLeft = 0
+                    , topLeft = 5
+                    , bottomRight = 0
+                    , topRight = 5
+                    }
+                , hover
+                    |> whenAttr (not active)
+                , sansSerifFont
+                , Font.color black
+                    |> whenAttr active
+                , Font.bold
+                ]
+                { onPress = Just <| PreviewSet val
+                , label = text txt
+                }
+    in
+    --[ [ viewInstructions model userInfo
+    --|> when (not isMobile)
+    [ [ compose.message
+            |> View.Common.whenJust
+                (text
+                    >> List.singleton
+                    >> paragraph
+                        [ Background.color white
+                        , Element.alignRight
+                        , View.Attrs.slightRound
+                        , padding 10
+                        , Font.color black
+                        , Font.alignRight
+                        ]
+                )
+      , [--, viewComposeContext compose.context topicInput
+         --|> el [ Element.alignRight ]
+        ]
+            |> row [ width fill, spacing 10 ]
+      ]
+        |> column [ width fill, spacing 10, sansSerifFont ]
+    , [ [ topButton "Write" False
+        , topButton "Preview" True
+        ]
+            |> row [ spacing 10, Element.paddingXY 10 0 ]
+      , [ [ View.Img.replyArrow 25 orange
+          , "Reply with"
+                |> text
+                |> el [ Font.color orange ]
+          ]
+            |> row [ spacing 10 ]
+        , View.Common.chain userInfo.chain
+            |> el
+                [ Background.color white
+                , View.Attrs.roundBorder
+                , padding 5
+                , Font.color black
+                ]
+        ]
+            |> row [ spacing 10, Element.moveUp 5 ]
+            |> when (not isMobile)
+      ]
+        |> row [ width fill, Element.spaceEvenly ]
+    , [ viewMarkdown compose
+            |> el
+                [ width fill
+                , compose.error
+                    |> whenJust
+                        ((\txt ->
+                            [ text txt
+                            , Input.button [ hover ]
+                                { onPress = Just CloseComposeError
+                                , label = View.Img.close 25 black
+                                }
+                            ]
+                         )
+                            >> row
+                                [ Background.color white
+                                , slightRound
+                                , padding 10
+                                , spacing 10
+                                , Font.color black
+                                ]
+                            >> el
+                                [ padding 10
+                                , Element.alignBottom
+                                , Element.alignRight
+                                ]
+                        )
+                    |> Element.inFront
+                ]
+      , [ [ viewBurnAmountUX compose.dollar
+          , viewDonateCheckbox compose.donate
+                |> when inputIsNonzero
+                |> el [ width fill ]
+          ]
+            |> row [ spacing 10, width fill ]
+            |> when (not isMobile)
+        , [ View.Common.cancel ComposeClose
+                |> el [ Font.color black ]
+          , Input.button
+                [ Background.color Theme.darkGreen
+                , Font.bold
+                , Font.size 25
+                , Element.alignRight
+                , View.Attrs.roundBorder
+                , if submitEnabled then
+                    hover
+
+                  else
+                    View.Attrs.notAllowed
+                , sansSerifFont
+                , width <| px 100
+                , height <| px 50
+                ]
+                { onPress =
+                    if submitEnabled then
+                        Just SubmitDraft
+
+                    else
+                        Nothing
+                , label =
+                    if compose.inProgress then
+                        View.Common.spinner 20 white
+                            |> el [ centerX, centerY ]
+
+                    else
+                        text "Submit"
+                            |> el [ centerX, centerY ]
+                }
+          ]
+            |> row [ Element.alignRight, spacing 20 ]
+        ]
+            |> row [ width fill ]
+      ]
+        |> column
+            [ width fill
+            , spacing 10
+            , padding 10
+            , roundBorder
+            , Background.color orange
+            ]
+    ]
+        |> column
+            [ height fill
+            , width fill
+            ]
+
+
+viewMarkdown : ComposeModel -> Element Msg
+viewMarkdown compose =
+    if compose.preview then
+        (if String.isEmpty compose.body then
+            text "Nothing to preview"
+
+         else
+            compose.body
+                |> View.Markdown.renderString Desktop
+        )
+            |> el
+                [ width fill
+                , height <| px 200
+                , Element.scrollbarY
+                , Font.color white
+                , padding 10
+                , Background.color black
+                ]
+            |> List.singleton
+            |> column [ width fill, height fill ]
+
+    else
+        Input.multiline
+            [ width fill
+            , height <| px 200
+            , Element.scrollbarY
+            , Font.color white
+            , Border.width 0
+            , Border.rounded 0
+            , Background.color black
+            ]
+            { onChange = Types.ComposeBodyChange
+            , label = Input.labelHidden ""
+            , placeholder =
+                "What do you want to say?"
+                    |> text
+                    |> Input.placeholder []
+                    |> Just
+            , text = compose.body
+            , spellcheck = True
+            }
+            |> el
+                [ Html.Attributes.class "multiline"
+                    |> Element.htmlAttribute
+
+                --, Element.scrollbarY
+                , height fill
+                , width fill
+                ]
+
+
+viewDonateCheckbox : Bool -> Element Msg
+viewDonateCheckbox donateChecked =
+    [ Input.checkbox
+        [ width <| px 20
+        , height <| px 20
+        , Background.color white
+        , whiteGlowAttributeSmall
+        , hover
+        ]
+        { onChange = Types.DonationCheckboxSet
+        , icon =
+            \checked ->
+                View.Img.tick 20 black
+                    |> el
+                        [ centerX
+                        , centerY
+                        ]
+                    |> View.Common.when checked
+        , checked = donateChecked
+        , label = Input.labelHidden "Donate an extra 1% to Foundry"
+        }
+    , [ text "Donate an extra 1% to "
+      , Element.newTabLink
+            [ hover, Font.bold ]
+            { url = "https://foundrydao.com/"
+            , label = text "Foundry"
+            }
+      , text " so we can build more cool stuff!"
+      ]
+        |> paragraph [ Font.color black, Font.size 14, width <| px 200 ]
+    ]
+        |> row
+            [ Font.size 15
+            , spacing 10
+            , View.Attrs.cappedWidth 300
+            , Element.alignLeft
+            ]
+
+
+viewBurnAmountUX : String -> Element Msg
+viewBurnAmountUX amountInput =
+    [ [ text "A higher burn means more visibility!" ]
+        |> paragraph
+            [ Font.size 14
+            , spacing 3
+            , Font.color white
+            , Font.italic
+            , Font.center
+            , width fill
+            ]
+    , [ View.Img.dollar 26 white
+      , Input.text
+            [ View.Attrs.whiteGlowAttributeSmall
+            , Background.color <| Element.rgb 0 0 0
+            , Font.color white
+            , width <| px 60
+            , height <| px 34
+            , padding 3
+            , Font.size 26
+            ]
+            { onChange = ComposeDollarChange
+            , label = Input.labelHidden ""
+            , placeholder = Just <| Input.placeholder [] <| text "0.00"
+            , text = amountInput
+            }
+      ]
+        |> row [ spacing 5 ]
+    ]
+        |> row
+            [ spacing 5
+            , padding 5
+            , Background.color <| Element.rgb 0.4 0.2 0.2
+            , roundBorder
+            , View.Attrs.cappedWidth 300
             ]
 
 
