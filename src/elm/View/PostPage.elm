@@ -133,7 +133,7 @@ view model post =
                     ]
                         |> row [ spacing 10, Font.size 20 ]
                 }
-          , View.Post.viewBurnOrTipUX core userInfo model.maybeBurnOrTipUX
+          , View.Post.viewBurnOrTip core userInfo model.maybeBurnOrTipUX
           ]
             |> row [ spacing 10, Element.alignRight ]
         ]
