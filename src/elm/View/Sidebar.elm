@@ -1,7 +1,7 @@
 module View.Sidebar exposing (view, viewWallet)
 
 import Chain
-import Element exposing (Element, centerX, centerY, clipX, column, el, fill, height, padding, paddingXY, paragraph, px, row, spacing, text, width)
+import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paddingXY, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
@@ -66,7 +66,10 @@ viewTopics =
                         [ width fill
                         , Font.size 26
                         ]
-                        [ View.Common.topic topic
+                        [ "#"
+                            ++ topic
+                            |> View.Common.ellipsisText 30
+                            |> el [ Font.color Theme.orange, width fill ]
                         , row
                             [ Element.alignTop
                             , Element.alignRight

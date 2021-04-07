@@ -81,7 +81,8 @@ view model topic =
 
 topicHeader : String -> Element Msg
 topicHeader topic =
-    [ View.Common.topic topic
+    [ [ View.Common.topic topic ]
+        |> Element.paragraph []
     , Input.button
         [ View.Attrs.sansSerifFont
         , padding 10
