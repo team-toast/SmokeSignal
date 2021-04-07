@@ -70,9 +70,7 @@ renderer device =
     , text =
         text
             >> List.singleton
-            >> paragraph
-                [ style "word-break" "break-word"
-                ]
+            >> breakingParagraph
     , strong = \content -> row [ Font.bold ] content
     , emphasis = \content -> row [ Font.italic ] content
     , codeSpan = code
@@ -125,7 +123,7 @@ renderer device =
 
                                             Markdown.Block.NoTask ->
                                                 text "•"
-                                    , paragraph [ Element.width Element.fill ] children
+                                    , breakingParagraph children
                                     ]
                                 ]
                         )
@@ -144,9 +142,7 @@ renderer device =
                                     ]
                                     [ Element.el [ Element.alignTop ] <|
                                         text (String.fromInt (index + startingIndex))
-                                    , paragraph
-                                        [ Element.alignTop ]
-                                        itemBlocks
+                                    , breakingParagraph itemBlocks
                                     ]
                                 ]
                         )
@@ -240,3 +236,10 @@ codeBlock details =
             ]
         ]
         (Element.text details.body)
+
+
+breakingParagraph : List (Element msg) -> Element msg
+breakingParagraph =
+    paragraph
+        [ style "word-break" "break-word"
+        ]
