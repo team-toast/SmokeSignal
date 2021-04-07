@@ -222,9 +222,7 @@ spinner size color =
 timingOrSpinner : Time.Posix -> Maybe Time.Posix -> Element Msg
 timingOrSpinner now =
     unwrap
-        (spinner 20 white
-            |> el [ centerX ]
-        )
+        (spinner 20 white)
         (\time ->
             TimeHelpers.sub now time
                 |> TimeHelpers.roundToSingleUnit
