@@ -1,4 +1,4 @@
-module View.Post exposing (view, viewChainCard, viewBurnOrTip)
+module View.Post exposing (view, viewBurnOrTip, viewChainCard)
 
 import Chain
 import Element exposing (Color, Element, alignBottom, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spaceEvenly, spacing, text, width)
@@ -97,6 +97,7 @@ viewHeader isMobile tooltipState accounting topic timestamp now post =
                 (text
                     >> List.singleton
                     >> paragraph [ Font.size 30 ]
+                    >> linkToPost post.id
                 )
       , [ accounting
             |> whenJust (viewAccounting tooltipState post)
