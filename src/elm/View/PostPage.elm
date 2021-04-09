@@ -137,6 +137,36 @@ viewHeader model core =
         |> column [ spacing 20, width fill ]
 
 
+viewRepliesHeader : Dict PostKey Accounting -> List ReplyPost -> Element Msg
+viewRepliesHeader accounting replies =
+    let
+        totalBurn =
+            replies
+                |> List.map
+                    (\reply ->
+                        Dict.get reply.core.key accounting
+                            |> unwrap reply.core.authorBurn .totalBurned
+                    )
+                |> List.foldl
+                    TokenValue.add
+                    TokenValue.zero
+    in
+    [ replies
+        |> List.length
+        |> Misc.formatReplies
+        |> text
+        |> el [ Font.color white ]
+    , View.Common.burn totalBurn
+    ]
+        |> row
+            [ spacing 20
+            , padding 10
+            , Background.color black
+            , whiteGlowAttributeSmall
+            , Element.alignRight
+            ]
+
+
 viewReplies : Model -> Core -> Element Msg
 viewReplies model core =
     let
@@ -144,10 +174,13 @@ viewReplies model core =
             model.wallet
                 |> Wallet.userInfo
 
-        replies =
+        replyIds =
             model.replyIds
                 |> Dict.get core.key
                 |> unwrap [] Set.toList
+
+        replies =
+            replyIds
                 |> List.filterMap
                     (\id ->
                         Dict.get id model.replyPosts
@@ -164,7 +197,8 @@ viewReplies model core =
                             model.now
                     )
     in
-    sortedReplies
+    [ viewRepliesHeader model.accounting replies
+    , sortedReplies
         |> List.map
             (\reply ->
                 View.Post.view
@@ -189,6 +223,11 @@ viewReplies model core =
         |> column
             [ width fill
             , spacing 10
+            ]
+    ]
+        |> column
+            [ spacing 20
+            , width fill
             , Element.paddingEach
                 { left = 50
                 , right = 0

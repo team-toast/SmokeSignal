@@ -8,11 +8,10 @@ import Element.Input as Input
 import Eth.Utils
 import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Misc
-import Theme exposing (orange, softRed)
+import Theme exposing (orange)
 import Types exposing (..)
 import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttributeSmall)
 import View.Common exposing (phaceElement, when, whenJust)
-import View.Img
 import Wallet
 
 
@@ -70,23 +69,7 @@ viewTopics =
                             ++ topic
                             |> View.Common.ellipsisText 30
                             |> el [ Font.color Theme.orange, width fill ]
-                        , row
-                            [ Element.alignTop
-                            , Element.alignRight
-                            , spacing 5
-                            ]
-                            [ View.Img.dollar 25 softRed
-                            , count.total
-                                |> Misc.formatDollar
-                                |> text
-                                |> el [ Font.size 25, Font.bold, Font.color softRed ]
-                            , Element.image
-                                [ height <| px 25
-                                ]
-                                { src = "./favicon.svg"
-                                , description = "smokesignal logo"
-                                }
-                            ]
+                        , View.Common.burn count.total
                         ]
                 }
         )
