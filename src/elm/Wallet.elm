@@ -82,7 +82,7 @@ walletInfoDecoder =
                                         { address = addr
                                         , balance = bal
                                         , chain = chain
-                                        , xDaiStatus = Types.XDaiStandby
+                                        , faucetStatus = Types.FaucetStatus Types.RequestReady
                                         }
                                     )
                         )

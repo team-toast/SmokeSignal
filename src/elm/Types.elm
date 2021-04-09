@@ -119,20 +119,24 @@ type Msg
     | FaucetResponse (Result Http.Error FaucetResult)
     | ToggleTooltip TooltipId
     | BalanceResponse (Maybe TokenValue)
-    | ExecuteDelayedCmd (Cmd Msg)
     | CloseComposeError
     | SharePost Core
+
+
+type RequestOutcome
+    = RequestReady
+    | RequestInProgress
+    | RequestError String
+
+
+type FaucetUX
+    = FaucetStatus RequestOutcome
+    | FaucetSuccess
 
 
 type TxErr
     = UserRejected
     | OtherErr String
-
-
-type XDaiStatus
-    = XDaiStandby
-    | WaitingForApi
-    | WaitingForBalance
 
 
 type alias FaucetResult =
@@ -239,7 +243,7 @@ type alias UserInfo =
     { address : Address
     , balance : TokenValue
     , chain : Chain
-    , xDaiStatus : XDaiStatus
+    , faucetStatus : FaucetUX
     }
 
 
