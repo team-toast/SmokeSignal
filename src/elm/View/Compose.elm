@@ -247,21 +247,25 @@ viewInstructions chainSwitchInProgress dProfile userInfo =
                     [ width fill
                     , spacing 10
                     ]
+                |> Just
 
         XDai ->
             if TokenValue.isZero userInfo.balance then
                 viewFaucet dProfile userInfo.faucetStatus
+                    |> Just
 
             else
-                Element.none
+                Nothing
     )
-        |> el
-            [ padding 10
-            , Background.color white
-            , roundBorder
-            , width fill
-            , Font.color black
-            ]
+        |> whenJust
+            (el
+                [ padding 10
+                , Background.color white
+                , roundBorder
+                , width fill
+                , Font.color black
+                ]
+            )
 
 
 viewFaucet : DisplayProfile -> FaucetUX -> Element Msg
