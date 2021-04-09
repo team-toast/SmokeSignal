@@ -1,4 +1,4 @@
-module View.Compose exposing (view)
+module View.Compose exposing (view, viewInstructions)
 
 import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
@@ -64,7 +64,7 @@ view model userInfo =
             , Font.size 20
             , width fill
             ]
-    , [ [ viewInstructions model userInfo
+    , [ [ viewInstructions model.chainSwitchInProgress model.dProfile userInfo
             |> when (not isMobile)
         , model.compose.message
             |> View.Common.whenJust
@@ -211,26 +211,25 @@ view model userInfo =
             ]
 
 
-viewInstructions : Model -> UserInfo -> Element Msg
-viewInstructions model userInfo =
-    case userInfo.chain of
+viewInstructions : Bool -> DisplayProfile -> UserInfo -> Element Msg
+viewInstructions chainSwitchInProgress dProfile userInfo =
+    (case userInfo.chain of
         Eth ->
             [ [ el [ Font.bold ] (text "Note:")
               , text " Posting on SmokeSignal using Ethereum can result in very high gas fees. Using xDai is a cheaper alternative."
               ]
-                |> paragraph []
+                |> paragraph [ Font.color black ]
             , Input.button
                 [ Background.color Theme.green
                 , padding 10
                 , View.Attrs.roundBorder
                 , hover
-                , Font.color black
                 , width <| px 180
                 , Element.alignRight
                 ]
                 { onPress = Just XDaiImport
                 , label =
-                    if model.chainSwitchInProgress then
+                    if chainSwitchInProgress then
                         View.Common.spinner 20 black
                             |> el [ centerX ]
 
@@ -239,57 +238,89 @@ viewInstructions model userInfo =
                             |> el [ centerX ]
                 }
             ]
-                |> row
+                |> (if dProfile == Mobile then
+                        column
+
+                    else
+                        row
+                   )
                     [ width fill
                     , spacing 10
-                    , padding 10
-                    , Background.color orange
-                    , View.Attrs.roundBorder
                     ]
 
         XDai ->
-            let
-                inProgress =
-                    case userInfo.xDaiStatus of
-                        WaitingForApi ->
-                            True
+            if TokenValue.isZero userInfo.balance then
+                viewFaucet dProfile userInfo.faucetStatus
 
-                        WaitingForBalance ->
-                            True
-
-                        XDaiStandby ->
-                            False
-            in
-            [ [ el [ Font.bold ] (text "Note:")
-              , text " Your xDai wallet is currently empty."
-              ]
-                |> paragraph []
-            , Input.button
-                [ Background.color Theme.green
-                , padding 10
-                , View.Attrs.roundBorder
-                , hover
-                , Font.color black
-                , width <| px 240
-                ]
-                { onPress =
-                    if inProgress then
-                        Nothing
-
-                    else
-                        Just SubmitFaucet
-                , label =
-                    if inProgress then
-                        View.Common.spinner 20 black
-                            |> el [ centerX ]
-
-                    else
-                        [ text "Request xDai from faucet" ]
-                            |> paragraph [ Font.center ]
-                }
+            else
+                Element.none
+    )
+        |> el
+            [ padding 10
+            , Background.color white
+            , roundBorder
+            , width fill
+            , Font.color black
             ]
-                |> row [ width fill, spacing 10, padding 10, Background.color orange, View.Attrs.roundBorder ]
-                |> when (TokenValue.isZero userInfo.balance)
+
+
+viewFaucet : DisplayProfile -> FaucetUX -> Element Msg
+viewFaucet dProfile faucetStatus =
+    case faucetStatus of
+        FaucetStatus status ->
+            [ [ [ el [ Font.bold ] (text "Note:")
+                , text " Your xDai wallet is currently empty."
+                ]
+                    |> paragraph []
+              , Input.button
+                    [ Background.color Theme.green
+                    , padding 10
+                    , View.Attrs.roundBorder
+                    , hover
+                    , width <| px 240
+                    ]
+                    { onPress =
+                        if status == Types.RequestInProgress then
+                            Nothing
+
+                        else
+                            Just SubmitFaucet
+                    , label =
+                        if status == Types.RequestInProgress then
+                            View.Common.spinner 20 black
+                                |> el [ centerX ]
+
+                        else
+                            [ text "Request xDai from faucet" ]
+                                |> paragraph [ Font.center ]
+                    }
+              ]
+                |> (if dProfile == Mobile then
+                        column
+
+                    else
+                        row
+                   )
+                    [ width fill
+                    , spacing 10
+                    ]
+            , case status of
+                Types.RequestReady ->
+                    Element.none
+
+                Types.RequestInProgress ->
+                    Element.none
+
+                Types.RequestError message ->
+                    [ text message ]
+                        |> paragraph []
+            ]
+                |> column [ width fill, spacing 10 ]
+
+        FaucetSuccess ->
+            [ text "Your faucet request was successful. Please check your wallet for an updated balance."
+            ]
+                |> paragraph []
 
 
 viewComposeContext : Context -> String -> Element Msg

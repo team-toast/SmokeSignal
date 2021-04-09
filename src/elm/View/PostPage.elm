@@ -18,6 +18,7 @@ import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (hover, roundBorder, sansSerifFont, slightRound, whiteGlowAttributeSmall)
 import View.Common exposing (phaceElement, when, whenAttr, whenJust)
+import View.Compose
 import View.Img
 import View.Markdown
 import View.Post
@@ -141,7 +142,7 @@ view model post =
             |> when (not model.compose.reply)
       , userInfo
             |> whenJust
-                (viewReplyInput isMobile model.compose)
+                (viewReplyInput model.chainSwitchInProgress model.dProfile model.compose)
             |> when model.compose.reply
       ]
         |> column
@@ -289,9 +290,12 @@ viewCurrentBreadcrumb curr =
             ]
 
 
-viewReplyInput : Bool -> ComposeModel -> UserInfo -> Element Msg
-viewReplyInput isMobile compose userInfo =
+viewReplyInput : Bool -> DisplayProfile -> ComposeModel -> UserInfo -> Element Msg
+viewReplyInput chainSwitchInProgress dProfile compose userInfo =
     let
+        isMobile =
+            dProfile == Mobile
+
         submitEnabled =
             not (String.isEmpty compose.body)
                 && validTopic
@@ -333,28 +337,7 @@ viewReplyInput isMobile compose userInfo =
                 , label = text txt
                 }
     in
-    --[ [ viewInstructions model userInfo
-    --|> when (not isMobile)
-    [ [ compose.message
-            |> View.Common.whenJust
-                (text
-                    >> List.singleton
-                    >> paragraph
-                        [ Background.color white
-                        , Element.alignRight
-                        , View.Attrs.slightRound
-                        , padding 10
-                        , Font.color black
-                        , Font.alignRight
-                        ]
-                )
-      , [--, viewComposeContext compose.context topicInput
-         --|> el [ Element.alignRight ]
-        ]
-            |> row [ width fill, spacing 10 ]
-      ]
-        |> column [ width fill, spacing 10, sansSerifFont ]
-    , [ [ topButton "Write" False
+    [ [ [ topButton "Write" False
         , topButton "Preview" True
         ]
             |> row [ spacing 10, Element.paddingXY 10 0 ]
@@ -376,7 +359,8 @@ viewReplyInput isMobile compose userInfo =
             |> when (not isMobile)
       ]
         |> row [ width fill, Element.spaceEvenly ]
-    , [ viewMarkdown compose
+    , [ View.Compose.viewInstructions chainSwitchInProgress dProfile userInfo
+      , viewMarkdown compose
             |> el
                 [ width fill
                 , compose.error

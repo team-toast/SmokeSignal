@@ -17,7 +17,6 @@ import Maybe.Extra exposing (unwrap)
 import Misc exposing (emptyComposeModel, postIdToKey, sortTypeToString)
 import Ports
 import Post
-import Process
 import Random
 import Result.Extra exposing (unpack)
 import Routing exposing (viewUrlToPathString)
@@ -530,75 +529,25 @@ update msg model =
                     )
 
         BalanceResponse val ->
-            ensureUserInfo
-                (\userInfo ->
-                    let
-                        fetchBalance =
-                            Process.sleep 1000
-                                |> Task.perform
-                                    (\_ ->
-                                        userInfo.address
-                                            |> Eth.Utils.addressToString
-                                            |> Ports.refreshWallet
-                                            |> ExecuteDelayedCmd
-                                    )
-                    in
-                    val
-                        |> unwrap
-                            ( { model
-                                | wallet =
-                                    Active { userInfo | xDaiStatus = XDaiStandby }
-                              }
-                            , Ports.log "Missing balance"
-                            )
-                            (\balance ->
-                                let
-                                    balanceEmpty =
-                                        TokenValue.isZero balance
-
-                                    shouldFetch =
-                                        balanceEmpty && userInfo.xDaiStatus == WaitingForBalance
-
-                                    compose =
-                                        if shouldFetch then
-                                            model.compose
-
-                                        else
-                                            model.compose
-                                                |> (\r ->
-                                                        { r
-                                                            | message = Nothing
-                                                            , error = Nothing
-                                                        }
-                                                   )
-
-                                    wallet =
+            val
+                |> unwrap
+                    ( model
+                    , Ports.log "Missing balance"
+                    )
+                    (\balance ->
+                        ensureUserInfo
+                            (\userInfo ->
+                                ( { model
+                                    | wallet =
                                         Active
                                             { userInfo
                                                 | balance = balance
-                                                , xDaiStatus =
-                                                    if shouldFetch then
-                                                        WaitingForBalance
-
-                                                    else
-                                                        userInfo.xDaiStatus
                                             }
-                                in
-                                ( { model
-                                    | wallet = wallet
-                                    , compose = compose
                                   }
-                                , if shouldFetch then
-                                    fetchBalance
-
-                                  else
-                                    Cmd.none
+                                , Cmd.none
                                 )
                             )
-                )
-
-        ExecuteDelayedCmd cmd ->
-            ( model, cmd )
+                    )
 
         EventSentryMsg chain eventMsg ->
             case chain of
@@ -1283,7 +1232,12 @@ update msg model =
                                             , error = Nothing
                                         }
                                    )
-                        , wallet = Active { userInfo | xDaiStatus = WaitingForApi }
+                        , wallet =
+                            Active
+                                { userInfo
+                                    | faucetStatus =
+                                        FaucetStatus RequestInProgress
+                                }
                       }
                     , [ Http.get
                             { url = "https://personal-rxyx.outsystemscloud.com/ERC20FaucetRest/rest/v1/send?In_ReceiverErc20Address=" ++ addr ++ "&In_Token=" ++ model.faucetToken
@@ -1318,7 +1272,12 @@ update msg model =
                                                             Just "There has been a problem."
                                                     }
                                                )
-                                    , wallet = Active { userInfo | xDaiStatus = XDaiStandby }
+                                    , wallet =
+                                        Active
+                                            { userInfo
+                                                | faucetStatus =
+                                                    FaucetStatus (RequestError "There has been a problem.")
+                                            }
                                   }
                                 , logHttpError "FaucetResponse" e
                                 )
@@ -1332,12 +1291,12 @@ update msg model =
                                     | wallet =
                                         Active
                                             { userInfo
-                                                | xDaiStatus =
+                                                | faucetStatus =
                                                     if faucetSuccess then
-                                                        WaitingForBalance
+                                                        FaucetSuccess
 
                                                     else
-                                                        XDaiStandby
+                                                        FaucetStatus (RequestError data.message)
                                             }
                                     , compose =
                                         model.compose
