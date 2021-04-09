@@ -795,7 +795,7 @@ update msg model =
                                             let
                                                 donateAmount =
                                                     if model.compose.donate then
-                                                        TokenValue.div burnAmount 100
+                                                        TokenValue.divByInt 100 burnAmount
 
                                                     else
                                                         TokenValue.zero
