@@ -205,47 +205,69 @@ viewBottomBar model core =
             model.wallet
                 |> Wallet.userInfo
     in
-    if model.compose.reply then
-        maybeUserInfo
-            |> whenJust
-                (viewReplyInput model.chainSwitchInProgress model.dProfile model.compose)
-
-    else
-        [ Input.button
-            [ Background.color Theme.green
-            , padding 10
-            , roundBorder
-            , hover
-            , Font.color black
-            ]
-            { onPress = Just <| SharePost core
-            , label =
-                [ View.Img.link 15 black
-                , text "Share"
-                ]
-                    |> row [ spacing 10, Font.size 20 ]
-            }
-            |> when model.shareEnabled
-        , [ Input.button
+    maybeUserInfo
+        |> unwrap
+            (Input.button
                 [ Background.color Theme.orange
                 , padding 10
                 , roundBorder
                 , hover
                 , Font.color black
-                , Element.alignBottom
+                , Element.alignRight
                 ]
-                { onPress = Just <| ReplyOpen core.id
+                { onPress = Just ConnectToWeb3
                 , label =
-                    [ View.Img.replyArrow 15 black
-                    , text "Reply"
-                    ]
-                        |> row [ spacing 10, Font.size 20 ]
+                    if model.wallet == Connecting then
+                        View.Common.spinner 20 black
+
+                    else
+                        [ View.Img.replyArrow 15 black
+                        , text "Connect wallet to reply"
+                        ]
+                            |> row [ spacing 10, Font.size 20 ]
                 }
-          , View.Post.viewBurnOrTip core maybeUserInfo model.maybeBurnOrTipUX
-          ]
-            |> row [ spacing 10, Element.alignRight ]
-        ]
-            |> row [ width fill, Element.spaceEvenly ]
+            )
+            (\userInfo ->
+                if model.compose.reply then
+                    viewReplyInput model.chainSwitchInProgress model.dProfile model.compose userInfo
+
+                else
+                    [ Input.button
+                        [ Background.color Theme.green
+                        , padding 10
+                        , roundBorder
+                        , hover
+                        , Font.color black
+                        ]
+                        { onPress = Just <| SharePost core
+                        , label =
+                            [ View.Img.link 15 black
+                            , text "Share"
+                            ]
+                                |> row [ spacing 10, Font.size 20 ]
+                        }
+                        |> when model.shareEnabled
+                    , [ Input.button
+                            [ Background.color Theme.orange
+                            , padding 10
+                            , roundBorder
+                            , hover
+                            , Font.color black
+                            , Element.alignBottom
+                            ]
+                            { onPress = Just <| ReplyOpen core.id
+                            , label =
+                                [ View.Img.replyArrow 15 black
+                                , text "Reply"
+                                ]
+                                    |> row [ spacing 10, Font.size 20 ]
+                            }
+                      , View.Post.viewBurnOrTip core maybeUserInfo model.maybeBurnOrTipUX
+                      ]
+                        |> row [ spacing 10, Element.alignRight ]
+                    ]
+                        |> row [ width fill, Element.spaceEvenly ]
+            )
 
 
 viewBreadcrumbs : LogPost -> Dict PostKey RootPost -> Dict PostKey ReplyPost -> Element Msg
