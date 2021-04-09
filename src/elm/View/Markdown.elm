@@ -1,4 +1,4 @@
-module View.Markdown exposing (renderString, renderWithConfig)
+module View.Markdown exposing (renderString)
 
 import Element exposing (Element, column, fill, height, paragraph, row, spacing, text, width)
 import Element.Background
@@ -12,10 +12,7 @@ import Markdown.Block
 import Markdown.Html
 import Markdown.Parser
 import Markdown.Renderer exposing (Renderer)
-import Maybe.Extra
 import Theme
-import Types exposing (MarkdownConfig)
-import Url
 import View.Attrs exposing (hover, style)
 
 
@@ -23,18 +20,8 @@ import View.Attrs exposing (hover, style)
 -- Largely taken from https://github.com/dillonkearns/elm-markdown/blob/master/examples/src/ElmUi.elm
 
 
-renderWithConfig : DisplayProfile -> MarkdownConfig -> String -> Element msg
-renderWithConfig device config =
-    render device (Just config)
-
-
 renderString : DisplayProfile -> String -> Element msg
 renderString device src =
-    render device Nothing src
-
-
-render : DisplayProfile -> Maybe MarkdownConfig -> String -> Element msg
-render device maybeConfig src =
     let
         isMobile =
             device == Helpers.Element.Mobile
@@ -52,11 +39,6 @@ render device maybeConfig src =
 
             else
                 20
-
-        config =
-            maybeConfig
-                |> Maybe.withDefault
-                    { parseLinks = False }
     in
     src
         |> Markdown.Parser.parse
@@ -66,31 +48,15 @@ render device maybeConfig src =
         -->> String.join "\n"
         --)
         |> Result.andThen
-            (Markdown.Renderer.render (renderer config device)
+            (Markdown.Renderer.render (renderer device)
                 >> Result.mapError (always ())
             )
         |> Result.withDefault [ text "There has been a problem." ]
         |> column [ spacing sp, height fill, width fill, Font.size fs ]
 
 
-parseUrl : String -> Element msg
-parseUrl txt =
-    txt
-        |> Url.fromString
-        |> Maybe.Extra.unwrap
-            (text txt)
-            (\url ->
-                { url = Url.toString url
-                , label =
-                    [ text txt ]
-                        |> paragraph []
-                }
-                    |> link
-            )
-
-
-renderer : MarkdownConfig -> DisplayProfile -> Renderer (Element msg)
-renderer config device =
+renderer : DisplayProfile -> Renderer (Element msg)
+renderer device =
     { heading = heading device
     , paragraph =
         paragraph
@@ -102,12 +68,7 @@ renderer config device =
                 , Element.paddingXY 10 5
                 ]
     , text =
-        (if config.parseLinks then
-            parseUrl
-
-         else
-            text
-        )
+        text
             >> List.singleton
             >> breakingParagraph
     , strong = \content -> row [ Font.bold ] content
@@ -115,12 +76,13 @@ renderer config device =
     , codeSpan = code
     , link =
         \{ destination } body ->
-            { url = destination
-            , label =
-                body
-                    |> paragraph []
-            }
-                |> link
+            Element.newTabLink
+                [ hover, Font.color Theme.orange, Font.underline ]
+                { url = destination
+                , label =
+                    body
+                        |> paragraph []
+                }
     , hardLineBreak = Html.br [] [] |> Element.html
     , image =
         \image ->
@@ -274,12 +236,6 @@ codeBlock details =
             ]
         ]
         (Element.text details.body)
-
-
-link : { url : String, label : Element msg } -> Element msg
-link =
-    Element.newTabLink
-        [ hover, Font.color Theme.orange, Font.underline ]
 
 
 breakingParagraph : List (Element msg) -> Element msg
