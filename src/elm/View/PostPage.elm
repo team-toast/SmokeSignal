@@ -461,7 +461,7 @@ viewReplyInput chainSwitchInProgress dProfile compose userInfo =
       ]
         |> row [ width fill, Element.spaceEvenly ]
     , [ View.Compose.viewInstructions chainSwitchInProgress dProfile userInfo
-      , viewMarkdown compose
+      , viewMarkdown dProfile compose
             |> el
                 [ width fill
                 , compose.error
@@ -547,15 +547,15 @@ viewReplyInput chainSwitchInProgress dProfile compose userInfo =
             ]
 
 
-viewMarkdown : ComposeModel -> Element Msg
-viewMarkdown compose =
+viewMarkdown : DisplayProfile -> ComposeModel -> Element Msg
+viewMarkdown dProfile compose =
     if compose.preview then
         (if String.isEmpty compose.body then
             text "Nothing to preview"
 
          else
             compose.body
-                |> View.Markdown.renderString Desktop
+                |> View.Markdown.renderString dProfile
         )
             |> el
                 [ width fill
