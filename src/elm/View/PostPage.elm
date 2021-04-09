@@ -59,7 +59,7 @@ viewPost model core =
     [ viewHeader model core
     , View.Common.horizontalRule white
     , core.content.body
-        |> View.Markdown.renderString model.dProfile
+        |> View.Markdown.renderWithConfig model.dProfile { parseLinks = True }
         |> el
             [ width fill
             , height fill
@@ -555,7 +555,7 @@ viewMarkdown dProfile compose =
 
          else
             compose.body
-                |> View.Markdown.renderString dProfile
+                |> View.Markdown.renderWithConfig dProfile { parseLinks = True }
         )
             |> el
                 [ width fill

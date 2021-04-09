@@ -202,6 +202,11 @@ type alias ComposeModel =
     }
 
 
+type alias MarkdownConfig =
+    { parseLinks : Bool
+    }
+
+
 type alias Config =
     { xDai : ChainConfig
     , ethereum : ChainConfig
