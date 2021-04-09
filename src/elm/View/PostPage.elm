@@ -30,6 +30,60 @@ view model post =
     let
         core =
             Misc.getCore post
+    in
+    [ viewBreadcrumbs post model.rootPosts model.replyPosts
+    , viewPost model core
+    , viewReplies model core
+    ]
+        |> column
+            [ height fill
+            , spacing 20
+            , width fill
+            , sansSerifFont
+            ]
+
+
+viewPost : Model -> Core -> Element Msg
+viewPost model core =
+    let
+        pad =
+            if isMobile then
+                15
+
+            else
+                30
+
+        isMobile =
+            model.dProfile == Mobile
+    in
+    [ viewHeader model core
+    , View.Common.horizontalRule white
+    , core.content.body
+        |> View.Markdown.renderString model.dProfile
+        |> el
+            [ width fill
+            , height fill
+            , Font.color white
+            ]
+    , viewBottomBar model core
+    ]
+        |> column
+            [ spacing 20
+            , width fill
+            , padding pad
+            , whiteGlowAttributeSmall
+            , Background.color black
+            , Font.color white
+            ]
+
+
+viewHeader : Model -> Core -> Element Msg
+viewHeader model core =
+    let
+        accounting =
+            model.accounting
+                |> Dict.get core.key
+                |> View.Common.whenJust (viewAccounting model.dProfile)
 
         isMobile =
             model.dProfile == Mobile
@@ -40,134 +94,77 @@ view model post =
 
             else
                 50
-
-        pd =
-            if isMobile then
-                15
-
-            else
-                30
-
-        accounting =
-            model.accounting
-                |> Dict.get core.key
-                |> View.Common.whenJust (viewAccounting model.dProfile)
-
-        userInfo =
-            model.wallet
-                |> Wallet.userInfo
     in
-    [ viewBreadcrumbs post model.rootPosts model.replyPosts
-    , [ core.content.title
-            |> View.Common.whenJust
-                (text
-                    >> List.singleton
-                    >> Element.paragraph
-                        [ Font.size fontSize
-                        , Font.bold
-                        ]
-                )
-      , [ [ accounting
-          , phaceElement
-                70
-                core.author
-                (model.showAddressId == Just (PhaceForPublishedPost core.id))
-                (GotoView <| ViewUser core.author)
-          , View.Post.viewChainCard model.dProfile core
-          ]
+    [ core.content.title
+        |> View.Common.whenJust
+            (text
+                >> List.singleton
+                >> Element.paragraph
+                    [ Font.size fontSize
+                    , Font.bold
+                    ]
+            )
+    , [ [ accounting
+        , phaceElement
+            70
+            core.author
+            (model.showAddressId == Just (PhaceForPublishedPost core.id))
+            (GotoView <| ViewUser core.author)
+        , View.Post.viewChainCard model.dProfile core
+        ]
             |> row [ spacing 10 ]
-        , [ model.blockTimes
-                |> Dict.get core.id.block
-                |> View.Common.timingOrSpinner model.now
-          , Element.newTabLink [ hover ]
-                { url = Chain.txUrl core.chain core.txHash
-                , label =
-                    [ View.Img.globe 20 white, text "View on block explorer" ]
-                        |> row [ spacing 5, Font.underline ]
-                }
-          ]
+      , [ model.blockTimes
+            |> Dict.get core.id.block
+            |> View.Common.timingOrSpinner model.now
+        , Element.newTabLink [ hover ]
+            { url = Chain.txUrl core.chain core.txHash
+            , label =
+                [ View.Img.globe 20 white, text "View on block explorer" ]
+                    |> row [ spacing 5, Font.underline ]
+            }
+        ]
             |> column
                 [ spacing 10
                 ]
-        ]
-            |> (if isMobile then
-                    column [ spacing 10 ]
-
-                else
-                    row [ width fill, Element.spaceEvenly ]
-               )
-      , View.Common.horizontalRule white
-      , core.content.body
-            |> View.Markdown.renderString model.dProfile
-            |> el
-                [ width fill
-                , height fill
-                , Font.color white
-                ]
-      , [ Input.button
-            [ Background.color Theme.green
-            , padding 10
-            , roundBorder
-            , hover
-            , Font.color black
-            ]
-            { onPress = Just <| SharePost core
-            , label =
-                [ View.Img.link 15 black
-                , text "Share"
-                ]
-                    |> row [ spacing 10, Font.size 20 ]
-            }
-            |> when model.shareEnabled
-        , [ Input.button
-                [ Background.color Theme.orange
-                , padding 10
-                , roundBorder
-                , hover
-                , Font.color black
-                , Element.alignBottom
-                ]
-                { onPress = Just <| ReplyOpen core.id
-                , label =
-                    [ View.Img.replyArrow 15 black
-                    , text "Reply"
-                    ]
-                        |> row [ spacing 10, Font.size 20 ]
-                }
-          , View.Post.viewBurnOrTip core userInfo model.maybeBurnOrTipUX
-          ]
-            |> row [ spacing 10, Element.alignRight ]
-        ]
-            |> row [ width fill, Element.spaceEvenly ]
-            |> when (not model.compose.reply)
-      , userInfo
-            |> whenJust
-                (viewReplyInput model.chainSwitchInProgress model.dProfile model.compose)
-            |> when model.compose.reply
       ]
-        |> column
-            [ spacing 20
-            , width fill
-            , padding pd
-            , whiteGlowAttributeSmall
-            , Background.color black
-            , Font.color white
-            ]
-    , model.replyIds
-        |> Dict.get core.key
-        |> unwrap [] Set.toList
-        |> List.filterMap
-            (\id ->
-                Dict.get id model.replyPosts
-            )
-        |> List.sortBy
-            (.core
-                >> Misc.sortPostsFunc
-                    model.sortType
-                    model.blockTimes
-                    model.accounting
-                    model.now
-            )
+        |> (if isMobile then
+                column [ spacing 10 ]
+
+            else
+                row [ width fill, Element.spaceEvenly ]
+           )
+    ]
+        |> column [ spacing 20, width fill ]
+
+
+viewReplies : Model -> Core -> Element Msg
+viewReplies model core =
+    let
+        userInfo =
+            model.wallet
+                |> Wallet.userInfo
+
+        replies =
+            model.replyIds
+                |> Dict.get core.key
+                |> unwrap [] Set.toList
+                |> List.filterMap
+                    (\id ->
+                        Dict.get id model.replyPosts
+                    )
+
+        sortedReplies =
+            replies
+                |> List.sortBy
+                    (.core
+                        >> Misc.sortPostsFunc
+                            model.sortType
+                            model.blockTimes
+                            model.accounting
+                            model.now
+                    )
+    in
+    sortedReplies
         |> List.map
             (\reply ->
                 View.Post.view
@@ -199,13 +196,56 @@ view model post =
                 , bottom = 0
                 }
             ]
-    ]
-        |> column
-            [ height fill
-            , spacing 20
-            , width fill
-            , sansSerifFont
+
+
+viewBottomBar : Model -> Core -> Element Msg
+viewBottomBar model core =
+    let
+        maybeUserInfo =
+            model.wallet
+                |> Wallet.userInfo
+    in
+    if model.compose.reply then
+        maybeUserInfo
+            |> whenJust
+                (viewReplyInput model.chainSwitchInProgress model.dProfile model.compose)
+
+    else
+        [ Input.button
+            [ Background.color Theme.green
+            , padding 10
+            , roundBorder
+            , hover
+            , Font.color black
             ]
+            { onPress = Just <| SharePost core
+            , label =
+                [ View.Img.link 15 black
+                , text "Share"
+                ]
+                    |> row [ spacing 10, Font.size 20 ]
+            }
+            |> when model.shareEnabled
+        , [ Input.button
+                [ Background.color Theme.orange
+                , padding 10
+                , roundBorder
+                , hover
+                , Font.color black
+                , Element.alignBottom
+                ]
+                { onPress = Just <| ReplyOpen core.id
+                , label =
+                    [ View.Img.replyArrow 15 black
+                    , text "Reply"
+                    ]
+                        |> row [ spacing 10, Font.size 20 ]
+                }
+          , View.Post.viewBurnOrTip core maybeUserInfo model.maybeBurnOrTipUX
+          ]
+            |> row [ spacing 10, Element.alignRight ]
+        ]
+            |> row [ width fill, Element.spaceEvenly ]
 
 
 viewBreadcrumbs : LogPost -> Dict PostKey RootPost -> Dict PostKey ReplyPost -> Element Msg
