@@ -17,6 +17,17 @@ body {
 }
 
 @font-face {
+  font-family: "SourceCodePro";
+  font-style: normal;
+  font-weight: 400;
+  src: local(""),
+    url("./fonts/source-code-pro/source-code-pro-v14-latin-regular.woff2")
+      format("woff2"),
+    url("./fonts/source-code-pro/source-code-pro-v14-latin-regular.woff")
+      format("woff");
+}
+
+@font-face {
   font-family: "SmallType";
   src: url("./fonts/Oswald-VariableFont_wght.ttf") format("truetype");
 }
