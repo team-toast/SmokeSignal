@@ -489,7 +489,7 @@ viewMarkdown model =
                 , Element.scrollbarY
                 , height <| px 500
 
-                --, View.Attrs.style "min-height" "auto"
+                --, View.Attrs.scrollFix
                 , whiteGlowAttributeSmall
                 , Font.color white
                 , padding 10
