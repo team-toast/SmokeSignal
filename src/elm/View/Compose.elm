@@ -92,12 +92,7 @@ view model userInfo =
                     |> Just
             , text = model.compose.title
             }
-        , [ [ viewBurnAmountUX model.compose.dollar
-            , viewDonateCheckbox model.compose.donate
-                |> when inputIsNonzero
-                |> el [ width fill ]
-            ]
-                |> row [ spacing 10, width fill ]
+        , [ viewBurnAmountUX model.compose.dollar
           , viewComposeContext model.compose.context model.topicInput
                 |> el [ Element.alignRight ]
           , View.Common.chain userInfo.chain
@@ -408,45 +403,6 @@ viewBurnAmountUX amountInput =
             , Background.color <| Element.rgb 0.4 0.2 0.2
             , roundBorder
             , View.Attrs.cappedWidth 300
-            ]
-
-
-viewDonateCheckbox : Bool -> Element Msg
-viewDonateCheckbox donateChecked =
-    [ Input.checkbox
-        [ width <| px 20
-        , height <| px 20
-        , Background.color white
-        , whiteGlowAttributeSmall
-        , hover
-        ]
-        { onChange = Types.DonationCheckboxSet
-        , icon =
-            \checked ->
-                View.Img.tick 20 black
-                    |> el
-                        [ centerX
-                        , centerY
-                        ]
-                    |> View.Common.when checked
-        , checked = donateChecked
-        , label = Input.labelHidden "Donate an extra 1% to Foundry"
-        }
-    , [ text "Donate an extra 1% to "
-      , Element.newTabLink
-            [ Font.color Theme.orange, hover, Font.bold ]
-            { url = "https://foundrydao.com/"
-            , label = text "Foundry"
-            }
-      , text " so we can build more cool stuff!"
-      ]
-        |> paragraph [ spacing 2, Font.color white, Font.size 14 ]
-    ]
-        |> row
-            [ Font.size 15
-            , spacing 10
-            , View.Attrs.cappedWidth 300
-            , Element.alignLeft
             ]
 
 

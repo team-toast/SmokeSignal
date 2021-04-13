@@ -489,13 +489,7 @@ viewReplyInput chainSwitchInProgress dProfile compose userInfo =
                         )
                     |> Element.inFront
                 ]
-      , [ [ viewBurnAmountUX compose.dollar
-          , viewDonateCheckbox compose.donate
-                |> when inputIsNonzero
-                |> el [ width fill ]
-          ]
-            |> row [ spacing 10, width fill ]
-            |> when (not isMobile)
+      , [ viewBurnAmountUX compose.dollar
         , [ View.Common.cancel ComposeClose
                 |> el [ Font.color black ]
           , Input.button
@@ -596,45 +590,6 @@ viewMarkdown dProfile compose =
                 , height fill
                 , width fill
                 ]
-
-
-viewDonateCheckbox : Bool -> Element Msg
-viewDonateCheckbox donateChecked =
-    [ Input.checkbox
-        [ width <| px 20
-        , height <| px 20
-        , Background.color white
-        , whiteGlowAttributeSmall
-        , hover
-        ]
-        { onChange = Types.DonationCheckboxSet
-        , icon =
-            \checked ->
-                View.Img.tick 20 black
-                    |> el
-                        [ centerX
-                        , centerY
-                        ]
-                    |> View.Common.when checked
-        , checked = donateChecked
-        , label = Input.labelHidden "Donate an extra 1% to Foundry"
-        }
-    , [ text "Donate an extra 1% to "
-      , Element.newTabLink
-            [ hover, Font.bold ]
-            { url = "https://foundrydao.com/"
-            , label = text "Foundry"
-            }
-      , text " so we can build more cool stuff!"
-      ]
-        |> paragraph [ Font.color black, Font.size 14, width <| px 200 ]
-    ]
-        |> row
-            [ Font.size 15
-            , spacing 10
-            , View.Attrs.cappedWidth 300
-            , Element.alignLeft
-            ]
 
 
 viewBurnAmountUX : String -> Element Msg

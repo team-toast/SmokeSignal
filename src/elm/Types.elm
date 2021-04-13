@@ -93,7 +93,6 @@ type Msg
     | ConnectToWeb3
     | ShowOrHideAddress PhaceIconId
     | SubmitDraft
-    | DonationCheckboxSet Bool
     | ShowNewToSmokeSignalModal Bool
     | ComposeBodyChange String
     | ComposeTitleChange String
@@ -193,7 +192,6 @@ type alias ComposeModel =
     , body : String
     , modal : Bool
     , reply : Bool
-    , donate : Bool
     , context : Context
     , preview : Bool
     , inProgress : Bool

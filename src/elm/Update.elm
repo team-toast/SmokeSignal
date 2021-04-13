@@ -794,11 +794,11 @@ update msg model =
                                         (\burnAmount ->
                                             let
                                                 donateAmount =
-                                                    if model.compose.donate then
-                                                        TokenValue.divByInt 100 burnAmount
+                                                    if TokenValue.isZero burnAmount then
+                                                        TokenValue.zero
 
                                                     else
-                                                        TokenValue.zero
+                                                        TokenValue.divByInt 100 burnAmount
 
                                                 lowBalance =
                                                     --TokenValue.compare
@@ -1058,31 +1058,6 @@ update msg model =
                                 )
                             )
                 )
-
-        DonationCheckboxSet flag ->
-            let
-                gtagCmd =
-                    GTagData
-                        "set donation flag"
-                        Nothing
-                        ((if flag then
-                            "True"
-
-                          else
-                            "False"
-                         )
-                            |> Just
-                        )
-                        Nothing
-                        |> gTagOut
-            in
-            ( { model
-                | compose =
-                    model.compose
-                        |> (\r -> { r | donate = flag })
-              }
-            , gtagCmd
-            )
 
         SetPage n ->
             let
