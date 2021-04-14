@@ -739,23 +739,27 @@ update msg model =
             )
 
         ConnectToWeb3 ->
-            let
-                gtagCmd =
-                    GTagData
-                        "wallet connect initiated"
-                        Nothing
-                        Nothing
-                        Nothing
-                        |> gTagOut
-            in
-            ( { model
-                | wallet = Connecting
-              }
-            , [ Ports.connectToWeb3 ()
-              , gtagCmd
-              ]
-                |> Cmd.batch
-            )
+            if model.wallet == NoneDetected then
+                ( model, Cmd.none )
+
+            else
+                let
+                    gtagCmd =
+                        GTagData
+                            "wallet connect initiated"
+                            Nothing
+                            Nothing
+                            Nothing
+                            |> gTagOut
+                in
+                ( { model
+                    | wallet = Connecting
+                  }
+                , [ Ports.connectToWeb3 ()
+                  , gtagCmd
+                  ]
+                    |> Cmd.batch
+                )
 
         ShowOrHideAddress phaceId ->
             ( { model

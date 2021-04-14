@@ -254,7 +254,12 @@ viewBottomBar model core =
                 , Font.color black
                 , Element.alignRight
                 ]
-                { onPress = Just ConnectToWeb3
+                { onPress =
+                    if model.wallet == NoneDetected then
+                        Just ComposeOpen
+
+                    else
+                        Just ConnectToWeb3
                 , label =
                     if model.wallet == Connecting then
                         View.Common.spinner 20 black
