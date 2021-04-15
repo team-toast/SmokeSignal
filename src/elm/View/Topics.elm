@@ -1,5 +1,6 @@
 module View.Topics exposing (view)
 
+import Dict
 import Element exposing (Element, column, el, fill, height, padding, paragraph, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -17,29 +18,113 @@ import View.Img
 
 view : Model -> Element Msg
 view model =
-    [ [ "Topics"
-            |> text
-            |> el [ Font.size 35, Font.color black ]
-            |> el
-                [ width fill
-                , Background.color orange
-                , Font.color white
-                , padding 15
-                ]
-      , [ Input.text
+    [ viewTopicSearch model
+    , model.topics
+        |> Misc.sortTopics
+        |> viewTopics
+    ]
+        |> column
+            [ width fill
+            , height fill
+            , spacing 10
+            , Element.alignTop
+            ]
+
+
+viewTopicSearch : Model -> Element Msg
+viewTopicSearch model =
+    let
+        currentTopic =
+            model.topicInput
+                |> Misc.validateTopic
+
+        dropdownVisible =
+            currentTopic /= Nothing
+
+        dropdown =
+            currentTopic
+                |> View.Common.whenJust
+                    (\topic ->
+                        let
+                            ts =
+                                model.topics
+                                    |> Dict.keys
+                                    |> List.filter (String.startsWith topic)
+                        in
+                        (if List.isEmpty ts then
+                            Input.button
+                                [ Background.color Theme.orange
+                                , padding 10
+                                , View.Attrs.roundBorder
+                                , hover
+                                , Element.alignRight
+                                , View.Attrs.sansSerifFont
+                                ]
+                                { onPress = Just TopicSubmit
+                                , label = text "Use this topic"
+                                }
+
+                         else
+                            ts
+                                |> List.map
+                                    (\t ->
+                                        Input.button
+                                            [ width fill
+                                            , Border.color Theme.almostWhite
+                                            , Border.width 1
+                                            , padding 10
+                                            , hover
+                                            ]
+                                            { onPress = Just <| GotoView <| ViewTopic t
+                                            , label =
+                                                text t
+                                            }
+                                    )
+                                |> column [ width fill ]
+                        )
+                            |> el
+                                [ width fill
+                                , padding 5
+                                , Background.color black
+                                , Border.color Theme.almostWhite
+                                ]
+                    )
+    in
+    [ "Topics"
+        |> text
+        |> el [ Font.size 35, Font.color black ]
+        |> el
+            [ width fill
+            , Background.color orange
+            , Font.color white
+            , padding 15
+            ]
+    , [ Input.text
             [ width fill
             , Background.color black
             , Border.color Theme.almostWhite
-            , whiteGlowAttributeSmall
             , Font.color white
             , View.Attrs.onKeydown [ View.Attrs.onEnter TopicSubmit ]
             , View.Attrs.sansSerifFont
-            , Input.button [ Element.alignRight, Element.centerY, Element.paddingXY 5 0 ]
+            , Input.button
+                [ Element.alignRight
+                , hover
+                , Element.centerY
+                , Element.paddingXY 5 0
+                ]
                 { onPress = Just <| TopicInputChange ""
                 , label = View.Img.close 30 white
                 }
                 |> Element.inFront
                 |> whenAttr (not <| String.isEmpty model.topicInput)
+            , if dropdownVisible then
+                Border.widthEach
+                    { top = 1, right = 1, bottom = 0, left = 1 }
+
+              else
+                Border.width 1
+            , dropdown
+                |> Element.below
             ]
             { onChange = TopicInputChange
             , text = model.topicInput
@@ -51,7 +136,7 @@ view model =
                     |> Just
             , label = Input.labelHidden "topic"
             }
-        , Input.button
+      , Input.button
             [ Background.color Theme.orange
             , padding 10
             , View.Attrs.roundBorder
@@ -62,23 +147,13 @@ view model =
             { onPress = Just TopicSubmit
             , label = text "Submit"
             }
-        ]
-            |> column [ padding 20, width fill, spacing 10 ]
       ]
+        |> column [ padding 20, width fill, spacing 10 ]
+    ]
         |> column
             [ width fill
             , whiteGlowAttributeSmall
             , Background.color black
-            ]
-    , model.topics
-        |> Misc.sortTopics
-        |> viewTopics
-    ]
-        |> column
-            [ width fill
-            , height fill
-            , spacing 10
-            , Element.alignTop
             ]
 
 
