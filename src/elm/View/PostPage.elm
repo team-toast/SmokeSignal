@@ -410,12 +410,6 @@ viewReplyInput chainSwitchInProgress dProfile compose userInfo =
         validTopic =
             True
 
-        inputIsNonzero =
-            compose.dollar
-                |> String.toFloat
-                |> Maybe.map (\f -> f /= 0)
-                |> Maybe.withDefault False
-
         topButton txt val =
             let
                 active =

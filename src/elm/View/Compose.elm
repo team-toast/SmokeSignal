@@ -44,12 +44,6 @@ view model userInfo =
 
             else
                 20
-
-        inputIsNonzero =
-            model.compose.dollar
-                |> String.toFloat
-                |> Maybe.map (\f -> f /= 0)
-                |> Maybe.withDefault False
     in
     [ "Compose"
         |> text
