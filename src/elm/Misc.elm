@@ -1,4 +1,4 @@
-module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatPosix, getCore, getPostOrReply, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
+module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatPosix, formatReplies, getCore, getPostOrReply, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
 
 import Array
 import Dict exposing (Dict)
@@ -70,7 +70,6 @@ emptyComposeModel =
     , body = ""
     , modal = False
     , reply = False
-    , donate = True
     , context = TopLevel defaultTopic
     , preview = False
     , inProgress = False
@@ -372,3 +371,16 @@ encodeShare title url =
     , ( "url", Encode.string url )
     ]
         |> Encode.object
+
+
+formatReplies : Int -> String
+formatReplies n =
+    let
+        word =
+            if n == 1 then
+                "reply"
+
+            else
+                "replies"
+    in
+    String.fromInt n ++ " " ++ word

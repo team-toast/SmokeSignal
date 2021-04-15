@@ -739,23 +739,27 @@ update msg model =
             )
 
         ConnectToWeb3 ->
-            let
-                gtagCmd =
-                    GTagData
-                        "wallet connect initiated"
-                        Nothing
-                        Nothing
-                        Nothing
-                        |> gTagOut
-            in
-            ( { model
-                | wallet = Connecting
-              }
-            , [ Ports.connectToWeb3 ()
-              , gtagCmd
-              ]
-                |> Cmd.batch
-            )
+            if model.wallet == NoneDetected then
+                ( model, Cmd.none )
+
+            else
+                let
+                    gtagCmd =
+                        GTagData
+                            "wallet connect initiated"
+                            Nothing
+                            Nothing
+                            Nothing
+                            |> gTagOut
+                in
+                ( { model
+                    | wallet = Connecting
+                  }
+                , [ Ports.connectToWeb3 ()
+                  , gtagCmd
+                  ]
+                    |> Cmd.batch
+                )
 
         ShowOrHideAddress phaceId ->
             ( { model
@@ -794,11 +798,11 @@ update msg model =
                                         (\burnAmount ->
                                             let
                                                 donateAmount =
-                                                    if model.compose.donate then
-                                                        TokenValue.divByInt 100 burnAmount
+                                                    if TokenValue.isZero burnAmount then
+                                                        TokenValue.zero
 
                                                     else
-                                                        TokenValue.zero
+                                                        TokenValue.divByInt 100 burnAmount
 
                                                 lowBalance =
                                                     --TokenValue.compare
@@ -1058,31 +1062,6 @@ update msg model =
                                 )
                             )
                 )
-
-        DonationCheckboxSet flag ->
-            let
-                gtagCmd =
-                    GTagData
-                        "set donation flag"
-                        Nothing
-                        ((if flag then
-                            "True"
-
-                          else
-                            "False"
-                         )
-                            |> Just
-                        )
-                        Nothing
-                        |> gTagOut
-            in
-            ( { model
-                | compose =
-                    model.compose
-                        |> (\r -> { r | donate = flag })
-              }
-            , gtagCmd
-            )
 
         SetPage n ->
             let

@@ -229,10 +229,14 @@ startSentry config =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
+subscriptions model =
     Sub.batch
         [ Time.every 1000 Types.Tick
-        , Time.every 3000 (always Types.ChangeDemoPhaceSrc)
+        , if model.wallet == Types.NoneDetected || model.wallet == Types.NetworkReady then
+            Time.every 3000 (always Types.ChangeDemoPhaceSrc)
+
+          else
+            Sub.none
         , Time.every 5000 (always Types.CheckTrackedTxsStatus)
         , Ports.walletResponse
             (Wallet.walletInfoDecoder >> Types.WalletResponse)

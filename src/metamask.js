@@ -14,6 +14,7 @@ const xDaiImport = () =>
     method: "wallet_addEthereumChain",
     params: [
       // https://www.xdaichain.com/for-users/wallets/metamask/metamask-setup
+      // Will be validated by MetaMask against https://chainid.network/chains.json
       {
         chainId: "0x64",
         chainName: "xDai Chain",

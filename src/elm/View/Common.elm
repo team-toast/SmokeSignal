@@ -1,4 +1,4 @@
-module View.Common exposing (appStatusMessage, cancel, chain, ellipsisText, horizontalRule, link, phaceElement, spinner, timingOrSpinner, topic, verticalRule, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (appStatusMessage, burn, cancel, chain, ellipsisText, horizontalRule, link, phaceElement, spinner, timingOrSpinner, topic, verticalRule, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
@@ -19,6 +19,7 @@ import Misc
 import Phace
 import Theme
 import Time
+import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import View.Attrs exposing (hover, style)
 import View.Img
@@ -241,3 +242,23 @@ link url txt =
             [ text txt ]
                 |> Element.paragraph []
         }
+
+
+burn : TokenValue -> Element msg
+burn amount =
+    row
+        []
+        [ View.Img.dollar 25 Theme.softRed
+        , row [ spacing 5 ]
+            [ amount
+                |> Misc.formatDollar
+                |> text
+                |> el [ Font.size 25, Font.bold, Font.color Theme.softRed ]
+            , Element.image
+                [ height <| px 25
+                ]
+                { src = "./favicon.svg"
+                , description = "smokesignal logo"
+                }
+            ]
+        ]

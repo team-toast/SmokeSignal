@@ -9,7 +9,7 @@ import Element.Input as Input
 import Helpers.Element as EH exposing (DisplayProfile, black, white)
 import Maybe.Extra exposing (unwrap)
 import Misc
-import Set exposing (Set)
+import Set
 import Theme exposing (almostWhite)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
@@ -64,7 +64,8 @@ view dProfile timestamp now replies accounting state tooltipState topic wallet p
 viewBottom : Set.Set Types.PostKey -> Core -> Maybe UserInfo -> Maybe BurnOrTipUX -> Element Msg
 viewBottom replies post wallet state =
     [ [ View.Img.speechBubble 17 almostWhite
-      , viewReplies replies
+      , Set.size replies
+            |> Misc.formatReplies
             |> text
       ]
         |> row [ spacing 10, Font.size 23 ]
@@ -300,22 +301,6 @@ viewBody device post =
                 |> Element.inFront
             ]
         |> linkToPost post.id
-
-
-viewReplies : Set a -> String
-viewReplies replies =
-    let
-        len =
-            Set.size replies
-
-        word =
-            if len == 1 then
-                "reply"
-
-            else
-                "replies"
-    in
-    String.fromInt len ++ " " ++ word
 
 
 viewAmount : Color -> TokenValue -> TooltipId -> Element Msg

@@ -1,4 +1,4 @@
-module View.Attrs exposing (cappedHeight, cappedWidth, fade, help, hover, notAllowed, onEnter, onKeydown, rotate, roundBorder, sansSerifFont, slightRound, style, title, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
+module View.Attrs exposing (cappedHeight, cappedWidth, codeFont, fade, help, hover, notAllowed, onEnter, onKeydown, rotate, roundBorder, sansSerifFont, scrollFix, slightRound, style, title, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
 
 {-| A module for managing elm-ui 'Attribute' values and related functions.
 -}
@@ -54,6 +54,13 @@ sansSerifFont : Attribute msg
 sansSerifFont =
     Font.family
         [ Font.typeface "DDin"
+        ]
+
+
+codeFont : Attribute msg
+codeFont =
+    Font.family
+        [ Font.typeface "SourceCodePro"
         ]
 
 
@@ -132,3 +139,11 @@ notAllowed =
 help : Attribute msg
 help =
     style "cursor" "help"
+
+
+{-| To fix incorrect scrollbarY behavior on WebKit/Safari.
+<https://github.com/mdgriffith/elm-ui/issues/255>
+-}
+scrollFix : Attribute msg
+scrollFix =
+    style "min-height" "auto"
