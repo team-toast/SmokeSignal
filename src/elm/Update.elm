@@ -891,7 +891,7 @@ update msg model =
                                             ( model
                                             , [ Ports.submitPost txParams
                                               , GTagData
-                                                    "post tx mining"
+                                                    "post tx signing"
                                                     Nothing
                                                     Nothing
                                                     Nothing
