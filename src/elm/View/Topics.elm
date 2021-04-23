@@ -1,6 +1,6 @@
 module View.Topics exposing (view)
 
-import Dict
+import Dict exposing (Dict)
 import Element exposing (Element, column, el, fill, height, padding, paragraph, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -38,57 +38,9 @@ viewTopicSearch model =
             model.topicInput
                 |> Misc.validateTopic
 
-        dropdownVisible =
-            currentTopic /= Nothing
-
         dropdown =
             currentTopic
-                |> View.Common.whenJust
-                    (\topic ->
-                        let
-                            ts =
-                                model.topics
-                                    |> Dict.keys
-                                    |> List.filter (String.startsWith topic)
-                        in
-                        (if List.isEmpty ts then
-                            Input.button
-                                [ Background.color Theme.orange
-                                , padding 10
-                                , View.Attrs.roundBorder
-                                , hover
-                                , Element.alignRight
-                                , View.Attrs.sansSerifFont
-                                ]
-                                { onPress = Just TopicSubmit
-                                , label = text "Use this topic"
-                                }
-
-                         else
-                            ts
-                                |> List.map
-                                    (\t ->
-                                        Input.button
-                                            [ width fill
-                                            , Border.color Theme.almostWhite
-                                            , Border.width 1
-                                            , padding 10
-                                            , hover
-                                            ]
-                                            { onPress = Just <| GotoView <| ViewTopic t
-                                            , label =
-                                                text t
-                                            }
-                                    )
-                                |> column [ width fill ]
-                        )
-                            |> el
-                                [ width fill
-                                , padding 5
-                                , Background.color black
-                                , Border.color Theme.almostWhite
-                                ]
-                    )
+                |> View.Common.whenJust (viewDropdown model.topics)
     in
     [ "Topics"
         |> text
@@ -104,7 +56,6 @@ viewTopicSearch model =
             , Background.color black
             , Border.color Theme.almostWhite
             , Font.color white
-            , View.Attrs.onKeydown [ View.Attrs.onEnter TopicSubmit ]
             , View.Attrs.sansSerifFont
             , Input.button
                 [ Element.alignRight
@@ -117,12 +68,7 @@ viewTopicSearch model =
                 }
                 |> Element.inFront
                 |> whenAttr (not <| String.isEmpty model.topicInput)
-            , if dropdownVisible then
-                Border.widthEach
-                    { top = 1, right = 1, bottom = 0, left = 1 }
-
-              else
-                Border.width 1
+            , Border.width 1
             , dropdown
                 |> Element.below
             ]
@@ -136,17 +82,18 @@ viewTopicSearch model =
                     |> Just
             , label = Input.labelHidden "topic"
             }
-      , Input.button
-            [ Background.color Theme.orange
-            , padding 10
-            , View.Attrs.roundBorder
-            , hover
-            , Element.alignRight
-            , View.Attrs.sansSerifFont
-            ]
-            { onPress = Just TopicSubmit
-            , label = text "Submit"
-            }
+
+      --, Input.button
+      --[ Background.color Theme.orange
+      --, padding 10
+      --, View.Attrs.roundBorder
+      --, hover
+      --, Element.alignRight
+      --, View.Attrs.sansSerifFont
+      --]
+      --{ onPress = Just TopicSubmit
+      --, label = text "Submit"
+      --}
       ]
         |> column [ padding 20, width fill, spacing 10 ]
     ]
@@ -154,6 +101,53 @@ viewTopicSearch model =
             [ width fill
             , whiteGlowAttributeSmall
             , Background.color black
+            ]
+
+
+viewDropdown : Dict String Count -> String -> Element Msg
+viewDropdown topics topic =
+    let
+        ts =
+            topics
+                |> Dict.keys
+                |> List.filter (String.startsWith topic)
+    in
+    (if List.isEmpty ts then
+        Input.button
+            [ Background.color Theme.orange
+            , padding 10
+            , View.Attrs.roundBorder
+            , hover
+            , Element.alignRight
+            , View.Attrs.sansSerifFont
+            , Font.color black
+            ]
+            { onPress = Just TopicSubmit
+            , label = text "Use this topic"
+            }
+
+     else
+        ts
+            |> List.map
+                (\t ->
+                    Input.button
+                        [ width fill
+                        , Border.color Theme.almostWhite
+                        , Border.width 1
+                        , padding 10
+                        , hover
+                        , Font.color black
+                        ]
+                        { onPress = Just <| GotoView <| ViewTopic t
+                        , label = text t
+                        }
+                )
+            |> column [ width fill ]
+    )
+        |> el
+            [ width fill
+            , padding 5
+            , Background.color Theme.almostWhite
             ]
 
 
