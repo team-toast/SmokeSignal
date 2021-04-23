@@ -83,11 +83,10 @@ view model =
                 ]
       ]
         |> column
-            [ height fill
-            , width fill
+            [ width fill
             , Background.color black
-            , padding 20
-            , spacing 20
+            , padding 30
+            , spacing 30
             , Font.color white
             ]
     ]
