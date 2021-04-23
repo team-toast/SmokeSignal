@@ -254,11 +254,6 @@ burn amount =
                 |> Misc.formatDollar
                 |> text
                 |> el [ Font.size 25, Font.bold, Font.color Theme.softRed ]
-            , Element.image
-                [ height <| px 25
-                ]
-                { src = "./favicon.svg"
-                , description = "smokesignal logo"
-                }
+            , View.Img.icon 25
             ]
         ]
