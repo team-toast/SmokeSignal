@@ -13,6 +13,7 @@ import Set
 import Theme exposing (orange)
 import Types exposing (..)
 import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
+import View.Common exposing (whenAttr)
 import View.Post
 import Wallet
 
@@ -128,24 +129,16 @@ sortTypeUX activeSortType =
 
 sortTypeButton : SortType -> Bool -> Element Msg
 sortTypeButton sortType isSelected =
-    let
-        dynamicAttributes =
-            if isSelected then
-                [ Background.color Theme.blue
-                , Border.color black
-                ]
-
-            else
-                [ Border.color Theme.blue ]
-    in
     Input.button
-        (dynamicAttributes
-            ++ [ Font.semiBold
-               , Element.paddingXY 10 5
-               , Border.rounded 3
-               , Border.width 1
-               ]
-        )
+        [ Font.semiBold
+        , Element.paddingXY 10 5
+        , Border.rounded 3
+        , Border.width 1
+        , hover
+        , Border.color Theme.blue
+        , Background.color Theme.blue
+            |> whenAttr isSelected
+        ]
         { onPress = Just <| SetSortType sortType
         , label =
             sortType
