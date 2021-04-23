@@ -51,51 +51,38 @@ viewTopicSearch model =
             , Font.color white
             , padding 15
             ]
-    , [ Input.text
-            [ width fill
-            , Background.color black
-            , Border.color Theme.almostWhite
-            , Font.color white
-            , View.Attrs.sansSerifFont
-            , Input.button
-                [ Element.alignRight
-                , hover
-                , Element.centerY
-                , Element.paddingXY 5 0
-                ]
-                { onPress = Just <| TopicInputChange ""
-                , label = View.Img.close 30 white
-                }
-                |> Element.inFront
-                |> whenAttr (not <| String.isEmpty model.topicInput)
-            , Border.width 1
-            , dropdown
-                |> Element.below
+    , Input.text
+        [ width fill
+        , Background.color black
+        , Border.color Theme.almostWhite
+        , Font.color white
+        , View.Attrs.sansSerifFont
+        , Input.button
+            [ Element.alignRight
+            , hover
+            , Element.centerY
+            , Element.paddingXY 5 0
             ]
-            { onChange = TopicInputChange
-            , text = model.topicInput
-            , placeholder =
-                Element.text "Find topic"
-                    |> Input.placeholder
-                        [ Font.color white
-                        ]
-                    |> Just
-            , label = Input.labelHidden "topic"
+            { onPress = Just <| TopicInputChange ""
+            , label = View.Img.close 30 white
             }
-
-      --, Input.button
-      --[ Background.color Theme.orange
-      --, padding 10
-      --, View.Attrs.roundBorder
-      --, hover
-      --, Element.alignRight
-      --, View.Attrs.sansSerifFont
-      --]
-      --{ onPress = Just TopicSubmit
-      --, label = text "Submit"
-      --}
-      ]
-        |> column [ padding 20, width fill, spacing 10 ]
+            |> Element.inFront
+            |> whenAttr (not <| String.isEmpty model.topicInput)
+        , Border.width 1
+        , dropdown
+            |> Element.below
+        ]
+        { onChange = TopicInputChange
+        , text = model.topicInput
+        , placeholder =
+            Element.text "Find topic"
+                |> Input.placeholder
+                    [ Font.color white
+                    ]
+                |> Just
+        , label = Input.labelHidden "topic"
+        }
+        |> el [ padding 20, width fill ]
     ]
         |> column
             [ width fill
