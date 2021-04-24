@@ -729,13 +729,10 @@ update msg model =
             )
 
         GotoView view ->
-            let
-                urlString =
-                    Routing.viewUrlToPathString view
-            in
             ( model
-            , pushUrlPathAndUpdateGtagAnalyticsCmd
-                urlString
+            , view
+                |> Routing.viewUrlToPathString
+                |> Ports.pushUrl
             )
 
         ConnectToWeb3 ->
@@ -1333,8 +1330,9 @@ update msg model =
                     )
                     (\topic ->
                         ( model
-                        , [ pushUrlPathAndUpdateGtagAnalyticsCmd
-                                (Routing.viewUrlToPathString <| ViewTopic topic)
+                        , [ ViewTopic topic
+                                |> Routing.viewUrlToPathString
+                                |> Ports.pushUrl
                           , GTagData
                                 "search topic valid"
                                 Nothing
@@ -1603,14 +1601,6 @@ update msg model =
               }
             , Cmd.none
             )
-
-
-pushUrlPathAndUpdateGtagAnalyticsCmd : String -> Cmd Msg
-pushUrlPathAndUpdateGtagAnalyticsCmd urlPath =
-    Cmd.batch
-        [ Ports.pushUrl urlPath
-        , Ports.setGtagUrlPath ("/" ++ urlPath)
-        ]
 
 
 handleRoute : Model -> Route -> ( Model, Cmd Msg )

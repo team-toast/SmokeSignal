@@ -19,6 +19,7 @@ const { Elm } = require("./elm/App.elm");
 const xDaiProviderUrl = XDAI_PROVIDER_URL;
 const ethProviderUrl = ETH_PROVIDER_URL;
 const faucetToken = FAUCET_TOKEN;
+const gaTrackingId = GA_TRACKING_ID;
 /* eslint-enable no-undef */
 
 // Local storage keys
@@ -122,19 +123,6 @@ function analyticsGtagPortStuff(app) {
     }
   });
 
-  app.ports.setGtagUrlPath.subscribe(function (pagePath) {
-    if (window.gtag) {
-      setTimeout(
-        () =>
-          // must set a timeout, because the Elm app only updates the title a moment after this point.
-          window.gtag("config", "UA-143211145-4", {
-            page_path: pagePath,
-          }),
-        100
-      );
-    }
-  });
-
   app.ports.consentToCookies.subscribe(function () {
     setCookieConsent();
   });
@@ -158,12 +146,22 @@ function setCookieConsent() {
 
 const handleUrlChanges = (app) => {
   // https://github.com/elm/browser/blob/master/notes/navigation-in-elements.md
-  window.addEventListener("popstate", () =>
-    app.ports.onUrlChange.send(location.href)
-  );
+  window.addEventListener("popstate", () => {
+    registerPageView();
+    app.ports.onUrlChange.send(location.href);
+  });
 
   app.ports.pushUrl.subscribe((url) => {
     history.pushState({}, "", url);
+    registerPageView();
     app.ports.onUrlChange.send(location.href);
   });
+};
+
+const registerPageView = () => {
+  if (window.gtag) {
+    window.gtag("config", gaTrackingId, {
+      page_path: location.hash,
+    });
+  }
 };
