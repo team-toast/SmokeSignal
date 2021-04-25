@@ -63,11 +63,19 @@ composePostOpened =
         name =
             "ComposePostOpened"
     in
-    { name = name
-    , data = Nothing
-    , tag = getTag name
-    }
+    [ { name = name
+      , data = Nothing
+      , tag = getTag name
+      }
         |> Ports.fbEvent
+    , { event = name
+      , category = Nothing
+      , label = Nothing
+      , value = Nothing
+      }
+        |> gTagOut
+    ]
+        |> Cmd.batch
 
 
 faucetRequestInitiated : Cmd msg
@@ -76,11 +84,19 @@ faucetRequestInitiated =
         name =
             "FaucetRequestInitiated"
     in
-    { name = name
-    , data = Nothing
-    , tag = getTag name
-    }
+    [ { name = name
+      , data = Nothing
+      , tag = getTag name
+      }
         |> Ports.fbEvent
+    , { event = name
+      , category = Nothing
+      , label = Nothing
+      , value = Nothing
+      }
+        |> gTagOut
+    ]
+        |> Cmd.batch
 
 
 metaMaskConnected : Cmd msg
@@ -120,11 +136,19 @@ xDaiClaimCompleted =
         name =
             "StartTrial"
     in
-    { name = name
-    , data = Nothing
-    , tag = getTag name
-    }
+    [ { name = name
+      , data = Nothing
+      , tag = getTag name
+      }
         |> Ports.fbEvent
+    , { event = name
+      , category = Nothing
+      , label = Nothing
+      , value = Nothing
+      }
+        |> gTagOut
+    ]
+        |> Cmd.batch
 
 
 postSubmitted : Cmd msg

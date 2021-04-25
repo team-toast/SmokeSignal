@@ -181,7 +181,10 @@ update msg model =
                                                 }
                                     , gtagHistory = newGtagHistory
                                   }
-                                , gtagCmd
+                                , [ gtagCmd
+                                  , Tracking.postSubmitted
+                                  ]
+                                    |> Cmd.batch
                                 )
                             )
                 )
@@ -395,6 +398,17 @@ update msg model =
                                                         |> unwrap Cmd.none
                                                             (fetchPostInfo model.blockTimes model.config)
 
+                                                fbEvent =
+                                                    case tx.txInfo of
+                                                        PostTx _ ->
+                                                            Tracking.postTxMined
+
+                                                        TipTx _ ->
+                                                            Cmd.none
+
+                                                        BurnTx _ ->
+                                                            Cmd.none
+
                                                 ( newGtagHistory, maybeGtagCmd ) =
                                                     if isMined then
                                                         let
@@ -457,6 +471,7 @@ update msg model =
                                                   else
                                                     Cmd.none
                                                 , maybeGtagCmd
+                                                , fbEvent
                                                 ]
                                             )
                                         )
@@ -510,6 +525,13 @@ update msg model =
                                         Nothing
                                         (Just <| Eth.Utils.addressToString info.address)
                                         Nothing
+
+                            fbEvent =
+                                if model.wallet == Connecting then
+                                    Tracking.metaMaskConnected
+
+                                else
+                                    Cmd.none
                         in
                         ( { model
                             | wallet = Active info
@@ -525,7 +547,10 @@ update msg model =
                                             }
                                        )
                           }
-                        , walletConnectedGtagCmd
+                        , [ walletConnectedGtagCmd
+                          , fbEvent
+                          ]
+                            |> Cmd.batch
                         )
                     )
 
@@ -1219,12 +1244,7 @@ update msg model =
                                     FaucetResponse
                                     Misc.decodeFaucetResponse
                             }
-                      , GTagData
-                            "faucet request initiated"
-                            Nothing
-                            Nothing
-                            Nothing
-                            |> gTagOut
+                      , Tracking.faucetRequestInitiated
                       ]
                         |> Cmd.batch
                     )
@@ -1286,12 +1306,7 @@ update msg model =
                                   }
                                 , if faucetSuccess then
                                     Cmd.batch
-                                        [ gTagOut <|
-                                            GTagData
-                                                "faucet request successful"
-                                                Nothing
-                                                Nothing
-                                                Nothing
+                                        [ Tracking.xDaiClaimCompleted
                                         , userInfo.address
                                             |> Eth.Utils.addressToString
                                             |> Ports.refreshWallet
@@ -1452,14 +1467,9 @@ update msg model =
                             Types.TopLevel t ->
                                 t
 
-                    gtagCmd =
+                    trackingCmd =
                         if Wallet.isActive model.wallet then
-                            GTagData
-                                "compose post opened"
-                                Nothing
-                                Nothing
-                                Nothing
-                                |> gTagOut
+                            Tracking.composePostOpened
 
                         else
                             Cmd.none
@@ -1475,7 +1485,7 @@ update msg model =
                     , topicInput = topicInput
                   }
                 , Cmd.batch
-                    [ gtagCmd
+                    [ trackingCmd
                     , model.wallet
                         |> Wallet.userInfo
                         |> unwrap Cmd.none
