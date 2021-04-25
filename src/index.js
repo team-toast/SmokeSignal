@@ -27,6 +27,7 @@ const HAS_VISITED = "has-visited";
 const COOKIE_CONSENT = "cookie-consent";
 
 window.addEventListener("load", () => {
+  registerPageView();
   const app = startDapp();
 
   analyticsGtagPortStuff(app);
@@ -172,7 +173,12 @@ const handleUrlChanges = (app) => {
 const registerPageView = () => {
   if (window.gtag) {
     window.gtag("config", gaTrackingId, {
-      page_path: location.hash,
+      page_title: "SmokeSignal",
+      page_path: "/" + location.hash,
     });
+  }
+
+  if (window.fbq) {
+    window.fbq("track", "PageView");
   }
 };
