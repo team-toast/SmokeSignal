@@ -126,11 +126,10 @@ function analyticsGtagPortStuff(app) {
 
   app.ports.fbEvent.subscribe((event) => {
     if (window.fbq) {
-      const eventType = event.custom ? "trackCustom" : "track";
       if (event.data) {
-        window.fbq(eventType, event.name, event.data);
+        window.fbq(event.tag, event.name, event.data);
       } else {
-        window.fbq(eventType, event.name);
+        window.fbq(event.tag, event.name);
       }
     }
   });

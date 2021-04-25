@@ -7,6 +7,24 @@ import Ports
 import Types exposing (PostId)
 
 
+getTag : String -> String
+getTag name =
+    let
+        isStandardEvent =
+            -- Standard Events:
+            -- https://developers.facebook.com/docs/facebook-pixel/reference
+            [ "ViewContent"
+            , "StartTrial"
+            ]
+                |> List.member name
+    in
+    if isStandardEvent then
+        "track"
+
+    else
+        "trackCustom"
+
+
 onboardingComplete : Cmd msg
 onboardingComplete =
     { event = "onboarding-complete"
@@ -19,7 +37,11 @@ onboardingComplete =
 
 viewPost : PostId -> Cmd msg
 viewPost id =
-    { name = "ViewContent"
+    let
+        name =
+            "ViewContent"
+    in
+    { name = name
     , data =
         [ ( "content_ids"
           , [ String.fromInt id.block
@@ -30,34 +52,46 @@ viewPost id =
         ]
             |> JE.object
             |> Just
-    , custom = False
+    , tag = getTag name
     }
         |> Ports.fbEvent
 
 
 composePostOpened : Cmd msg
 composePostOpened =
-    { name = "ComposePostOpened"
+    let
+        name =
+            "ComposePostOpened"
+    in
+    { name = name
     , data = Nothing
-    , custom = True
+    , tag = getTag name
     }
         |> Ports.fbEvent
 
 
 faucetRequestInitiated : Cmd msg
 faucetRequestInitiated =
-    { name = "FaucetRequestInitiated"
+    let
+        name =
+            "FaucetRequestInitiated"
+    in
+    { name = name
     , data = Nothing
-    , custom = True
+    , tag = getTag name
     }
         |> Ports.fbEvent
 
 
 metaMaskConnected : Cmd msg
 metaMaskConnected =
-    { name = "MetaMaskConnected"
+    let
+        name =
+            "MetaMaskConnected"
+    in
+    { name = name
     , data = Nothing
-    , custom = True
+    , tag = getTag name
     }
         |> Ports.fbEvent
 
@@ -69,26 +103,38 @@ onboardingInitiated =
 
 postTxMined : Cmd msg
 postTxMined =
-    { name = "PostTxMined"
+    let
+        name =
+            "PostTxMined"
+    in
+    { name = name
     , data = Nothing
-    , custom = True
+    , tag = getTag name
     }
         |> Ports.fbEvent
 
 
 xDaiClaimCompleted : Cmd msg
 xDaiClaimCompleted =
-    { name = "StartTrial"
+    let
+        name =
+            "StartTrial"
+    in
+    { name = name
     , data = Nothing
-    , custom = False
+    , tag = getTag name
     }
         |> Ports.fbEvent
 
 
 postSubmitted : Cmd msg
 postSubmitted =
-    { name = "PostSubmitted"
+    let
+        name =
+            "PostSubmitted"
+    in
+    { name = name
     , data = Nothing
-    , custom = True
+    , tag = getTag name
     }
         |> Ports.fbEvent

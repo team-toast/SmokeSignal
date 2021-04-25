@@ -43,7 +43,7 @@ port pushUrl : String -> Cmd msg
 port setTitle : String -> Cmd msg
 
 
-port fbEvent : { custom : Bool, name : String, data : Maybe Value } -> Cmd msg
+port fbEvent : { tag : String, name : String, data : Maybe Value } -> Cmd msg
 
 
 
