@@ -1003,8 +1003,7 @@ update msg model =
                                         GTagData
                                             "burn or tip error"
                                             Nothing
-                                            (userInfo.address
-                                                |> Eth.Utils.addressToString
+                                            (Misc.obscureAddress userInfo.address
                                                 |> Just
                                             )
                                             Nothing
@@ -1120,22 +1119,19 @@ update msg model =
 
         XDaiImport ->
             let
-                address =
+                label =
                     case userInfo model.wallet of
                         Nothing ->
                             "not connected"
 
                         Just userInfo ->
-                            userInfo.address
-                                |> Eth.Utils.addressToString
+                            Misc.obscureAddress userInfo.address
 
                 gtagCmd =
                     GTagData
                         "xdai import clicked"
                         Nothing
-                        (address
-                            |> Just
-                        )
+                        (Just label)
                         Nothing
                         |> gTagOut
             in
