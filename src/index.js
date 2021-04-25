@@ -123,6 +123,17 @@ function analyticsGtagPortStuff(app) {
     }
   });
 
+  app.ports.fbEvent.subscribe((event) => {
+    if (window.fbq) {
+      const eventType = event.custom ? "trackCustom" : "track";
+      if (event.data) {
+        window.fbq(eventType, event.name, event.data);
+      } else {
+        window.fbq(eventType, event.name);
+      }
+    }
+  });
+
   app.ports.consentToCookies.subscribe(function () {
     setCookieConsent();
   });

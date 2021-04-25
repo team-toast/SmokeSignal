@@ -1,4 +1,4 @@
-port module Ports exposing (balanceResponse, burnOrTipResponse, chainSwitchResponse, connectToWeb3, consentToCookies, log, onUrlChange, postResponse, pushUrl, refreshWallet, setDescription, setTitle, setVisited, share, submitBurnOrTip, submitPost, walletResponse, xDaiImport)
+port module Ports exposing (balanceResponse, burnOrTipResponse, chainSwitchResponse, connectToWeb3, consentToCookies, fbEvent, log, onUrlChange, postResponse, pushUrl, refreshWallet, setDescription, setTitle, setVisited, share, submitBurnOrTip, submitPost, walletResponse, xDaiImport)
 
 import Json.Decode exposing (Value)
 
@@ -41,6 +41,9 @@ port pushUrl : String -> Cmd msg
 
 
 port setTitle : String -> Cmd msg
+
+
+port fbEvent : { custom : Bool, name : String, data : Maybe Value } -> Cmd msg
 
 
 

@@ -25,6 +25,7 @@ import Set
 import Task
 import Time
 import TokenValue exposing (TokenValue)
+import Tracking
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import Wallet exposing (userInfo)
@@ -1664,21 +1665,24 @@ handleRoute model route =
             ( { model
                 | view = ViewPost id
               }
-            , Dict.get (postIdToKey id) model.rootPosts
-                |> unwrap defaultTitle
-                    (\post ->
-                        [ post.core.content.title
-                            |> unwrap defaultTitle
-                                (\title ->
-                                    title
-                                        ++ " | SmokeSignal"
-                                        |> Ports.setTitle
-                                )
-                        , post.core.content.desc
-                            |> unwrap Cmd.none Ports.setDescription
-                        ]
-                            |> Cmd.batch
-                    )
+            , [ Dict.get (postIdToKey id) model.rootPosts
+                    |> unwrap defaultTitle
+                        (\post ->
+                            [ post.core.content.title
+                                |> unwrap defaultTitle
+                                    (\title ->
+                                        title
+                                            ++ " | SmokeSignal"
+                                            |> Ports.setTitle
+                                    )
+                            , post.core.content.desc
+                                |> unwrap Cmd.none Ports.setDescription
+                            ]
+                                |> Cmd.batch
+                        )
+              , Tracking.viewPost id
+              ]
+                |> Cmd.batch
             )
 
         RouteTopic topic ->
