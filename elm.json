@@ -33,6 +33,7 @@
             "elm-community/string-extra": "4.0.1",
             "mdgriffith/elm-ui": "1.1.8",
             "myrho/elm-round": "1.0.4",
+            "robinheghan/murmur3": "1.0.0",
             "rtfeldman/elm-css": "16.1.0",
             "rtfeldman/elm-hex": "1.0.0",
             "timjs/elm-collage": "2.0.3"

@@ -1,4 +1,4 @@
-module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatPosix, formatReplies, getCore, getPostOrReply, getTxReceipt, initDemoPhaceSrc, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
+module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatPosix, formatReplies, getCore, getPostOrReply, getTxReceipt, initDemoPhaceSrc, obscureAddress, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
 
 import Array
 import Dict exposing (Dict)
@@ -16,6 +16,7 @@ import Http
 import Json.Decode as Decode exposing (Decoder, Value)
 import Json.Encode as Encode
 import Maybe.Extra exposing (unwrap)
+import Murmur3
 import String.Extra
 import Task exposing (Task)
 import Time exposing (Posix)
@@ -384,3 +385,11 @@ formatReplies n =
                 "replies"
     in
     String.fromInt n ++ " " ++ word
+
+
+obscureAddress : Address -> String
+obscureAddress =
+    Eth.Utils.addressToString
+        >> Murmur3.hashString 0
+        >> String.fromInt
+        >> (++) "ID:"

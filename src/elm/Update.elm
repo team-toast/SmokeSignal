@@ -25,6 +25,7 @@ import Set
 import Task
 import Time
 import TokenValue exposing (TokenValue)
+import Tracking
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import Wallet exposing (userInfo)
@@ -180,7 +181,10 @@ update msg model =
                                                 }
                                     , gtagHistory = newGtagHistory
                                   }
-                                , gtagCmd
+                                , [ gtagCmd
+                                  , Tracking.postSubmitted
+                                  ]
+                                    |> Cmd.batch
                                 )
                             )
                 )
@@ -394,6 +398,17 @@ update msg model =
                                                         |> unwrap Cmd.none
                                                             (fetchPostInfo model.blockTimes model.config)
 
+                                                fbEvent =
+                                                    case tx.txInfo of
+                                                        PostTx _ ->
+                                                            Tracking.postTxMined
+
+                                                        TipTx _ ->
+                                                            Cmd.none
+
+                                                        BurnTx _ ->
+                                                            Cmd.none
+
                                                 ( newGtagHistory, maybeGtagCmd ) =
                                                     if isMined then
                                                         let
@@ -456,6 +471,7 @@ update msg model =
                                                   else
                                                     Cmd.none
                                                 , maybeGtagCmd
+                                                , fbEvent
                                                 ]
                                             )
                                         )
@@ -509,6 +525,13 @@ update msg model =
                                         Nothing
                                         (Just <| Eth.Utils.addressToString info.address)
                                         Nothing
+
+                            fbEvent =
+                                if model.wallet == Connecting then
+                                    Tracking.metaMaskConnected
+
+                                else
+                                    Cmd.none
                         in
                         ( { model
                             | wallet = Active info
@@ -524,7 +547,10 @@ update msg model =
                                             }
                                        )
                           }
-                        , walletConnectedGtagCmd
+                        , [ walletConnectedGtagCmd
+                          , fbEvent
+                          ]
+                            |> Cmd.batch
                         )
                     )
 
@@ -729,13 +755,10 @@ update msg model =
             )
 
         GotoView view ->
-            let
-                urlString =
-                    Routing.viewUrlToPathString view
-            in
             ( model
-            , pushUrlPathAndUpdateGtagAnalyticsCmd
-                urlString
+            , view
+                |> Routing.viewUrlToPathString
+                |> Ports.pushUrl
             )
 
         ConnectToWeb3 ->
@@ -1005,8 +1028,7 @@ update msg model =
                                         GTagData
                                             "burn or tip error"
                                             Nothing
-                                            (userInfo.address
-                                                |> Eth.Utils.addressToString
+                                            (Misc.obscureAddress userInfo.address
                                                 |> Just
                                             )
                                             Nothing
@@ -1122,22 +1144,19 @@ update msg model =
 
         XDaiImport ->
             let
-                address =
+                label =
                     case userInfo model.wallet of
                         Nothing ->
                             "not connected"
 
                         Just userInfo ->
-                            userInfo.address
-                                |> Eth.Utils.addressToString
+                            Misc.obscureAddress userInfo.address
 
                 gtagCmd =
                     GTagData
                         "xdai import clicked"
                         Nothing
-                        (address
-                            |> Just
-                        )
+                        (Just label)
                         Nothing
                         |> gTagOut
             in
@@ -1225,12 +1244,7 @@ update msg model =
                                     FaucetResponse
                                     Misc.decodeFaucetResponse
                             }
-                      , GTagData
-                            "faucet request initiated"
-                            Nothing
-                            Nothing
-                            Nothing
-                            |> gTagOut
+                      , Tracking.faucetRequestInitiated
                       ]
                         |> Cmd.batch
                     )
@@ -1292,12 +1306,7 @@ update msg model =
                                   }
                                 , if faucetSuccess then
                                     Cmd.batch
-                                        [ gTagOut <|
-                                            GTagData
-                                                "faucet request successful"
-                                                Nothing
-                                                Nothing
-                                                Nothing
+                                        [ Tracking.xDaiClaimCompleted
                                         , userInfo.address
                                             |> Eth.Utils.addressToString
                                             |> Ports.refreshWallet
@@ -1333,8 +1342,9 @@ update msg model =
                     )
                     (\topic ->
                         ( model
-                        , [ pushUrlPathAndUpdateGtagAnalyticsCmd
-                                (Routing.viewUrlToPathString <| ViewTopic topic)
+                        , [ ViewTopic topic
+                                |> Routing.viewUrlToPathString
+                                |> Ports.pushUrl
                           , GTagData
                                 "search topic valid"
                                 Nothing
@@ -1457,14 +1467,9 @@ update msg model =
                             Types.TopLevel t ->
                                 t
 
-                    gtagCmd =
+                    trackingCmd =
                         if Wallet.isActive model.wallet then
-                            GTagData
-                                "compose post opened"
-                                Nothing
-                                Nothing
-                                Nothing
-                                |> gTagOut
+                            Tracking.composePostOpened
 
                         else
                             Cmd.none
@@ -1480,7 +1485,7 @@ update msg model =
                     , topicInput = topicInput
                   }
                 , Cmd.batch
-                    [ gtagCmd
+                    [ trackingCmd
                     , model.wallet
                         |> Wallet.userInfo
                         |> unwrap Cmd.none
@@ -1605,14 +1610,6 @@ update msg model =
             )
 
 
-pushUrlPathAndUpdateGtagAnalyticsCmd : String -> Cmd Msg
-pushUrlPathAndUpdateGtagAnalyticsCmd urlPath =
-    Cmd.batch
-        [ Ports.pushUrl urlPath
-        , Ports.setGtagUrlPath ("/" ++ urlPath)
-        ]
-
-
 handleRoute : Model -> Route -> ( Model, Cmd Msg )
 handleRoute model route =
     let
@@ -1674,21 +1671,24 @@ handleRoute model route =
             ( { model
                 | view = ViewPost id
               }
-            , Dict.get (postIdToKey id) model.rootPosts
-                |> unwrap defaultTitle
-                    (\post ->
-                        [ post.core.content.title
-                            |> unwrap defaultTitle
-                                (\title ->
-                                    title
-                                        ++ " | SmokeSignal"
-                                        |> Ports.setTitle
-                                )
-                        , post.core.content.desc
-                            |> unwrap Cmd.none Ports.setDescription
-                        ]
-                            |> Cmd.batch
-                    )
+            , [ Dict.get (postIdToKey id) model.rootPosts
+                    |> unwrap defaultTitle
+                        (\post ->
+                            [ post.core.content.title
+                                |> unwrap defaultTitle
+                                    (\title ->
+                                        title
+                                            ++ " | SmokeSignal"
+                                            |> Ports.setTitle
+                                    )
+                            , post.core.content.desc
+                                |> unwrap Cmd.none Ports.setDescription
+                            ]
+                                |> Cmd.batch
+                        )
+              , Tracking.viewPost id
+              ]
+                |> Cmd.batch
             )
 
         RouteTopic topic ->

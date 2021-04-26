@@ -8,12 +8,17 @@ const {
   XDAI_PROVIDER_URL,
   FAUCET_TOKEN,
   GA_TRACKING_ID,
+  FB_TRACKING_ID,
 } = process.env;
 
 if (
-  [ETH_PROVIDER_URL, XDAI_PROVIDER_URL, FAUCET_TOKEN, GA_TRACKING_ID].some(
-    (x) => !x
-  )
+  [
+    ETH_PROVIDER_URL,
+    XDAI_PROVIDER_URL,
+    FAUCET_TOKEN,
+    GA_TRACKING_ID,
+    FB_TRACKING_ID,
+  ].some((x) => !x)
 ) {
   throw "Missing environment variable(s).";
 }
@@ -80,6 +85,7 @@ module.exports = {
       XDAI_PROVIDER_URL: JSON.stringify(XDAI_PROVIDER_URL),
       FAUCET_TOKEN: JSON.stringify(FAUCET_TOKEN),
       GA_TRACKING_ID: JSON.stringify(GA_TRACKING_ID),
+      FB_TRACKING_ID: JSON.stringify(FB_TRACKING_ID),
     }),
   ],
 };

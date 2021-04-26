@@ -39,6 +39,7 @@ view model =
                     viewPagination model
             in
             [ sortTypeUX model.sortType
+            , pages
             , posts
                 |> List.map (viewPost model (Wallet.userInfo model.wallet))
                 |> column
@@ -88,6 +89,7 @@ viewDesktop model =
         }
         |> always Element.none
     , sortTypeUX model.sortType
+    , pages
     , posts
         |> List.map (viewPost model (Wallet.userInfo model.wallet))
         |> column
@@ -175,7 +177,7 @@ viewPagination model =
                             |> el [ centerX, centerY ]
                     }
             )
-        |> row [ spacing 20, centerX ]
+        |> row [ spacing 20, height <| px 50, Element.scrollbarX, width fill ]
 
 
 viewPost : Model -> Maybe UserInfo -> RootPost -> Element Msg
