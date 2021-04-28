@@ -6,6 +6,7 @@ import Browser.Navigation
 import Chain
 import Contracts.SmokeSignal
 import DemoPhaceSrcMutator
+import Dict
 import Eth.Types
 import Json.Decode
 import Maybe.Extra exposing (unwrap)
@@ -14,8 +15,10 @@ import Ports
 import Random
 import Routing
 import Sentry
+import Set
 import Time
-import Types exposing (Flags, Model, Msg)
+import TokenValue
+import Types exposing (Chain(..), Flags, Model, Msg)
 import Update exposing (update)
 import Url exposing (Url)
 import UserNotice as UN
@@ -125,6 +128,125 @@ redirectDomain url =
 startApp : Flags -> Model -> ( Model, Cmd Msg )
 startApp flags model =
     let
+        posts =
+            flags.posts
+                |> List.filterMap
+                    (Json.Decode.decodeValue
+                        (Json.Decode.field "meta" Misc.decodeMeta
+                            |> Json.Decode.andThen
+                                (Contracts.SmokeSignal.decodeCachedPost
+                                    >> Json.Decode.field "post"
+                                )
+                        )
+                        >> Result.toMaybe
+                    )
+
+        latestEth =
+            posts
+                |> List.filterMap
+                    (\p ->
+                        case p of
+                            Types.LogReply x ->
+                                if x.core.chain == Eth then
+                                    Just x.core.id.block
+
+                                else
+                                    Nothing
+
+                            Types.LogRoot x ->
+                                if x.core.chain == Eth then
+                                    Just x.core.id.block
+
+                                else
+                                    Nothing
+                    )
+                |> List.sort
+                |> List.reverse
+                |> List.head
+
+        latestXDai =
+            posts
+                |> List.filterMap
+                    (\p ->
+                        case p of
+                            Types.LogReply x ->
+                                if x.core.chain == XDai then
+                                    Just x.core.id.block
+
+                                else
+                                    Nothing
+
+                            Types.LogRoot x ->
+                                if x.core.chain == XDai then
+                                    Just x.core.id.block
+
+                                else
+                                    Nothing
+                    )
+                |> List.sort
+                |> List.reverse
+                |> List.head
+
+        rootPosts =
+            posts
+                |> List.filterMap
+                    (\p ->
+                        case p of
+                            Types.LogReply _ ->
+                                Nothing
+
+                            Types.LogRoot x ->
+                                Just ( Misc.postIdToKey x.core.id, x )
+                    )
+                |> Dict.fromList
+
+        topics =
+            rootPosts
+                |> Dict.values
+                |> List.map
+                    (\x ->
+                        ( x.topic
+                        , { total = TokenValue.zero
+                          , ids = Set.empty
+                          }
+                        )
+                    )
+                |> Dict.fromList
+
+        replies =
+            posts
+                |> List.filterMap
+                    (\p ->
+                        case p of
+                            Types.LogReply x ->
+                                Just ( Misc.postIdToKey x.core.id, x )
+
+                            Types.LogRoot _ ->
+                                Nothing
+                    )
+                |> Dict.fromList
+
+        pages =
+            rootPosts
+                |> Update.calculatePagination
+                    model.sortType
+                    model.blockTimes
+                    model.accounting
+                    now
+
+        replyIds =
+            replies
+                |> Dict.values
+                |> List.foldl
+                    (\post ->
+                        Dict.update (Misc.postIdToKey post.parent)
+                            (Maybe.withDefault Set.empty
+                                >> Set.insert post.core.key
+                                >> Just
+                            )
+                    )
+                    Dict.empty
+
         route =
             Routing.parseRoute flags.href
 
@@ -159,10 +281,10 @@ startApp flags model =
                 Types.NoneDetected
 
         ( ethSentry, ethCmd ) =
-            startSentry model.config.ethereum
+            startSentry latestEth model.config.ethereum
 
         ( xDaiSentry, xDaiCmd ) =
-            startSentry model.config.xDai
+            startSentry latestXDai model.config.xDai
 
         now =
             Time.millisToPosix flags.nowInMillis
@@ -186,6 +308,11 @@ startApp flags model =
         , alphaUrl = alphaUrl
         , faucetToken = flags.faucetToken
         , shareEnabled = flags.shareEnabled
+        , rootPosts = rootPosts
+        , topics = topics
+        , replyPosts = replies
+        , replyIds = replyIds
+        , pages = pages
       }
     , Cmd.batch
         [ ethCmd
@@ -196,13 +323,13 @@ startApp flags model =
     )
 
 
-startSentry : Types.ChainConfig -> ( Sentry.EventSentry Msg, Cmd Msg )
-startSentry config =
+startSentry : Maybe Int -> Types.ChainConfig -> ( Sentry.EventSentry Msg, Cmd Msg )
+startSentry latest config =
     let
         scan =
             Contracts.SmokeSignal.messageBurnEventFilter
                 config.contract
-                (Eth.Types.BlockNum config.startScanBlock)
+                (Eth.Types.BlockNum (latest |> Maybe.withDefault config.startScanBlock))
                 Eth.Types.LatestBlock
                 Nothing
                 Nothing

@@ -1,4 +1,4 @@
-module Contracts.SmokeSignal exposing (burnEncodedPost, burnForPost, decodePost, getAccountingCmd, getEthPriceCmd, messageBurnEventFilter, tipForPost)
+module Contracts.SmokeSignal exposing (burnEncodedPost, burnForPost, decodeCachedPost, decodePost, getAccountingCmd, getEthPriceCmd, messageBurnEventFilter, tipForPost)
 
 import BigInt
 import Contracts.Generated.SmokeSignal as G
@@ -145,10 +145,54 @@ burnForPost wallet smokeSignalContractAddress messageHash amount donation =
            )
 
 
+decodeCachedPost : Meta -> Decoder LogPost
+decodeCachedPost meta =
+    Post.metadataDecoder
+        |> Decode.andThen
+            (\metadata ->
+                Post.messageDataDecoder metadata.metadataVersion
+                    |> Decode.map
+                        (\content ->
+                            let
+                                id =
+                                    { block = meta.blockNumber
+                                    , messageHash = meta.messageHash
+                                    }
+
+                                key =
+                                    Misc.postIdToKey id
+
+                                core =
+                                    { id = id
+                                    , key = key
+                                    , txHash = meta.txHash
+                                    , author = meta.author
+                                    , authorBurn = meta.authorBurn
+                                    , content = content
+                                    , metadataVersion = metadata.metadataVersion
+                                    , chain = meta.chain
+                                    }
+                            in
+                            case metadata.context of
+                                TopLevel topic ->
+                                    { core = core
+                                    , topic = topic
+                                    }
+                                        |> Types.LogRoot
+
+                                Reply parent ->
+                                    { core = core
+                                    , parent = parent
+                                    }
+                                        |> Types.LogReply
+                        )
+            )
+
+
 postDecoder : Chain -> Eth.Types.Log -> G.MessageBurn -> Decoder LogPost
 postDecoder chain log messageBurn =
     case String.split "!smokesignal" messageBurn.message of
-        [ _, encoded ] ->
+        [ "", encoded ] ->
             encoded
                 |> Decode.decodeString
                     (Post.metadataDecoder

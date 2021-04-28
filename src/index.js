@@ -8,6 +8,7 @@ const {
   sendTransaction,
 } = require("./metamask.js");
 const chains = require("../config.json");
+const { set, values } = require("idb-keyval");
 
 if (window.navigator.serviceWorker) {
   window.navigator.serviceWorker.register("./sw.js");
@@ -26,9 +27,9 @@ const gaTrackingId = GA_TRACKING_ID;
 const HAS_VISITED = "has-visited";
 const COOKIE_CONSENT = "cookie-consent";
 
-window.addEventListener("load", () => {
+window.addEventListener("load", async () => {
   registerPageView();
-  const app = startDapp();
+  const app = await startDapp();
 
   analyticsGtagPortStuff(app);
   seoPortStuff(app);
@@ -54,6 +55,10 @@ window.addEventListener("load", () => {
       app.ports.walletResponse.send(e);
     })
   );
+
+  app.ports.savePost.subscribe(async (post) => {
+    set(post.key, post.data);
+  });
 
   app.ports.refreshWallet.subscribe((account) =>
     (async () => {
@@ -85,7 +90,7 @@ window.addEventListener("load", () => {
   handleUrlChanges(app);
 });
 
-function startDapp() {
+const startDapp = async () => {
   const hasWallet = Boolean(window.ethereum);
 
   const app = Elm.App.init({
@@ -103,6 +108,7 @@ function startDapp() {
       faucetToken,
       shareEnabled: typeof window.navigator.share === "function",
       href: window.location.href,
+      posts: await values(),
     },
   });
 
@@ -111,7 +117,7 @@ function startDapp() {
   }
 
   return app;
-}
+};
 
 function analyticsGtagPortStuff(app) {
   app.ports.gTagOutPort.subscribe(function (data) {

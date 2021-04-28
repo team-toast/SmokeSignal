@@ -1,6 +1,7 @@
-module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatPosix, formatReplies, getCore, getPostOrReply, getTxReceipt, initDemoPhaceSrc, obscureAddress, parseHttpError, postIdToKey, responsiveVal, screenWidthToDisplayProfile, scrollId, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
+module Misc exposing (decodeFaucetResponse, decodeMeta, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, encodeMeta, encodeShare, formatDollar, formatPosix, formatReplies, getCore, getPostOrReply, getTxReceipt, initDemoPhaceSrc, obscureAddress, parseHttpError, postIdToKey, responsiveVal, screenWidthToDisplayProfile, scrollId, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
 
 import Array
+import Chain
 import Dict exposing (Dict)
 import Eth.Decode
 import Eth.Encode
@@ -415,3 +416,31 @@ responsiveVal d a b =
 scrollId : String
 scrollId =
     "scroller"
+
+
+encodeMeta : Core -> Value
+encodeMeta core =
+    [ ( "authorBurn", TokenValue.encode core.authorBurn )
+    , ( "author", Eth.Encode.address core.author )
+    , ( "chain", Chain.encodeChain core.chain )
+    , ( "blockNumber", Encode.int core.id.block )
+    , ( "messageHash", Eth.Encode.hex core.id.messageHash )
+    , ( "txHash", Eth.Encode.txHash core.txHash )
+    ]
+        |> Encode.object
+
+
+decodeMeta : Decoder Meta
+decodeMeta =
+    Decode.map6 Meta
+        (Decode.field "authorBurn" TokenValue.decoder)
+        (Decode.field "author" Eth.Decode.address)
+        (Decode.field "chain" Chain.decodeChain
+            |> Decode.andThen
+                (Result.map Decode.succeed
+                    >> Result.withDefault (Decode.fail "bad chain")
+                )
+        )
+        (Decode.field "blockNumber" Decode.int)
+        (Decode.field "messageHash" Eth.Decode.hex)
+        (Decode.field "txHash" Eth.Decode.txHash)

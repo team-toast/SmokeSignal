@@ -1,4 +1,4 @@
-module Post exposing (currentMetadataVersion, encodePostContent, justBodyContent, messageDataDecoder, metadataDecoder, postIdToString)
+module Post exposing (currentMetadataVersion, encodePost, encodePostContent, justBodyContent, messageDataDecoder, metadataDecoder, postIdToString)
 
 {-| Helpers related to Post management.
 -}
@@ -150,6 +150,20 @@ hexDecoder =
                     Decode.fail
                     Decode.succeed
             )
+
+
+encodePost : Context -> Core -> Value
+encodePost context core =
+    [ ( "post"
+      , [ ( "m", encodeContent core.content )
+        , ( "v", Encode.int core.metadataVersion )
+        , ( "c", encodeContext context )
+        ]
+            |> Encode.object
+      )
+    , ( "meta", Misc.encodeMeta core )
+    ]
+        |> Encode.object
 
 
 encodePostContent : Draft -> String

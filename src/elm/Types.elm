@@ -28,6 +28,7 @@ type alias Flags =
     , faucetToken : String
     , shareEnabled : Bool
     , href : String
+    , posts : List Value
     }
 
 
@@ -172,6 +173,16 @@ type alias ReplyPost =
 type alias Count =
     { ids : Set PostKey
     , total : TokenValue
+    }
+
+
+type alias Meta =
+    { authorBurn : TokenValue
+    , author : Address
+    , chain : Chain
+    , blockNumber : Int
+    , messageHash : Hex
+    , txHash : TxHash
     }
 
 

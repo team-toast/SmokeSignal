@@ -1,4 +1,4 @@
-module Chain exposing (chainDecoder, decodeChain, getColor, getConfig, getName, getProviderUrl, txUrl)
+module Chain exposing (chainDecoder, decodeChain, encodeChain, getColor, getConfig, getName, getProviderUrl, txUrl)
 
 import Element exposing (Color)
 import Eth.Decode
@@ -6,7 +6,8 @@ import Eth.Net
 import Eth.Types exposing (TxHash)
 import Eth.Utils
 import Helpers.Eth
-import Json.Decode as Decode exposing (Decoder)
+import Json.Decode as Decode exposing (Decoder, Value)
+import Json.Encode as Encode
 import Result.Extra
 import Theme
 import Types exposing (Chain(..), ChainConfig, Config, Flags)
@@ -89,6 +90,18 @@ chainDecoder flags =
         (Decode.field "contract" Eth.Decode.address)
         (Decode.field "scan" Decode.int)
         |> Decode.list
+
+
+encodeChain : Chain -> Value
+encodeChain chain =
+    (case chain of
+        Eth ->
+            1
+
+        XDai ->
+            100
+    )
+        |> Encode.int
 
 
 decodeChain : Decoder (Result Types.WalletConnectErr Types.Chain)

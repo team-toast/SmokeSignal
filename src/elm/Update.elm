@@ -1,4 +1,4 @@
-module Update exposing (update)
+module Update exposing (calculatePagination, update)
 
 import Array
 import Browser.Dom
@@ -637,9 +637,36 @@ update msg model =
                     let
                         core =
                             Misc.getCore log
+
+                        savePost =
+                            (case log of
+                                LogRoot data ->
+                                    { key =
+                                        String.fromInt data.core.id.block
+                                            ++ Eth.Utils.hexToString data.core.id.messageHash
+                                    , data =
+                                        Post.encodePost
+                                            (TopLevel data.topic)
+                                            data.core
+                                    }
+
+                                LogReply data ->
+                                    { key =
+                                        String.fromInt data.core.id.block
+                                            ++ Eth.Utils.hexToString data.core.id.messageHash
+                                    , data =
+                                        Post.encodePost
+                                            (Reply data.parent)
+                                            data.core
+                                    }
+                            )
+                                |> Ports.savePost
                     in
                     ( addPost log model
-                    , fetchPostInfo model.blockTimes model.config core
+                    , [ fetchPostInfo model.blockTimes model.config core
+                      , savePost
+                      ]
+                        |> Cmd.batch
                     )
 
         PostAccountingFetched postId res ->
