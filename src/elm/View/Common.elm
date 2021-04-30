@@ -1,9 +1,9 @@
-module View.Common exposing (appStatusMessage, burn, cancel, chain, ellipsisText, horizontalRule, link, phaceElement, spinner, timingOrSpinner, topic, verticalRule, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (burn, cancel, chain, ellipsisText, horizontalRule, link, phaceElement, spinner, timingOrSpinner, topic, verticalRule, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
 
-import Element exposing (Attribute, Color, Element, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
+import Element exposing (Attribute, Color, Element, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -55,22 +55,6 @@ chain c =
             [ spacing 10
             , View.Attrs.sansSerifFont
             ]
-
-
-appStatusMessage : Element.Color -> String -> Element Msg
-appStatusMessage color errStr =
-    Element.el [ Element.width Element.fill, Element.height Element.fill ] <|
-        Element.paragraph
-            [ Element.centerX
-            , Element.centerY
-            , Font.center
-            , Font.italic
-            , Font.color color
-            , Font.size 36
-            , Element.width (Element.fill |> Element.maximum 800)
-            , Element.padding 40
-            ]
-            [ Element.text errStr ]
 
 
 phaceElement : Int -> Address -> Bool -> Msg -> Element Msg

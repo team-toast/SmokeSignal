@@ -18,7 +18,7 @@ import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import View.About
 import View.Attrs exposing (cappedWidth, hover, whiteGlowAttribute, whiteGlowAttributeSmall)
-import View.Common exposing (appStatusMessage, whenAttr)
+import View.Common exposing (whenAttr)
 import View.Home
 import View.Img
 import View.Mobile
@@ -201,9 +201,16 @@ viewBody model =
         ViewPost postId ->
             Misc.getPostOrReply postId model.rootPosts model.replyPosts
                 |> Maybe.Extra.unwrap
-                    (appStatusMessage
-                        Theme.darkGray
-                        "Loading post..."
+                    ("Loading post..."
+                        |> text
+                        |> el
+                            [ Font.color Theme.darkGray
+                            , Font.italic
+                            , Font.size 36
+                            , padding 40
+                            , centerX
+                            , Element.alignTop
+                            ]
                     )
                     (View.PostPage.view model)
                 |> viewFrame model
@@ -689,44 +696,40 @@ userNotice dProfile ( id, notice ) =
             Input.button
                 [ Element.alignRight
                 , Element.alignTop
-                , Element.moveUp 2
+                , hover
                 ]
                 { onPress = Just <| DismissNotice id
                 , label = View.Img.close 20 black
                 }
     in
-    Element.el
-        [ Background.color color
-        , Border.rounded (Misc.responsiveVal dProfile 10 5)
-        , Element.padding (Misc.responsiveVal dProfile 8 3)
-        , Element.width Element.fill
-        , Border.width 1
-        , Border.color <| Element.rgba 0 0 0 0.15
+    notice.mainParagraphs
+        |> List.map (List.map (Element.map never))
+        |> List.indexedMap
+            (\pNum paragraphLines ->
+                Element.paragraph
+                    [ Element.width Element.fill
+                    , Font.color textColor
+                    , Element.spacing 1
+                    ]
+                    (if pNum == 0 then
+                        closeElement :: paragraphLines
 
-        --, EH.subtleShadow
-        --, EH.onClickNoPropagation <| MsgUp NoOp
-        ]
-        (notice.mainParagraphs
-            |> List.map (List.map (Element.map never))
-            |> List.indexedMap
-                (\pNum paragraphLines ->
-                    Element.paragraph
-                        [ Element.width Element.fill
-                        , Font.color textColor
-                        , Element.spacing 1
-                        ]
-                        (if pNum == 0 then
-                            closeElement :: paragraphLines
-
-                         else
-                            paragraphLines
-                        )
-                )
-            |> Element.column
-                [ Element.spacing 4
-                , Element.width Element.fill
-                ]
-        )
+                     else
+                        paragraphLines
+                    )
+            )
+        |> Element.column
+            [ Element.spacing 4
+            , Element.width Element.fill
+            ]
+        |> el
+            [ Background.color color
+            , Border.rounded (Misc.responsiveVal dProfile 10 5)
+            , Element.padding (Misc.responsiveVal dProfile 8 3)
+            , Element.width Element.fill
+            , Border.width 1
+            , Border.color <| Element.rgba 0 0 0 0.15
+            ]
 
 
 maxContentColWidth : Int

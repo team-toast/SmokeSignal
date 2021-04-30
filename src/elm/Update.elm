@@ -1433,28 +1433,14 @@ update msg model =
             else
                 let
                     topic =
-                        model.topicInput
-                            |> Misc.validateTopic
-                            |> Maybe.withDefault Misc.defaultTopic
-
-                    context =
                         case model.view of
                             ViewTopic t ->
-                                Types.TopLevel t
-
-                            ViewPost id ->
-                                Types.Reply id
+                                t
 
                             _ ->
-                                Types.TopLevel topic
-
-                    topicInput =
-                        case context of
-                            Types.Reply _ ->
                                 model.topicInput
-
-                            Types.TopLevel t ->
-                                t
+                                    |> Misc.validateTopic
+                                    |> Maybe.withDefault Misc.defaultTopic
 
                     trackingCmd =
                         if Wallet.isActive model.wallet then
@@ -1467,11 +1453,11 @@ update msg model =
                     | compose =
                         { emptyComposeModel
                             | modal = True
-                            , context = context
+                            , context = Types.TopLevel topic
                             , title = model.compose.title
                             , body = model.compose.body
                         }
-                    , topicInput = topicInput
+                    , topicInput = topic
                   }
                 , Cmd.batch
                     [ trackingCmd

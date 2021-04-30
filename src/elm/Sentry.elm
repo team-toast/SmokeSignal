@@ -259,7 +259,7 @@ handleLogs (EventSentry sentry) ref logs =
         Just requestState ->
             case ( requestState.watchOnce, List.head logs ) of
                 ( _, Nothing ) ->
-                    ( Nothing
+                    ( EventSentry sentry |> Just
                     , Cmd.none
                     )
 
