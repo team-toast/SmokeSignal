@@ -1,6 +1,7 @@
 module Update exposing (update)
 
 import Array
+import Browser.Dom
 import Chain
 import Contracts.SmokeSignal as SSContract
 import DemoPhaceSrcMutator
@@ -1614,54 +1615,61 @@ update msg model =
             , Cmd.none
             )
 
+        ScrollResponse _ ->
+            ( model, Cmd.none )
+
 
 handleRoute : Model -> Route -> ( Model, Cmd Msg )
 handleRoute model route =
     let
         defaultTitle =
             Ports.setTitle "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
+
+        resetScroll =
+            Browser.Dom.setViewportOf Misc.scrollId 0 0
+                |> Task.attempt ScrollResponse
     in
-    case route of
+    (case route of
         RouteTopics ->
             ( { model
                 | view = ViewTopics
               }
-            , defaultTitle
+            , [ defaultTitle ]
             )
 
         RouteHome ->
             ( { model
                 | view = ViewHome
               }
-            , defaultTitle
+            , [ defaultTitle ]
             )
 
         RouteTxns ->
             ( { model
                 | view = ViewTxns
               }
-            , defaultTitle
+            , [ defaultTitle ]
             )
 
         RouteWallet ->
             ( { model
                 | view = ViewWallet
               }
-            , defaultTitle
+            , [ defaultTitle ]
             )
 
         RouteAbout ->
             ( { model
                 | view = ViewAbout
               }
-            , defaultTitle
+            , [ defaultTitle ]
             )
 
         RouteUser addr ->
             ( { model
                 | view = ViewUser addr
               }
-            , defaultTitle
+            , [ defaultTitle ]
             )
 
         RouteInvalid ->
@@ -1669,7 +1677,7 @@ handleRoute model route =
                 | userNotices =
                     [ UN.routeNotFound Nothing ]
               }
-            , defaultTitle
+            , [ defaultTitle ]
             )
 
         RouteViewPost id ->
@@ -1693,7 +1701,6 @@ handleRoute model route =
                         )
               , Tracking.viewPost id
               ]
-                |> Cmd.batch
             )
 
         RouteTopic topic ->
@@ -1705,7 +1712,7 @@ handleRoute model route =
                             [ UN.routeNotFound Nothing ]
                         , view = ViewHome
                       }
-                    , defaultTitle
+                    , [ defaultTitle ]
                     )
                     (\t ->
                         ( { model
@@ -1720,9 +1727,13 @@ handleRoute model route =
                                 ++ " | SmokeSignal"
                                 |> Ports.setTitle
                           ]
-                            |> Cmd.batch
                         )
                     )
+    )
+        |> Tuple.mapSecond
+            (\cmds ->
+                (resetScroll :: cmds) |> Cmd.batch
+            )
 
 
 addPost : LogPost -> Model -> Model

@@ -1,6 +1,7 @@
 module Types exposing (..)
 
 import Array exposing (Array)
+import Browser.Dom
 import Dict exposing (Dict)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
@@ -75,6 +76,7 @@ type Msg
     | ChangeDemoPhaceSrc
     | NewDemoSrc String
       -- | MutateDemoSrcWith MutateInfo
+    | ScrollResponse (Result Browser.Dom.Error ())
     | Resize Int Int
     | EventSentryMsg Chain EventSentry.Msg
     | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error LogPost))

@@ -1,4 +1,4 @@
-module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatPosix, formatReplies, getCore, getPostOrReply, getTxReceipt, initDemoPhaceSrc, obscureAddress, parseHttpError, postIdToKey, responsiveVal, screenWidthToDisplayProfile, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
+module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatPosix, formatReplies, getCore, getPostOrReply, getTxReceipt, initDemoPhaceSrc, obscureAddress, parseHttpError, postIdToKey, responsiveVal, screenWidthToDisplayProfile, scrollId, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
 
 import Array
 import Dict exposing (Dict)
@@ -410,3 +410,8 @@ responsiveVal d a b =
 
     else
         a
+
+
+scrollId : String
+scrollId =
+    "scroller"

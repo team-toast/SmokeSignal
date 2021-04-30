@@ -106,6 +106,7 @@ viewPage model =
             , padding 10
             , Element.scrollbarY
             , View.Attrs.scrollFix
+            , View.Attrs.id Misc.scrollId
             ]
     , View.Mobile.navBar model
         |> View.Common.when (not isDesktop && not model.compose.modal)
