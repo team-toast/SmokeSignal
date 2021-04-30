@@ -81,7 +81,7 @@ type Msg
     | EventSentryMsg Chain EventSentry.Msg
     | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error LogPost))
     | PostAccountingFetched PostId (Result Http.Error Accounting)
-    | ShowExpandedTrackedTxs Bool
+    | ToggleTrackedTxs
     | CheckTrackedTxsStatus
     | TrackedTxStatusResult (Result Http.Error (Maybe TxReceipt))
     | BlockTimeFetched Int (Result Http.Error Time.Posix)

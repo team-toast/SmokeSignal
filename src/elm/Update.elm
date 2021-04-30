@@ -63,28 +63,11 @@ update msg model =
             , Cmd.none
             )
 
-        ShowExpandedTrackedTxs flag ->
-            let
-                ( newGtagHistory, gtagCmd ) =
-                    GTagData
-                        "show expanded txs"
-                        Nothing
-                        ((if flag == True then
-                            "True"
-
-                          else
-                            "False"
-                         )
-                            |> Just
-                        )
-                        Nothing
-                        |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
-            in
+        ToggleTrackedTxs ->
             ( { model
-                | showExpandedTrackedTxs = flag
-                , gtagHistory = newGtagHistory
+                | showExpandedTrackedTxs = not model.showExpandedTrackedTxs
               }
-            , gtagCmd
+            , Cmd.none
             )
 
         PostResponse res ->

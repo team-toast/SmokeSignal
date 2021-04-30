@@ -459,59 +459,42 @@ maybeTxTracker dProfile showExpanded trackedTxs_ =
             Nothing
 
         else
-            Just <|
-                Element.el
-                    [ Element.below <|
-                        if showExpanded then
-                            Element.el
-                                [ Element.alignRight
-                                , Element.alignTop
-                                ]
-                            <|
-                                trackedTxsColumn trackedTxs
-
-                        else
-                            Element.none
-                    ]
-                <|
-                    Element.column
-                        [ Border.rounded 5
-                        , Background.color <| Element.rgb 0.2 0.2 0.2
-                        , Element.padding (Misc.responsiveVal dProfile 10 5)
-                        , Element.spacing (Misc.responsiveVal dProfile 10 5)
-                        , Font.size (Misc.responsiveVal dProfile 20 12)
-                        , Element.pointer
-
-                        --, EH.onClickNoPropagation <|
-                        --if showExpanded then
-                        --ShowExpandedTrackedTxs False
-                        --else
-                        --ShowExpandedTrackedTxs True
-                        ]
-                        (renderedTallyEls
-                            |> List.map (Maybe.withDefault Element.none)
-                        )
+            Input.button
+                [ trackedTxsColumn trackedTxs
+                    |> Element.below
+                    |> whenAttr showExpanded
+                ]
+                { onPress = Just ToggleTrackedTxs
+                , label =
+                    renderedTallyEls
+                        |> List.map (Maybe.withDefault Element.none)
+                        |> column
+                            [ Border.rounded 5
+                            , Background.color <| Element.rgb 0.2 0.2 0.2
+                            , Element.padding (Misc.responsiveVal dProfile 10 5)
+                            , Element.spacing (Misc.responsiveVal dProfile 10 5)
+                            , Font.size (Misc.responsiveVal dProfile 20 12)
+                            ]
+                }
+                |> Just
 
 
 trackedTxsColumn : List TrackedTx -> Element Msg
-trackedTxsColumn trackedTxs =
-    Element.column
-        [ Background.color <| Element.rgb 0 0 0
-        , Border.width 1
-        , Border.color <| Element.rgb 1 1 1
-        , Border.rounded 3
-        , Border.glow
-            (Element.rgba 0 0 0 0.2)
-            4
-        , Element.padding 10
-        , Element.spacing 5
-
-        --, EH.onClickNoPropagation  NoOp
-        , Element.height (Element.shrink |> Element.maximum 400)
-        , Element.scrollbarY
-        , Element.alignRight
-        ]
-        (List.map viewTrackedTxRow trackedTxs)
+trackedTxsColumn =
+    List.map viewTrackedTxRow
+        >> column
+            [ Background.color <| Element.rgb 0 0 0
+            , Border.width 1
+            , Border.color <| Element.rgb 1 1 1
+            , Border.rounded 3
+            , Border.glow
+                (Element.rgba 0 0 0 0.2)
+                4
+            , Element.padding 10
+            , Element.spacing 5
+            , Element.height (Element.shrink |> Element.maximum 400)
+            , Element.alignRight
+            ]
 
 
 viewTrackedTxRow : TrackedTx -> Element Msg
