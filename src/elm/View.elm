@@ -8,12 +8,11 @@ import Element.Border as Border
 import Element.Events
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal, white)
 import Helpers.Tuple as TupleHelpers
 import Html exposing (Html)
 import Maybe.Extra
 import Misc
-import Theme
+import Theme exposing (black, white)
 import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
@@ -96,7 +95,7 @@ viewPage : Model -> Element Msg
 viewPage model =
     let
         isDesktop =
-            model.dProfile == EH.Desktop
+            model.dProfile == Desktop
     in
     [ header model
     , viewBody model
@@ -128,7 +127,7 @@ header : Model -> Element Msg
 header model =
     let
         isMobile =
-            model.dProfile == EH.Mobile
+            model.dProfile == Mobile
 
         sidePadding =
             if isMobile then
@@ -180,9 +179,10 @@ header model =
         |> el
             [ width fill
             , sidePadding
-            , Background.color EH.black
+            , Background.color black
             , whiteGlowAttribute
-            , EH.moveToFront
+
+            --, EH.moveToFront
             ]
 
 
@@ -228,7 +228,7 @@ viewBody model =
 
 viewFrame : Model -> Element Msg -> Element Msg
 viewFrame model elem =
-    if model.dProfile == EH.Mobile then
+    if model.dProfile == Mobile then
         elem
 
     else
@@ -255,7 +255,7 @@ banner : Element Msg
 banner =
     Element.image
         [ height <| px 175
-        , Background.color EH.black
+        , Background.color black
         , whiteGlowAttribute
         , centerX
         ]
@@ -476,16 +476,16 @@ maybeTxTracker dProfile showExpanded trackedTxs_ =
                     Element.column
                         [ Border.rounded 5
                         , Background.color <| Element.rgb 0.2 0.2 0.2
-                        , Element.padding (responsiveVal dProfile 10 5)
-                        , Element.spacing (responsiveVal dProfile 10 5)
-                        , Font.size (responsiveVal dProfile 20 12)
+                        , Element.padding (Misc.responsiveVal dProfile 10 5)
+                        , Element.spacing (Misc.responsiveVal dProfile 10 5)
+                        , Font.size (Misc.responsiveVal dProfile 20 12)
                         , Element.pointer
-                        , EH.onClickNoPropagation <|
-                            if showExpanded then
-                                ShowExpandedTrackedTxs False
 
-                            else
-                                ShowExpandedTrackedTxs True
+                        --, EH.onClickNoPropagation <|
+                        --if showExpanded then
+                        --ShowExpandedTrackedTxs False
+                        --else
+                        --ShowExpandedTrackedTxs True
                         ]
                         (renderedTallyEls
                             |> List.map (Maybe.withDefault Element.none)
@@ -607,7 +607,7 @@ viewTrackedTxRow trackedTx =
         [ Element.width <| Element.px 250
         , Background.color
             (trackedTxStatusToColor trackedTx.status
-                |> EH.withAlpha 0.3
+                |> Theme.withAlpha 0.3
             )
         , Border.rounded 2
         , Border.width 1
@@ -636,20 +636,20 @@ trackedTxStatusToColor txStatus =
             Theme.softRed
 
 
-viewUserNotices : EH.DisplayProfile -> List UserNotice -> List (Element Msg)
+viewUserNotices : DisplayProfile -> List UserNotice -> List (Element Msg)
 viewUserNotices dProfile notices =
     if notices == [] then
         []
 
     else
         [ Element.column
-            [ Element.moveLeft (EH.responsiveVal dProfile 20 5)
-            , Element.moveUp (EH.responsiveVal dProfile 20 5)
-            , Element.spacing (EH.responsiveVal dProfile 10 5)
+            [ Element.moveLeft (Misc.responsiveVal dProfile 20 5)
+            , Element.moveUp (Misc.responsiveVal dProfile 20 5)
+            , Element.spacing (Misc.responsiveVal dProfile 10 5)
             , Element.alignRight
             , Element.alignBottom
-            , Element.width <| Element.px (EH.responsiveVal dProfile 300 150)
-            , Font.size (EH.responsiveVal dProfile 15 10)
+            , Element.width <| Element.px (Misc.responsiveVal dProfile 300 150)
+            , Font.size (Misc.responsiveVal dProfile 15 10)
             ]
             (notices
                 |> List.indexedMap (\id notice -> ( id, notice ))
@@ -657,13 +657,13 @@ viewUserNotices dProfile notices =
                 |> List.map (userNotice dProfile)
             )
         , Element.column
-            [ Element.moveRight (EH.responsiveVal dProfile 20 5)
+            [ Element.moveRight (Misc.responsiveVal dProfile 20 5)
             , Element.moveDown 100
-            , Element.spacing (EH.responsiveVal dProfile 10 5)
+            , Element.spacing (Misc.responsiveVal dProfile 10 5)
             , Element.alignLeft
             , Element.alignTop
-            , Element.width <| Element.px (EH.responsiveVal dProfile 300 150)
-            , Font.size (EH.responsiveVal dProfile 15 10)
+            , Element.width <| Element.px (Misc.responsiveVal dProfile 300 150)
+            , Font.size (Misc.responsiveVal dProfile 15 10)
             ]
             (notices
                 |> List.indexedMap (\id notice -> ( id, notice ))
@@ -674,7 +674,7 @@ viewUserNotices dProfile notices =
 
 
 userNotice :
-    EH.DisplayProfile
+    DisplayProfile
     -> ( Int, UserNotice )
     -> Element Msg
 userNotice dProfile ( id, notice ) =
@@ -702,23 +702,24 @@ userNotice dProfile ( id, notice ) =
                     Element.rgb 0 0 0
 
         closeElement =
-            EH.closeButton
+            Input.button
                 [ Element.alignRight
                 , Element.alignTop
                 , Element.moveUp 2
                 ]
-                EH.black
-                (DismissNotice id)
+                { onPress = Just <| DismissNotice id
+                , label = View.Img.close 20 black
+                }
     in
     Element.el
         [ Background.color color
-        , Border.rounded (EH.responsiveVal dProfile 10 5)
-        , Element.padding (EH.responsiveVal dProfile 8 3)
+        , Border.rounded (Misc.responsiveVal dProfile 10 5)
+        , Element.padding (Misc.responsiveVal dProfile 8 3)
         , Element.width Element.fill
         , Border.width 1
         , Border.color <| Element.rgba 0 0 0 0.15
-        , EH.subtleShadow
 
+        --, EH.subtleShadow
         --, EH.onClickNoPropagation <| MsgUp NoOp
         ]
         (notice.mainParagraphs

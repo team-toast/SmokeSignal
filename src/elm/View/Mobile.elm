@@ -6,8 +6,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Element exposing (black, white)
-import Theme exposing (orange)
+import Theme exposing (black, orange, white)
 import Types exposing (Model, Msg, View(..))
 import View.Common exposing (whenAttr, whenJust)
 import View.Modal

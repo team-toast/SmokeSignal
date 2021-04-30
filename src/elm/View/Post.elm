@@ -6,11 +6,10 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Element as EH exposing (DisplayProfile, black, white)
 import Maybe.Extra exposing (unwrap)
 import Misc
 import Set
-import Theme exposing (almostWhite)
+import Theme exposing (almostWhite, black, white)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
@@ -35,7 +34,7 @@ view :
 view dProfile timestamp now replies accounting state tooltipState topic wallet post =
     let
         isMobile =
-            dProfile == EH.Mobile
+            dProfile == Mobile
 
         pad =
             if isMobile then
@@ -195,10 +194,10 @@ viewChainCard _ post =
     in
     Element.newTabLink
         [ hover
-        , Background.color <| EH.withAlpha 0.2 col
+        , Background.color <| Theme.withAlpha 0.2 col
         , Border.width 1
-        , Border.color <| EH.withAlpha 0.5 <| col
-        , Font.color <| EH.withAlpha 0.5 <| EH.white
+        , Border.color <| Theme.withAlpha 0.5 <| col
+        , Font.color <| Theme.withAlpha 0.5 <| Theme.white
         , Element.paddingXY 10 10
         , View.Attrs.sansSerifFont
         ]
@@ -422,7 +421,7 @@ supportTipButton postId =
         [ height <| px 40
         , Background.color Theme.darkGreen
         , width <| px 40
-        , EH.withTitle "Tip for this post, rewarding the author."
+        , View.Attrs.title "Tip for this post, rewarding the author."
         , hover
         ]
         { onPress = Just <| StartBurnOrTipUX postId Types.Tip
@@ -438,7 +437,7 @@ supportBurnButton postId =
         [ height <| px 40
         , Background.color Theme.darkRed
         , width <| px 40
-        , EH.withTitle "Burn to increase the visibility of this post."
+        , View.Attrs.title "Burn to increase the visibility of this post."
         , hover
         ]
         { onPress = Just <| StartBurnOrTipUX postId Types.Burn

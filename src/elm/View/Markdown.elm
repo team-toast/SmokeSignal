@@ -5,7 +5,6 @@ import Element.Background
 import Element.Border
 import Element.Font as Font
 import Element.Input
-import Helpers.Element exposing (DisplayProfile, thinHRuler)
 import Html
 import Html.Attributes
 import Markdown.Block
@@ -13,7 +12,9 @@ import Markdown.Html
 import Markdown.Parser
 import Markdown.Renderer exposing (Renderer)
 import Theme
+import Types exposing (DisplayProfile)
 import View.Attrs exposing (hover, style)
+import View.Common exposing (horizontalRule)
 
 
 
@@ -24,7 +25,7 @@ renderString : DisplayProfile -> String -> Element msg
 renderString device src =
     let
         isMobile =
-            device == Helpers.Element.Mobile
+            device == Types.Mobile
 
         fs =
             if isMobile then
@@ -62,7 +63,7 @@ renderer device =
         paragraph
             [ Element.spacing 3 ]
     , thematicBreak =
-        thinHRuler (Element.rgba 0 0 0 0.5)
+        horizontalRule (Element.rgba 0 0 0 0.5)
             |> Element.el
                 [ Element.width Element.fill
                 , Element.paddingXY 10 5
@@ -165,7 +166,7 @@ heading : DisplayProfile -> { level : Markdown.Block.HeadingLevel, rawText : Str
 heading device { level, rawText } =
     let
         isMobile =
-            device == Helpers.Element.Mobile
+            device == Types.Mobile
 
         multiplier =
             case level of

@@ -107,6 +107,8 @@ walletInfoDecoder =
                             Types.WalletError ("Code: " ++ String.fromInt n)
                                 |> Err
                 )
+         , Decode.null Types.WalletDisconnected
+            |> Decode.map Err
          ]
             |> Decode.oneOf
         )

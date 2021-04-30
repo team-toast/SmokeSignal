@@ -5,7 +5,6 @@ import Dict exposing (Dict)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
 import GTag
-import Helpers.Element as EH
 import Http
 import Json.Decode exposing (Value)
 import Sentry as EventSentry exposing (EventSentry)
@@ -34,7 +33,7 @@ type alias Flags =
 type alias Model =
     { wallet : Wallet
     , now : Time.Posix
-    , dProfile : EH.DisplayProfile
+    , dProfile : DisplayProfile
     , sentries :
         { xDai : Maybe (EventSentry Msg)
         , ethereum : Maybe (EventSentry Msg)
@@ -253,6 +252,7 @@ type alias WalletInfo =
 
 type WalletConnectErr
     = WalletCancel
+    | WalletDisconnected
     | WalletInProgress
     | WalletError String
     | NetworkNotSupported
@@ -371,3 +371,8 @@ type SortType
     = BurnSort
     | HotSort
     | NewSort
+
+
+type DisplayProfile
+    = Desktop
+    | Mobile

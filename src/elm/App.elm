@@ -7,7 +7,6 @@ import Chain
 import Contracts.SmokeSignal
 import DemoPhaceSrcMutator
 import Eth.Types
-import Helpers.Element
 import Json.Decode
 import Maybe.Extra exposing (unwrap)
 import Misc exposing (emptyModel, tryRouteToView)
@@ -172,7 +171,7 @@ startApp flags model =
         | view = view
         , wallet = wallet
         , now = now
-        , dProfile = Helpers.Element.screenWidthToDisplayProfile flags.width
+        , dProfile = Misc.screenWidthToDisplayProfile flags.width
         , sentries =
             model.sentries
                 |> (\cs ->

@@ -5,10 +5,9 @@ import Element exposing (Element, centerX, column, el, fill, height, padding, ro
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Element exposing (DisplayProfile(..), black, white)
 import Misc
 import Set
-import Theme exposing (orange)
+import Theme exposing (black, orange, white)
 import Types exposing (..)
 import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
 import View.Common

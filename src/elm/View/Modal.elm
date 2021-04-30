@@ -5,9 +5,8 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Maybe.Extra
-import Theme exposing (blue)
+import Theme exposing (black, blue, white)
 import Types exposing (..)
 import View.Attrs exposing (cappedWidth, hover, roundBorder, sansSerifFont, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common
@@ -155,7 +154,7 @@ viewNewToSmokeSignal _ =
         |> column
             [ whiteGlowAttribute
             , Border.rounded 10
-            , Font.color EH.white
+            , Font.color white
             , width fill
             , height fill
             , Background.color <| Element.rgba 0 0 0 0.85

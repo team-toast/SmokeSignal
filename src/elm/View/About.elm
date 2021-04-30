@@ -3,7 +3,7 @@ module View.About exposing (view)
 import Element exposing (Element, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
-import Helpers.Element exposing (black, white)
+import Theme exposing (black, white)
 import Types exposing (Model, Msg)
 import View.Attrs exposing (cappedWidth, hover, whiteGlowAttribute)
 import View.Common exposing (link, when)
@@ -13,7 +13,7 @@ view : Model -> Element Msg
 view model =
     let
         isMobile =
-            model.dProfile == Helpers.Element.Mobile
+            model.dProfile == Types.Mobile
     in
     [ Element.image
         [ width fill

@@ -10,14 +10,13 @@ import Element.Font as Font
 import Element.Input as Input
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
 import Helpers.Time as TimeHelpers
 import Html
 import Html.Attributes
 import Maybe.Extra exposing (unwrap)
 import Misc
 import Phace
-import Theme
+import Theme exposing (black, white)
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
@@ -79,43 +78,47 @@ phaceElement size fromAddress showAddress onClick =
     let
         addressOutputEl () =
             -- delay processing because addressToChecksumString is expensive!
-            Element.el
-                [ Element.alignBottom
+            Eth.Utils.addressToChecksumString fromAddress
+                |> text
+                |> List.singleton
+                |> paragraph
+                    [ --, if addressHangToRight then
+                      --Element.alignLeft
+                      --else
+                      --Element.alignRight
+                      Background.color white
+                    , Font.size 12
+                    , style "word-break" "break-word"
+                    , width fill
+                    , Border.width 2
+                    , Border.color black
+                    , Font.color black
+                    , padding 3
+                    , View.Attrs.typeFont
 
-                --, if addressHangToRight then
-                --Element.alignLeft
-                --else
-                --Element.alignRight
-                , Background.color EH.white
-                , Font.size 12
-                , EH.moveToFront
-                , Border.width 2
-                , Border.color EH.black
-                , Font.color black
-                , padding 3
-                , View.Attrs.typeFont
-
-                --, EH.onClickNoPropagation noOpMsg
-                ]
-                (Element.text <| Eth.Utils.addressToChecksumString fromAddress)
+                    --, View.Attrs.moveToFront
+                    --, EH.onClickNoPropagation noOpMsg
+                    ]
     in
-    Phace.fromEthAddress fromAddress size size
-        |> Element.html
-        |> el
-            [ Border.rounded 5
-            , Element.clip
-            , Element.pointer
-            , EH.onClickNoPropagation onClick
+    Input.button
+        [ (if showAddress then
+            addressOutputEl ()
 
-            -- , Border.width 1
-            -- , Border.color Theme.blue
-            ]
-        |> el
-            [ addressOutputEl ()
-                |> Element.inFront
-                |> whenAttr showAddress
-            , hover
-            ]
+           else
+            Element.none
+          )
+            |> Element.inFront
+        , hover
+        ]
+        { onPress = Just onClick
+        , label =
+            Phace.fromEthAddress fromAddress size size
+                |> Element.html
+                |> el
+                    [ Border.rounded 5
+                    , Element.clip
+                    ]
+        }
 
 
 when : Bool -> Element msg -> Element msg
