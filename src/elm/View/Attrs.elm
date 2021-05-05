@@ -1,4 +1,4 @@
-module View.Attrs exposing (cappedHeight, cappedWidth, codeFont, fade, help, hover, notAllowed, onEnter, onKeydown, rotate, roundBorder, sansSerifFont, scrollFix, slightRound, style, title, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
+module View.Attrs exposing (cappedHeight, cappedWidth, codeFont, fade, help, hover, id, notAllowed, onEnter, onKeydown, rotate, roundBorder, sansSerifFont, scrollFix, slightRound, style, title, typeFont, whiteGlowAttribute, whiteGlowAttributeSmall)
 
 {-| A module for managing elm-ui 'Attribute' values and related functions.
 -}
@@ -147,3 +147,8 @@ help =
 scrollFix : Attribute msg
 scrollFix =
     style "min-height" "auto"
+
+
+id : String -> Attribute msg
+id =
+    Html.Attributes.id >> Element.htmlAttribute

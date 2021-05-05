@@ -1,17 +1,17 @@
 module View.Sidebar exposing (view, viewWallet)
 
 import Chain
-import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paddingXY, paragraph, px, row, spacing, text, width)
+import Element exposing (Color, Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import Eth.Utils
-import Helpers.Element as EH exposing (DisplayProfile(..), black, white)
+import Maybe.Extra exposing (unwrap)
 import Misc
-import Theme exposing (orange)
+import Theme exposing (black, green, orange, white)
 import Types exposing (..)
-import View.Attrs exposing (cappedWidth, hover, slightRound, whiteGlowAttributeSmall)
-import View.Common exposing (phaceElement, when, whenJust)
+import View.Attrs exposing (cappedWidth, hover, roundBorder, slightRound, whiteGlowAttributeSmall)
+import View.Common exposing (phaceElement, when, whenAttr, whenJust)
 import Wallet
 
 
@@ -80,65 +80,44 @@ viewWallet : Model -> Element Msg
 viewWallet model =
     let
         phaceEl =
-            case Wallet.userInfo model.wallet of
-                Nothing ->
-                    phaceElement
+            model.wallet
+                |> Wallet.userInfo
+                |> unwrap
+                    (phaceElement
                         90
                         (Eth.Utils.unsafeToAddress model.demoPhaceSrc)
                         (model.showAddressId == Just DemoPhace)
                         (ShowOrHideAddress DemoPhace)
+                    )
+                    (\userInfo ->
+                        phaceElement
+                            90
+                            userInfo.address
+                            (model.showAddressId == Just UserPhace)
+                            (ShowOrHideAddress UserPhace)
+                    )
 
-                Just userInfo ->
-                    phaceElement
-                        90
-                        userInfo.address
-                        (model.showAddressId == Just UserPhace)
-                        (ShowOrHideAddress UserPhace)
-
-        ( buttonText, maybeButtonAction, maybeExplainerText ) =
+        ( button, maybeExplainerText ) =
             case model.wallet of
                 Types.NoneDetected ->
-                    ( "Get started"
-                    , Just <| EH.Action ComposeOpen
+                    ( viewButton green "Get started" (Just ComposeOpen)
                     , Just "Each address has a unique phace!"
                     )
 
                 Types.NetworkReady ->
-                    ( "Connect Wallet"
-                    , Just <| EH.Action ConnectToWeb3
+                    ( viewButton green "Connect Wallet" (Just ConnectToWeb3)
                     , Just "Each address has a unique phace!"
                     )
 
                 Types.Connecting ->
-                    ( "Connecting"
-                    , Nothing
+                    ( viewButton Theme.darkGray "Connecting" Nothing
                     , Just "Please complete the MetaMask connection process"
                     )
 
                 Types.Active _ ->
-                    ( "Compose Post"
-                    , Just <| EH.Action <| ComposeOpen
+                    ( viewButton green "Compose Post" (Just ComposeOpen)
                     , Nothing
                     )
-
-        button =
-            case maybeButtonAction of
-                Just buttonAction ->
-                    Theme.unscaryButton
-                        model.dProfile
-                        [ paddingXY 10 5
-                        , width fill
-                        ]
-                        [ buttonText ]
-                        buttonAction
-
-                Nothing ->
-                    Theme.disabledButton
-                        model.dProfile
-                        [ paddingXY 10 5
-                        , width fill
-                        ]
-                        buttonText
     in
     [ phaceEl
         |> el [ Element.alignTop ]
@@ -156,7 +135,7 @@ viewWallet model =
                 (\text ->
                     [ Element.text text ]
                         |> paragraph
-                            [ Font.color EH.white
+                            [ Font.color white
                             , Font.size 17
                             , View.Attrs.sansSerifFont
                             ]
@@ -172,6 +151,24 @@ viewWallet model =
             [ width fill
             , spacing 10
             ]
+
+
+viewButton : Color -> String -> Maybe msg -> Element msg
+viewButton color txt msg =
+    Input.button
+        [ height <| px 30
+        , width fill
+        , hover
+            |> whenAttr (msg /= Nothing)
+        , Background.color color
+        , Font.color white
+        , roundBorder
+        ]
+        { onPress = msg
+        , label =
+            text txt
+                |> el [ centerX, centerY ]
+        }
 
 
 viewChain : Types.Chain -> Element msg

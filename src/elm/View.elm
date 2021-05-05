@@ -8,18 +8,17 @@ import Element.Border as Border
 import Element.Events
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Element as EH exposing (DisplayProfile(..), black, responsiveVal, white)
 import Helpers.Tuple as TupleHelpers
 import Html exposing (Html)
 import Maybe.Extra
 import Misc
-import Theme
+import Theme exposing (black, white)
 import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import View.About
 import View.Attrs exposing (cappedWidth, hover, whiteGlowAttribute, whiteGlowAttributeSmall)
-import View.Common exposing (appStatusMessage, whenAttr)
+import View.Common exposing (whenAttr)
 import View.Home
 import View.Img
 import View.Mobile
@@ -96,7 +95,7 @@ viewPage : Model -> Element Msg
 viewPage model =
     let
         isDesktop =
-            model.dProfile == EH.Desktop
+            model.dProfile == Desktop
     in
     [ header model
     , viewBody model
@@ -107,6 +106,7 @@ viewPage model =
             , padding 10
             , Element.scrollbarY
             , View.Attrs.scrollFix
+            , View.Attrs.id Misc.scrollId
             ]
     , View.Mobile.navBar model
         |> View.Common.when (not isDesktop && not model.compose.modal)
@@ -128,7 +128,7 @@ header : Model -> Element Msg
 header model =
     let
         isMobile =
-            model.dProfile == EH.Mobile
+            model.dProfile == Mobile
 
         sidePadding =
             if isMobile then
@@ -180,9 +180,10 @@ header model =
         |> el
             [ width fill
             , sidePadding
-            , Background.color EH.black
+            , Background.color black
             , whiteGlowAttribute
-            , EH.moveToFront
+
+            --, EH.moveToFront
             ]
 
 
@@ -200,9 +201,16 @@ viewBody model =
         ViewPost postId ->
             Misc.getPostOrReply postId model.rootPosts model.replyPosts
                 |> Maybe.Extra.unwrap
-                    (appStatusMessage
-                        Theme.darkGray
-                        "Loading post..."
+                    ("Loading post..."
+                        |> text
+                        |> el
+                            [ Font.color Theme.darkGray
+                            , Font.italic
+                            , Font.size 36
+                            , padding 40
+                            , centerX
+                            , Element.alignTop
+                            ]
                     )
                     (View.PostPage.view model)
                 |> viewFrame model
@@ -228,7 +236,7 @@ viewBody model =
 
 viewFrame : Model -> Element Msg -> Element Msg
 viewFrame model elem =
-    if model.dProfile == EH.Mobile then
+    if model.dProfile == Mobile then
         elem
 
     else
@@ -255,7 +263,7 @@ banner : Element Msg
 banner =
     Element.image
         [ height <| px 175
-        , Background.color EH.black
+        , Background.color black
         , whiteGlowAttribute
         , centerX
         ]
@@ -458,59 +466,42 @@ maybeTxTracker dProfile showExpanded trackedTxs_ =
             Nothing
 
         else
-            Just <|
-                Element.el
-                    [ Element.below <|
-                        if showExpanded then
-                            Element.el
-                                [ Element.alignRight
-                                , Element.alignTop
-                                ]
-                            <|
-                                trackedTxsColumn trackedTxs
-
-                        else
-                            Element.none
-                    ]
-                <|
-                    Element.column
-                        [ Border.rounded 5
-                        , Background.color <| Element.rgb 0.2 0.2 0.2
-                        , Element.padding (responsiveVal dProfile 10 5)
-                        , Element.spacing (responsiveVal dProfile 10 5)
-                        , Font.size (responsiveVal dProfile 20 12)
-                        , Element.pointer
-                        , EH.onClickNoPropagation <|
-                            if showExpanded then
-                                ShowExpandedTrackedTxs False
-
-                            else
-                                ShowExpandedTrackedTxs True
-                        ]
-                        (renderedTallyEls
-                            |> List.map (Maybe.withDefault Element.none)
-                        )
+            Input.button
+                [ trackedTxsColumn trackedTxs
+                    |> Element.below
+                    |> whenAttr showExpanded
+                ]
+                { onPress = Just ToggleTrackedTxs
+                , label =
+                    renderedTallyEls
+                        |> List.map (Maybe.withDefault Element.none)
+                        |> column
+                            [ Border.rounded 5
+                            , Background.color <| Element.rgb 0.2 0.2 0.2
+                            , Element.padding (Misc.responsiveVal dProfile 10 5)
+                            , Element.spacing (Misc.responsiveVal dProfile 10 5)
+                            , Font.size (Misc.responsiveVal dProfile 20 12)
+                            ]
+                }
+                |> Just
 
 
 trackedTxsColumn : List TrackedTx -> Element Msg
-trackedTxsColumn trackedTxs =
-    Element.column
-        [ Background.color <| Element.rgb 0 0 0
-        , Border.width 1
-        , Border.color <| Element.rgb 1 1 1
-        , Border.rounded 3
-        , Border.glow
-            (Element.rgba 0 0 0 0.2)
-            4
-        , Element.padding 10
-        , Element.spacing 5
-
-        --, EH.onClickNoPropagation  NoOp
-        , Element.height (Element.shrink |> Element.maximum 400)
-        , Element.scrollbarY
-        , Element.alignRight
-        ]
-        (List.map viewTrackedTxRow trackedTxs)
+trackedTxsColumn =
+    List.map viewTrackedTxRow
+        >> column
+            [ Background.color <| Element.rgb 0 0 0
+            , Border.width 1
+            , Border.color <| Element.rgb 1 1 1
+            , Border.rounded 3
+            , Border.glow
+                (Element.rgba 0 0 0 0.2)
+                4
+            , Element.padding 10
+            , Element.spacing 5
+            , Element.height (Element.shrink |> Element.maximum 400)
+            , Element.alignRight
+            ]
 
 
 viewTrackedTxRow : TrackedTx -> Element Msg
@@ -607,7 +598,7 @@ viewTrackedTxRow trackedTx =
         [ Element.width <| Element.px 250
         , Background.color
             (trackedTxStatusToColor trackedTx.status
-                |> EH.withAlpha 0.3
+                |> Theme.withAlpha 0.3
             )
         , Border.rounded 2
         , Border.width 1
@@ -636,20 +627,20 @@ trackedTxStatusToColor txStatus =
             Theme.softRed
 
 
-viewUserNotices : EH.DisplayProfile -> List UserNotice -> List (Element Msg)
+viewUserNotices : DisplayProfile -> List UserNotice -> List (Element Msg)
 viewUserNotices dProfile notices =
     if notices == [] then
         []
 
     else
         [ Element.column
-            [ Element.moveLeft (EH.responsiveVal dProfile 20 5)
-            , Element.moveUp (EH.responsiveVal dProfile 20 5)
-            , Element.spacing (EH.responsiveVal dProfile 10 5)
+            [ Element.moveLeft (Misc.responsiveVal dProfile 20 5)
+            , Element.moveUp (Misc.responsiveVal dProfile 20 5)
+            , Element.spacing (Misc.responsiveVal dProfile 10 5)
             , Element.alignRight
             , Element.alignBottom
-            , Element.width <| Element.px (EH.responsiveVal dProfile 300 150)
-            , Font.size (EH.responsiveVal dProfile 15 10)
+            , Element.width <| Element.px (Misc.responsiveVal dProfile 300 150)
+            , Font.size (Misc.responsiveVal dProfile 15 10)
             ]
             (notices
                 |> List.indexedMap (\id notice -> ( id, notice ))
@@ -657,13 +648,13 @@ viewUserNotices dProfile notices =
                 |> List.map (userNotice dProfile)
             )
         , Element.column
-            [ Element.moveRight (EH.responsiveVal dProfile 20 5)
+            [ Element.moveRight (Misc.responsiveVal dProfile 20 5)
             , Element.moveDown 100
-            , Element.spacing (EH.responsiveVal dProfile 10 5)
+            , Element.spacing (Misc.responsiveVal dProfile 10 5)
             , Element.alignLeft
             , Element.alignTop
-            , Element.width <| Element.px (EH.responsiveVal dProfile 300 150)
-            , Font.size (EH.responsiveVal dProfile 15 10)
+            , Element.width <| Element.px (Misc.responsiveVal dProfile 300 150)
+            , Font.size (Misc.responsiveVal dProfile 15 10)
             ]
             (notices
                 |> List.indexedMap (\id notice -> ( id, notice ))
@@ -674,7 +665,7 @@ viewUserNotices dProfile notices =
 
 
 userNotice :
-    EH.DisplayProfile
+    DisplayProfile
     -> ( Int, UserNotice )
     -> Element Msg
 userNotice dProfile ( id, notice ) =
@@ -702,46 +693,43 @@ userNotice dProfile ( id, notice ) =
                     Element.rgb 0 0 0
 
         closeElement =
-            EH.closeButton
+            Input.button
                 [ Element.alignRight
                 , Element.alignTop
-                , Element.moveUp 2
+                , hover
                 ]
-                EH.black
-                (DismissNotice id)
+                { onPress = Just <| DismissNotice id
+                , label = View.Img.close 20 black
+                }
     in
-    Element.el
-        [ Background.color color
-        , Border.rounded (EH.responsiveVal dProfile 10 5)
-        , Element.padding (EH.responsiveVal dProfile 8 3)
-        , Element.width Element.fill
-        , Border.width 1
-        , Border.color <| Element.rgba 0 0 0 0.15
-        , EH.subtleShadow
+    notice.mainParagraphs
+        |> List.map (List.map (Element.map never))
+        |> List.indexedMap
+            (\pNum paragraphLines ->
+                Element.paragraph
+                    [ Element.width Element.fill
+                    , Font.color textColor
+                    , Element.spacing 1
+                    ]
+                    (if pNum == 0 then
+                        closeElement :: paragraphLines
 
-        --, EH.onClickNoPropagation <| MsgUp NoOp
-        ]
-        (notice.mainParagraphs
-            |> List.map (List.map (Element.map never))
-            |> List.indexedMap
-                (\pNum paragraphLines ->
-                    Element.paragraph
-                        [ Element.width Element.fill
-                        , Font.color textColor
-                        , Element.spacing 1
-                        ]
-                        (if pNum == 0 then
-                            closeElement :: paragraphLines
-
-                         else
-                            paragraphLines
-                        )
-                )
-            |> Element.column
-                [ Element.spacing 4
-                , Element.width Element.fill
-                ]
-        )
+                     else
+                        paragraphLines
+                    )
+            )
+        |> Element.column
+            [ Element.spacing 4
+            , Element.width Element.fill
+            ]
+        |> el
+            [ Background.color color
+            , Border.rounded (Misc.responsiveVal dProfile 10 5)
+            , Element.padding (Misc.responsiveVal dProfile 8 3)
+            , Element.width Element.fill
+            , Border.width 1
+            , Border.color <| Element.rgba 0 0 0 0.15
+            ]
 
 
 maxContentColWidth : Int

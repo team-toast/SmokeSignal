@@ -1,11 +1,11 @@
 module Types exposing (..)
 
 import Array exposing (Array)
+import Browser.Dom
 import Dict exposing (Dict)
 import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
 import GTag
-import Helpers.Element as EH
 import Http
 import Json.Decode exposing (Value)
 import Sentry as EventSentry exposing (EventSentry)
@@ -34,7 +34,7 @@ type alias Flags =
 type alias Model =
     { wallet : Wallet
     , now : Time.Posix
-    , dProfile : EH.DisplayProfile
+    , dProfile : DisplayProfile
     , sentries :
         { xDai : Maybe (EventSentry Msg)
         , ethereum : Maybe (EventSentry Msg)
@@ -76,11 +76,12 @@ type Msg
     | ChangeDemoPhaceSrc
     | NewDemoSrc String
       -- | MutateDemoSrcWith MutateInfo
+    | ScrollResponse (Result Browser.Dom.Error ())
     | Resize Int Int
     | EventSentryMsg Chain EventSentry.Msg
     | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error LogPost))
     | PostAccountingFetched PostId (Result Http.Error Accounting)
-    | ShowExpandedTrackedTxs Bool
+    | ToggleTrackedTxs
     | CheckTrackedTxsStatus
     | TrackedTxStatusResult (Result Http.Error (Maybe TxReceipt))
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
@@ -253,6 +254,7 @@ type alias WalletInfo =
 
 type WalletConnectErr
     = WalletCancel
+    | WalletDisconnected
     | WalletInProgress
     | WalletError String
     | NetworkNotSupported
@@ -371,3 +373,8 @@ type SortType
     = BurnSort
     | HotSort
     | NewSort
+
+
+type DisplayProfile
+    = Desktop
+    | Mobile

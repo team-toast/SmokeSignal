@@ -3,8 +3,7 @@ module View.Wallet exposing (view, viewMobileWalletSuggestion)
 import Element exposing (Element, column, el, fill, padding, paragraph, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
-import Helpers.Element exposing (black, white)
-import Theme
+import Theme exposing (black, white)
 import Types exposing (Model, Msg)
 import View.Attrs exposing (whiteGlowAttributeSmall)
 import View.Common

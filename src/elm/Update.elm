@@ -1,6 +1,7 @@
 module Update exposing (update)
 
 import Array
+import Browser.Dom
 import Chain
 import Contracts.SmokeSignal as SSContract
 import DemoPhaceSrcMutator
@@ -9,7 +10,6 @@ import Eth
 import Eth.Types exposing (TxReceipt)
 import Eth.Utils
 import GTag exposing (GTagData, gTagOut, gTagOutOnlyOnLabelOrValueChange, gTagOutOnlyOnceForEvent)
-import Helpers.Element as EH exposing (DisplayProfile(..))
 import Http
 import Json.Decode
 import List.Extra
@@ -58,33 +58,16 @@ update msg model =
         Resize width _ ->
             ( { model
                 | dProfile =
-                    EH.screenWidthToDisplayProfile width
+                    Misc.screenWidthToDisplayProfile width
               }
             , Cmd.none
             )
 
-        ShowExpandedTrackedTxs flag ->
-            let
-                ( newGtagHistory, gtagCmd ) =
-                    GTagData
-                        "show expanded txs"
-                        Nothing
-                        ((if flag == True then
-                            "True"
-
-                          else
-                            "False"
-                         )
-                            |> Just
-                        )
-                        Nothing
-                        |> gTagOutOnlyOnLabelOrValueChange model.gtagHistory
-            in
+        ToggleTrackedTxs ->
             ( { model
-                | showExpandedTrackedTxs = flag
-                , gtagHistory = newGtagHistory
+                | showExpandedTrackedTxs = not model.showExpandedTrackedTxs
               }
-            , gtagCmd
+            , Cmd.none
             )
 
         PostResponse res ->
@@ -139,7 +122,7 @@ update msg model =
                                                             }
                                                        )
                                           }
-                                        , [ Ports.log e
+                                        , [ logString "PostResponse" e
                                           , gtagCmd
                                           ]
                                             |> Cmd.batch
@@ -205,7 +188,7 @@ update msg model =
                                 ( { model
                                     | chainSwitchInProgress = False
                                   }
-                                , Ports.log e
+                                , logString "ChainSwitchResponse" e
                                 )
                     )
                     (\() ->
@@ -271,7 +254,7 @@ update msg model =
                                                             }
                                                         )
                                           }
-                                        , [ Ports.log e
+                                        , [ logString "BurnOrTipResponse" e
                                           , gtagCmd
                                           ]
                                             |> Cmd.batch
@@ -358,7 +341,7 @@ update msg model =
                             (\txReceipt ->
                                 model.trackedTxs
                                     |> Dict.get (Eth.Utils.txHashToString txReceipt.hash)
-                                    |> unwrap ( model, Ports.log "Transaction not found." )
+                                    |> unwrap ( model, logString "TrackedTxStatusResult" "Transaction not found." )
                                         (\tx ->
                                             let
                                                 ( newStatus, _, maybeUserNotice ) =
@@ -482,6 +465,13 @@ update msg model =
                 |> unpack
                     (\err ->
                         case err of
+                            WalletDisconnected ->
+                                ( { model
+                                    | wallet = NetworkReady
+                                  }
+                                , Cmd.none
+                                )
+
                             WalletInProgress ->
                                 ( { model
                                     | userNotices = UN.unexpectedError "Please complete the wallet connection process." :: model.userNotices
@@ -513,7 +503,7 @@ update msg model =
                                         Types.NetworkReady
                                     , chainSwitchInProgress = False
                                   }
-                                , Ports.log e
+                                , logString "WalletResponse" e
                                 )
                     )
                     (\info ->
@@ -558,7 +548,7 @@ update msg model =
             val
                 |> unwrap
                     ( model
-                    , Ports.log "Missing balance"
+                    , logString "BalanceResponse" "Missing balance"
                     )
                     (\balance ->
                         ensureUserInfo
@@ -628,8 +618,7 @@ update msg model =
                     , err
                         |> Json.Decode.errorToString
                         |> String.left 200
-                        |> (++) "PostLogReceived:\n"
-                        |> Ports.log
+                        |> logString "PostLogReceived"
                     )
 
                 Ok log ->
@@ -1444,28 +1433,14 @@ update msg model =
             else
                 let
                     topic =
-                        model.topicInput
-                            |> Misc.validateTopic
-                            |> Maybe.withDefault Misc.defaultTopic
-
-                    context =
                         case model.view of
                             ViewTopic t ->
-                                Types.TopLevel t
-
-                            ViewPost id ->
-                                Types.Reply id
+                                t
 
                             _ ->
-                                Types.TopLevel topic
-
-                    topicInput =
-                        case context of
-                            Types.Reply _ ->
                                 model.topicInput
-
-                            Types.TopLevel t ->
-                                t
+                                    |> Misc.validateTopic
+                                    |> Maybe.withDefault Misc.defaultTopic
 
                     trackingCmd =
                         if Wallet.isActive model.wallet then
@@ -1478,11 +1453,11 @@ update msg model =
                     | compose =
                         { emptyComposeModel
                             | modal = True
-                            , context = context
+                            , context = Types.TopLevel topic
                             , title = model.compose.title
                             , body = model.compose.body
                         }
-                    , topicInput = topicInput
+                    , topicInput = topic
                   }
                 , Cmd.batch
                     [ trackingCmd
@@ -1609,54 +1584,61 @@ update msg model =
             , Cmd.none
             )
 
+        ScrollResponse _ ->
+            ( model, Cmd.none )
+
 
 handleRoute : Model -> Route -> ( Model, Cmd Msg )
 handleRoute model route =
     let
         defaultTitle =
             Ports.setTitle "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
+
+        resetScroll =
+            Browser.Dom.setViewportOf Misc.scrollId 0 0
+                |> Task.attempt ScrollResponse
     in
-    case route of
+    (case route of
         RouteTopics ->
             ( { model
                 | view = ViewTopics
               }
-            , defaultTitle
+            , [ defaultTitle ]
             )
 
         RouteHome ->
             ( { model
                 | view = ViewHome
               }
-            , defaultTitle
+            , [ defaultTitle ]
             )
 
         RouteTxns ->
             ( { model
                 | view = ViewTxns
               }
-            , defaultTitle
+            , [ defaultTitle ]
             )
 
         RouteWallet ->
             ( { model
                 | view = ViewWallet
               }
-            , defaultTitle
+            , [ defaultTitle ]
             )
 
         RouteAbout ->
             ( { model
                 | view = ViewAbout
               }
-            , defaultTitle
+            , [ defaultTitle ]
             )
 
         RouteUser addr ->
             ( { model
                 | view = ViewUser addr
               }
-            , defaultTitle
+            , [ defaultTitle ]
             )
 
         RouteInvalid ->
@@ -1664,7 +1646,7 @@ handleRoute model route =
                 | userNotices =
                     [ UN.routeNotFound Nothing ]
               }
-            , defaultTitle
+            , [ defaultTitle ]
             )
 
         RouteViewPost id ->
@@ -1688,7 +1670,6 @@ handleRoute model route =
                         )
               , Tracking.viewPost id
               ]
-                |> Cmd.batch
             )
 
         RouteTopic topic ->
@@ -1700,7 +1681,7 @@ handleRoute model route =
                             [ UN.routeNotFound Nothing ]
                         , view = ViewHome
                       }
-                    , defaultTitle
+                    , [ defaultTitle ]
                     )
                     (\t ->
                         ( { model
@@ -1715,9 +1696,13 @@ handleRoute model route =
                                 ++ " | SmokeSignal"
                                 |> Ports.setTitle
                           ]
-                            |> Cmd.batch
                         )
                     )
+    )
+        |> Tuple.mapSecond
+            (\cmds ->
+                (resetScroll :: cmds) |> Cmd.batch
+            )
 
 
 addPost : LogPost -> Model -> Model
@@ -1830,6 +1815,11 @@ fetchPostInfo blockTimes config core =
 logHttpError : String -> Http.Error -> Cmd msg
 logHttpError tag =
     Misc.parseHttpError >> (++) (tag ++ ":\n") >> Ports.log
+
+
+logString : String -> String -> Cmd msg
+logString tag =
+    (++) (tag ++ ":\n") >> Ports.log
 
 
 getPostBurnAmount : Float -> String -> Result String TokenValue

@@ -6,10 +6,9 @@ import Element.Border as Border
 import Element.Events
 import Element.Font as Font
 import Element.Input as Input
-import Helpers.Element exposing (DisplayProfile(..), black, white)
 import Html.Attributes
 import Misc
-import Theme exposing (orange)
+import Theme exposing (black, orange, white)
 import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (hover, roundBorder, sansSerifFont, slightRound, whiteGlowAttributeSmall)
@@ -22,7 +21,7 @@ view : Model -> UserInfo -> Element Msg
 view model userInfo =
     let
         isMobile =
-            model.dProfile == Helpers.Element.Mobile
+            model.dProfile == Mobile
 
         validTopic =
             case model.compose.context of
@@ -404,7 +403,7 @@ viewMarkdown : Model -> Element Msg
 viewMarkdown model =
     let
         isMobile =
-            model.dProfile == Helpers.Element.Mobile
+            model.dProfile == Mobile
     in
     if isMobile then
         if model.compose.preview then

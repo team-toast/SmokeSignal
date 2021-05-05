@@ -8,12 +8,11 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Eth.Utils
-import Helpers.Element exposing (DisplayProfile(..), black, white)
 import Html.Attributes
 import Maybe.Extra exposing (unwrap)
 import Misc
 import Set
-import Theme exposing (orange)
+import Theme exposing (black, orange, white)
 import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (hover, roundBorder, sansSerifFont, slightRound, whiteGlowAttributeSmall)

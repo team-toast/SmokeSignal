@@ -3,7 +3,7 @@
     "source-directories": [
         "src/elm",
         "elm-submodules/routing",
-        "elm-submodules/helpers",
+        "elm-submodules/helpers/src",
         "elm-submodules/tokenvalue/src",
         "elm-submodules/gtags"
     ],
@@ -12,7 +12,6 @@
         "direct": {
             "NoRedInk/elm-json-decode-pipeline": "1.0.0",
             "TSFoster/elm-tuple-extra": "2.0.0",
-            "avh4/elm-color": "1.0.0",
             "cmditch/elm-bigint": "2.0.1",
             "cmditch/elm-ethereum": "5.0.0",
             "coinop-logan/phace": "3.0.1",
@@ -34,9 +33,7 @@
             "mdgriffith/elm-ui": "1.1.8",
             "myrho/elm-round": "1.0.4",
             "robinheghan/murmur3": "1.0.0",
-            "rtfeldman/elm-css": "16.1.0",
-            "rtfeldman/elm-hex": "1.0.0",
-            "timjs/elm-collage": "2.0.3"
+            "rtfeldman/elm-hex": "1.0.0"
         },
         "indirect": {
             "Chadtech/elm-bool-extra": "2.4.2",
@@ -45,7 +42,6 @@
             "elm/parser": "1.1.0",
             "elm/regex": "1.0.0",
             "elm/virtual-dom": "1.0.2",
-            "elm-community/basics-extra": "4.1.0",
             "elm-community/json-extra": "4.3.0",
             "prozacchiwawa/elm-keccak": "2.0.0",
             "rtfeldman/elm-iso8601-date-strings": "1.1.3",

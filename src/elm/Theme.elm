@@ -1,11 +1,18 @@
-module Theme exposing (almostWhite, blackAlpha, blue, blueButton, commonShadow, darkBlue, darkGray, darkGreen, darkRed, darkYellow, darkerBlue, disabledButton, ethereum, green, inverseBlueButton, lightBlue, lightBlueButton, lightGray, lightGreen, lightRed, orange, redButton, softRed, unscaryButton, veryDarkGray, xDai, yellow)
+module Theme exposing (almostWhite, black, blackAlpha, blue, commonShadow, darkBlue, darkGray, darkGreen, darkRed, darkYellow, darkerBlue, ethereum, green, lightBlue, lightGray, lightGreen, lightRed, orange, softRed, veryDarkGray, white, withAlpha, xDai, yellow)
 
-import Element exposing (Attribute, Color, Element, rgb255)
-import Element.Background
+import Element exposing (Attribute, Color, rgb255)
 import Element.Border
-import Element.Font
-import Helpers.Element as EH
-import View.Attrs
+import Types exposing (DisplayProfile(..))
+
+
+white : Color
+white =
+    Element.rgb255 255 255 255
+
+
+black : Color
+black =
+    Element.rgb255 0 0 0
 
 
 blackAlpha : Float -> Color
@@ -118,116 +125,13 @@ commonShadow =
         }
 
 
-blueButton :
-    EH.DisplayProfile
-    -> List (Attribute msg)
-    -> List String
-    -> EH.ButtonAction msg
-    -> Element msg
-blueButton dProfile attributes text buttonAction =
-    EH.button dProfile
-        attributes
-        ( Element.rgba 0 0 1 1
-        , Element.rgba 0 0 1 0.8
-        , Element.rgba 0 0 1 0.6
-        )
-        EH.white
-        text
-        buttonAction
-
-
-lightBlueButton :
-    EH.DisplayProfile
-    -> List (Attribute msg)
-    -> List String
-    -> EH.ButtonAction msg
-    -> Element msg
-lightBlueButton dProfile attributes text buttonAction =
+withAlpha : Float -> Color -> Color
+withAlpha a color =
     let
-        color =
-            Element.rgb255 25 169 214
+        oldRgba =
+            Element.toRgb color
     in
-    EH.button dProfile
-        attributes
-        ( color
-        , color |> EH.withAlpha 0.8
-        , color |> EH.withAlpha 0.6
-        )
-        EH.white
-        text
-        buttonAction
-
-
-inverseBlueButton :
-    EH.DisplayProfile
-    -> List (Attribute msg)
-    -> List String
-    -> EH.ButtonAction msg
-    -> Element msg
-inverseBlueButton dProfile attributes text buttonAction =
-    EH.button dProfile
-        attributes
-        ( Element.rgba 0 0 1 0.05
-        , Element.rgba 0 0 1 0.1
-        , Element.rgba 0 0 1 0.2
-        )
-        blue
-        text
-        buttonAction
-
-
-redButton :
-    EH.DisplayProfile
-    -> List (Attribute msg)
-    -> List String
-    -> EH.ButtonAction msg
-    -> Element msg
-redButton dProfile attributes text buttonAction =
-    EH.button dProfile
-        attributes
-        ( Element.rgba 1 0 0 1
-        , Element.rgba 1 0 0 0.8
-        , Element.rgba 1 0 0 0.6
-        )
-        EH.white
-        text
-        buttonAction
-
-
-unscaryButton :
-    EH.DisplayProfile
-    -> List (Attribute msg)
-    -> List String
-    -> EH.ButtonAction msg
-    -> Element msg
-unscaryButton dProfile attributes text buttonAction =
-    EH.button dProfile
-        attributes
-        ( Element.rgb255 0 153 0
-        , Element.rgba 0 1 0 0.8
-        , Element.rgba 0 1 0 0.6
-        )
-        EH.white
-        text
-        buttonAction
-
-
-disabledButton :
-    EH.DisplayProfile
-    -> List (Attribute msg)
-    -> String
-    -> Element msg
-disabledButton dProfile attributes text =
-    Element.el
-        ([ Element.Border.rounded 4
-         , EH.responsiveVal dProfile (Element.paddingXY 25 17) (Element.padding 10)
-         , Element.Font.size (EH.responsiveVal dProfile 18 16)
-         , Element.Font.semiBold
-         , Element.Background.color lightGray
-         , Element.Font.center
-         , EH.noSelectText
-         , View.Attrs.notAllowed
-         ]
-            ++ attributes
-        )
-        (Element.el [ Element.centerY, Element.centerX ] <| Element.text text)
+    Element.fromRgb
+        { oldRgba
+            | alpha = a
+        }

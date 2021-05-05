@@ -1,4 +1,4 @@
-module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatPosix, formatReplies, getCore, getPostOrReply, getTxReceipt, initDemoPhaceSrc, obscureAddress, parseHttpError, postIdToKey, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
+module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatPosix, formatReplies, getCore, getPostOrReply, getTxReceipt, initDemoPhaceSrc, obscureAddress, parseHttpError, postIdToKey, responsiveVal, screenWidthToDisplayProfile, scrollId, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
 
 import Array
 import Dict exposing (Dict)
@@ -10,7 +10,6 @@ import Eth.Utils
 import FormatNumber
 import FormatNumber.Locales exposing (usLocale)
 import GTag
-import Helpers.Element
 import Helpers.Time
 import Http
 import Json.Decode as Decode exposing (Decoder, Value)
@@ -30,7 +29,7 @@ emptyModel =
     , wallet = Types.NoneDetected
     , newUserModal = False
     , now = Time.millisToPosix 0
-    , dProfile = Helpers.Element.Desktop
+    , dProfile = Desktop
     , sentries =
         { xDai = Nothing
         , ethereum = Nothing
@@ -393,3 +392,26 @@ obscureAddress =
         >> Murmur3.hashString 0
         >> String.fromInt
         >> (++) "ID:"
+
+
+screenWidthToDisplayProfile : Int -> DisplayProfile
+screenWidthToDisplayProfile width =
+    if width >= 1150 then
+        Desktop
+
+    else
+        Mobile
+
+
+responsiveVal : DisplayProfile -> a -> a -> a
+responsiveVal d a b =
+    if d == Types.Mobile then
+        b
+
+    else
+        a
+
+
+scrollId : String
+scrollId =
+    "scroller"

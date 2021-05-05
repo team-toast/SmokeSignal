@@ -6,10 +6,9 @@ import Element.Background as Background
 import Element.Font as Font
 import Eth.Types exposing (Address)
 import Eth.Utils
-import Helpers.Element exposing (black, white)
 import Misc
 import Set
-import Theme exposing (orange)
+import Theme exposing (black, orange, white)
 import Types exposing (..)
 import View.Attrs exposing (whiteGlowAttributeSmall)
 import View.Common
