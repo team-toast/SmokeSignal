@@ -1,6 +1,7 @@
 module View.Post exposing (view, viewBurnOrTip, viewChainCard)
 
 import Chain
+import Dict exposing (Dict)
 import Element exposing (Color, Element, alignBottom, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -8,7 +9,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Maybe.Extra exposing (unwrap)
 import Misc
-import Set
+import Set exposing (Set)
 import Theme exposing (almostWhite, black, white)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
@@ -23,7 +24,7 @@ view :
     DisplayProfile
     -> Maybe Posix
     -> Posix
-    -> Set.Set Types.PostKey
+    -> Dict PostKey (Set PostKey)
     -> Maybe Accounting
     -> Maybe BurnOrTipUX
     -> Maybe TooltipId
@@ -33,6 +34,9 @@ view :
     -> Element Msg
 view dProfile timestamp now replies accounting state tooltipState topic wallet post =
     let
+        replyCount =
+            countReplies replies post.key
+
         isMobile =
             dProfile == Mobile
 
@@ -47,7 +51,7 @@ view dProfile timestamp now replies accounting state tooltipState topic wallet p
     , viewCardMobile timestamp now post
         |> when isMobile
     , viewBody dProfile post
-    , viewBottom replies post wallet state
+    , viewBottom replyCount post wallet state
     ]
         |> column
             [ width fill
@@ -60,10 +64,24 @@ view dProfile timestamp now replies accounting state tooltipState topic wallet p
             ]
 
 
-viewBottom : Set.Set Types.PostKey -> Core -> Maybe UserInfo -> Maybe BurnOrTipUX -> Element Msg
-viewBottom replies post wallet state =
+countReplies : Dict PostKey (Set PostKey) -> PostKey -> Int
+countReplies replies pk =
+    replies
+        |> Dict.get pk
+        |> unwrap 0
+            (\set ->
+                set
+                    |> Set.toList
+                    |> List.map (countReplies replies)
+                    |> List.sum
+                    |> (+) (Set.size set)
+            )
+
+
+viewBottom : Int -> Core -> Maybe UserInfo -> Maybe BurnOrTipUX -> Element Msg
+viewBottom replyCount post wallet state =
     [ [ View.Img.speechBubble 17 almostWhite
-      , Set.size replies
+      , replyCount
             |> Misc.formatReplies
             |> text
       ]

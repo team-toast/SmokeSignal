@@ -8,7 +8,6 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Misc exposing (sortTypeToString)
-import Set
 import Theme exposing (black, orange, white)
 import Types exposing (..)
 import View.Attrs exposing (hover, slightRound, whiteGlowAttributeSmall)
@@ -187,10 +186,7 @@ viewPost model wallet post =
             |> Dict.get post.core.id.block
         )
         model.now
-        (model.replyIds
-            |> Dict.get post.core.key
-            |> Maybe.withDefault Set.empty
-        )
+        model.replyIds
         (model.accounting
             |> Dict.get post.core.key
         )

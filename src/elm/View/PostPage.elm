@@ -206,10 +206,7 @@ viewReplies model core =
                         |> Dict.get reply.core.id.block
                     )
                     model.now
-                    (model.replyIds
-                        |> Dict.get reply.core.key
-                        |> Maybe.withDefault Set.empty
-                    )
+                    model.replyIds
                     (model.accounting
                         |> Dict.get reply.core.key
                     )
