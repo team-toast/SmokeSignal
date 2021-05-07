@@ -25,15 +25,18 @@ view :
     -> Maybe Posix
     -> Posix
     -> Dict PostKey (Set PostKey)
-    -> Maybe Accounting
+    -> Dict PostKey Accounting
     -> Maybe BurnOrTipUX
     -> Maybe TooltipId
     -> Maybe String
     -> Maybe UserInfo
     -> Core
     -> Element Msg
-view dProfile timestamp now replies accounting state tooltipState topic wallet post =
+view dProfile timestamp now replies accountingDict state tooltipState topic wallet post =
     let
+        accounting =
+            countAccounting accountingDict replies post.key
+
         replyCount =
             countReplies replies post.key
 
@@ -62,6 +65,41 @@ view dProfile timestamp now replies accounting state tooltipState topic wallet p
             , padding pad
             , typeFont
             ]
+
+
+emptyAccounting : Accounting
+emptyAccounting =
+    { firstAuthor = Misc.emptyAddress
+    , totalBurned = TokenValue.zero
+    , totalTipped = TokenValue.zero
+    }
+
+
+addAccounting : Accounting -> Accounting -> Accounting
+addAccounting a b =
+    { a
+        | totalBurned = TokenValue.add a.totalBurned b.totalBurned
+        , totalTipped = TokenValue.add a.totalTipped b.totalTipped
+    }
+
+
+countAccounting : Dict PostKey Accounting -> Dict PostKey (Set PostKey) -> PostKey -> Accounting
+countAccounting accounting replies pk =
+    let
+        curr =
+            accounting
+                |> Dict.get pk
+                |> Maybe.withDefault emptyAccounting
+    in
+    replies
+        |> Dict.get pk
+        |> unwrap curr
+            (\set ->
+                set
+                    |> Set.toList
+                    |> List.map (countAccounting accounting replies)
+                    |> List.foldl addAccounting curr
+            )
 
 
 countReplies : Dict PostKey (Set PostKey) -> PostKey -> Int
@@ -102,7 +140,7 @@ viewBottom replyCount post wallet state =
         |> row [ width fill, spacing 10 ]
 
 
-viewHeader : Bool -> Maybe TooltipId -> Maybe Accounting -> Maybe String -> Maybe Time.Posix -> Time.Posix -> Core -> Element Msg
+viewHeader : Bool -> Maybe TooltipId -> Accounting -> Maybe String -> Maybe Time.Posix -> Time.Posix -> Core -> Element Msg
 viewHeader isMobile tooltipState accounting topic timestamp now post =
     [ phaceElement
         60
@@ -117,8 +155,7 @@ viewHeader isMobile tooltipState accounting topic timestamp now post =
                     >> paragraph [ Font.size 30 ]
                     >> linkToPost post.id
                 )
-      , [ accounting
-            |> whenJust (viewAccounting tooltipState post)
+      , [ viewAccounting tooltipState post accounting
         , [ topic
                 |> whenJust
                     (\t ->

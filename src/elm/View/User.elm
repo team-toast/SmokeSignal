@@ -53,9 +53,7 @@ view model address =
                         )
                         model.now
                         model.replyIds
-                        (model.accounting
-                            |> Dict.get post.core.key
-                        )
+                        model.accounting
                         model.maybeBurnOrTipUX
                         model.maybeActiveTooltip
                         --(Just topic)

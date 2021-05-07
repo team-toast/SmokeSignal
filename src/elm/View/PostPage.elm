@@ -207,9 +207,7 @@ viewReplies model core =
                     )
                     model.now
                     model.replyIds
-                    (model.accounting
-                        |> Dict.get reply.core.key
-                    )
+                    model.accounting
                     model.maybeBurnOrTipUX
                     model.maybeActiveTooltip
                     Nothing
