@@ -124,9 +124,8 @@ viewBottom replyCount post wallet state =
             |> text
       ]
         |> row [ spacing 10, Font.size 23 ]
-        |> linkToPost post.id
         |> el
-            [ Element.alignRight
+            [ Element.alignLeft
             , Element.alignBottom
             ]
         |> el
@@ -135,6 +134,8 @@ viewBottom replyCount post wallet state =
             , width fill
             , height fill
             ]
+        |> linkToPost post.id
+        |> when (state == Nothing)
     , viewBurnOrTip post wallet state
     ]
         |> row [ width fill, spacing 10 ]
@@ -227,7 +228,10 @@ viewBurnOrTip post chain =
                 |> unwrap False (.chain >> (==) post.chain)
     in
     unwrap
-        (viewButtons post
+        ([ supportBurnButton post.id
+         , supportTipButton post.id
+         ]
+            |> row [ spacing 10, Element.alignRight ]
             |> when showActions
         )
         (\data ->
@@ -410,7 +414,7 @@ viewBurnOrTipInput post state =
                         )
     in
     [ [ text title ]
-        |> paragraph []
+        |> paragraph [ Font.alignRight ]
     , state.input
         |> unwrap
             (viewCurrencyButtons state)
@@ -539,14 +543,6 @@ isWhole n =
 
     else
         isWhole x
-
-
-viewButtons : Core -> Element Msg
-viewButtons post =
-    [ supportBurnButton post.id
-    , supportTipButton post.id
-    ]
-        |> row [ spacing 10, Element.alignRight ]
 
 
 supportTipButton : PostId -> Element Msg
