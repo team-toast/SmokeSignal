@@ -15,7 +15,7 @@ import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
 import View.Attrs exposing (hover, roundBorder, slightRound, typeFont, whiteGlowAttributeSmall)
-import View.Common exposing (chain, phaceElement, when, whenJust)
+import View.Common exposing (chain, phaceElement, when, whenAttr, whenJust)
 import View.Img
 import View.Markdown
 
@@ -393,28 +393,42 @@ viewBurnOrTipInput post state =
                 Burn ->
                     "Burn " ++ name ++ " to increase the visibility of this post."
 
-        isEmpty =
-            String.isEmpty state.input
-                || (state.input
-                        |> String.toFloat
-                        |> unwrap False ((==) 0.0)
-                   )
+        customAmountMsg =
+            if state.inProgress then
+                Nothing
+
+            else
+                state.input
+                    |> Maybe.andThen String.toFloat
+                    |> Maybe.andThen
+                        (\amount ->
+                            if amount >= 0.01 then
+                                Just <| SubmitTipOrBurn amount
+
+                            else
+                                Nothing
+                        )
     in
     [ [ text title ]
         |> paragraph []
-    , [ View.Img.dollar 30 white
-      , Input.text [ Font.color black ]
-            { onChange = BurnOrTipUXInputChange
-            , label = Input.labelHidden ""
-            , placeholder =
-                "00.00"
-                    |> text
-                    |> Input.placeholder []
-                    |> Just
-            , text = state.input
-            }
-      ]
-        |> row [ spacing 5, width fill ]
+    , state.input
+        |> unwrap
+            (viewCurrencyButtons state)
+            (\txt ->
+                [ View.Img.dollar 30 white
+                , Input.text [ Font.color black ]
+                    { onChange = BurnOrTipUXInputChange
+                    , label = Input.labelHidden ""
+                    , placeholder =
+                        "00.00"
+                            |> text
+                            |> Input.placeholder []
+                            |> Just
+                    , text = txt
+                    }
+                ]
+                    |> row [ spacing 5, width fill ]
+            )
     , state.error
         |> whenJust
             (text
@@ -427,28 +441,21 @@ viewBurnOrTipInput post state =
                     , Font.color black
                     ]
             )
-    , [ View.Common.cancel CancelPostInput
+    , [ View.Common.spinner 20 white
+            |> when state.inProgress
+      , View.Common.cancel CancelPostInput
       , Input.button
             [ Background.color Theme.orange
             , padding 10
             , roundBorder
             , hover
+                |> whenAttr (not state.inProgress)
             , Font.color black
             ]
-            { onPress =
-                if state.inProgress || isEmpty then
-                    Nothing
-
-                else
-                    Just SubmitTipOrBurn
-            , label =
-                if state.inProgress then
-                    View.Common.spinner 20 black
-                        |> el [ centerX ]
-
-                else
-                    text "Submit"
+            { onPress = customAmountMsg
+            , label = text "Submit"
             }
+            |> when (state.input /= Nothing)
       ]
         |> row [ Element.alignRight, spacing 20 ]
     ]
@@ -460,6 +467,78 @@ viewBurnOrTipInput post state =
             , Font.color white
             , View.Attrs.sansSerifFont
             ]
+
+
+viewCurrencyButtons : BurnOrTipUX -> Element Msg
+viewCurrencyButtons state =
+    let
+        color =
+            case state.burnOrTip of
+                Tip ->
+                    Theme.darkGreen
+
+                Burn ->
+                    Theme.darkRed
+    in
+    [ 0.1
+    , 0.5
+    , 1
+    , 5
+    ]
+        |> List.map
+            (\n ->
+                let
+                    txt =
+                        if isWhole n then
+                            round n
+                                |> String.fromInt
+
+                        else
+                            Misc.formatFloat 2 n
+                in
+                Input.button
+                    [ padding 10
+                    , Background.color color
+                    , roundBorder
+                    , hover
+                        |> whenAttr (not state.inProgress)
+                    ]
+                    { onPress =
+                        if state.inProgress then
+                            Nothing
+
+                        else
+                            Just <| SubmitTipOrBurn n
+                    , label = text <| "$" ++ txt
+                    }
+            )
+        |> (\xs ->
+                xs
+                    ++ [ Input.button
+                            [ padding 10
+                            , Background.color color
+                            , roundBorder
+                            , hover
+                            ]
+                            { onPress = Just <| BurnOrTipUXInputChange ""
+                            , label = text "Custom"
+                            }
+                       ]
+           )
+        |> row [ spacing 10, Element.alignRight ]
+
+
+isWhole : Float -> Bool
+isWhole n =
+    let
+        x =
+            n - 1.0
+    in
+    if x < 1 then
+        x == 0.0
+
+    else
+        isWhole x
 
 
 viewButtons : Core -> Element Msg

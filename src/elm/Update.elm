@@ -951,48 +951,33 @@ update msg model =
                     )
                 )
 
-        SubmitTipOrBurn ->
+        SubmitTipOrBurn amount ->
             ensureUserInfo
                 (\userInfo ->
                     model.maybeBurnOrTipUX
                         |> unwrap ( model, Cmd.none )
                             (\burnOrTipUX ->
-                                burnOrTipUX.input
-                                    |> String.toFloat
-                                    |> unwrap
-                                        ( { model
-                                            | maybeBurnOrTipUX =
-                                                Just
-                                                    { burnOrTipUX
-                                                        | error =
-                                                            Just "Invalid tip amount"
-                                                    }
-                                          }
-                                        , Cmd.none
-                                        )
-                                        (\amount ->
-                                            let
-                                                postState =
-                                                    { burnOrTipUX
-                                                        | inProgress = True
-                                                        , error = Nothing
-                                                    }
+                                let
+                                    postState =
+                                        { burnOrTipUX
+                                            | inProgress = True
+                                            , error = Nothing
+                                        }
 
-                                                txState =
-                                                    { postHash = burnOrTipUX.id.messageHash
-                                                    , amount = amount
-                                                    , txType = burnOrTipUX.burnOrTip
-                                                    }
-                                            in
-                                            ( { model
-                                                | maybeBurnOrTipUX = Just postState
-                                              }
-                                            , SSContract.getEthPriceCmd
-                                                (Chain.getConfig userInfo.chain model.config)
-                                                |> Task.attempt
-                                                    (BurnOrTipPriceResponse txState)
-                                            )
-                                        )
+                                    txState =
+                                        { postHash = burnOrTipUX.id.messageHash
+                                        , amount = amount
+                                        , txType = burnOrTipUX.burnOrTip
+                                        }
+                                in
+                                ( { model
+                                    | maybeBurnOrTipUX = Just postState
+                                  }
+                                , SSContract.getEthPriceCmd
+                                    (Chain.getConfig userInfo.chain model.config)
+                                    |> Task.attempt
+                                        (BurnOrTipPriceResponse txState)
+                                )
                             )
                 )
 
@@ -1091,11 +1076,10 @@ update msg model =
             )
 
         StartBurnOrTipUX id burnOrTip ->
-            -- discuss
             ( { model
                 | maybeBurnOrTipUX =
                     { id = id
-                    , input = ""
+                    , input = Nothing
                     , burnOrTip = burnOrTip
                     , inProgress = False
                     , error = Nothing
@@ -1534,7 +1518,13 @@ update msg model =
             ( { model
                 | maybeBurnOrTipUX =
                     model.maybeBurnOrTipUX
-                        |> Maybe.map (\r -> { r | input = str })
+                        |> Maybe.map
+                            (\r ->
+                                { r
+                                    | input = Just str
+                                    , error = Nothing
+                                }
+                            )
               }
             , Cmd.none
             )

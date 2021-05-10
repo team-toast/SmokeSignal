@@ -75,7 +75,6 @@ type Msg
     | Tick Time.Posix
     | ChangeDemoPhaceSrc
     | NewDemoSrc String
-      -- | MutateDemoSrcWith MutateInfo
     | ScrollResponse (Result Browser.Dom.Error ())
     | Resize Int Int
     | EventSentryMsg Chain EventSentry.Msg
@@ -113,7 +112,7 @@ type Msg
     | BurnOrTipResponse (Result TxErr TxHash)
     | PriceResponse (Result Http.Error Float)
     | BurnOrTipPriceResponse TxState (Result Http.Error Float)
-    | SubmitTipOrBurn
+    | SubmitTipOrBurn Float
     | SubmitFaucet
     | SetSortType SortType
     | FaucetResponse (Result Http.Error FaucetResult)
@@ -208,11 +207,11 @@ type alias Config =
 
 
 type alias BurnOrTipUX =
-    { id : PostId -- What if the interface happens to display the same post twice on a page?
-    , input : String
+    { id : PostId
+    , input : Maybe String
     , burnOrTip : BurnOrTip
-    , inProgress : Bool -- Should this even be here? Impossible state possible: this is False but there is a tracked transaction for this action
-    , error : Maybe String -- should be a union type. Right?
+    , inProgress : Bool
+    , error : Maybe String
     }
 
 
