@@ -1072,7 +1072,10 @@ update msg model =
             ( { model
                 | currentPage = n
               }
-            , gtagCmd
+            , [ gtagCmd
+              , resetScroll
+              ]
+                |> Cmd.batch
             )
 
         StartBurnOrTipUX id burnOrTip ->
@@ -1583,10 +1586,6 @@ handleRoute model route =
     let
         defaultTitle =
             Ports.setTitle "SmokeSignal | Uncensorable - Immutable - Unkillable | Real Free Speech - Cemented on the Blockchain"
-
-        resetScroll =
-            Browser.Dom.setViewportOf Misc.scrollId 0 0
-                |> Task.attempt ScrollResponse
     in
     (case route of
         RouteTopics ->
@@ -1833,3 +1832,9 @@ calculatePagination sortType blockTimes accounting now =
         >> List.map (.core >> .key)
         >> List.Extra.greedyGroupsOf 10
         >> Array.fromList
+
+
+resetScroll : Cmd Msg
+resetScroll =
+    Browser.Dom.setViewportOf Misc.scrollId 0 0
+        |> Task.attempt ScrollResponse
