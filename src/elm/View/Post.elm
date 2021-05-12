@@ -1,6 +1,7 @@
 module View.Post exposing (view, viewBurnOrTip, viewChainCard)
 
 import Chain
+import Dict exposing (Dict)
 import Element exposing (Color, Element, alignBottom, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
@@ -8,13 +9,13 @@ import Element.Font as Font
 import Element.Input as Input
 import Maybe.Extra exposing (unwrap)
 import Misc
-import Set
+import Set exposing (Set)
 import Theme exposing (almostWhite, black, white)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
-import View.Attrs exposing (hover, roundBorder, slightRound, typeFont, whiteGlowAttributeSmall)
-import View.Common exposing (chain, phaceElement, when, whenJust)
+import View.Attrs exposing (cappedWidth, hover, roundBorder, slightRound, typeFont, whiteGlowAttributeSmall)
+import View.Common exposing (chain, phaceElement, when, whenAttr, whenJust)
 import View.Img
 import View.Markdown
 
@@ -23,16 +24,22 @@ view :
     DisplayProfile
     -> Maybe Posix
     -> Posix
-    -> Set.Set Types.PostKey
-    -> Maybe Accounting
+    -> Dict PostKey (Set PostKey)
+    -> Dict PostKey Accounting
     -> Maybe BurnOrTipUX
     -> Maybe TooltipId
     -> Maybe String
     -> Maybe UserInfo
     -> Core
     -> Element Msg
-view dProfile timestamp now replies accounting state tooltipState topic wallet post =
+view dProfile timestamp now replies accountingDict state tooltipState topic wallet post =
     let
+        accounting =
+            countAccounting accountingDict replies post.key
+
+        replyCount =
+            countReplies replies post.key
+
         isMobile =
             dProfile == Mobile
 
@@ -47,7 +54,7 @@ view dProfile timestamp now replies accounting state tooltipState topic wallet p
     , viewCardMobile timestamp now post
         |> when isMobile
     , viewBody dProfile post
-    , viewBottom replies post wallet state
+    , viewBottom replyCount post wallet state
     ]
         |> column
             [ width fill
@@ -60,17 +67,65 @@ view dProfile timestamp now replies accounting state tooltipState topic wallet p
             ]
 
 
-viewBottom : Set.Set Types.PostKey -> Core -> Maybe UserInfo -> Maybe BurnOrTipUX -> Element Msg
-viewBottom replies post wallet state =
+emptyAccounting : Accounting
+emptyAccounting =
+    { firstAuthor = Misc.emptyAddress
+    , totalBurned = TokenValue.zero
+    , totalTipped = TokenValue.zero
+    }
+
+
+addAccounting : Accounting -> Accounting -> Accounting
+addAccounting a b =
+    { a
+        | totalBurned = TokenValue.add a.totalBurned b.totalBurned
+        , totalTipped = TokenValue.add a.totalTipped b.totalTipped
+    }
+
+
+countAccounting : Dict PostKey Accounting -> Dict PostKey (Set PostKey) -> PostKey -> Accounting
+countAccounting accounting replies pk =
+    let
+        curr =
+            accounting
+                |> Dict.get pk
+                |> Maybe.withDefault emptyAccounting
+    in
+    replies
+        |> Dict.get pk
+        |> unwrap curr
+            (\set ->
+                set
+                    |> Set.toList
+                    |> List.map (countAccounting accounting replies)
+                    |> List.foldl addAccounting curr
+            )
+
+
+countReplies : Dict PostKey (Set PostKey) -> PostKey -> Int
+countReplies replies pk =
+    replies
+        |> Dict.get pk
+        |> unwrap 0
+            (\set ->
+                set
+                    |> Set.toList
+                    |> List.map (countReplies replies)
+                    |> List.sum
+                    |> (+) (Set.size set)
+            )
+
+
+viewBottom : Int -> Core -> Maybe UserInfo -> Maybe BurnOrTipUX -> Element Msg
+viewBottom replyCount post wallet state =
     [ [ View.Img.speechBubble 17 almostWhite
-      , Set.size replies
+      , replyCount
             |> Misc.formatReplies
             |> text
       ]
         |> row [ spacing 10, Font.size 23 ]
-        |> linkToPost post.id
         |> el
-            [ Element.alignRight
+            [ Element.alignLeft
             , Element.alignBottom
             ]
         |> el
@@ -79,12 +134,14 @@ viewBottom replies post wallet state =
             , width fill
             , height fill
             ]
+        |> linkToPost post.id
+        |> when (state == Nothing)
     , viewBurnOrTip post wallet state
     ]
         |> row [ width fill, spacing 10 ]
 
 
-viewHeader : Bool -> Maybe TooltipId -> Maybe Accounting -> Maybe String -> Maybe Time.Posix -> Time.Posix -> Core -> Element Msg
+viewHeader : Bool -> Maybe TooltipId -> Accounting -> Maybe String -> Maybe Time.Posix -> Time.Posix -> Core -> Element Msg
 viewHeader isMobile tooltipState accounting topic timestamp now post =
     [ phaceElement
         60
@@ -99,8 +156,7 @@ viewHeader isMobile tooltipState accounting topic timestamp now post =
                     >> paragraph [ Font.size 30 ]
                     >> linkToPost post.id
                 )
-      , [ accounting
-            |> whenJust (viewAccounting tooltipState post)
+      , [ viewAccounting tooltipState post accounting
         , [ topic
                 |> whenJust
                     (\t ->
@@ -167,17 +223,25 @@ viewAccounting tooltipState post data =
 viewBurnOrTip : Core -> Maybe UserInfo -> Maybe BurnOrTipUX -> Element Msg
 viewBurnOrTip post chain =
     let
-        showActions =
+        isActiveWalletChain =
             chain
                 |> unwrap False (.chain >> (==) post.chain)
+
+        buttons =
+            [ supportBurnButton post.id
+            , supportTipButton post.id
+            ]
+                |> row [ spacing 10, Element.alignRight ]
+                |> when isActiveWalletChain
     in
     unwrap
-        (viewButtons post
-            |> when showActions
-        )
+        buttons
         (\data ->
-            viewBurnOrTipInput post data
-                |> when (data.id == post.id)
+            if data.id == post.id then
+                viewBurnOrTipInput post data
+
+            else
+                buttons
         )
 
 
@@ -338,28 +402,42 @@ viewBurnOrTipInput post state =
                 Burn ->
                     "Burn " ++ name ++ " to increase the visibility of this post."
 
-        isEmpty =
-            String.isEmpty state.input
-                || (state.input
-                        |> String.toFloat
-                        |> unwrap False ((==) 0.0)
-                   )
+        customAmountMsg =
+            if state.inProgress then
+                Nothing
+
+            else
+                state.input
+                    |> Maybe.andThen String.toFloat
+                    |> Maybe.andThen
+                        (\amount ->
+                            if amount >= 0.01 then
+                                Just <| SubmitTipOrBurn amount
+
+                            else
+                                Nothing
+                        )
     in
     [ [ text title ]
-        |> paragraph []
-    , [ View.Img.dollar 30 white
-      , Input.text [ Font.color black ]
-            { onChange = BurnOrTipUXInputChange
-            , label = Input.labelHidden ""
-            , placeholder =
-                "00.00"
-                    |> text
-                    |> Input.placeholder []
-                    |> Just
-            , text = state.input
-            }
-      ]
-        |> row [ spacing 5, width fill ]
+        |> paragraph [ Font.alignRight ]
+    , state.input
+        |> unwrap
+            (viewCurrencyButtons state)
+            (\txt ->
+                [ View.Img.dollar 30 white
+                , Input.text [ Font.color black, cappedWidth 400 ]
+                    { onChange = BurnOrTipUXInputChange
+                    , label = Input.labelHidden ""
+                    , placeholder =
+                        "00.00"
+                            |> text
+                            |> Input.placeholder []
+                            |> Just
+                    , text = txt
+                    }
+                ]
+                    |> row [ spacing 5, Element.alignRight ]
+            )
     , state.error
         |> whenJust
             (text
@@ -372,28 +450,21 @@ viewBurnOrTipInput post state =
                     , Font.color black
                     ]
             )
-    , [ View.Common.cancel CancelPostInput
+    , [ View.Common.spinner 20 white
+            |> when state.inProgress
+      , View.Common.cancel CancelPostInput
       , Input.button
             [ Background.color Theme.orange
             , padding 10
             , roundBorder
             , hover
+                |> whenAttr (not state.inProgress)
             , Font.color black
             ]
-            { onPress =
-                if state.inProgress || isEmpty then
-                    Nothing
-
-                else
-                    Just SubmitTipOrBurn
-            , label =
-                if state.inProgress then
-                    View.Common.spinner 20 black
-                        |> el [ centerX ]
-
-                else
-                    text "Submit"
+            { onPress = customAmountMsg
+            , label = text "Submit"
             }
+            |> when (state.input /= Nothing)
       ]
         |> row [ Element.alignRight, spacing 20 ]
     ]
@@ -407,12 +478,73 @@ viewBurnOrTipInput post state =
             ]
 
 
-viewButtons : Core -> Element Msg
-viewButtons post =
-    [ supportBurnButton post.id
-    , supportTipButton post.id
+viewCurrencyButtons : BurnOrTipUX -> Element Msg
+viewCurrencyButtons state =
+    let
+        color =
+            case state.burnOrTip of
+                Tip ->
+                    Theme.darkGreen
+
+                Burn ->
+                    Theme.darkRed
+    in
+    [ 0.1
+    , 0.5
+    , 1
+    , 5
     ]
+        |> List.map
+            (\n ->
+                let
+                    txt =
+                        if n < 1 then
+                            (n * 100)
+                                |> round
+                                |> String.fromInt
+                                |> (\str -> str ++ "¢")
+
+                        else
+                            round n
+                                |> String.fromInt
+                                |> (++) "$"
+                in
+                viewCurrencyButton state.inProgress
+                    color
+                    (SubmitTipOrBurn n)
+                    (text txt)
+            )
+        |> (\xs ->
+                xs
+                    ++ [ viewCurrencyButton state.inProgress
+                            color
+                            (BurnOrTipUXInputChange "")
+                            (View.Img.pencil 20 white)
+                       ]
+           )
         |> row [ spacing 10, Element.alignRight ]
+
+
+viewCurrencyButton : Bool -> Color -> msg -> Element msg -> Element msg
+viewCurrencyButton inProgress color msg label =
+    Input.button
+        [ width <| px 45
+        , height <| px 45
+        , Background.color color
+        , roundBorder
+        , hover
+            |> whenAttr (not inProgress)
+        ]
+        { onPress =
+            if inProgress then
+                Nothing
+
+            else
+                Just msg
+        , label =
+            label
+                |> el [ centerX, centerY ]
+        }
 
 
 supportTipButton : PostId -> Element Msg

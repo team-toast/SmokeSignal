@@ -7,7 +7,6 @@ import Element.Font as Font
 import Eth.Types exposing (Address)
 import Eth.Utils
 import Misc
-import Set
 import Theme exposing (black, orange, white)
 import Types exposing (..)
 import View.Attrs exposing (whiteGlowAttributeSmall)
@@ -53,13 +52,8 @@ view model address =
                             |> Dict.get post.core.id.block
                         )
                         model.now
-                        (model.replyIds
-                            |> Dict.get post.core.key
-                            |> Maybe.withDefault Set.empty
-                        )
-                        (model.accounting
-                            |> Dict.get post.core.key
-                        )
+                        model.replyIds
+                        model.accounting
                         model.maybeBurnOrTipUX
                         model.maybeActiveTooltip
                         --(Just topic)
