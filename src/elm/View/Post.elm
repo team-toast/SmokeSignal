@@ -14,7 +14,7 @@ import Theme exposing (almostWhite, black, white)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
-import View.Attrs exposing (hover, roundBorder, slightRound, typeFont, whiteGlowAttributeSmall)
+import View.Attrs exposing (cappedWidth, hover, roundBorder, slightRound, typeFont, whiteGlowAttributeSmall)
 import View.Common exposing (chain, phaceElement, when, whenAttr, whenJust)
 import View.Img
 import View.Markdown
@@ -223,20 +223,25 @@ viewAccounting tooltipState post data =
 viewBurnOrTip : Core -> Maybe UserInfo -> Maybe BurnOrTipUX -> Element Msg
 viewBurnOrTip post chain =
     let
-        showActions =
+        isActiveWalletChain =
             chain
                 |> unwrap False (.chain >> (==) post.chain)
+
+        buttons =
+            [ supportBurnButton post.id
+            , supportTipButton post.id
+            ]
+                |> row [ spacing 10, Element.alignRight ]
+                |> when isActiveWalletChain
     in
     unwrap
-        ([ supportBurnButton post.id
-         , supportTipButton post.id
-         ]
-            |> row [ spacing 10, Element.alignRight ]
-            |> when showActions
-        )
+        buttons
         (\data ->
-            viewBurnOrTipInput post data
-                |> when (data.id == post.id)
+            if data.id == post.id then
+                viewBurnOrTipInput post data
+
+            else
+                buttons
         )
 
 
@@ -420,7 +425,7 @@ viewBurnOrTipInput post state =
             (viewCurrencyButtons state)
             (\txt ->
                 [ View.Img.dollar 30 white
-                , Input.text [ Font.color black ]
+                , Input.text [ Font.color black, cappedWidth 400 ]
                     { onChange = BurnOrTipUXInputChange
                     , label = Input.labelHidden ""
                     , placeholder =
@@ -431,7 +436,7 @@ viewBurnOrTipInput post state =
                     , text = txt
                     }
                 ]
-                    |> row [ spacing 5, width fill ]
+                    |> row [ spacing 5, Element.alignRight ]
             )
     , state.error
         |> whenJust
@@ -493,56 +498,53 @@ viewCurrencyButtons state =
             (\n ->
                 let
                     txt =
-                        if isWhole n then
+                        if n < 1 then
+                            (n * 100)
+                                |> round
+                                |> String.fromInt
+                                |> (\str -> str ++ "¢")
+
+                        else
                             round n
                                 |> String.fromInt
-
-                        else
-                            Misc.formatFloat 2 n
+                                |> (++) "$"
                 in
-                Input.button
-                    [ padding 10
-                    , Background.color color
-                    , roundBorder
-                    , hover
-                        |> whenAttr (not state.inProgress)
-                    ]
-                    { onPress =
-                        if state.inProgress then
-                            Nothing
-
-                        else
-                            Just <| SubmitTipOrBurn n
-                    , label = text <| "$" ++ txt
-                    }
+                viewCurrencyButton state.inProgress
+                    color
+                    (SubmitTipOrBurn n)
+                    (text txt)
             )
         |> (\xs ->
                 xs
-                    ++ [ Input.button
-                            [ padding 10
-                            , Background.color color
-                            , roundBorder
-                            , hover
-                            ]
-                            { onPress = Just <| BurnOrTipUXInputChange ""
-                            , label = text "Custom"
-                            }
+                    ++ [ viewCurrencyButton state.inProgress
+                            color
+                            (BurnOrTipUXInputChange "")
+                            (View.Img.pencil 20 white)
                        ]
            )
         |> row [ spacing 10, Element.alignRight ]
 
 
-isWhole : Float -> Bool
-isWhole n =
-    let
-        x =
-            n - 1.0
-    in
-    if x < 1 then
-        x == 0.0
+viewCurrencyButton : Bool -> Color -> msg -> Element msg -> Element msg
+viewCurrencyButton inProgress color msg label =
+    Input.button
+        [ width <| px 45
+        , height <| px 45
+        , Background.color color
+        , roundBorder
+        , hover
+            |> whenAttr (not inProgress)
+        ]
+        { onPress =
+            if inProgress then
+                Nothing
 
-    else
-        isWhole x
+            else
+                Just msg
+        , label =
+            label
+                |> el [ centerX, centerY ]
+        }
 
 
 supportTipButton : PostId -> Element Msg

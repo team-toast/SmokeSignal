@@ -1,4 +1,4 @@
-module View.Img exposing (bookmark, close, dollar, eth, globe, help, hide, icon, link, logo, replyArrow, speechBubble, spinner, tick, xDai)
+module View.Img exposing (bookmark, close, dollar, eth, globe, help, hide, icon, link, logo, pencil, replyArrow, speechBubble, spinner, tick, xDai)
 
 import Element exposing (Color, Element)
 import Svg exposing (Svg, g, path, polygon, svg)
@@ -17,6 +17,18 @@ icon size =
         , Svg.path [ Svg.Attributes.class "cls-2", d "M88.2,35.35a52.76,52.76,0,0,0-37.49,89.91,48.56,48.56,0,0,1,5.13-13.92A39.78,39.78,0,0,1,71.23,52.09c.62-.29,1.25-.57,1.89-.83a39.82,39.82,0,0,1,48.5,58.52,65.47,65.47,0,0,1,4.89,14.61,52.75,52.75,0,0,0-38.31-89Z" ] []
         , Svg.path [ Svg.Attributes.class "cls-3", d "M51.78,148.78a70.76,70.76,0,1,1,73.86-.64c-3.43,10.06-10.68,17-17.64,21.32a83.71,83.71,0,1,0-39.23.09C62.2,165.27,55.2,158.39,51.78,148.78Z" ] []
         ]
+        |> wrap
+
+
+pencil : Int -> Color -> Element msg
+pencil size color =
+    svg
+        [ height size
+        , width size
+        , viewBox "0 0 24 24"
+        , fill <| rgb color
+        ]
+        [ Svg.path [ d "M0 0h24v24H0z", fill "none" ] [], Svg.path [ d "M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" ] [] ]
         |> wrap
 
 
