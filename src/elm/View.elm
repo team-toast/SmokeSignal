@@ -17,7 +17,7 @@ import Tuple3
 import Types exposing (..)
 import UserNotice as UN exposing (UserNotice)
 import View.About
-import View.Attrs exposing (cappedWidth, hover, whiteGlowAttribute, whiteGlowAttributeSmall)
+import View.Attrs exposing (cappedWidth, hover, roundBorder, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common exposing (whenAttr)
 import View.Home
 import View.Img
@@ -137,16 +137,37 @@ header model =
             else
                 paddingXY 100 20
     in
-    [ Input.button [ hover ]
-        { onPress = Just <| GotoView ViewHome
-        , label =
-            Element.image
-                [ height <| px 50
+    [ [ Input.button [ hover ]
+            { onPress = Just <| GotoView ViewHome
+            , label =
+                Element.image
+                    [ if isMobile then
+                        height <| px 30
+
+                      else
+                        height <| px 50
+                    ]
+                    { src = "./img/smokesignal-logo-horizontal.svg"
+                    , description = "smokesignal logo"
+                    }
+            }
+      , Element.newTabLink
+            [ hover
+            , roundBorder
+            , Border.color Theme.orange
+            , Border.width 2
+            ]
+            { url = "https://github.com/team-toast/SmokeSignal"
+            , label =
+                [ Element.image [ height <| px 32 ]
+                    { src = "./img/github.png", description = "" }
+                , text "Fork me!"
+                    |> el [ Font.color white ]
                 ]
-                { src = "./img/smokesignal-logo-horizontal.svg"
-                , description = "smokesignal logo"
-                }
-        }
+                    |> row [ spacing 10, padding 5 ]
+            }
+      ]
+        |> row [ spacing 20 ]
     , [ maybeTxTracker
             model.dProfile
             model.showExpandedTrackedTxs
