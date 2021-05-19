@@ -235,6 +235,7 @@ type View
     | ViewTxns
     | ViewAbout
     | ViewUser Address
+    | ViewPhace
 
 
 type alias UserInfo =
@@ -361,6 +362,7 @@ type Route
     | RouteWallet
     | RouteAbout
     | RouteUser Address
+    | RoutePhace
 
 
 type Chain

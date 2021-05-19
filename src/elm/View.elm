@@ -23,6 +23,7 @@ import View.Home
 import View.Img
 import View.Mobile
 import View.Modal
+import View.Phace
 import View.PostPage
 import View.Sidebar
 import View.Topic
@@ -231,6 +232,10 @@ viewBody model =
 
         ViewUser addr ->
             View.User.view model addr
+                |> viewFrame model
+
+        ViewPhace ->
+            View.Phace.view model
                 |> viewFrame model
 
 

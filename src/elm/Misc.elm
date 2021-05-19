@@ -185,6 +185,9 @@ tryRouteToView route =
                 |> Maybe.map ViewTopic
                 |> Result.fromMaybe "Malformed topic"
 
+        RoutePhace ->
+            Ok ViewPhace
+
         RouteInvalid ->
             Err "Path not found"
 

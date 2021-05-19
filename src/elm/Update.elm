@@ -1623,6 +1623,13 @@ handleRoute model route =
             , [ defaultTitle ]
             )
 
+        RoutePhace ->
+            ( { model
+                | view = ViewPhace
+              }
+            , [ defaultTitle ]
+            )
+
         RouteUser addr ->
             ( { model
                 | view = ViewUser addr

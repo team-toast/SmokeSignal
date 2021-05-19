@@ -32,6 +32,8 @@ routeParser =
             |> Parser.map RouteWallet
         , Parser.s "about"
             |> Parser.map RouteAbout
+        , Parser.s "phace"
+            |> Parser.map RoutePhace
         ]
 
 
@@ -77,6 +79,9 @@ viewUrlToPathString view =
 
         ViewUser addr ->
             hashBangPath [ "user", Eth.Utils.addressToString addr ] []
+
+        ViewPhace ->
+            hashBangPath [ "phace" ] []
 
 
 hashBangPath : List String -> List Builder.QueryParameter -> String
