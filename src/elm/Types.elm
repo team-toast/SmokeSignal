@@ -157,7 +157,8 @@ type alias RootPost =
 
 type alias ChainConfig =
     { chain : Chain
-    , contract : Address
+    , ssContract : Address
+    , ssScriptsContract : Address
     , startScanBlock : Int
     , providerUrl : String
     }

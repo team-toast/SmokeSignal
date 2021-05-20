@@ -2,6 +2,7 @@ module Contracts.SmokeSignal exposing (burnEncodedPost, burnForPost, decodePost,
 
 import BigInt
 import Contracts.Generated.SmokeSignal as G
+import Contracts.Generated.SmokeSignalScripts as G
 import Eth
 import Eth.Decode
 import Eth.Types exposing (Address, BlockId, Call, Hex, LogFilter)
@@ -70,7 +71,7 @@ getAccountingCmd config msgHash =
     Eth.call
         config.providerUrl
         (G.storedMessageData
-            config.contract
+            config.ssContract
             msgHash
         )
         |> Task.map
@@ -82,11 +83,25 @@ getAccountingCmd config msgHash =
             )
 
 
+getBulkAccountingCmd : ChainConfig -> List Hex -> Task Http.Error (List Accounting)
+getBulkAccountingCmd config msgHashes =
+    Eth.call
+        config.providerUrl
+        (G.getBulkAccounting
+            config.ssScriptsContract
+            config.ssContract
+            msgHashes
+        )
+        |> Task.map
+            (\bulkAccountingArrays ->
+                Debug.todo "Turn the 5 lists in the generated SmokeSignalScripts.GetBulkAccounting into a single list of Accounting"
+            )
+
 getEthPriceCmd : ChainConfig -> Task Http.Error Float
 getEthPriceCmd config =
     Eth.call
         config.providerUrl
-        (G.ethPrice config.contract)
+        (G.ethPrice config.ssContract)
         |> Task.map
             (TokenValue.tokenValue
                 >> TokenValue.toFloatWithWarning

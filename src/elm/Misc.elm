@@ -82,13 +82,15 @@ emptyConfig : Config
 emptyConfig =
     { xDai =
         { chain = Types.Eth
-        , contract = emptyAddress
+        , ssContract = emptyAddress
+        , ssScriptsContract = emptyAddress
         , startScanBlock = 0
         , providerUrl = ""
         }
     , ethereum =
         { chain = Types.Eth
-        , contract = emptyAddress
+        , ssContract = emptyAddress
+        , ssScriptsContract = emptyAddress
         , startScanBlock = 0
         , providerUrl = ""
         }
