@@ -65,10 +65,11 @@ getName chain =
 
 chainDecoder : Flags -> Decoder (List Types.ChainConfig)
 chainDecoder flags =
-    Decode.map3
-        (\chain contract scan ->
+    Decode.map4
+        (\chain ssContract ssScriptsContract scan ->
             { chain = chain
-            , contract = contract
+            , ssContract = ssContract
+            , ssScriptsContract = ssScriptsContract
             , startScanBlock = scan
             , providerUrl =
                 case chain of
@@ -86,7 +87,8 @@ chainDecoder flags =
                     Decode.succeed
                 )
         )
-        (Decode.field "contract" Eth.Decode.address)
+        (Decode.field "ssContract" Eth.Decode.address)
+        (Decode.field "ssScriptsContract" Eth.Decode.address)
         (Decode.field "scan" Decode.int)
         |> Decode.list
 

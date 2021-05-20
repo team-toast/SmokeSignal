@@ -785,7 +785,7 @@ update msg model =
 
                                                 txParams =
                                                     postDraft
-                                                        |> SSContract.burnEncodedPost userInfo config.contract
+                                                        |> SSContract.burnEncodedPost userInfo config.ssContract
                                                         |> Eth.toSend
                                                         |> Eth.encodeSend
                                             in
@@ -921,7 +921,7 @@ update msg model =
                                                 ( SSContract.burnForPost, "burn" )
 
                                     txParams =
-                                        fn userInfo config.contract state.postHash amount TokenValue.zero
+                                        fn userInfo config.ssContract state.postHash amount TokenValue.zero
                                             |> Eth.toSend
                                             |> Eth.encodeSend
 

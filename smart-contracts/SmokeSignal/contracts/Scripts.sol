@@ -4,18 +4,23 @@ pragma experimental ABIEncoderV2;
 import "./SmokeSignal.sol";
 
 contract Scripts {
-    function getBulkStoredMessageData(SmokeSignal smokeSignal, bytes32[] calldata messageIds)
+    function getBulkAccounting(SmokeSignal smokeSignal, bytes32[] calldata messageIds)
         external
         view
-        returns (StoredMessageData[] memory messageData)
+        returns
+            (address[] memory firstAuthorArray,
+             uint[] memory nativeBurnedArray,
+             uint[] memory dollarsBurnedArray,
+             uint[] memory nativeTippedArray,
+             uint[] memory dollarsTippedArray
+            )
         {
-            messageData = new StoredMessageData[](messageIds.length);
             for (uint i=0; i<messageIds.length; i++) {
-                (messageData[i].firstAuthor,
-                 messageData[i].nativeBurned,
-                 messageData[i].dollarsBurned,
-                 messageData[i].nativeTipped,
-                 messageData[i].dollarsTipped
+                (firstAuthorArray[i],
+                 nativeBurnedArray[i],
+                 dollarsBurnedArray[i],
+                 nativeTippedArray[i],
+                 dollarsTippedArray[i]
                 ) = smokeSignal.storedMessageData(messageIds[i]);
             }
         }

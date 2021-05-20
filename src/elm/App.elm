@@ -201,7 +201,7 @@ startSentry config =
     let
         scan =
             Contracts.SmokeSignal.messageBurnEventFilter
-                config.contract
+                config.ssContract
                 (Eth.Types.BlockNum config.startScanBlock)
                 Eth.Types.LatestBlock
                 Nothing
