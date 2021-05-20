@@ -173,6 +173,9 @@ tryRouteToView route =
         RouteAbout ->
             Ok ViewAbout
 
+        RouteCompose ->
+            Ok ViewCompose
+
         RouteUser addr ->
             Ok <| ViewUser addr
 

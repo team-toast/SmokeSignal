@@ -2,22 +2,20 @@ module View.PostPage exposing (view)
 
 import Chain
 import Dict exposing (Dict)
-import Element exposing (Color, Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
+import Element exposing (Color, Element, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
 import Eth.Utils
-import Html.Attributes
 import Maybe.Extra exposing (unwrap)
 import Misc
 import Set
 import Theme exposing (black, orange, white)
 import TokenValue
 import Types exposing (..)
-import View.Attrs exposing (hover, roundBorder, sansSerifFont, slightRound, whiteGlowAttributeSmall)
-import View.Common exposing (phaceElement, when, whenAttr, whenJust)
-import View.Compose
+import View.Attrs exposing (hover, roundBorder, sansSerifFont, whiteGlowAttributeSmall)
+import View.Common exposing (phaceElement, when, whenJust)
 import View.Img
 import View.Markdown
 import View.Post
@@ -234,13 +232,8 @@ viewReplies model core =
 viewBottomBar : Model -> Core -> Element Msg
 viewBottomBar model core =
     let
-        maybeUserInfo =
-            model.wallet
-                |> Wallet.userInfo
-    in
-    maybeUserInfo
-        |> unwrap
-            (Input.button
+        connectButton msg =
+            Input.button
                 [ Background.color Theme.orange
                 , padding 10
                 , roundBorder
@@ -248,64 +241,75 @@ viewBottomBar model core =
                 , Font.color black
                 , Element.alignRight
                 ]
-                { onPress =
-                    if model.wallet == NoneDetected then
-                        Just ComposeOpen
-
-                    else
-                        Just ConnectToWeb3
+                { onPress = Just msg
                 , label =
-                    if model.wallet == Connecting then
-                        View.Common.spinner 20 black
+                    [ View.Img.replyArrow 15 black
+                    , text "Connect wallet to reply"
+                    ]
+                        |> row [ spacing 10, Font.size 20 ]
+                }
+    in
+    case model.wallet of
+        Active userInfo ->
+            if model.compose.reply then
+                View.Post.viewReplyInput model.chainSwitchInProgress model.dProfile model.compose userInfo
 
-                    else
-                        [ View.Img.replyArrow 15 black
-                        , text "Connect wallet to reply"
+            else
+                [ Input.button
+                    [ Background.color Theme.green
+                    , padding 10
+                    , roundBorder
+                    , hover
+                    , Font.color black
+                    ]
+                    { onPress = Just <| SharePost core
+                    , label =
+                        [ View.Img.link 15 black
+                        , text "Share"
                         ]
                             |> row [ spacing 10, Font.size 20 ]
-                }
-            )
-            (\userInfo ->
-                if model.compose.reply then
-                    viewReplyInput model.chainSwitchInProgress model.dProfile model.compose userInfo
-
-                else
-                    [ Input.button
-                        [ Background.color Theme.green
+                    }
+                    |> when model.shareEnabled
+                , [ Input.button
+                        [ Background.color Theme.orange
                         , padding 10
                         , roundBorder
                         , hover
                         , Font.color black
+                        , Element.alignBottom
                         ]
-                        { onPress = Just <| SharePost core
+                        { onPress = Just <| ReplyOpen core.id
                         , label =
-                            [ View.Img.link 15 black
-                            , text "Share"
+                            [ View.Img.replyArrow 15 black
+                            , text "Reply"
                             ]
                                 |> row [ spacing 10, Font.size 20 ]
                         }
-                        |> when model.shareEnabled
-                    , [ Input.button
-                            [ Background.color Theme.orange
-                            , padding 10
-                            , roundBorder
-                            , hover
-                            , Font.color black
-                            , Element.alignBottom
-                            ]
-                            { onPress = Just <| ReplyOpen core.id
-                            , label =
-                                [ View.Img.replyArrow 15 black
-                                , text "Reply"
-                                ]
-                                    |> row [ spacing 10, Font.size 20 ]
-                            }
-                      , View.Post.viewBurnOrTip core maybeUserInfo model.maybeBurnOrTipUX
-                      ]
-                        |> row [ spacing 10, Element.alignRight ]
-                    ]
-                        |> row [ width fill, Element.spaceEvenly ]
-            )
+                  , View.Post.viewBurnOrTip core (Just userInfo) model.maybeBurnOrTipUX
+                  ]
+                    |> row [ spacing 10, Element.alignRight ]
+                ]
+                    |> row [ width fill, Element.spaceEvenly ]
+
+        Connecting ->
+            Input.button
+                [ Background.color Theme.orange
+                , padding 10
+                , roundBorder
+                , hover
+                , Font.color black
+                , Element.alignRight
+                ]
+                { onPress = Nothing
+                , label = View.Common.spinner 20 black
+                }
+
+        NoneDetected ->
+            connectButton (GotoView ViewWallet)
+                |> when (model.dProfile == Mobile)
+
+        NetworkReady ->
+            connectButton ConnectToWeb3
 
 
 viewBreadcrumbs : LogPost -> Dict PostKey RootPost -> Dict PostKey ReplyPost -> Element Msg
@@ -387,239 +391,6 @@ viewCurrentBreadcrumb curr =
             , whiteGlowAttributeSmall
             , Background.color orange
             , View.Attrs.title label
-            ]
-
-
-viewReplyInput : Bool -> DisplayProfile -> ComposeModel -> UserInfo -> Element Msg
-viewReplyInput chainSwitchInProgress dProfile compose userInfo =
-    let
-        isMobile =
-            dProfile == Mobile
-
-        submitEnabled =
-            not (String.isEmpty compose.body)
-                && validTopic
-                && not compose.inProgress
-
-        validTopic =
-            True
-
-        topButton txt val =
-            let
-                active =
-                    val == compose.preview
-            in
-            Input.button
-                [ padding 10
-                , Background.color orange
-                    |> whenAttr active
-                , Element.alignRight
-                , Border.roundEach
-                    { bottomLeft = 0
-                    , topLeft = 5
-                    , bottomRight = 0
-                    , topRight = 5
-                    }
-                , hover
-                    |> whenAttr (not active)
-                , sansSerifFont
-                , Font.color black
-                    |> whenAttr active
-                , Font.bold
-                ]
-                { onPress = Just <| PreviewSet val
-                , label = text txt
-                }
-    in
-    [ [ [ topButton "Write" False
-        , topButton "Preview" True
-        ]
-            |> row [ spacing 10, Element.paddingXY 10 0 ]
-      , [ [ View.Img.replyArrow 25 orange
-          , "Reply with"
-                |> text
-                |> el [ Font.color orange ]
-          ]
-            |> row [ spacing 10 ]
-        , View.Common.chain userInfo.chain
-            |> el
-                [ Background.color white
-                , View.Attrs.roundBorder
-                , padding 5
-                , Font.color black
-                ]
-        ]
-            |> row [ spacing 10, Element.moveUp 5 ]
-            |> when (not isMobile)
-      ]
-        |> row [ width fill, Element.spaceEvenly ]
-    , [ View.Compose.viewInstructions chainSwitchInProgress dProfile userInfo
-      , viewMarkdown dProfile compose
-            |> el
-                [ width fill
-                , compose.error
-                    |> whenJust
-                        ((\txt ->
-                            [ text txt
-                            , Input.button [ hover ]
-                                { onPress = Just CloseComposeError
-                                , label = View.Img.close 25 black
-                                }
-                            ]
-                         )
-                            >> row
-                                [ Background.color white
-                                , slightRound
-                                , padding 10
-                                , spacing 10
-                                , Font.color black
-                                ]
-                            >> el
-                                [ padding 10
-                                , Element.alignBottom
-                                , Element.alignRight
-                                ]
-                        )
-                    |> Element.inFront
-                ]
-      , [ viewBurnAmountUX compose.dollar
-        , [ View.Common.cancel ComposeClose
-                |> el [ Font.color black ]
-          , Input.button
-                [ Background.color Theme.darkGreen
-                , Font.bold
-                , Font.size 25
-                , Element.alignRight
-                , View.Attrs.roundBorder
-                , if submitEnabled then
-                    hover
-
-                  else
-                    View.Attrs.notAllowed
-                , sansSerifFont
-                , width <| px 100
-                , height <| px 50
-                ]
-                { onPress =
-                    if submitEnabled then
-                        Just SubmitDraft
-
-                    else
-                        Nothing
-                , label =
-                    if compose.inProgress then
-                        View.Common.spinner 20 white
-                            |> el [ centerX, centerY ]
-
-                    else
-                        text "Submit"
-                            |> el [ centerX, centerY ]
-                }
-          ]
-            |> row [ Element.alignRight, spacing 20 ]
-        ]
-            |> row [ width fill ]
-      ]
-        |> column
-            [ width fill
-            , spacing 10
-            , padding 10
-            , roundBorder
-            , Background.color orange
-            ]
-    ]
-        |> column
-            [ height fill
-            , width fill
-            ]
-
-
-viewMarkdown : DisplayProfile -> ComposeModel -> Element Msg
-viewMarkdown dProfile compose =
-    if compose.preview then
-        (if String.isEmpty compose.body then
-            text "Nothing to preview"
-
-         else
-            compose.body
-                |> View.Markdown.renderString dProfile
-        )
-            |> el
-                [ width fill
-                , height <| px 200
-                , Element.scrollbarY
-                , Font.color white
-                , padding 10
-                , Background.color black
-                ]
-            |> List.singleton
-            |> column [ width fill, height fill ]
-
-    else
-        Input.multiline
-            [ width fill
-            , height <| px 200
-            , Element.scrollbarY
-            , Font.color white
-            , Border.width 0
-            , Border.rounded 0
-            , Background.color black
-            ]
-            { onChange = Types.ComposeBodyChange
-            , label = Input.labelHidden ""
-            , placeholder =
-                "What do you want to say?"
-                    |> text
-                    |> Input.placeholder []
-                    |> Just
-            , text = compose.body
-            , spellcheck = True
-            }
-            |> el
-                [ Html.Attributes.class "multiline"
-                    |> Element.htmlAttribute
-
-                --, Element.scrollbarY
-                , height fill
-                , width fill
-                ]
-
-
-viewBurnAmountUX : String -> Element Msg
-viewBurnAmountUX amountInput =
-    [ [ text "A higher burn means more visibility!" ]
-        |> paragraph
-            [ Font.size 14
-            , spacing 3
-            , Font.color white
-            , Font.italic
-            , Font.center
-            , width fill
-            ]
-    , [ View.Img.dollar 26 white
-      , Input.text
-            [ View.Attrs.whiteGlowAttributeSmall
-            , Background.color <| Element.rgb 0 0 0
-            , Font.color white
-            , width <| px 60
-            , height <| px 34
-            , padding 3
-            , Font.size 26
-            ]
-            { onChange = ComposeDollarChange
-            , label = Input.labelHidden ""
-            , placeholder = Just <| Input.placeholder [] <| text "0.00"
-            , text = amountInput
-            }
-      ]
-        |> row [ spacing 5 ]
-    ]
-        |> row
-            [ spacing 5
-            , padding 5
-            , Background.color <| Element.rgb 0.4 0.2 0.2
-            , roundBorder
-            , View.Attrs.cappedWidth 300
             ]
 
 

@@ -86,7 +86,7 @@ topicHeader topic =
         , Font.size 20
         , hover
         ]
-        { onPress = Just Types.ComposeOpen
+        { onPress = Just <| GotoView ViewCompose
         , label =
             [ text "+" |> el [ Font.size 30 ], text "New Post" ]
                 |> row [ spacing 5 ]

@@ -7,7 +7,6 @@ import Theme exposing (black, white)
 import Types exposing (Model, Msg)
 import View.Attrs exposing (whiteGlowAttributeSmall)
 import View.Common
-import View.Compose
 import View.Sidebar
 import Wallet
 
@@ -22,7 +21,7 @@ view model =
         , model.wallet
             |> Wallet.userInfo
             |> View.Common.whenJust
-                (View.Compose.viewInstructions
+                (View.Common.viewInstructions
                     model.chainSwitchInProgress
                     model.dProfile
                 )
