@@ -1580,6 +1580,9 @@ update msg model =
         ScrollResponse _ ->
             ( model, Cmd.none )
 
+        CyclePhace ->
+            (model, Cmd.none)
+
 
 handleRoute : Model -> Route -> ( Model, Cmd Msg )
 handleRoute model route =

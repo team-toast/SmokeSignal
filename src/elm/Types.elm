@@ -120,6 +120,7 @@ type Msg
     | BalanceResponse (Maybe TokenValue)
     | CloseComposeError
     | SharePost Core
+    | CyclePhace
 
 
 type RequestOutcome
