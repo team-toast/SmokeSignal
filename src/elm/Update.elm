@@ -27,7 +27,7 @@ import Time
 import TokenValue exposing (TokenValue)
 import Tracking
 import Types exposing (..)
-import UserNotice as UN exposing (UserNotice)
+import UserNotice as UN
 import Wallet exposing (userInfo)
 
 
@@ -148,6 +148,9 @@ update msg model =
                                                         | inProgress = False
                                                         , modal = False
                                                         , reply = False
+                                                        , title = ""
+                                                        , body = ""
+                                                        , burnAmount = ""
                                                     }
                                                )
                                     , showExpandedTrackedTxs = True
@@ -336,129 +339,15 @@ update msg model =
 
                 Ok data ->
                     data
-                        |> unwrap
-                            ( model, Cmd.none )
+                        |> Maybe.andThen
                             (\txReceipt ->
                                 model.trackedTxs
-                                    |> Dict.get (Eth.Utils.txHashToString txReceipt.hash)
-                                    |> unwrap ( model, logString "TrackedTxStatusResult" "Transaction not found." )
-                                        (\tx ->
-                                            let
-                                                ( newStatus, _, maybeUserNotice ) =
-                                                    handleTxReceipt tx.chain txReceipt
-
-                                                isMined =
-                                                    case newStatus of
-                                                        Mined _ ->
-                                                            True
-
-                                                        _ ->
-                                                            False
-
-                                                fetchAccounting =
-                                                    (case tx.txInfo of
-                                                        -- Rely on PostLogReceived as source of truth for post data.
-                                                        PostTx _ ->
-                                                            --maybePublishedPost
-                                                            --|> Maybe.map
-                                                            --(\r ->
-                                                            --case r of
-                                                            --LogReply p ->
-                                                            --p.core
-                                                            --LogRoot p ->
-                                                            --p.core
-                                                            --)
-                                                            Nothing
-
-                                                        TipTx id ->
-                                                            Misc.getPostOrReply id model.rootPosts model.replyPosts
-                                                                |> Maybe.map Misc.getCore
-
-                                                        BurnTx id ->
-                                                            Misc.getPostOrReply id model.rootPosts model.replyPosts
-                                                                |> Maybe.map Misc.getCore
-                                                    )
-                                                        |> unwrap Cmd.none
-                                                            (fetchPostInfo model.blockTimes model.config)
-
-                                                fbEvent =
-                                                    case tx.txInfo of
-                                                        PostTx _ ->
-                                                            Tracking.postTxMined
-
-                                                        TipTx _ ->
-                                                            Cmd.none
-
-                                                        BurnTx _ ->
-                                                            Cmd.none
-
-                                                ( newGtagHistory, maybeGtagCmd ) =
-                                                    if isMined then
-                                                        let
-                                                            ( actionName, label ) =
-                                                                -- question:
-                                                                -- is there a way to get postId here for a post?
-                                                                case tx.txInfo of
-                                                                    PostTx txHash ->
-                                                                        ( "post tx mined"
-                                                                        , Eth.Utils.txHashToString txHash
-                                                                        )
-
-                                                                    TipTx postId ->
-                                                                        ( "tip tx mined"
-                                                                        , Post.postIdToString postId
-                                                                        )
-
-                                                                    BurnTx postId ->
-                                                                        ( "burn tx mined"
-                                                                        , Post.postIdToString postId
-                                                                        )
-                                                        in
-                                                        GTag.gTagOutOnlyOnLabelOrValueChange model.gtagHistory <|
-                                                            GTagData
-                                                                actionName
-                                                                Nothing
-                                                                (Just label)
-                                                                Nothing
-
-                                                    else
-                                                        ( model.gtagHistory
-                                                        , Cmd.none
-                                                        )
-                                            in
-                                            ( { model
-                                                | trackedTxs =
-                                                    model.trackedTxs
-                                                        |> Dict.update
-                                                            (Eth.Utils.txHashToString txReceipt.hash)
-                                                            (Maybe.map
-                                                                (\info ->
-                                                                    if info.status == Mining then
-                                                                        { info | status = newStatus }
-
-                                                                    else
-                                                                        info
-                                                                )
-                                                            )
-                                                , userNotices =
-                                                    model.userNotices
-                                                        ++ (maybeUserNotice
-                                                                |> unwrap [] List.singleton
-                                                           )
-                                                , gtagHistory = newGtagHistory
-                                              }
-                                            , Cmd.batch
-                                                [ if isMined then
-                                                    fetchAccounting
-
-                                                  else
-                                                    Cmd.none
-                                                , maybeGtagCmd
-                                                , fbEvent
-                                                ]
-                                            )
-                                        )
+                                    |> Dict.get
+                                        (Eth.Utils.txHashToString txReceipt.hash)
+                                    |> Maybe.map
+                                        (handleTxStatusResult model txReceipt)
                             )
+                        |> Maybe.withDefault ( model, Cmd.none )
 
         WalletResponse res ->
             res
@@ -804,7 +693,7 @@ update msg model =
                                 ( { model | compose = compose }, Cmd.none )
                             )
                             (\price ->
-                                model.compose.dollar
+                                model.compose.burnAmount
                                     |> getPostBurnAmount price
                                     |> Result.andThen
                                         (\burnAmount ->
@@ -1445,7 +1334,7 @@ update msg model =
             ( { model
                 | compose =
                     model.compose
-                        |> (\r -> { r | dollar = str })
+                        |> (\r -> { r | burnAmount = str })
               }
             , Cmd.none
             )
@@ -1729,7 +1618,118 @@ addPost log model =
             }
 
 
-handleTxReceipt : Chain -> TxReceipt -> ( TxStatus, Maybe LogPost, Maybe UserNotice )
+handleTxStatusResult : Model -> TxReceipt -> TrackedTx -> ( Model, Cmd Msg )
+handleTxStatusResult model txReceipt tx =
+    let
+        ( newStatus, maybePost ) =
+            handleTxReceipt tx.chain txReceipt
+
+        isMined =
+            case newStatus of
+                Mined _ ->
+                    True
+
+                _ ->
+                    False
+
+        minedTxCmd =
+            if isMined then
+                case tx.txInfo of
+                    PostTx _ ->
+                        maybePost
+                            |> unwrap Cmd.none
+                                (Misc.getCore
+                                    >> .id
+                                    >> ViewPost
+                                    >> Routing.viewUrlToPathString
+                                    >> Ports.pushUrl
+                                )
+
+                    TipTx id ->
+                        Misc.getPostOrReply id model.rootPosts model.replyPosts
+                            |> Maybe.map Misc.getCore
+                            |> unwrap Cmd.none
+                                (fetchPostInfo model.blockTimes model.config)
+
+                    BurnTx id ->
+                        Misc.getPostOrReply id model.rootPosts model.replyPosts
+                            |> Maybe.map Misc.getCore
+                            |> unwrap Cmd.none
+                                (fetchPostInfo model.blockTimes model.config)
+
+            else
+                Cmd.none
+
+        fbEvent =
+            case tx.txInfo of
+                PostTx _ ->
+                    Tracking.postTxMined
+
+                TipTx _ ->
+                    Cmd.none
+
+                BurnTx _ ->
+                    Cmd.none
+
+        ( newGtagHistory, maybeGtagCmd ) =
+            if isMined then
+                let
+                    ( actionName, label ) =
+                        -- question:
+                        -- is there a way to get postId here for a post?
+                        case tx.txInfo of
+                            PostTx txHash ->
+                                ( "post tx mined"
+                                , Eth.Utils.txHashToString txHash
+                                )
+
+                            TipTx postId ->
+                                ( "tip tx mined"
+                                , Post.postIdToString postId
+                                )
+
+                            BurnTx postId ->
+                                ( "burn tx mined"
+                                , Post.postIdToString postId
+                                )
+                in
+                GTag.gTagOutOnlyOnLabelOrValueChange model.gtagHistory <|
+                    GTagData
+                        actionName
+                        Nothing
+                        (Just label)
+                        Nothing
+
+            else
+                ( model.gtagHistory
+                , Cmd.none
+                )
+    in
+    ( { model
+        | trackedTxs =
+            model.trackedTxs
+                |> Dict.update
+                    (Eth.Utils.txHashToString txReceipt.hash)
+                    (Maybe.map
+                        (\info ->
+                            if info.status == Mining then
+                                { info | status = newStatus }
+
+                            else
+                                info
+                        )
+                    )
+        , gtagHistory = newGtagHistory
+      }
+    , Cmd.batch
+        [ minedTxCmd
+        , maybeGtagCmd
+        , fbEvent
+        ]
+    )
+
+
+handleTxReceipt : Chain -> TxReceipt -> ( TxStatus, Maybe LogPost )
 handleTxReceipt chain txReceipt =
     case txReceipt.status of
         Just True ->
@@ -1755,20 +1755,16 @@ handleTxReceipt chain txReceipt =
                     )
                 |> Mined
             , post
-            , Nothing
             )
 
         Just False ->
             ( Failed Types.MinedButExecutionFailed
-            , Nothing
             , Nothing
             )
 
         Nothing ->
             ( Mining
             , Nothing
-            , Just <|
-                UN.unexpectedError "Weird. I Got a transaction receipt with a success value of 'Nothing'. Depending on why this happened I might be a little confused about any mining transactions."
             )
 
 

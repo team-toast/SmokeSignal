@@ -188,7 +188,7 @@ type alias Core =
 
 type alias ComposeModel =
     { title : String
-    , dollar : String
+    , burnAmount : String
     , body : String
     , modal : Bool
     , reply : Bool

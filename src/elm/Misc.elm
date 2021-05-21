@@ -66,7 +66,7 @@ emptyModel =
 emptyComposeModel : ComposeModel
 emptyComposeModel =
     { title = ""
-    , dollar = ""
+    , burnAmount = ""
     , body = ""
     , modal = False
     , reply = False

@@ -197,7 +197,7 @@ composePanel isCompose elem chainSwitchInProgress dProfile compose userInfo =
                         , Element.alignRight
                         ]
                 )
-      , [ viewBurnAmountUX compose.dollar
+      , [ viewBurnAmountUX compose.burnAmount
         , [ View.Common.cancel
                 (if isCompose then
                     GotoView ViewHome
