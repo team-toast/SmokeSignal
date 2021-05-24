@@ -1,78 +1,168 @@
-module View.Compose exposing (view, viewInstructions)
+module View.Compose exposing (composePanel, view)
 
-import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
+import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spaceEvenly, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events
 import Element.Font as Font
 import Element.Input as Input
 import Html.Attributes
-import Misc
+import Maybe.Extra
 import Theme exposing (black, orange, white)
-import TokenValue
 import Types exposing (..)
 import View.Attrs exposing (hover, roundBorder, sansSerifFont, slightRound, whiteGlowAttributeSmall)
 import View.Common exposing (when, whenAttr, whenJust)
 import View.Img
 import View.Markdown
+import Wallet
 
 
-view : Model -> UserInfo -> Element Msg
-view model userInfo =
+view : Model -> Element Msg
+view model =
+    [ "Compose New Post"
+        |> text
+        |> el [ Font.size 35, Font.color black ]
+        |> el
+            [ width fill
+            , Background.color orange
+            , Font.color white
+            , padding 15
+            , View.Attrs.whiteGlowAttribute
+            ]
+        |> when (model.dProfile == Desktop)
+    , model.wallet
+        |> Wallet.userInfo
+        |> Maybe.Extra.unwrap
+            (Input.button
+                [ Background.color Theme.orange
+                , padding 10
+                , View.Attrs.roundBorder
+                , hover
+                , Font.color black
+                , centerX
+                , centerY
+                ]
+                { onPress = Just ConnectToWeb3
+                , label =
+                    if model.wallet == Connecting then
+                        View.Common.spinner 20 black
+                            |> el [ centerX ]
+
+                    else
+                        [ text "Connect wallet to compose post" ]
+                            |> paragraph [ Font.center ]
+                }
+                |> el
+                    [ Background.color black
+                    , whiteGlowAttributeSmall
+                    , height <| px 150
+                    , width <| px 240
+                    , padding 40
+                    , centerX
+                    ]
+                |> el [ width fill, height fill, padding 20 ]
+            )
+            (composePanel
+                True
+                ([ "Topic"
+                    |> text
+                    |> el [ centerY ]
+                    |> el
+                        [ Background.color orange
+                        , Border.roundEach
+                            { bottomLeft = 5
+                            , topLeft = 5
+                            , bottomRight = 0
+                            , topRight = 0
+                            }
+                        , height fill
+                        , Element.paddingXY 10 0
+                        , sansSerifFont
+                        ]
+                 , Input.text
+                    [ Background.color white
+                    , width <| px 250
+                    , Border.roundEach
+                        { bottomLeft = 0
+                        , topLeft = 0
+                        , bottomRight = 5
+                        , topRight = 5
+                        }
+                    , padding 5
+                    , height <| px 35
+                    , Element.Events.onLoseFocus SanitizeTopic
+                    ]
+                    { onChange = TopicInputChange
+                    , label = Input.labelHidden ""
+                    , placeholder =
+                        text "Choose topic"
+                            |> Input.placeholder []
+                            |> Just
+                    , text = model.topicInput
+                    }
+                 ]
+                    |> row [ Element.paddingXY 0 3 ]
+                )
+                model.chainSwitchInProgress
+                model.dProfile
+                model.compose
+            )
+    ]
+        |> column [ height fill, width fill, spacing 10 ]
+
+
+composePanel : Bool -> Element Msg -> Bool -> DisplayProfile -> ComposeModel -> UserInfo -> Element Msg
+composePanel isCompose elem chainSwitchInProgress dProfile compose userInfo =
     let
         isMobile =
-            model.dProfile == Mobile
-
-        validTopic =
-            case model.compose.context of
-                Reply _ ->
-                    True
-
-                TopLevel _ ->
-                    model.topicInput
-                        |> Misc.validateTopic
-                        |> (/=) Nothing
+            dProfile == Mobile
 
         submitEnabled =
-            not (String.isEmpty model.compose.body)
-                && validTopic
+            not (String.isEmpty compose.body)
+                && not compose.inProgress
 
-        whitespace =
-            if isMobile then
-                10
+        topButton txt val =
+            let
+                active =
+                    val == compose.preview
+            in
+            Input.button
+                [ padding 10
+                , Background.color orange
+                    |> whenAttr active
+                , Element.alignRight
+                , Border.roundEach
+                    { bottomLeft = 0
+                    , topLeft = 5
+                    , bottomRight = 0
+                    , topRight = 5
+                    }
+                , hover
+                    |> whenAttr (not active)
+                , sansSerifFont
+                , if active then
+                    Font.color black
 
-            else
-                20
+                  else
+                    Font.color white
+                , Font.bold
+                ]
+                { onPress = Just <| PreviewSet val
+                , label = text txt
+                }
     in
-    [ "Compose"
-        |> text
-        |> el [ sansSerifFont, Font.color white, centerX ]
-        |> el
-            [ View.Attrs.sansSerifFont
-            , padding 10
-            , slightRound
-            , Background.color Theme.orange
-            , Font.bold
-            , Font.color white
-            , Font.size 20
-            , width fill
-            ]
-    , [ [ viewInstructions model.chainSwitchInProgress model.dProfile userInfo
+    [ [ [ topButton "Write" False
+        , topButton "Preview" True
+        ]
+            |> row [ spacing 10, Element.paddingXY 10 0 ]
+            |> when (isMobile || not isCompose)
+      , elem
             |> when (not isMobile)
-        , model.compose.message
-            |> View.Common.whenJust
-                (text
-                    >> List.singleton
-                    >> paragraph
-                        [ Background.color white
-                        , Element.alignRight
-                        , View.Attrs.slightRound
-                        , padding 10
-                        , Font.color black
-                        , Font.alignRight
-                        ]
-                )
-        , Input.text
+            |> el [ Element.alignRight ]
+      ]
+        |> row [ width fill, spaceEvenly ]
+    , [ View.Common.viewInstructions chainSwitchInProgress dProfile userInfo
+      , Input.text
             [ width fill
             , View.Attrs.whiteGlowAttributeSmall
             ]
@@ -83,72 +173,43 @@ view model userInfo =
                     |> text
                     |> Input.placeholder []
                     |> Just
-            , text = model.compose.title
+            , text = compose.title
             }
-        , [ viewBurnAmountUX model.compose.dollar
-          , viewComposeContext model.compose.context model.topicInput
-                |> el [ Element.alignRight ]
-          , View.Common.chain userInfo.chain
-                |> el
-                    [ Background.color white
-                    , View.Attrs.roundBorder
-                    , padding 5
-                    , Element.alignRight
-                    ]
-                |> when (not isMobile)
-          ]
-            |> (if isMobile then
-                    column [ width fill, spacing 10 ]
-
-                else
-                    row [ width fill, spacing 10 ]
-               )
-        ]
-            |> column [ width fill, spacing 10, sansSerifFont ]
-      , viewMarkdown model
-      , model.compose.error
+            |> when isCompose
+      , viewMarkdown isCompose dProfile compose
+      , compose.error
             |> whenJust
-                (text
-                    >> List.singleton
-                    >> paragraph
+                ((\txt ->
+                    [ text txt
+                    , Input.button [ hover ]
+                        { onPress = Just CloseComposeError
+                        , label = View.Img.close 25 black
+                        }
+                    ]
+                 )
+                    >> row
                         [ Background.color white
-                        , Element.alignRight
                         , slightRound
                         , padding 10
+                        , spacing 10
                         , Font.color black
-                        , Font.alignRight
+                        , Element.alignBottom
+                        , Element.alignRight
                         ]
                 )
-      , [ [ Input.checkbox
-                [ width <| px 30
-                , height <| px 30
-                , Background.color white
-                , whiteGlowAttributeSmall
-                , hover
-                ]
-                { onChange = Types.PreviewSet
-                , icon =
-                    \checked ->
-                        View.Img.tick 20 black
-                            |> el
-                                [ centerX
-                                , centerY
-                                ]
-                            |> View.Common.when checked
-                , checked = model.compose.preview
-                , label = Input.labelHidden "Preview"
-                }
-          , "Preview"
-                |> text
-                |> el [ Font.color white ]
-          ]
-            |> row [ spacing 5 ]
-            |> when isMobile
-        , [ View.Common.cancel ComposeClose
-                |> el [ Font.color white ]
+      , [ viewBurnAmountUX compose.burnAmount
+        , [ View.Common.cancel
+                (if isCompose then
+                    GotoView ViewHome
+
+                 else
+                    ComposeClose
+                )
+                |> el [ Font.color black ]
           , Input.button
-                [ padding 10
-                , Background.color orange
+                [ Background.color Theme.green
+                , Font.bold
+                , Font.size 25
                 , Element.alignRight
                 , View.Attrs.roundBorder
                 , if submitEnabled then
@@ -157,6 +218,8 @@ view model userInfo =
                   else
                     View.Attrs.notAllowed
                 , sansSerifFont
+                , width <| px 100
+                , height <| px 50
                 ]
                 { onPress =
                     if submitEnabled then
@@ -165,200 +228,32 @@ view model userInfo =
                     else
                         Nothing
                 , label =
-                    if model.compose.inProgress then
-                        View.Common.spinner 20 black
-                            |> el [ centerX ]
+                    if compose.inProgress then
+                        View.Common.spinner 20 white
+                            |> el [ centerX, centerY ]
 
                     else
                         text "Submit"
+                            |> el [ centerX, centerY ]
                 }
           ]
-            |> row [ Element.alignRight, spacing 20 ]
+            |> row [ Element.alignRight, spacing 10 ]
         ]
-            |> row [ width fill ]
+            |> row [ width fill, spacing 10 ]
       ]
         |> column
-            [ height fill
-            , width fill
-            , spacing whitespace
-            , padding whitespace
+            [ width fill
+            , height fill
+            , spacing 10
+            , padding 10
+            , roundBorder
+            , Background.color orange
             ]
     ]
         |> column
-            [ if isMobile then
-                width fill
-
-              else
-                width <| px 1000
-            , height fill
-            , Background.color black
-            , whiteGlowAttributeSmall
-                |> whenAttr (not isMobile)
-            , View.Attrs.style "z-index" "2000"
-            , sansSerifFont
+            [ height fill
+            , width fill
             ]
-
-
-viewInstructions : Bool -> DisplayProfile -> UserInfo -> Element Msg
-viewInstructions chainSwitchInProgress dProfile userInfo =
-    (case userInfo.chain of
-        Eth ->
-            [ [ el [ Font.bold ] (text "Note:")
-              , text " Posting on SmokeSignal using Ethereum can result in very high gas fees. Using xDai is a cheaper alternative."
-              ]
-                |> paragraph [ Font.color black ]
-            , Input.button
-                [ Background.color Theme.green
-                , padding 10
-                , View.Attrs.roundBorder
-                , hover
-                , width <| px 180
-                , Element.alignRight
-                ]
-                { onPress = Just XDaiImport
-                , label =
-                    if chainSwitchInProgress then
-                        View.Common.spinner 20 black
-                            |> el [ centerX ]
-
-                    else
-                        text "Switch to xDai"
-                            |> el [ centerX ]
-                }
-            ]
-                |> (if dProfile == Mobile then
-                        column
-
-                    else
-                        row
-                   )
-                    [ width fill
-                    , spacing 10
-                    ]
-                |> Just
-
-        XDai ->
-            if TokenValue.isZero userInfo.balance then
-                viewFaucet dProfile userInfo.faucetStatus
-                    |> Just
-
-            else
-                Nothing
-    )
-        |> whenJust
-            (el
-                [ padding 10
-                , Background.color white
-                , roundBorder
-                , width fill
-                , Font.color black
-                ]
-            )
-
-
-viewFaucet : DisplayProfile -> FaucetUX -> Element Msg
-viewFaucet dProfile faucetStatus =
-    case faucetStatus of
-        FaucetStatus status ->
-            [ [ [ el [ Font.bold ] (text "Note:")
-                , text " Your xDai wallet is currently empty."
-                ]
-                    |> paragraph []
-              , Input.button
-                    [ Background.color Theme.green
-                    , padding 10
-                    , View.Attrs.roundBorder
-                    , hover
-                    , width <| px 240
-                    ]
-                    { onPress =
-                        if status == Types.RequestInProgress then
-                            Nothing
-
-                        else
-                            Just SubmitFaucet
-                    , label =
-                        if status == Types.RequestInProgress then
-                            View.Common.spinner 20 black
-                                |> el [ centerX ]
-
-                        else
-                            [ text "Request xDai from faucet" ]
-                                |> paragraph [ Font.center ]
-                    }
-              ]
-                |> (if dProfile == Mobile then
-                        column
-
-                    else
-                        row
-                   )
-                    [ width fill
-                    , spacing 10
-                    ]
-            , case status of
-                Types.RequestReady ->
-                    Element.none
-
-                Types.RequestInProgress ->
-                    Element.none
-
-                Types.RequestError message ->
-                    [ text message ]
-                        |> paragraph []
-            ]
-                |> column [ width fill, spacing 10 ]
-
-        FaucetSuccess ->
-            [ text "Your faucet request was successful. Please check your wallet for an updated balance."
-            ]
-                |> paragraph []
-
-
-viewComposeContext : Context -> String -> Element Msg
-viewComposeContext context topicInput =
-    case context of
-        TopLevel _ ->
-            Input.text
-                [ Background.color white
-                , width <| px 250
-                , Border.roundEach
-                    { bottomLeft = 0
-                    , topLeft = 0
-                    , bottomRight = 5
-                    , topRight = 5
-                    }
-                , spacing 0
-                , Element.Events.onLoseFocus SanitizeTopic
-                ]
-                { onChange = TopicInputChange
-                , label =
-                    "Topic"
-                        |> text
-                        |> el [ centerY ]
-                        |> Input.labelLeft
-                            [ Background.color orange
-                            , Border.roundEach
-                                { bottomLeft = 5
-                                , topLeft = 5
-                                , bottomRight = 0
-                                , topRight = 0
-                                }
-                            , height fill
-                            , Element.paddingXY 10 0
-                            , sansSerifFont
-                            ]
-                , placeholder = Nothing
-                , text = topicInput
-                }
-
-        Reply _ ->
-            [ View.Img.replyArrow 25 orange
-            , "Reply"
-                |> text
-                |> el [ Font.color orange ]
-            ]
-                |> row [ spacing 10 ]
 
 
 viewBurnAmountUX : String -> Element Msg
@@ -399,43 +294,45 @@ viewBurnAmountUX amountInput =
             ]
 
 
-viewMarkdown : Model -> Element Msg
-viewMarkdown model =
+viewMarkdown : Bool -> DisplayProfile -> ComposeModel -> Element Msg
+viewMarkdown isCompose dProfile compose =
     let
+        heightLen =
+            if isCompose then
+                fill
+
+            else
+                px 200
+
         isMobile =
-            model.dProfile == Mobile
-    in
-    if isMobile then
-        if model.compose.preview then
-            model.compose.body
-                |> View.Markdown.renderString model.dProfile
+            dProfile == Mobile
+
+        preview =
+            (if String.isEmpty compose.body then
+                text "Nothing to preview"
+
+             else
+                compose.body
+                    |> View.Markdown.renderString dProfile
+            )
                 |> el
                     [ width fill
-                    , height fill
+                    , height heightLen
                     , Element.scrollbarY
-                    , whiteGlowAttributeSmall
                     , Font.color white
                     , padding 10
+                    , Background.color black
                     ]
-                |> List.singleton
-                |> column [ width fill, height fill ]
+                |> View.Common.scrollbarHack
 
-        else
+        input =
             Input.multiline
-                [ if isMobile then
-                    width fill
-
-                  else
-                    width <| px 500
-                , if isMobile then
-                    height fill
-
-                  else
-                    height <| px 500
-                , View.Attrs.whiteGlowAttributeSmall
-                , Background.color black
+                [ width fill
+                , height fill
                 , Font.color white
-                , height <| px 0
+                , Border.width 0
+                , Border.rounded 0
+                , Background.color black
                 ]
                 { onChange = Types.ComposeBodyChange
                 , label = Input.labelHidden ""
@@ -444,52 +341,27 @@ viewMarkdown model =
                         |> text
                         |> Input.placeholder []
                         |> Just
-                , text = model.compose.body
+                , text = compose.body
                 , spellcheck = True
                 }
                 |> el
                     [ Html.Attributes.class "multiline"
                         |> Element.htmlAttribute
                     , Element.scrollbarY
-                    , height fill
+                    , height heightLen
                     , width fill
                     ]
+    in
+    if isMobile || not isCompose then
+        if compose.preview then
+            preview
+
+        else
+            input
 
     else
-        [ Input.multiline
-            [ width <| px 500
-            , height <| px 500
-            , View.Attrs.whiteGlowAttributeSmall
-            , Background.color black
-            , Font.color white
-            ]
-            { onChange = Types.ComposeBodyChange
-            , label = Input.labelHidden ""
-            , placeholder =
-                "What do you want to say?"
-                    |> text
-                    |> Input.placeholder []
-                    |> Just
-            , text = model.compose.body
-            , spellcheck = True
-            }
-        , model.compose.body
-            |> View.Markdown.renderString model.dProfile
-            |> el
-                [ width <| px 500
-
-                --, height fill
-                , Element.scrollbarY
-                , height <| px 500
-
-                --, View.Attrs.scrollFix
-                , whiteGlowAttributeSmall
-                , Font.color white
-                , padding 10
-                ]
+        [ input
+            |> View.Common.scrollbarHack
+        , preview
         ]
-            |> row
-                [ height fill
-                , width fill
-                , spacing 30
-                ]
+            |> row [ width fill, height fill, spacing 20 ]

@@ -66,7 +66,7 @@ emptyModel =
 emptyComposeModel : ComposeModel
 emptyComposeModel =
     { title = ""
-    , dollar = ""
+    , burnAmount = ""
     , body = ""
     , modal = False
     , reply = False
@@ -172,6 +172,9 @@ tryRouteToView route =
 
         RouteAbout ->
             Ok ViewAbout
+
+        RouteCompose ->
+            Ok ViewCompose
 
         RouteUser addr ->
             Ok <| ViewUser addr

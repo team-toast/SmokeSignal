@@ -85,7 +85,7 @@ type Msg
     | TrackedTxStatusResult (Result Http.Error (Maybe TxReceipt))
     | BlockTimeFetched Int (Result Http.Error Time.Posix)
     | DismissNotice Int
-    | ComposeOpen
+    | OpenModal
     | ReplyOpen PostId
     | ComposeClose
     | CookieConsentGranted
@@ -188,7 +188,7 @@ type alias Core =
 
 type alias ComposeModel =
     { title : String
-    , dollar : String
+    , burnAmount : String
     , body : String
     , modal : Bool
     , reply : Bool
@@ -235,6 +235,7 @@ type View
     | ViewTxns
     | ViewAbout
     | ViewUser Address
+    | ViewCompose
 
 
 type alias UserInfo =
@@ -360,6 +361,7 @@ type Route
     | RouteTxns
     | RouteWallet
     | RouteAbout
+    | RouteCompose
     | RouteUser Address
 
 

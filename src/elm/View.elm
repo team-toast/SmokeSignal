@@ -19,6 +19,7 @@ import UserNotice as UN exposing (UserNotice)
 import View.About
 import View.Attrs exposing (cappedWidth, hover, roundBorder, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common exposing (whenAttr)
+import View.Compose
 import View.Home
 import View.Img
 import View.Mobile
@@ -215,6 +216,10 @@ viewBody model =
             View.Home.view model
                 |> viewFrame model
 
+        ViewCompose ->
+            View.Compose.view model
+                |> viewFrame model
+
         ViewTopics ->
             View.Topics.view model
                 |> viewFrame model
@@ -261,11 +266,9 @@ viewFrame model elem =
         elem
 
     else
-        [ banner
-            |> View.Common.when (model.view == ViewHome)
-            |> View.Common.when False
-        , [ elem
+        [ [ elem
           , View.Sidebar.view model
+                |> View.Common.when (model.view /= ViewCompose)
           ]
             |> row
                 [ width fill
@@ -278,19 +281,6 @@ viewFrame model elem =
                 , height fill
                 , spacing 10
                 ]
-
-
-banner : Element Msg
-banner =
-    Element.image
-        [ height <| px 175
-        , Background.color black
-        , whiteGlowAttribute
-        , centerX
-        ]
-        { src = "./img/banner.png"
-        , description = "Never be silenced"
-        }
 
 
 viewTxTracker : Dict.Dict String TrackedTx -> Element Msg

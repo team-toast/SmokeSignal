@@ -32,6 +32,8 @@ routeParser =
             |> Parser.map RouteWallet
         , Parser.s "about"
             |> Parser.map RouteAbout
+        , Parser.s "compose"
+            |> Parser.map RouteCompose
         ]
 
 
@@ -74,6 +76,9 @@ viewUrlToPathString view =
 
         ViewAbout ->
             hashBangPath [ "about" ] []
+
+        ViewCompose ->
+            hashBangPath [ "compose" ] []
 
         ViewUser addr ->
             hashBangPath [ "user", Eth.Utils.addressToString addr ] []
