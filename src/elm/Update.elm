@@ -693,7 +693,7 @@ update msg model =
                     , logHttpError "PostAccountingFetched" err
                     )
 
-        BlockTimeFetched blocknum timeResult ->
+        BlockTimeFetched key timeResult ->
             case timeResult of
                 Err err ->
                     ( model
@@ -704,7 +704,7 @@ update msg model =
                     ( { model
                         | blockTimes =
                             model.blockTimes
-                                |> Dict.insert blocknum time
+                                |> Dict.insert key time
                       }
                     , Cmd.none
                     )
@@ -1853,8 +1853,12 @@ handleTxReceipt chain txReceipt =
             )
 
 
-fetchPostInfo : Dict Int Time.Posix -> Config -> Core -> Cmd Msg
+fetchPostInfo : Dict BlockTimeKey Time.Posix -> Config -> Core -> Cmd Msg
 fetchPostInfo blockTimes config core =
+    let
+        blockTimeKey =
+            ( Chain.getName core.chain, core.id.block )
+    in
     [ -- Temporary
       case core.chain of
         XDai ->
@@ -1869,7 +1873,7 @@ fetchPostInfo blockTimes config core =
                 (Chain.getConfig core.chain config)
                 core.id.messageHash
                 |> Task.attempt (PostAccountingFetched core.id)
-    , if Dict.member core.id.block blockTimes then
+    , if Dict.member blockTimeKey blockTimes then
         Cmd.none
 
       else
@@ -1877,7 +1881,7 @@ fetchPostInfo blockTimes config core =
             (Chain.getProviderUrl core.chain config)
             core.id.block
             |> Task.map .timestamp
-            |> Task.attempt (BlockTimeFetched core.id.block)
+            |> Task.attempt (BlockTimeFetched blockTimeKey)
     ]
         |> Cmd.batch
 
@@ -1903,7 +1907,7 @@ getPostBurnAmount price txt =
             |> Result.fromMaybe "Invalid burn amount"
 
 
-calculatePagination : SortType -> Dict Int Time.Posix -> Dict PostKey Accounting -> Time.Posix -> Dict PostKey RootPost -> Array.Array (List PostKey)
+calculatePagination : SortType -> Dict BlockTimeKey Time.Posix -> Dict PostKey Accounting -> Time.Posix -> Dict PostKey RootPost -> Array.Array (List PostKey)
 calculatePagination sortType blockTimes accounting now =
     Dict.values
         >> List.sortBy

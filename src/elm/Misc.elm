@@ -1,6 +1,7 @@
 module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyAddress, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatFloat, formatPosix, formatReplies, getCore, getPostOrReply, getTxReceipt, initDemoPhaceSrc, obscureAddress, parseHttpError, postIdToKey, responsiveVal, screenWidthToDisplayProfile, scrollId, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
 
 import Array
+import Chain
 import Dict exposing (Dict)
 import Eth.Decode
 import Eth.Encode
@@ -287,12 +288,12 @@ getTxReceipt url txHash =
         }
 
 
-sortPostsFunc : SortType -> Dict Int Time.Posix -> Dict PostKey Accounting -> Time.Posix -> (Core -> Float)
+sortPostsFunc : SortType -> Dict BlockTimeKey Time.Posix -> Dict PostKey Accounting -> Time.Posix -> (Core -> Float)
 sortPostsFunc sortType blockTimes accounting now =
     let
         postTimeDefaultZero post =
             blockTimes
-                |> Dict.get post.id.block
+                |> Dict.get ( Chain.getName post.chain, post.id.block )
                 |> Maybe.withDefault (Time.millisToPosix 0)
 
         ageOf post =

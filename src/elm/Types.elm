@@ -41,7 +41,7 @@ type alias Model =
         }
     , view : View
     , sortType : SortType
-    , blockTimes : Dict Int Time.Posix
+    , blockTimes : Dict BlockTimeKey Time.Posix
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
     , trackedTxs : Dict String TrackedTx -- Keyed by (Eth.Utils.txHashToString hash)
@@ -84,7 +84,7 @@ type Msg
     | ToggleTrackedTxs
     | CheckTrackedTxsStatus
     | TrackedTxStatusResult (Result Http.Error (Maybe TxReceipt))
-    | BlockTimeFetched Int (Result Http.Error Time.Posix)
+    | BlockTimeFetched BlockTimeKey (Result Http.Error Time.Posix)
     | DismissNotice Int
     | OpenModal
     | ReplyOpen PostId
@@ -147,6 +147,11 @@ type alias FaucetResult =
 
 type alias PostKey =
     ( String, String )
+
+
+type alias BlockTimeKey =
+    -- String comes from Chain.getName
+    ( String, Int )
 
 
 type alias RootPost =
