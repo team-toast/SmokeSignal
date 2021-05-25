@@ -531,6 +531,91 @@ update msg model =
                     , fetchPostInfo model.blockTimes model.config core
                     )
 
+        BulkAccountingFetched res ->
+            case res of
+                Ok accountingData ->
+                    let
+                        accounting =
+                            accountingData
+                                |> List.foldl
+                                    (\( postId, accounting_ ) ->
+                                        Dict.insert (Misc.postIdToKey postId) accounting_
+                                    )
+                                    model.accounting
+
+                        topics =
+                            accountingData
+                                |> List.foldl
+                                    (\( postId, accounting_ ) ->
+                                        let
+                                            key =
+                                                Misc.postIdToKey postId
+
+                                            maybeTopic =
+                                                model.rootPosts
+                                                    |> Dict.get key
+                                                    |> Maybe.map .topic
+                                        in
+                                        maybeTopic
+                                            |> unwrap identity
+                                                (\topic ->
+                                                    Dict.update
+                                                        topic
+                                                        (unwrap
+                                                            { total = accounting_.totalBurned
+                                                            , ids = Set.singleton key
+                                                            }
+                                                            (\data ->
+                                                                let
+                                                                    ids =
+                                                                        data.ids
+                                                                            |> Set.insert key
+
+                                                                    total =
+                                                                        if Set.size data.ids == Set.size ids then
+                                                                            data.total
+
+                                                                        else
+                                                                            ids
+                                                                                |> Set.toList
+                                                                                |> List.filterMap
+                                                                                    (\id ->
+                                                                                        Dict.get id accounting
+                                                                                    )
+                                                                                |> List.map .totalBurned
+                                                                                |> List.foldl
+                                                                                    TokenValue.add
+                                                                                    TokenValue.zero
+                                                                in
+                                                                { total = total
+                                                                , ids = ids
+                                                                }
+                                                            )
+                                                            >> Just
+                                                        )
+                                                )
+                                    )
+                                    model.topics
+                    in
+                    ( { model
+                        | accounting = accounting
+                        , topics = topics
+                        , pages =
+                            model.rootPosts
+                                |> calculatePagination
+                                    model.sortType
+                                    model.blockTimes
+                                    accounting
+                                    model.now
+                      }
+                    , Cmd.none
+                    )
+
+                Err err ->
+                    ( model
+                    , logHttpError "BulkAccountingFetched" err
+                    )
+
         PostAccountingFetched postId res ->
             case res of
                 Ok accountingData ->
@@ -1770,10 +1855,11 @@ handleTxReceipt chain txReceipt =
 
 fetchPostInfo : Dict Int Time.Posix -> Config -> Core -> Cmd Msg
 fetchPostInfo blockTimes config core =
-    [ SSContract.getAccountingCmd
+    [ SSContract.getBulkAccountingCmd
         (Chain.getConfig core.chain config)
-        core.id.messageHash
-        |> Task.attempt (PostAccountingFetched core.id)
+        [ core.id.messageHash ]
+        |> Task.map (List.map (Tuple.pair core.id))
+        |> Task.attempt BulkAccountingFetched
     , if Dict.member core.id.block blockTimes then
         Cmd.none
 

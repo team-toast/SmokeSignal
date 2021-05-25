@@ -80,6 +80,7 @@ type Msg
     | EventSentryMsg Chain EventSentry.Msg
     | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error LogPost))
     | PostAccountingFetched PostId (Result Http.Error Accounting)
+    | BulkAccountingFetched (Result Http.Error (List ( PostId, Accounting )))
     | ToggleTrackedTxs
     | CheckTrackedTxsStatus
     | TrackedTxStatusResult (Result Http.Error (Maybe TxReceipt))
