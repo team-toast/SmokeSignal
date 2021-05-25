@@ -1855,11 +1855,20 @@ handleTxReceipt chain txReceipt =
 
 fetchPostInfo : Dict Int Time.Posix -> Config -> Core -> Cmd Msg
 fetchPostInfo blockTimes config core =
-    [ SSContract.getBulkAccountingCmd
-        (Chain.getConfig core.chain config)
-        [ core.id.messageHash ]
-        |> Task.map (List.map (Tuple.pair core.id))
-        |> Task.attempt BulkAccountingFetched
+    [ -- Temporary
+      case core.chain of
+        XDai ->
+            SSContract.getBulkAccountingCmd
+                (Chain.getConfig core.chain config)
+                [ core.id.messageHash ]
+                |> Task.map (List.map (Tuple.pair core.id))
+                |> Task.attempt BulkAccountingFetched
+
+        Eth ->
+            SSContract.getAccountingCmd
+                (Chain.getConfig core.chain config)
+                core.id.messageHash
+                |> Task.attempt (PostAccountingFetched core.id)
     , if Dict.member core.id.block blockTimes then
         Cmd.none
 
