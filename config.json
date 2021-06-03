@@ -10,7 +10,7 @@
     "name": "Ethereum",
     "network": 1,
     "ssContract": "0x8D213dc5Cc6c3D2746E2B90a2D1C9E589ebCb532",
-    "ssScriptsContract": "0x0000000000000000000000000000000000000000",
+    "ssScriptsContract": "0xfD12d100F40532cE2dB8401222321b24c6bC8Cc3",
     "scan": 11927122
   }
 ]
