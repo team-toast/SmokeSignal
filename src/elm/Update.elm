@@ -528,10 +528,94 @@ update msg model =
                             Misc.getCore log
                     in
                     ( addPost log model
-                    , fetchPostInfo model.blockTimes model.config core
+                    , [ Time.now
+                            |> Task.perform
+                                (AddToAccountingQueue core.chain core.id)
+                      , fetchBlockTime model.blockTimes model.config core
+                      ]
+                        |> Cmd.batch
                     )
 
-        BulkAccountingFetched res ->
+        HandleAccountingQueues time ->
+            let
+                twoSecondsSinceUpdate updatedAt =
+                    (Time.posixToMillis updatedAt + 2000) > Time.posixToMillis time
+
+                ethCmd =
+                    model.ethAccountingQueue
+                        |> Maybe.andThen
+                            (\data ->
+                                if twoSecondsSinceUpdate data.updatedAt then
+                                    fetchBulk model.config Eth data.postIds
+                                        |> Just
+
+                                else
+                                    Nothing
+                            )
+
+                xDaiCmd =
+                    model.xDaiAccountingQueue
+                        |> Maybe.andThen
+                            (\data ->
+                                if twoSecondsSinceUpdate data.updatedAt then
+                                    fetchBulk model.config XDai data.postIds
+                                        |> Just
+
+                                else
+                                    Nothing
+                            )
+            in
+            ( { model
+                | ethAccountingQueue =
+                    if ethCmd == Nothing then
+                        model.ethAccountingQueue
+
+                    else
+                        Nothing
+                , xDaiAccountingQueue =
+                    if xDaiCmd == Nothing then
+                        model.xDaiAccountingQueue
+
+                    else
+                        Nothing
+              }
+            , [ ethCmd
+                    |> Maybe.withDefault Cmd.none
+              , xDaiCmd
+                    |> Maybe.withDefault Cmd.none
+              ]
+                |> Cmd.batch
+            )
+
+        AddToAccountingQueue chain postId time ->
+            ( case chain of
+                Eth ->
+                    { model
+                        | ethAccountingQueue =
+                            { updatedAt = time
+                            , postIds =
+                                model.ethAccountingQueue
+                                    |> unwrap [] .postIds
+                                    |> (::) postId
+                            }
+                                |> Just
+                    }
+
+                XDai ->
+                    { model
+                        | xDaiAccountingQueue =
+                            { updatedAt = time
+                            , postIds =
+                                model.xDaiAccountingQueue
+                                    |> unwrap [] .postIds
+                                    |> (::) postId
+                            }
+                                |> Just
+                    }
+            , Cmd.none
+            )
+
+        AccountingFetched res ->
             case res of
                 Ok accountingData ->
                     let
@@ -613,84 +697,7 @@ update msg model =
 
                 Err err ->
                     ( model
-                    , logHttpError "BulkAccountingFetched" err
-                    )
-
-        PostAccountingFetched postId res ->
-            case res of
-                Ok accountingData ->
-                    let
-                        key =
-                            Misc.postIdToKey postId
-
-                        maybeTopic =
-                            model.rootPosts
-                                |> Dict.get key
-                                |> Maybe.map .topic
-
-                        accounting =
-                            model.accounting
-                                |> Dict.insert key accountingData
-
-                        updateTopics =
-                            maybeTopic
-                                |> unwrap identity
-                                    (\topic ->
-                                        Dict.update
-                                            topic
-                                            (unwrap
-                                                { total = accountingData.totalBurned
-                                                , ids = Set.singleton key
-                                                }
-                                                (\data ->
-                                                    let
-                                                        ids =
-                                                            data.ids
-                                                                |> Set.insert key
-
-                                                        total =
-                                                            if Set.size data.ids == Set.size ids then
-                                                                data.total
-
-                                                            else
-                                                                ids
-                                                                    |> Set.toList
-                                                                    |> List.filterMap
-                                                                        (\id ->
-                                                                            Dict.get id accounting
-                                                                        )
-                                                                    |> List.map .totalBurned
-                                                                    |> List.foldl
-                                                                        TokenValue.add
-                                                                        TokenValue.zero
-                                                    in
-                                                    { total = total
-                                                    , ids = ids
-                                                    }
-                                                )
-                                                >> Just
-                                            )
-                                    )
-                    in
-                    ( { model
-                        | accounting = accounting
-                        , topics =
-                            model.topics
-                                |> updateTopics
-                        , pages =
-                            model.rootPosts
-                                |> calculatePagination
-                                    model.sortType
-                                    model.blockTimes
-                                    accounting
-                                    model.now
-                      }
-                    , Cmd.none
-                    )
-
-                Err err ->
-                    ( model
-                    , logHttpError "PostAccountingFetched" err
+                    , logHttpError "AccountingFetched" err
                     )
 
         BlockTimeFetched key timeResult ->
@@ -1853,26 +1860,59 @@ handleTxReceipt chain txReceipt =
             )
 
 
+fetchBulk : Config -> Chain -> List PostId -> Cmd Msg
+fetchBulk config chain posts =
+    let
+        hashes =
+            posts |> List.map .messageHash
+    in
+    case chain of
+        XDai ->
+            SSContract.getBulkAccountingCmd
+                (Chain.getConfig chain config)
+                hashes
+                |> Task.map (List.map2 Tuple.pair posts)
+                |> Task.attempt AccountingFetched
+
+        Eth ->
+            SSContract.getBulkAccountingCmd
+                (Chain.getConfig chain config)
+                hashes
+                |> Task.map (List.map2 Tuple.pair posts)
+                |> Task.attempt AccountingFetched
+
+
+fetchBlockTime : Dict BlockTimeKey Time.Posix -> Config -> Core -> Cmd Msg
+fetchBlockTime blockTimes config core =
+    let
+        blockTimeKey =
+            ( Chain.getName core.chain, core.id.block )
+    in
+    if Dict.member blockTimeKey blockTimes then
+        Cmd.none
+
+    else
+        Eth.getBlock
+            (Chain.getProviderUrl core.chain config)
+            core.id.block
+            |> Task.map .timestamp
+            |> Task.attempt (BlockTimeFetched blockTimeKey)
+
+
 fetchPostInfo : Dict BlockTimeKey Time.Posix -> Config -> Core -> Cmd Msg
 fetchPostInfo blockTimes config core =
     let
         blockTimeKey =
             ( Chain.getName core.chain, core.id.block )
     in
-    [ -- Temporary
-      case core.chain of
-        XDai ->
-            SSContract.getBulkAccountingCmd
-                (Chain.getConfig core.chain config)
-                [ core.id.messageHash ]
-                |> Task.map (List.map (Tuple.pair core.id))
-                |> Task.attempt BulkAccountingFetched
-
-        Eth ->
-            SSContract.getAccountingCmd
-                (Chain.getConfig core.chain config)
-                core.id.messageHash
-                |> Task.attempt (PostAccountingFetched core.id)
+    [ SSContract.getAccountingCmd
+        (Chain.getConfig core.chain config)
+        core.id.messageHash
+        |> Task.map
+            (Tuple.pair core.id
+                >> List.singleton
+            )
+        |> Task.attempt AccountingFetched
     , if Dict.member blockTimeKey blockTimes then
         Cmd.none
 

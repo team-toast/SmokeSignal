@@ -61,6 +61,8 @@ emptyModel =
     , gtagHistory = GTag.emptyGtagHistory
     , sortType = HotSort
     , shareEnabled = False
+    , ethAccountingQueue = Nothing
+    , xDaiAccountingQueue = Nothing
     }
 
 
