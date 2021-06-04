@@ -111,7 +111,7 @@ viewHeader model core =
         ]
             |> row [ spacing 10 ]
       , [ model.blockTimes
-            |> Dict.get core.id.block
+            |> Dict.get ( Chain.getName core.chain, core.id.block )
             |> View.Common.timingOrSpinner model.now
         , Element.newTabLink [ hover ]
             { url = Chain.txUrl core.chain core.txHash
@@ -201,7 +201,7 @@ viewReplies model core =
                 View.Post.view
                     model.dProfile
                     (model.blockTimes
-                        |> Dict.get reply.core.id.block
+                        |> Dict.get ( Chain.getName reply.core.chain, reply.core.id.block )
                     )
                     model.now
                     model.replyIds

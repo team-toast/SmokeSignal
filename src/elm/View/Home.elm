@@ -1,6 +1,7 @@
 module View.Home exposing (view)
 
 import Array
+import Chain
 import Dict
 import Element exposing (Element, centerX, centerY, column, el, fill, height, padding, paddingXY, px, row, spacing, text, width)
 import Element.Background as Background
@@ -183,7 +184,7 @@ viewPost model wallet post =
     View.Post.view
         model.dProfile
         (model.blockTimes
-            |> Dict.get post.core.id.block
+            |> Dict.get ( Chain.getName post.core.chain, post.core.id.block )
         )
         model.now
         model.replyIds

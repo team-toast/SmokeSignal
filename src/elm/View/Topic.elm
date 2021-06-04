@@ -1,5 +1,6 @@
 module View.Topic exposing (view)
 
+import Chain
 import Dict
 import Element exposing (Element, centerX, column, el, fill, height, padding, row, spacing, text, width)
 import Element.Background as Background
@@ -48,7 +49,7 @@ view model topic =
                     View.Post.view
                         model.dProfile
                         (model.blockTimes
-                            |> Dict.get post.core.id.block
+                            |> Dict.get ( Chain.getName post.core.chain, post.core.id.block )
                         )
                         model.now
                         model.replyIds
