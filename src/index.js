@@ -1,12 +1,5 @@
 require("./index.css");
-const {
-  getBalance,
-  getWallet,
-  requestAccounts,
-  handleWalletEvents,
-  xDaiImport,
-  sendTransaction,
-} = require("./metamask.js");
+const metamask = require("./metamask.js");
 const chains = require("../config.json");
 
 if (window.navigator.serviceWorker) {
@@ -38,16 +31,17 @@ window.addEventListener("load", () => {
   app.ports.log.subscribe((x) => console.log(x));
 
   app.ports.xDaiImport.subscribe((_) =>
-    xDaiImport()
+    metamask
+      .xDaiImport()
       .then(app.ports.chainSwitchResponse.send)
       .catch(app.ports.chainSwitchResponse.send)
   );
 
   app.ports.connectToWeb3.subscribe(() =>
     (async () => {
-      const [account] = await requestAccounts();
+      const [account] = await metamask.requestAccounts();
 
-      const wallet = account ? await getWallet(account) : null;
+      const wallet = account ? await metamask.getWallet(account) : null;
 
       app.ports.walletResponse.send(wallet);
     })().catch((e) => {
@@ -57,20 +51,22 @@ window.addEventListener("load", () => {
 
   app.ports.refreshWallet.subscribe((account) =>
     (async () => {
-      const balance = await getBalance(account);
+      const balance = await metamask.getBalance(account);
 
       app.ports.balanceResponse.send(balance);
     })().catch(app.ports.balanceResponse.send)
   );
 
   app.ports.submitPost.subscribe((params) =>
-    sendTransaction(params)
+    metamask
+      .sendTransaction(params)
       .then(app.ports.postResponse.send)
       .catch(app.ports.postResponse.send)
   );
 
   app.ports.submitBurnOrTip.subscribe((params) =>
-    sendTransaction(params)
+    metamask
+      .sendTransaction(params)
       .then(app.ports.burnOrTipResponse.send)
       .catch(app.ports.burnOrTipResponse.send)
   );
@@ -107,7 +103,7 @@ function startDapp() {
   });
 
   if (hasWallet) {
-    handleWalletEvents(app.ports.walletResponse.send);
+    metamask.handleWalletEvents(app.ports.walletResponse.send);
   }
 
   return app;
