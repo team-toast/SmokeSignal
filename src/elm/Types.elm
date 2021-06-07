@@ -105,7 +105,7 @@ type Msg
     | SubmitDraft
     | ShowNewToSmokeSignalModal Bool
     | ComposeBodyChange String
-    | AddToAccountingQueue Chain PostId Posix
+    | AddToAccountingQueue Core Posix
     | HandleAccountingQueues Posix
     | ComposeTitleChange String
     | ComposeDollarChange String

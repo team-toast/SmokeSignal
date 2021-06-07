@@ -530,7 +530,7 @@ update msg model =
                     ( addPost log model
                     , [ Time.now
                             |> Task.perform
-                                (AddToAccountingQueue core.chain core.id)
+                                (AddToAccountingQueue core)
                       , fetchBlockTime model.blockTimes model.config core
                       ]
                         |> Cmd.batch
@@ -539,7 +539,7 @@ update msg model =
         HandleAccountingQueues time ->
             let
                 twoSecondsSinceUpdate updatedAt =
-                    (Time.posixToMillis updatedAt + 2000) > Time.posixToMillis time
+                    (Time.posixToMillis updatedAt + 2000) < Time.posixToMillis time
 
                 ethCmd =
                     model.ethAccountingQueue
@@ -587,8 +587,8 @@ update msg model =
                 |> Cmd.batch
             )
 
-        AddToAccountingQueue chain postId time ->
-            ( case chain of
+        AddToAccountingQueue core time ->
+            ( case core.chain of
                 Eth ->
                     { model
                         | ethAccountingQueue =
@@ -596,7 +596,7 @@ update msg model =
                             , postIds =
                                 model.ethAccountingQueue
                                     |> unwrap [] .postIds
-                                    |> (::) postId
+                                    |> (::) core.id
                             }
                                 |> Just
                     }
@@ -608,7 +608,7 @@ update msg model =
                             , postIds =
                                 model.xDaiAccountingQueue
                                     |> unwrap [] .postIds
-                                    |> (::) postId
+                                    |> (::) core.id
                             }
                                 |> Just
                     }
@@ -1866,20 +1866,11 @@ fetchBulk config chain posts =
         hashes =
             posts |> List.map .messageHash
     in
-    case chain of
-        XDai ->
-            SSContract.getBulkAccountingCmd
-                (Chain.getConfig chain config)
-                hashes
-                |> Task.map (List.map2 Tuple.pair posts)
-                |> Task.attempt AccountingFetched
-
-        Eth ->
-            SSContract.getBulkAccountingCmd
-                (Chain.getConfig chain config)
-                hashes
-                |> Task.map (List.map2 Tuple.pair posts)
-                |> Task.attempt AccountingFetched
+    SSContract.getBulkAccountingCmd
+        (Chain.getConfig chain config)
+        hashes
+        |> Task.map (List.map2 Tuple.pair posts)
+        |> Task.attempt AccountingFetched
 
 
 fetchBlockTime : Dict BlockTimeKey Time.Posix -> Config -> Core -> Cmd Msg
