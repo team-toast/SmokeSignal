@@ -240,6 +240,8 @@ subscriptions model =
         , Time.every 1000 Types.HandleAccountingQueues
         , Ports.walletResponse
             (Wallet.walletInfoDecoder >> Types.WalletResponse)
+        , Ports.walletConnectResponse
+            (Wallet.walletConnectDecoder >> Types.WalletResponse)
         , Browser.Events.onResize Types.Resize
         , Ports.burnOrTipResponse (Wallet.rpcResponseDecoder >> Types.BurnOrTipResponse)
         , Ports.postResponse (Wallet.rpcResponseDecoder >> Types.PostResponse)

@@ -1,4 +1,4 @@
-module Wallet exposing (balanceDecoder, chainSwitchDecoder, isActive, rpcResponseDecoder, userInfo, walletInfoDecoder)
+module Wallet exposing (balanceDecoder, chainSwitchDecoder, isActive, rpcResponseDecoder, userInfo, walletConnectDecoder, walletInfoDecoder)
 
 import Chain
 import Eth.Decode
@@ -65,6 +65,32 @@ rpcResponseDecoder =
         )
         >> Result.Extra.unpack
             (Decode.errorToString >> Types.OtherErr >> Err)
+            identity
+
+
+walletConnectDecoder : Value -> Result Types.WalletConnectErr UserInfo
+walletConnectDecoder =
+    Decode.decodeValue
+        (Decode.field "chainId" Chain.decodeChain
+            |> Decode.andThen
+                (\networkRes ->
+                    Decode.map
+                        (\addr ->
+                            networkRes
+                                |> Result.map
+                                    (\chain ->
+                                        { address = addr
+                                        , balance = TokenValue.zero
+                                        , chain = chain
+                                        , faucetStatus = Types.FaucetStatus Types.RequestReady
+                                        }
+                                    )
+                        )
+                        (Decode.at [ "accounts", "0" ] Eth.Decode.address)
+                )
+        )
+        >> Result.Extra.unpack
+            (Decode.errorToString >> Types.WalletError >> Err)
             identity
 
 

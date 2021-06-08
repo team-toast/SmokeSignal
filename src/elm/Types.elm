@@ -3,7 +3,6 @@ module Types exposing (..)
 import Array exposing (Array)
 import Browser.Dom
 import Dict exposing (Dict)
-import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
 import GTag
 import Http
@@ -132,6 +131,7 @@ type Msg
     | BalanceResponse (Maybe TokenValue)
     | CloseComposeError
     | SharePost Core
+    | WalletConnectStart
 
 
 type RequestOutcome
@@ -261,12 +261,6 @@ type alias UserInfo =
     , balance : TokenValue
     , chain : Chain
     , faucetStatus : FaucetUX
-    }
-
-
-type alias WalletInfo =
-    { walletSentry : WalletSentry
-    , balance : Maybe TokenValue
     }
 
 

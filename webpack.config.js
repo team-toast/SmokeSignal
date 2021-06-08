@@ -1,6 +1,7 @@
 const { resolve } = require("path");
 const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
 
 const {
   ENV,
@@ -74,6 +75,7 @@ module.exports = {
     ],
   },
   plugins: [
+    new NodePolyfillPlugin(),
     new webpack.NoEmitOnErrorsPlugin(),
     new HtmlWebpackPlugin({
       cache: false,

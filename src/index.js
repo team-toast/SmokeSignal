@@ -2,6 +2,16 @@ require("./index.css");
 const metamask = require("./metamask.js");
 const chains = require("../config.json");
 
+const WalletConnect = require("@walletconnect/client").default;
+const QRCodeModal = require("@walletconnect/qrcode-modal");
+
+window.localStorage.removeItem("walletconnect");
+
+const connector = new WalletConnect({
+  bridge: "https://bridge.walletconnect.org",
+  qrcodeModal: QRCodeModal,
+});
+
 if (window.navigator.serviceWorker) {
   window.navigator.serviceWorker.register("./sw.js");
 }
@@ -26,6 +36,18 @@ window.addEventListener("load", () => {
   analyticsGtagPortStuff(app);
   seoPortStuff(app);
 
+  connector.on("connect", (error, payload) => {
+    if (error) {
+      console.err(error);
+    }
+
+    const res = payload.params[0];
+
+    if (res) {
+      app.ports.walletConnectResponse.send(res);
+    }
+  });
+
   app.ports.setVisited.subscribe(() => localStorage.setItem(HAS_VISITED, true));
 
   app.ports.log.subscribe((x) => console.log(x));
@@ -36,6 +58,12 @@ window.addEventListener("load", () => {
       .then(app.ports.chainSwitchResponse.send)
       .catch(app.ports.chainSwitchResponse.send)
   );
+
+  app.ports.connectToWalletConnect.subscribe(() => {
+    if (!connector.connected) {
+      connector.createSession();
+    }
+  });
 
   app.ports.connectToWeb3.subscribe(() =>
     (async () => {
