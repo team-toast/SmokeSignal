@@ -44,22 +44,8 @@ render model =
         isMobile =
             model.dProfile == Mobile
 
-        disableUserSelect =
-            [ "", "-ms-", "-moz-", "-webkit-" ]
-                |> List.map
-                    (\prefix ->
-                        View.Attrs.style (prefix ++ "user-select") "none"
-                    )
-
         removeTapColor =
             View.Attrs.style "-webkit-tap-highlight-color" "transparent"
-
-        mobileAttrs =
-            if isMobile then
-                removeTapColor :: disableUserSelect
-
-            else
-                []
 
         userNotices =
             viewUserNotices
@@ -67,29 +53,30 @@ render model =
                 model.userNotices
                 |> List.map Element.inFront
     in
-    (userNotices
-        ++ mobileAttrs
-        ++ [ height fill
-           , width fill
-           , View.Attrs.typeFont
-           , Background.image "./img/bg.webp"
-           ]
-    )
-        |> Element.layoutWith
-            { options =
-                [ Element.focusStyle
-                    { borderColor = Nothing
-                    , backgroundColor = Nothing
-                    , shadow = Nothing
-                    }
-                ]
-                    |> (if isMobile then
-                            (::) Element.noHover
+    Element.layoutWith
+        { options =
+            [ Element.focusStyle
+                { borderColor = Nothing
+                , backgroundColor = Nothing
+                , shadow = Nothing
+                }
+            ]
+                |> (if isMobile then
+                        (::) Element.noHover
 
-                        else
-                            identity
-                       )
-            }
+                    else
+                        identity
+                   )
+        }
+        ([ height fill
+         , width fill
+         , View.Attrs.typeFont
+         , Background.image "./img/bg.webp"
+         , removeTapColor
+            |> whenAttr isMobile
+         ]
+            ++ userNotices
+        )
 
 
 viewPage : Model -> Element Msg

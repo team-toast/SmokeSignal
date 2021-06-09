@@ -201,7 +201,7 @@ startSentry config =
     let
         scan =
             Contracts.SmokeSignal.messageBurnEventFilter
-                config.contract
+                config.ssContract
                 (Eth.Types.BlockNum config.startScanBlock)
                 Eth.Types.LatestBlock
                 Nothing
@@ -237,6 +237,7 @@ subscriptions model =
           else
             Sub.none
         , Time.every 5000 (always Types.CheckTrackedTxsStatus)
+        , Time.every 1000 Types.HandleAccountingQueues
         , Ports.walletResponse
             (Wallet.walletInfoDecoder >> Types.WalletResponse)
         , Browser.Events.onResize Types.Resize

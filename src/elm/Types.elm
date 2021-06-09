@@ -10,7 +10,7 @@ import Http
 import Json.Decode exposing (Value)
 import Sentry as EventSentry exposing (EventSentry)
 import Set exposing (Set)
-import Time
+import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import UserNotice exposing (UserNotice)
 
@@ -33,7 +33,7 @@ type alias Flags =
 
 type alias Model =
     { wallet : Wallet
-    , now : Time.Posix
+    , now : Posix
     , dProfile : DisplayProfile
     , sentries :
         { xDai : Maybe (EventSentry Msg)
@@ -41,7 +41,7 @@ type alias Model =
         }
     , view : View
     , sortType : SortType
-    , blockTimes : Dict Int Time.Posix
+    , blockTimes : Dict BlockTimeKey Posix
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
     , trackedTxs : Dict String TrackedTx -- Keyed by (Eth.Utils.txHashToString hash)
@@ -67,23 +67,33 @@ type alias Model =
     , faucetToken : String
     , gtagHistory : GTag.GTagHistory
     , shareEnabled : Bool
+    , ethAccountingQueue :
+        Maybe
+            { updatedAt : Posix
+            , postIds : List PostId
+            }
+    , xDaiAccountingQueue :
+        Maybe
+            { updatedAt : Posix
+            , postIds : List PostId
+            }
     }
 
 
 type Msg
     = RouteChanged Route
-    | Tick Time.Posix
+    | Tick Posix
     | ChangeDemoPhaceSrc
     | NewDemoSrc String
     | ScrollResponse (Result Browser.Dom.Error ())
     | Resize Int Int
     | EventSentryMsg Chain EventSentry.Msg
     | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error LogPost))
-    | PostAccountingFetched PostId (Result Http.Error Accounting)
+    | AccountingFetched (Result Http.Error (List ( PostId, Accounting )))
     | ToggleTrackedTxs
     | CheckTrackedTxsStatus
     | TrackedTxStatusResult (Result Http.Error (Maybe TxReceipt))
-    | BlockTimeFetched Int (Result Http.Error Time.Posix)
+    | BlockTimeFetched BlockTimeKey (Result Http.Error Posix)
     | DismissNotice Int
     | OpenModal
     | ReplyOpen PostId
@@ -95,6 +105,8 @@ type Msg
     | SubmitDraft
     | ShowNewToSmokeSignalModal Bool
     | ComposeBodyChange String
+    | AddToAccountingQueue Core Posix
+    | HandleAccountingQueues Posix
     | ComposeTitleChange String
     | ComposeDollarChange String
     | BurnOrTipUXInputChange String
@@ -148,6 +160,11 @@ type alias PostKey =
     ( String, String )
 
 
+type alias BlockTimeKey =
+    -- String comes from Chain.getName
+    ( String, Int )
+
+
 type alias RootPost =
     { core : Core
     , topic : String
@@ -156,7 +173,8 @@ type alias RootPost =
 
 type alias ChainConfig =
     { chain : Chain
-    , contract : Address
+    , ssContract : Address
+    , ssScriptsContract : Address
     , startScanBlock : Int
     , providerUrl : String
     }
