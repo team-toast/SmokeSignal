@@ -412,7 +412,7 @@ viewBurnOrTipInput post state =
                     |> Maybe.andThen String.toFloat
                     |> Maybe.andThen
                         (\amount ->
-                            if amount >= 0.01 then
+                            if amount >= 0 then
                                 Just <| SubmitTipOrBurn amount
 
                             else
