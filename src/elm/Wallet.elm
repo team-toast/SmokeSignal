@@ -68,7 +68,7 @@ rpcResponseDecoder =
             identity
 
 
-walletConnectDecoder : Value -> Result Types.WalletConnectErr UserInfo
+walletConnectDecoder : Value -> Result Types.WalletResponseErr UserInfo
 walletConnectDecoder =
     Decode.decodeValue
         (Decode.field "chainId" Chain.decodeChain
@@ -83,6 +83,7 @@ walletConnectDecoder =
                                         , balance = TokenValue.zero
                                         , chain = chain
                                         , faucetStatus = Types.FaucetStatus Types.RequestReady
+                                        , provider = Types.WalletConnect
                                         }
                                     )
                         )
@@ -94,7 +95,7 @@ walletConnectDecoder =
             identity
 
 
-walletInfoDecoder : Value -> Result Types.WalletConnectErr UserInfo
+walletInfoDecoder : Value -> Result Types.WalletResponseErr UserInfo
 walletInfoDecoder =
     Decode.decodeValue
         ([ Decode.field "network" Chain.decodeChain
@@ -109,6 +110,7 @@ walletInfoDecoder =
                                         , balance = bal
                                         , chain = chain
                                         , faucetStatus = Types.FaucetStatus Types.RequestReady
+                                        , provider = Types.MetaMask
                                         }
                                     )
                         )

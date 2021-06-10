@@ -112,7 +112,7 @@ type Msg
     | TopicInputChange String
     | StartBurnOrTipUX PostId BurnOrTip
     | CancelPostInput
-    | WalletResponse (Result WalletConnectErr UserInfo)
+    | WalletResponse (Result WalletResponseErr UserInfo)
     | TopicSubmit
     | XDaiImport
     | SanitizeTopic
@@ -261,10 +261,16 @@ type alias UserInfo =
     , balance : TokenValue
     , chain : Chain
     , faucetStatus : FaucetUX
+    , provider : Provider
     }
 
 
-type WalletConnectErr
+type Provider
+    = WalletConnect
+    | MetaMask
+
+
+type WalletResponseErr
     = WalletCancel
     | WalletDisconnected
     | WalletInProgress

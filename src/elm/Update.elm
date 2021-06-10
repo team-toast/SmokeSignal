@@ -885,7 +885,10 @@ update msg model =
                                                         |> Eth.encodeSend
                                             in
                                             ( model
-                                            , [ Ports.submitPost txParams
+                                            , [ Ports.submitPost
+                                                    { provider = Misc.providerToString userInfo.provider
+                                                    , params = txParams
+                                                    }
                                               , GTagData
                                                     "post tx signing"
                                                     Nothing
@@ -1035,7 +1038,10 @@ update msg model =
                                             |> gTagOut
                                 in
                                 ( model
-                                , [ Ports.submitBurnOrTip txParams
+                                , [ Ports.submitBurnOrTip
+                                        { provider = Misc.providerToString userInfo.provider
+                                        , params = txParams
+                                        }
                                   , gtagCmd
                                   ]
                                     |> Cmd.batch

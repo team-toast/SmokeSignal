@@ -16,10 +16,10 @@ port connectToWeb3 : () -> Cmd msg
 port connectToWalletConnect : () -> Cmd msg
 
 
-port submitBurnOrTip : Value -> Cmd msg
+port submitBurnOrTip : { provider : String, params : Value } -> Cmd msg
 
 
-port submitPost : Value -> Cmd msg
+port submitPost : { provider : String, params : Value } -> Cmd msg
 
 
 port consentToCookies : () -> Cmd msg

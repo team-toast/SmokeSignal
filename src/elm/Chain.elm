@@ -93,7 +93,7 @@ chainDecoder flags =
         |> Decode.list
 
 
-decodeChain : Decoder (Result Types.WalletConnectErr Types.Chain)
+decodeChain : Decoder (Result Types.WalletResponseErr Types.Chain)
 decodeChain =
     Eth.Net.networkIdDecoder
         |> Decode.map
