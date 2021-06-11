@@ -76,16 +76,6 @@ window.addEventListener("load", () => {
     })
   );
 
-  app.ports.refreshWallet.subscribe((account) =>
-    (async () => {
-      if (!connector.connected) {
-        const balance = await metamask.getBalance(account);
-
-        app.ports.balanceResponse.send(balance);
-      }
-    })().catch(app.ports.balanceResponse.send)
-  );
-
   app.ports.submitPost.subscribe(({ provider, params }) => {
     switch (provider) {
       case "METAMASK": {
@@ -214,6 +204,18 @@ const attachConnectorEvents = (app) => {
   connector.on("connect", (error, payload) => {
     if (error) {
       return console.err(error);
+    }
+
+    const res = payload.params[0];
+
+    if (res) {
+      app.ports.walletConnectResponse.send(res);
+    }
+  });
+
+  connector.on("session_update", (error, payload) => {
+    if (error) {
+      return console.error(error);
     }
 
     const res = payload.params[0];

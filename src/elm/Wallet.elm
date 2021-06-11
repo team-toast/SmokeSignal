@@ -1,21 +1,11 @@
-module Wallet exposing (balanceDecoder, chainSwitchDecoder, isActive, rpcResponseDecoder, userInfo, walletConnectDecoder, walletInfoDecoder)
+module Wallet exposing (chainSwitchDecoder, isActive, rpcResponseDecoder, userInfo, walletConnectDecoder, walletInfoDecoder)
 
 import Chain
 import Eth.Decode
 import Eth.Types exposing (TxHash)
 import Json.Decode as Decode exposing (Value)
 import Result.Extra
-import TokenValue
 import Types exposing (UserInfo, Wallet(..))
-
-
-balanceDecoder : Value -> Maybe TokenValue.TokenValue
-balanceDecoder =
-    Decode.decodeValue
-        (Eth.Decode.bigInt
-            |> Decode.map TokenValue.tokenValue
-        )
-        >> Result.toMaybe
 
 
 chainSwitchDecoder : Value -> Result Types.TxErr ()
@@ -80,7 +70,7 @@ walletConnectDecoder =
                                 |> Result.map
                                     (\chain ->
                                         { address = addr
-                                        , balance = TokenValue.zero
+                                        , balance = Nothing
                                         , chain = chain
                                         , faucetStatus = Types.FaucetStatus Types.RequestReady
                                         , provider = Types.WalletConnect
@@ -98,27 +88,21 @@ walletConnectDecoder =
 walletInfoDecoder : Value -> Result Types.WalletResponseErr UserInfo
 walletInfoDecoder =
     Decode.decodeValue
-        ([ Decode.field "network" Chain.decodeChain
-            |> Decode.andThen
-                (\networkRes ->
-                    Decode.map2
-                        (\addr bal ->
-                            networkRes
-                                |> Result.map
-                                    (\chain ->
-                                        { address = addr
-                                        , balance = bal
-                                        , chain = chain
-                                        , faucetStatus = Types.FaucetStatus Types.RequestReady
-                                        , provider = Types.MetaMask
-                                        }
-                                    )
+        ([ Decode.map2
+            (\networkResult address ->
+                networkResult
+                    |> Result.map
+                        (\chain ->
+                            { address = address
+                            , balance = Nothing
+                            , chain = chain
+                            , faucetStatus = Types.FaucetStatus Types.RequestReady
+                            , provider = Types.MetaMask
+                            }
                         )
-                        (Decode.field "address" Eth.Decode.address)
-                        (Decode.field "balance" Eth.Decode.bigInt
-                            |> Decode.map TokenValue.tokenValue
-                        )
-                )
+            )
+            (Decode.field "network" Chain.decodeChain)
+            (Decode.field "address" Eth.Decode.address)
          , Decode.field "code" Decode.int
             |> Decode.map
                 (\n ->

@@ -428,16 +428,19 @@ update msg model =
                           }
                         , [ walletConnectedGtagCmd
                           , fbEvent
+                          , fetchBalance model.config info
                           ]
                             |> Cmd.batch
                         )
                     )
 
-        BalanceResponse val ->
-            val
-                |> unwrap
-                    ( model
-                    , logString "BalanceResponse" "Missing balance"
+        BalanceResponse res ->
+            res
+                |> unpack
+                    (\err ->
+                        ( model
+                        , logHttpError "BalanceResponse" err
+                        )
                     )
                     (\balance ->
                         ensureUserInfo
@@ -446,7 +449,7 @@ update msg model =
                                     | wallet =
                                         Active
                                             { userInfo
-                                                | balance = balance
+                                                | balance = Just balance
                                             }
                                   }
                                 , Cmd.none
@@ -1273,9 +1276,7 @@ update msg model =
                                 , if faucetSuccess then
                                     Cmd.batch
                                         [ Tracking.xDaiClaimCompleted
-                                        , userInfo.address
-                                            |> Eth.Utils.addressToString
-                                            |> Ports.refreshWallet
+                                        , fetchBalance model.config userInfo
                                         ]
 
                                   else
@@ -1354,11 +1355,7 @@ update msg model =
                 [ gtagCmd
                 , model.wallet
                     |> Wallet.userInfo
-                    |> unwrap Cmd.none
-                        (.address
-                            >> Eth.Utils.addressToString
-                            >> Ports.refreshWallet
-                        )
+                    |> unwrap Cmd.none (fetchBalance model.config)
                 ]
             )
 
@@ -1566,11 +1563,7 @@ handleRoute model route =
                 , [ trackingCmd
                   , model.wallet
                         |> Wallet.userInfo
-                        |> unwrap Cmd.none
-                            (.address
-                                >> Eth.Utils.addressToString
-                                >> Ports.refreshWallet
-                            )
+                        |> unwrap Cmd.none (fetchBalance model.config)
                   , defaultTitle
                   ]
                 )
@@ -1897,6 +1890,17 @@ fetchBlockTime blockTimes config core =
             core.id.block
             |> Task.map .timestamp
             |> Task.attempt (BlockTimeFetched blockTimeKey)
+
+
+fetchBalance : Config -> UserInfo -> Cmd Msg
+fetchBalance config userInfo =
+    Eth.getBalance
+        (Chain.getProviderUrl userInfo.chain config)
+        userInfo.address
+        |> Task.attempt
+            (Result.map TokenValue.tokenValue
+                >> BalanceResponse
+            )
 
 
 fetchPostInfo : Dict BlockTimeKey Time.Posix -> Config -> Core -> Cmd Msg

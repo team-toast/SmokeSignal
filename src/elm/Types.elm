@@ -128,7 +128,7 @@ type Msg
     | SetSortType SortType
     | FaucetResponse (Result Http.Error FaucetResult)
     | ToggleTooltip TooltipId
-    | BalanceResponse (Maybe TokenValue)
+    | BalanceResponse (Result Http.Error TokenValue)
     | CloseComposeError
     | SharePost Core
     | WalletConnectStart
@@ -258,7 +258,7 @@ type View
 
 type alias UserInfo =
     { address : Address
-    , balance : TokenValue
+    , balance : Maybe TokenValue
     , chain : Chain
     , faucetStatus : FaucetUX
     , provider : Provider

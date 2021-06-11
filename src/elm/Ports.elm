@@ -1,4 +1,4 @@
-port module Ports exposing (balanceResponse, burnOrTipResponse, chainSwitchResponse, connectToWalletConnect, connectToWeb3, consentToCookies, fbEvent, log, onUrlChange, postResponse, pushUrl, refreshWallet, setDescription, setTitle, setVisited, share, submitBurnOrTip, submitPost, walletConnectResponse, walletResponse, xDaiImport)
+port module Ports exposing (burnOrTipResponse, chainSwitchResponse, connectToWalletConnect, connectToWeb3, consentToCookies, fbEvent, log, onUrlChange, postResponse, pushUrl, setDescription, setTitle, setVisited, share, submitBurnOrTip, submitPost, walletConnectResponse, walletResponse, xDaiImport)
 
 import Json.Decode exposing (Value)
 
@@ -34,9 +34,6 @@ port setVisited : () -> Cmd msg
 port xDaiImport : () -> Cmd msg
 
 
-port refreshWallet : String -> Cmd msg
-
-
 port share : Value -> Cmd msg
 
 
@@ -66,9 +63,6 @@ port walletResponse : (Value -> msg) -> Sub msg
 
 
 port walletConnectResponse : (Value -> msg) -> Sub msg
-
-
-port balanceResponse : (Value -> msg) -> Sub msg
 
 
 port onUrlChange : (String -> msg) -> Sub msg
