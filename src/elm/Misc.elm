@@ -1,4 +1,4 @@
-module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyAddress, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatFloat, formatPosix, formatReplies, getCore, getPostOrReply, getTxReceipt, initDemoPhaceSrc, obscureAddress, parseHttpError, postIdToKey, responsiveVal, screenWidthToDisplayProfile, scrollId, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
+module Misc exposing (decodeFaucetResponse, defaultSeoDescription, defaultTopic, dollarStringToToken, emptyAddress, emptyComposeModel, emptyModel, encodeShare, formatDollar, formatFloat, formatPosix, formatReplies, getCore, getPostOrReply, getTxReceipt, initDemoPhaceSrc, obscureAddress, parseHttpError, postIdToKey, providerToString, responsiveVal, screenWidthToDisplayProfile, scrollId, sortPostsFunc, sortTopics, sortTypeToString, tryRouteToView, validateTopic)
 
 import Array
 import Chain
@@ -423,3 +423,13 @@ responsiveVal d a b =
 scrollId : String
 scrollId =
     "scroller"
+
+
+providerToString : Provider -> String
+providerToString p =
+    case p of
+        MetaMask ->
+            "METAMASK"
+
+        WalletConnect ->
+            "WALLETCONNECT"
