@@ -1,13 +1,14 @@
 module View.Wallet exposing (view, viewMobileWalletSuggestion)
 
-import Element exposing (Element, column, el, fill, padding, paragraph, spacing, text, width)
+import Element exposing (Element, column, el, fill, padding, paragraph, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
 import Element.Input as Input
 import Theme exposing (black, white)
 import Types exposing (Model, Msg)
-import View.Attrs exposing (whiteGlowAttributeSmall)
+import View.Attrs exposing (hover, whiteGlowAttributeSmall)
 import View.Common
+import View.Img
 import View.Sidebar
 import Wallet
 
@@ -41,11 +42,15 @@ viewWalletConnectButton =
         [ Element.centerX
         , padding 10
         , View.Attrs.roundBorder
-        , Background.color Theme.darkBlue
-        , Font.color Theme.white
+        , Background.color Theme.white
+        , hover
         ]
         { onPress = Just Types.WalletConnectStart
-        , label = text "WalletConnect"
+        , label =
+            [ View.Img.walletConnect 20
+            , text "WalletConnect"
+            ]
+                |> row [ spacing 10 ]
         }
 
 
