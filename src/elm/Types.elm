@@ -3,7 +3,6 @@ module Types exposing (..)
 import Array exposing (Array)
 import Browser.Dom
 import Dict exposing (Dict)
-import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
 import GTag
 import Http
@@ -113,7 +112,7 @@ type Msg
     | TopicInputChange String
     | StartBurnOrTipUX PostId BurnOrTip
     | CancelPostInput
-    | WalletResponse (Result WalletConnectErr UserInfo)
+    | WalletResponse (Result WalletResponseErr UserInfo)
     | TopicSubmit
     | XDaiImport
     | SanitizeTopic
@@ -129,9 +128,10 @@ type Msg
     | SetSortType SortType
     | FaucetResponse (Result Http.Error FaucetResult)
     | ToggleTooltip TooltipId
-    | BalanceResponse (Maybe TokenValue)
+    | BalanceResponse (Result Http.Error TokenValue)
     | CloseComposeError
     | SharePost Core
+    | WalletConnectStart
 
 
 type RequestOutcome
@@ -258,19 +258,19 @@ type View
 
 type alias UserInfo =
     { address : Address
-    , balance : TokenValue
+    , balance : Maybe TokenValue
     , chain : Chain
     , faucetStatus : FaucetUX
+    , provider : Provider
     }
 
 
-type alias WalletInfo =
-    { walletSentry : WalletSentry
-    , balance : Maybe TokenValue
-    }
+type Provider
+    = WalletConnect
+    | MetaMask
 
 
-type WalletConnectErr
+type WalletResponseErr
     = WalletCancel
     | WalletDisconnected
     | WalletInProgress

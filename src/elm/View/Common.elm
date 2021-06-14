@@ -272,6 +272,7 @@ viewInstructions chainSwitchInProgress dProfile userInfo =
                         text "Switch to xDai"
                             |> el [ centerX ]
                 }
+                |> when (userInfo.provider == Types.MetaMask)
             ]
                 |> (if dProfile == Mobile then
                         column
@@ -285,7 +286,7 @@ viewInstructions chainSwitchInProgress dProfile userInfo =
                 |> Just
 
         XDai ->
-            if TokenValue.isZero userInfo.balance then
+            if userInfo.balance |> unwrap False TokenValue.isZero then
                 viewFaucet dProfile userInfo.faucetStatus
                     |> Just
 
