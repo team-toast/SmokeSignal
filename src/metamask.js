@@ -66,11 +66,7 @@ const handleWalletEvents = (port) => {
     (async () => {
       console.log(message);
 
-      const [account] = await getAccounts();
-
-      const wallet = account ? await getWallet(account) : null;
-
-      port(wallet);
+      port(null);
     })().catch((e) => {
       console.error("disconnect", e);
       port(e);
