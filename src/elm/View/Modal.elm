@@ -5,15 +5,12 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Maybe.Extra
 import Theme exposing (black, blue, white)
 import Types exposing (..)
 import View.Attrs exposing (cappedWidth, hover, roundBorder, sansSerifFont, whiteGlowAttribute, whiteGlowAttributeSmall)
 import View.Common
-import View.Compose
 import View.Img
 import View.Wallet
-import Wallet
 
 
 view : Model -> Element Msg
@@ -64,45 +61,33 @@ view model =
                 |> View.Common.wrapModal ComposeClose
 
     else
-        model.wallet
-            |> Wallet.userInfo
-            |> Maybe.Extra.unwrap
-                (Input.button
-                    [ Background.color Theme.orange
-                    , padding 10
-                    , View.Attrs.roundBorder
-                    , hover
-                    , Font.color black
-                    , centerX
-                    , centerY
-                    ]
-                    { onPress = Just ConnectToWeb3
-                    , label =
-                        if model.wallet == Connecting then
-                            View.Common.spinner 20 black
-                                |> el [ centerX ]
+        Input.button
+            [ Background.color Theme.orange
+            , padding 10
+            , View.Attrs.roundBorder
+            , hover
+            , Font.color black
+            , centerX
+            , centerY
+            ]
+            { onPress = Just ConnectToWeb3
+            , label =
+                if model.wallet == Connecting then
+                    View.Common.spinner 20 black
+                        |> el [ centerX ]
 
-                        else
-                            text "Connect wallet"
-                    }
-                    |> el
-                        [ Background.color black
-                        , whiteGlowAttributeSmall
-                        , height <| px 150
-                        , fill
-                            |> Element.minimum 240
-                            |> width
-                        ]
-                    |> View.Common.wrapModal ComposeClose
-                )
-                (View.Compose.view model
-                    >> (if isMobile then
-                            identity
-
-                        else
-                            View.Common.wrapModal ComposeClose
-                       )
-                )
+                else
+                    text "Connect wallet"
+            }
+            |> el
+                [ Background.color black
+                , whiteGlowAttributeSmall
+                , height <| px 150
+                , fill
+                    |> Element.minimum 240
+                    |> width
+                ]
+            |> View.Common.wrapModal ComposeClose
 
 
 viewNewToSmokeSignal : DisplayProfile -> Element Msg

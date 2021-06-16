@@ -27,7 +27,7 @@ import Time
 import TokenValue exposing (TokenValue)
 import Tracking
 import Types exposing (..)
-import UserNotice as UN exposing (UserNotice)
+import UserNotice as UN
 import Wallet exposing (userInfo)
 
 
@@ -148,6 +148,9 @@ update msg model =
                                                         | inProgress = False
                                                         , modal = False
                                                         , reply = False
+                                                        , title = ""
+                                                        , body = ""
+                                                        , burnAmount = ""
                                                     }
                                                )
                                     , showExpandedTrackedTxs = True
@@ -336,129 +339,15 @@ update msg model =
 
                 Ok data ->
                     data
-                        |> unwrap
-                            ( model, Cmd.none )
+                        |> Maybe.andThen
                             (\txReceipt ->
                                 model.trackedTxs
-                                    |> Dict.get (Eth.Utils.txHashToString txReceipt.hash)
-                                    |> unwrap ( model, logString "TrackedTxStatusResult" "Transaction not found." )
-                                        (\tx ->
-                                            let
-                                                ( newStatus, _, maybeUserNotice ) =
-                                                    handleTxReceipt tx.chain txReceipt
-
-                                                isMined =
-                                                    case newStatus of
-                                                        Mined _ ->
-                                                            True
-
-                                                        _ ->
-                                                            False
-
-                                                fetchAccounting =
-                                                    (case tx.txInfo of
-                                                        -- Rely on PostLogReceived as source of truth for post data.
-                                                        PostTx _ ->
-                                                            --maybePublishedPost
-                                                            --|> Maybe.map
-                                                            --(\r ->
-                                                            --case r of
-                                                            --LogReply p ->
-                                                            --p.core
-                                                            --LogRoot p ->
-                                                            --p.core
-                                                            --)
-                                                            Nothing
-
-                                                        TipTx id ->
-                                                            Misc.getPostOrReply id model.rootPosts model.replyPosts
-                                                                |> Maybe.map Misc.getCore
-
-                                                        BurnTx id ->
-                                                            Misc.getPostOrReply id model.rootPosts model.replyPosts
-                                                                |> Maybe.map Misc.getCore
-                                                    )
-                                                        |> unwrap Cmd.none
-                                                            (fetchPostInfo model.blockTimes model.config)
-
-                                                fbEvent =
-                                                    case tx.txInfo of
-                                                        PostTx _ ->
-                                                            Tracking.postTxMined
-
-                                                        TipTx _ ->
-                                                            Cmd.none
-
-                                                        BurnTx _ ->
-                                                            Cmd.none
-
-                                                ( newGtagHistory, maybeGtagCmd ) =
-                                                    if isMined then
-                                                        let
-                                                            ( actionName, label ) =
-                                                                -- question:
-                                                                -- is there a way to get postId here for a post?
-                                                                case tx.txInfo of
-                                                                    PostTx txHash ->
-                                                                        ( "post tx mined"
-                                                                        , Eth.Utils.txHashToString txHash
-                                                                        )
-
-                                                                    TipTx postId ->
-                                                                        ( "tip tx mined"
-                                                                        , Post.postIdToString postId
-                                                                        )
-
-                                                                    BurnTx postId ->
-                                                                        ( "burn tx mined"
-                                                                        , Post.postIdToString postId
-                                                                        )
-                                                        in
-                                                        GTag.gTagOutOnlyOnLabelOrValueChange model.gtagHistory <|
-                                                            GTagData
-                                                                actionName
-                                                                Nothing
-                                                                (Just label)
-                                                                Nothing
-
-                                                    else
-                                                        ( model.gtagHistory
-                                                        , Cmd.none
-                                                        )
-                                            in
-                                            ( { model
-                                                | trackedTxs =
-                                                    model.trackedTxs
-                                                        |> Dict.update
-                                                            (Eth.Utils.txHashToString txReceipt.hash)
-                                                            (Maybe.map
-                                                                (\info ->
-                                                                    if info.status == Mining then
-                                                                        { info | status = newStatus }
-
-                                                                    else
-                                                                        info
-                                                                )
-                                                            )
-                                                , userNotices =
-                                                    model.userNotices
-                                                        ++ (maybeUserNotice
-                                                                |> unwrap [] List.singleton
-                                                           )
-                                                , gtagHistory = newGtagHistory
-                                              }
-                                            , Cmd.batch
-                                                [ if isMined then
-                                                    fetchAccounting
-
-                                                  else
-                                                    Cmd.none
-                                                , maybeGtagCmd
-                                                , fbEvent
-                                                ]
-                                            )
-                                        )
+                                    |> Dict.get
+                                        (Eth.Utils.txHashToString txReceipt.hash)
+                                    |> Maybe.map
+                                        (handleTxStatusResult model txReceipt)
                             )
+                        |> Maybe.withDefault ( model, Cmd.none )
 
         WalletResponse res ->
             res
@@ -539,16 +428,19 @@ update msg model =
                           }
                         , [ walletConnectedGtagCmd
                           , fbEvent
+                          , fetchBalance model.config info
                           ]
                             |> Cmd.batch
                         )
                     )
 
-        BalanceResponse val ->
-            val
-                |> unwrap
-                    ( model
-                    , logString "BalanceResponse" "Missing balance"
+        BalanceResponse res ->
+            res
+                |> unpack
+                    (\err ->
+                        ( model
+                        , logHttpError "BalanceResponse" err
+                        )
                     )
                     (\balance ->
                         ensureUserInfo
@@ -557,7 +449,7 @@ update msg model =
                                     | wallet =
                                         Active
                                             { userInfo
-                                                | balance = balance
+                                                | balance = Just balance
                                             }
                                   }
                                 , Cmd.none
@@ -639,70 +531,165 @@ update msg model =
                             Misc.getCore log
                     in
                     ( addPost log model
-                    , fetchPostInfo model.blockTimes model.config core
+                    , [ Time.now
+                            |> Task.perform
+                                (AddToAccountingQueue core)
+                      , fetchBlockTime model.blockTimes model.config core
+                      ]
+                        |> Cmd.batch
                     )
 
-        PostAccountingFetched postId res ->
+        WalletConnectStart ->
+            ( model, Ports.connectToWalletConnect () )
+
+        HandleAccountingQueues time ->
+            let
+                twoSecondsSinceUpdate updatedAt =
+                    (Time.posixToMillis updatedAt + 2000) < Time.posixToMillis time
+
+                ethCmd =
+                    model.ethAccountingQueue
+                        |> Maybe.andThen
+                            (\data ->
+                                if twoSecondsSinceUpdate data.updatedAt then
+                                    fetchBulk model.config Eth data.postIds
+                                        |> Just
+
+                                else
+                                    Nothing
+                            )
+
+                xDaiCmd =
+                    model.xDaiAccountingQueue
+                        |> Maybe.andThen
+                            (\data ->
+                                if twoSecondsSinceUpdate data.updatedAt then
+                                    fetchBulk model.config XDai data.postIds
+                                        |> Just
+
+                                else
+                                    Nothing
+                            )
+            in
+            ( { model
+                | ethAccountingQueue =
+                    if ethCmd == Nothing then
+                        model.ethAccountingQueue
+
+                    else
+                        Nothing
+                , xDaiAccountingQueue =
+                    if xDaiCmd == Nothing then
+                        model.xDaiAccountingQueue
+
+                    else
+                        Nothing
+              }
+            , [ ethCmd
+                    |> Maybe.withDefault Cmd.none
+              , xDaiCmd
+                    |> Maybe.withDefault Cmd.none
+              ]
+                |> Cmd.batch
+            )
+
+        AddToAccountingQueue core time ->
+            ( case core.chain of
+                Eth ->
+                    { model
+                        | ethAccountingQueue =
+                            { updatedAt = time
+                            , postIds =
+                                model.ethAccountingQueue
+                                    |> unwrap [] .postIds
+                                    |> (::) core.id
+                            }
+                                |> Just
+                    }
+
+                XDai ->
+                    { model
+                        | xDaiAccountingQueue =
+                            { updatedAt = time
+                            , postIds =
+                                model.xDaiAccountingQueue
+                                    |> unwrap [] .postIds
+                                    |> (::) core.id
+                            }
+                                |> Just
+                    }
+            , Cmd.none
+            )
+
+        AccountingFetched res ->
             case res of
                 Ok accountingData ->
                     let
-                        key =
-                            Misc.postIdToKey postId
-
-                        maybeTopic =
-                            model.rootPosts
-                                |> Dict.get key
-                                |> Maybe.map .topic
-
                         accounting =
-                            model.accounting
-                                |> Dict.insert key accountingData
-
-                        updateTopics =
-                            maybeTopic
-                                |> unwrap identity
-                                    (\topic ->
-                                        Dict.update
-                                            topic
-                                            (unwrap
-                                                { total = accountingData.totalBurned
-                                                , ids = Set.singleton key
-                                                }
-                                                (\data ->
-                                                    let
-                                                        ids =
-                                                            data.ids
-                                                                |> Set.insert key
-
-                                                        total =
-                                                            if Set.size data.ids == Set.size ids then
-                                                                data.total
-
-                                                            else
-                                                                ids
-                                                                    |> Set.toList
-                                                                    |> List.filterMap
-                                                                        (\id ->
-                                                                            Dict.get id accounting
-                                                                        )
-                                                                    |> List.map .totalBurned
-                                                                    |> List.foldl
-                                                                        TokenValue.add
-                                                                        TokenValue.zero
-                                                    in
-                                                    { total = total
-                                                    , ids = ids
-                                                    }
-                                                )
-                                                >> Just
-                                            )
+                            accountingData
+                                |> List.foldl
+                                    (\( postId, accounting_ ) ->
+                                        Dict.insert (Misc.postIdToKey postId) accounting_
                                     )
+                                    model.accounting
+
+                        topics =
+                            accountingData
+                                |> List.foldl
+                                    (\( postId, accounting_ ) ->
+                                        let
+                                            key =
+                                                Misc.postIdToKey postId
+
+                                            maybeTopic =
+                                                model.rootPosts
+                                                    |> Dict.get key
+                                                    |> Maybe.map .topic
+                                        in
+                                        maybeTopic
+                                            |> unwrap identity
+                                                (\topic ->
+                                                    Dict.update
+                                                        topic
+                                                        (unwrap
+                                                            { total = accounting_.totalBurned
+                                                            , ids = Set.singleton key
+                                                            }
+                                                            (\data ->
+                                                                let
+                                                                    ids =
+                                                                        data.ids
+                                                                            |> Set.insert key
+
+                                                                    total =
+                                                                        if Set.size data.ids == Set.size ids then
+                                                                            data.total
+
+                                                                        else
+                                                                            ids
+                                                                                |> Set.toList
+                                                                                |> List.filterMap
+                                                                                    (\id ->
+                                                                                        Dict.get id accounting
+                                                                                    )
+                                                                                |> List.map .totalBurned
+                                                                                |> List.foldl
+                                                                                    TokenValue.add
+                                                                                    TokenValue.zero
+                                                                in
+                                                                { total = total
+                                                                , ids = ids
+                                                                }
+                                                            )
+                                                            >> Just
+                                                        )
+                                                )
+                                    )
+                                    model.topics
                     in
                     ( { model
                         | accounting = accounting
-                        , topics =
-                            model.topics
-                                |> updateTopics
+                        , topics = topics
                         , pages =
                             model.rootPosts
                                 |> calculatePagination
@@ -716,10 +703,10 @@ update msg model =
 
                 Err err ->
                     ( model
-                    , logHttpError "PostAccountingFetched" err
+                    , logHttpError "AccountingFetched" err
                     )
 
-        BlockTimeFetched blocknum timeResult ->
+        BlockTimeFetched key timeResult ->
             case timeResult of
                 Err err ->
                     ( model
@@ -730,7 +717,7 @@ update msg model =
                     ( { model
                         | blockTimes =
                             model.blockTimes
-                                |> Dict.insert blocknum time
+                                |> Dict.insert key time
                       }
                     , Cmd.none
                     )
@@ -804,7 +791,7 @@ update msg model =
                                 ( { model | compose = compose }, Cmd.none )
                             )
                             (\price ->
-                                model.compose.dollar
+                                model.compose.burnAmount
                                     |> getPostBurnAmount price
                                     |> Result.andThen
                                         (\burnAmount ->
@@ -896,12 +883,15 @@ update msg model =
 
                                                 txParams =
                                                     postDraft
-                                                        |> SSContract.burnEncodedPost userInfo config.contract
+                                                        |> SSContract.burnEncodedPost userInfo config.ssContract
                                                         |> Eth.toSend
                                                         |> Eth.encodeSend
                                             in
                                             ( model
-                                            , [ Ports.submitPost txParams
+                                            , [ Ports.submitPost
+                                                    { provider = Misc.providerToString userInfo.provider
+                                                    , params = txParams
+                                                    }
                                               , GTagData
                                                     "post tx signing"
                                                     Nothing
@@ -1032,7 +1022,7 @@ update msg model =
                                                 ( SSContract.burnForPost, "burn" )
 
                                     txParams =
-                                        fn userInfo config.contract state.postHash amount TokenValue.zero
+                                        fn userInfo config.ssContract state.postHash amount TokenValue.zero
                                             |> Eth.toSend
                                             |> Eth.encodeSend
 
@@ -1051,7 +1041,10 @@ update msg model =
                                             |> gTagOut
                                 in
                                 ( model
-                                , [ Ports.submitBurnOrTip txParams
+                                , [ Ports.submitBurnOrTip
+                                        { provider = Misc.providerToString userInfo.provider
+                                        , params = txParams
+                                        }
                                   , gtagCmd
                                   ]
                                     |> Cmd.batch
@@ -1283,9 +1276,7 @@ update msg model =
                                 , if faucetSuccess then
                                     Cmd.batch
                                         [ Tracking.xDaiClaimCompleted
-                                        , userInfo.address
-                                            |> Eth.Utils.addressToString
-                                            |> Ports.refreshWallet
+                                        , fetchBalance model.config userInfo
                                         ]
 
                                   else
@@ -1335,56 +1326,38 @@ update msg model =
                     )
 
         ReplyOpen id ->
-            if model.wallet == NoneDetected || model.wallet == NetworkReady then
-                ( { model
-                    | compose =
-                        { emptyComposeModel | modal = True }
-                  }
-                , gTagOut <|
-                    GTagData
-                        "onboarding initiated"
-                        Nothing
-                        Nothing
-                        Nothing
-                )
+            let
+                context =
+                    Types.Reply id
 
-            else
-                let
-                    context =
-                        Types.Reply id
+                gtagCmd =
+                    if Wallet.isActive model.wallet then
+                        GTagData
+                            "reply opened"
+                            Nothing
+                            Nothing
+                            Nothing
+                            |> gTagOut
 
-                    gtagCmd =
-                        if Wallet.isActive model.wallet then
-                            GTagData
-                                "reply opened"
-                                Nothing
-                                Nothing
-                                Nothing
-                                |> gTagOut
-
-                        else
-                            Cmd.none
-                in
-                ( { model
-                    | compose =
-                        { emptyComposeModel
-                            | reply = True
-                            , context = context
-                            , title = model.compose.title
-                            , body = model.compose.body
-                        }
-                  }
-                , Cmd.batch
-                    [ gtagCmd
-                    , model.wallet
-                        |> Wallet.userInfo
-                        |> unwrap Cmd.none
-                            (.address
-                                >> Eth.Utils.addressToString
-                                >> Ports.refreshWallet
-                            )
-                    ]
-                )
+                    else
+                        Cmd.none
+            in
+            ( { model
+                | compose =
+                    { emptyComposeModel
+                        | reply = True
+                        , context = context
+                        , title = model.compose.title
+                        , body = model.compose.body
+                    }
+              }
+            , Cmd.batch
+                [ gtagCmd
+                , model.wallet
+                    |> Wallet.userInfo
+                    |> unwrap Cmd.none (fetchBalance model.config)
+                ]
+            )
 
         CloseComposeError ->
             ( { model
@@ -1399,64 +1372,18 @@ update msg model =
             , Cmd.none
             )
 
-        ComposeOpen ->
-            if model.wallet == NoneDetected then
-                ( { model
-                    | compose =
-                        if Wallet.isActive model.wallet then
-                            { emptyComposeModel | reply = True }
-
-                        else
-                            { emptyComposeModel | modal = True }
-                  }
-                , gTagOut <|
-                    GTagData
-                        "onboarding initiated"
-                        Nothing
-                        Nothing
-                        Nothing
-                )
-
-            else
-                let
-                    topic =
-                        case model.view of
-                            ViewTopic t ->
-                                t
-
-                            _ ->
-                                model.topicInput
-                                    |> Misc.validateTopic
-                                    |> Maybe.withDefault Misc.defaultTopic
-
-                    trackingCmd =
-                        if Wallet.isActive model.wallet then
-                            Tracking.composePostOpened
-
-                        else
-                            Cmd.none
-                in
-                ( { model
-                    | compose =
-                        { emptyComposeModel
-                            | modal = True
-                            , context = Types.TopLevel topic
-                            , title = model.compose.title
-                            , body = model.compose.body
-                        }
-                    , topicInput = topic
-                  }
-                , Cmd.batch
-                    [ trackingCmd
-                    , model.wallet
-                        |> Wallet.userInfo
-                        |> unwrap Cmd.none
-                            (.address
-                                >> Eth.Utils.addressToString
-                                >> Ports.refreshWallet
-                            )
-                    ]
-                )
+        OpenModal ->
+            ( { model
+                | compose =
+                    model.compose
+                        |> (\r ->
+                                { r
+                                    | modal = True
+                                }
+                           )
+              }
+            , Cmd.none
+            )
 
         ComposeClose ->
             let
@@ -1505,7 +1432,7 @@ update msg model =
             ( { model
                 | compose =
                     model.compose
-                        |> (\r -> { r | dollar = str })
+                        |> (\r -> { r | burnAmount = str })
               }
             , Cmd.none
             )
@@ -1597,6 +1524,52 @@ handleRoute model route =
               }
             , [ defaultTitle ]
             )
+
+        RouteCompose ->
+            if model.wallet == NoneDetected then
+                ( { model
+                    | compose = { emptyComposeModel | modal = True }
+                    , view = ViewCompose
+                  }
+                , [ defaultTitle ]
+                )
+
+            else
+                let
+                    topic =
+                        case model.view of
+                            ViewTopic t ->
+                                t
+
+                            _ ->
+                                model.topicInput
+                                    |> Misc.validateTopic
+                                    |> Maybe.withDefault Misc.defaultTopic
+
+                    trackingCmd =
+                        if Wallet.isActive model.wallet then
+                            Tracking.composePostOpened
+
+                        else
+                            Cmd.none
+                in
+                ( { model
+                    | compose =
+                        { emptyComposeModel
+                            | context = Types.TopLevel topic
+                            , title = model.compose.title
+                            , body = model.compose.body
+                        }
+                    , topicInput = topic
+                    , view = ViewCompose
+                  }
+                , [ trackingCmd
+                  , model.wallet
+                        |> Wallet.userInfo
+                        |> unwrap Cmd.none (fetchBalance model.config)
+                  , defaultTitle
+                  ]
+                )
 
         RouteHome ->
             ( { model
@@ -1749,7 +1722,118 @@ addPost log model =
             }
 
 
-handleTxReceipt : Chain -> TxReceipt -> ( TxStatus, Maybe LogPost, Maybe UserNotice )
+handleTxStatusResult : Model -> TxReceipt -> TrackedTx -> ( Model, Cmd Msg )
+handleTxStatusResult model txReceipt tx =
+    let
+        ( newStatus, maybePost ) =
+            handleTxReceipt tx.chain txReceipt
+
+        isMined =
+            case newStatus of
+                Mined _ ->
+                    True
+
+                _ ->
+                    False
+
+        minedTxCmd =
+            if isMined then
+                case tx.txInfo of
+                    PostTx _ ->
+                        maybePost
+                            |> unwrap Cmd.none
+                                (Misc.getCore
+                                    >> .id
+                                    >> ViewPost
+                                    >> Routing.viewUrlToPathString
+                                    >> Ports.pushUrl
+                                )
+
+                    TipTx id ->
+                        Misc.getPostOrReply id model.rootPosts model.replyPosts
+                            |> Maybe.map Misc.getCore
+                            |> unwrap Cmd.none
+                                (fetchPostInfo model.blockTimes model.config)
+
+                    BurnTx id ->
+                        Misc.getPostOrReply id model.rootPosts model.replyPosts
+                            |> Maybe.map Misc.getCore
+                            |> unwrap Cmd.none
+                                (fetchPostInfo model.blockTimes model.config)
+
+            else
+                Cmd.none
+
+        fbEvent =
+            case tx.txInfo of
+                PostTx _ ->
+                    Tracking.postTxMined
+
+                TipTx _ ->
+                    Cmd.none
+
+                BurnTx _ ->
+                    Cmd.none
+
+        ( newGtagHistory, maybeGtagCmd ) =
+            if isMined then
+                let
+                    ( actionName, label ) =
+                        -- question:
+                        -- is there a way to get postId here for a post?
+                        case tx.txInfo of
+                            PostTx txHash ->
+                                ( "post tx mined"
+                                , Eth.Utils.txHashToString txHash
+                                )
+
+                            TipTx postId ->
+                                ( "tip tx mined"
+                                , Post.postIdToString postId
+                                )
+
+                            BurnTx postId ->
+                                ( "burn tx mined"
+                                , Post.postIdToString postId
+                                )
+                in
+                GTag.gTagOutOnlyOnLabelOrValueChange model.gtagHistory <|
+                    GTagData
+                        actionName
+                        Nothing
+                        (Just label)
+                        Nothing
+
+            else
+                ( model.gtagHistory
+                , Cmd.none
+                )
+    in
+    ( { model
+        | trackedTxs =
+            model.trackedTxs
+                |> Dict.update
+                    (Eth.Utils.txHashToString txReceipt.hash)
+                    (Maybe.map
+                        (\info ->
+                            if info.status == Mining then
+                                { info | status = newStatus }
+
+                            else
+                                info
+                        )
+                    )
+        , gtagHistory = newGtagHistory
+      }
+    , Cmd.batch
+        [ minedTxCmd
+        , maybeGtagCmd
+        , fbEvent
+        ]
+    )
+
+
+handleTxReceipt : Chain -> TxReceipt -> ( TxStatus, Maybe LogPost )
 handleTxReceipt chain txReceipt =
     case txReceipt.status of
         Just True ->
@@ -1775,30 +1859,75 @@ handleTxReceipt chain txReceipt =
                     )
                 |> Mined
             , post
-            , Nothing
             )
 
         Just False ->
             ( Failed Types.MinedButExecutionFailed
-            , Nothing
             , Nothing
             )
 
         Nothing ->
             ( Mining
             , Nothing
-            , Just <|
-                UN.unexpectedError "Weird. I Got a transaction receipt with a success value of 'Nothing'. Depending on why this happened I might be a little confused about any mining transactions."
             )
 
 
-fetchPostInfo : Dict Int Time.Posix -> Config -> Core -> Cmd Msg
+fetchBulk : Config -> Chain -> List PostId -> Cmd Msg
+fetchBulk config chain posts =
+    let
+        hashes =
+            posts |> List.map .messageHash
+    in
+    SSContract.getBulkAccountingCmd
+        (Chain.getConfig chain config)
+        hashes
+        |> Task.map (List.map2 Tuple.pair posts)
+        |> Task.attempt AccountingFetched
+
+
+fetchBlockTime : Dict BlockTimeKey Time.Posix -> Config -> Core -> Cmd Msg
+fetchBlockTime blockTimes config core =
+    let
+        blockTimeKey =
+            ( Chain.getName core.chain, core.id.block )
+    in
+    if Dict.member blockTimeKey blockTimes then
+        Cmd.none
+
+    else
+        Eth.getBlock
+            (Chain.getProviderUrl core.chain config)
+            core.id.block
+            |> Task.map .timestamp
+            |> Task.attempt (BlockTimeFetched blockTimeKey)
+
+
+fetchBalance : Config -> UserInfo -> Cmd Msg
+fetchBalance config userInfo =
+    Eth.getBalance
+        (Chain.getProviderUrl userInfo.chain config)
+        userInfo.address
+        |> Task.attempt
+            (Result.map TokenValue.tokenValue
+                >> BalanceResponse
+            )
+
+
+fetchPostInfo : Dict BlockTimeKey Time.Posix -> Config -> Core -> Cmd Msg
 fetchPostInfo blockTimes config core =
+    let
+        blockTimeKey =
+            ( Chain.getName core.chain, core.id.block )
+    in
     [ SSContract.getAccountingCmd
         (Chain.getConfig core.chain config)
         core.id.messageHash
-        |> Task.attempt (PostAccountingFetched core.id)
-    , if Dict.member core.id.block blockTimes then
+        |> Task.map
+            (Tuple.pair core.id
+                >> List.singleton
+            )
+        |> Task.attempt AccountingFetched
+    , if Dict.member blockTimeKey blockTimes then
         Cmd.none
 
       else
@@ -1806,7 +1935,7 @@ fetchPostInfo blockTimes config core =
             (Chain.getProviderUrl core.chain config)
             core.id.block
             |> Task.map .timestamp
-            |> Task.attempt (BlockTimeFetched core.id.block)
+            |> Task.attempt (BlockTimeFetched blockTimeKey)
     ]
         |> Cmd.batch
 
@@ -1832,7 +1961,7 @@ getPostBurnAmount price txt =
             |> Result.fromMaybe "Invalid burn amount"
 
 
-calculatePagination : SortType -> Dict Int Time.Posix -> Dict PostKey Accounting -> Time.Posix -> Dict PostKey RootPost -> Array.Array (List PostKey)
+calculatePagination : SortType -> Dict BlockTimeKey Time.Posix -> Dict PostKey Accounting -> Time.Posix -> Dict PostKey RootPost -> Array.Array (List PostKey)
 calculatePagination sortType blockTimes accounting now =
     Dict.values
         >> List.sortBy

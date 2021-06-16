@@ -1,13 +1,14 @@
 module View.Wallet exposing (view, viewMobileWalletSuggestion)
 
-import Element exposing (Element, column, el, fill, padding, paragraph, spacing, text, width)
+import Element exposing (Element, column, el, fill, padding, paragraph, row, spacing, text, width)
 import Element.Background as Background
 import Element.Font as Font
+import Element.Input as Input
 import Theme exposing (black, white)
 import Types exposing (Model, Msg)
-import View.Attrs exposing (whiteGlowAttributeSmall)
+import View.Attrs exposing (hover, whiteGlowAttributeSmall)
 import View.Common
-import View.Compose
+import View.Img
 import View.Sidebar
 import Wallet
 
@@ -15,19 +16,42 @@ import Wallet
 view : Model -> Element Msg
 view model =
     if model.wallet == Types.NoneDetected then
-        viewMobileWalletSuggestion
+        [ viewMobileWalletSuggestion
+        , viewWalletConnectButton
+        ]
+            |> column [ width fill, spacing 20 ]
 
     else
         [ View.Sidebar.viewWallet model
         , model.wallet
             |> Wallet.userInfo
             |> View.Common.whenJust
-                (View.Compose.viewInstructions
+                (View.Common.viewInstructions
                     model.chainSwitchInProgress
                     model.dProfile
                 )
+        , viewWalletConnectButton
+            |> View.Common.when (not <| Wallet.isActive model.wallet)
         ]
             |> column [ width fill, spacing 20 ]
+
+
+viewWalletConnectButton : Element Msg
+viewWalletConnectButton =
+    Input.button
+        [ Element.centerX
+        , padding 10
+        , View.Attrs.roundBorder
+        , Background.color Theme.white
+        , hover
+        ]
+        { onPress = Just Types.WalletConnectStart
+        , label =
+            [ View.Img.walletConnect 20
+            , text "WalletConnect"
+            ]
+                |> row [ spacing 10 ]
+        }
 
 
 viewMobileWalletSuggestion : Element msg

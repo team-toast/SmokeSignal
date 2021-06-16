@@ -100,7 +100,7 @@ viewWallet model =
         ( button, maybeExplainerText ) =
             case model.wallet of
                 Types.NoneDetected ->
-                    ( viewButton green "Get started" (Just ComposeOpen)
+                    ( viewButton green "Get started" (Just OpenModal)
                     , Just "Each address has a unique phace!"
                     )
 
@@ -115,7 +115,7 @@ viewWallet model =
                     )
 
                 Types.Active _ ->
-                    ( viewButton green "Compose Post" (Just ComposeOpen)
+                    ( viewButton green "Compose Post" (Just <| GotoView ViewCompose)
                     , Nothing
                     )
     in
