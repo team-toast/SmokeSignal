@@ -1,13 +1,24 @@
 require("./index.css");
-const {
-  getBalance,
-  getWallet,
-  requestAccounts,
-  handleWalletEvents,
-  xDaiImport,
-  sendTransaction,
-} = require("./metamask.js");
+const metamask = require("./metamask.js");
 const chains = require("../config.json");
+
+const WalletConnect = require("@walletconnect/client").default;
+const QRCodeModal = require("@walletconnect/qrcode-modal");
+
+window.localStorage.removeItem("walletconnect");
+
+/* Needs to be able to be re-initiated because QRCodeModal was
+ * refusing to re-open if the user closed it.
+ * Revisit after WalletConnect 2.0 release.
+ */
+const newConnector = () =>
+  new WalletConnect({
+    bridge: "https://bridge.walletconnect.org",
+    qrcodeModal: QRCodeModal,
+  });
+
+// eslint-disable-next-line fp/no-let
+let connector = newConnector();
 
 if (window.navigator.serviceWorker) {
   window.navigator.serviceWorker.register("./sw.js");
@@ -38,16 +49,26 @@ window.addEventListener("load", () => {
   app.ports.log.subscribe((x) => console.log(x));
 
   app.ports.xDaiImport.subscribe((_) =>
-    xDaiImport()
+    metamask
+      .xDaiImport()
       .then(app.ports.chainSwitchResponse.send)
       .catch(app.ports.chainSwitchResponse.send)
   );
 
+  app.ports.connectToWalletConnect.subscribe(() => {
+    if (!connector.connected) {
+      // eslint-disable-next-line fp/no-mutation
+      connector = newConnector();
+      attachConnectorEvents(app);
+      connector.createSession();
+    }
+  });
+
   app.ports.connectToWeb3.subscribe(() =>
     (async () => {
-      const [account] = await requestAccounts();
+      const [account] = await metamask.requestAccounts();
 
-      const wallet = account ? await getWallet(account) : null;
+      const wallet = account ? await metamask.getWallet(account) : null;
 
       app.ports.walletResponse.send(wallet);
     })().catch((e) => {
@@ -55,25 +76,49 @@ window.addEventListener("load", () => {
     })
   );
 
-  app.ports.refreshWallet.subscribe((account) =>
-    (async () => {
-      const balance = await getBalance(account);
+  app.ports.submitPost.subscribe(({ provider, params }) => {
+    switch (provider) {
+      case "METAMASK": {
+        metamask
+          .sendTransaction(params)
+          .then(app.ports.postResponse.send)
+          .catch(app.ports.postResponse.send);
+        break;
+      }
+      case "WALLETCONNECT": {
+        connector
+          .sendTransaction(params)
+          .then(app.ports.postResponse.send)
+          .catch(app.ports.postResponse.send);
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+  });
 
-      app.ports.balanceResponse.send(balance);
-    })().catch(app.ports.balanceResponse.send)
-  );
-
-  app.ports.submitPost.subscribe((params) =>
-    sendTransaction(params)
-      .then(app.ports.postResponse.send)
-      .catch(app.ports.postResponse.send)
-  );
-
-  app.ports.submitBurnOrTip.subscribe((params) =>
-    sendTransaction(params)
-      .then(app.ports.burnOrTipResponse.send)
-      .catch(app.ports.burnOrTipResponse.send)
-  );
+  app.ports.submitBurnOrTip.subscribe(({ provider, params }) => {
+    switch (provider) {
+      case "METAMASK": {
+        metamask
+          .sendTransaction(params)
+          .then(app.ports.postResponse.send)
+          .catch(app.ports.postResponse.send);
+        break;
+      }
+      case "WALLETCONNECT": {
+        connector
+          .sendTransaction(params)
+          .then(app.ports.burnOrTipResponse.send)
+          .catch(app.ports.burnOrTipResponse.send);
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+  });
 
   app.ports.share.subscribe((params) => window.navigator.share(params));
 
@@ -107,7 +152,7 @@ function startDapp() {
   });
 
   if (hasWallet) {
-    handleWalletEvents(app.ports.walletResponse.send);
+    metamask.handleWalletEvents(app.ports.walletResponse.send);
   }
 
   return app;
@@ -154,6 +199,42 @@ function getCookieConsent() {
 function setCookieConsent() {
   window.localStorage.setItem(COOKIE_CONSENT, true);
 }
+
+const attachConnectorEvents = (app) => {
+  connector.on("connect", (error, payload) => {
+    if (error) {
+      return console.err(error);
+    }
+
+    const res = payload.params[0];
+
+    if (res) {
+      app.ports.walletConnectResponse.send(res);
+    }
+  });
+
+  connector.on("session_update", (error, payload) => {
+    if (error) {
+      return console.error(error);
+    }
+
+    const res = payload.params[0];
+
+    if (res) {
+      app.ports.walletConnectResponse.send(res);
+    }
+  });
+
+  connector.on("disconnect", (error, _payload) => {
+    if (error) {
+      return console.error(error);
+    }
+
+    window.localStorage.removeItem("walletconnect");
+
+    app.ports.walletResponse.send(null);
+  });
+};
 
 const handleUrlChanges = (app) => {
   // https://github.com/elm/browser/blob/master/notes/navigation-in-elements.md

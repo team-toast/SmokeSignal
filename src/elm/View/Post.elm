@@ -1,4 +1,4 @@
-module View.Post exposing (view, viewBurnOrTip, viewChainCard)
+module View.Post exposing (view, viewBurnOrTip, viewChainCard, viewReplyInput)
 
 import Chain
 import Dict exposing (Dict)
@@ -10,12 +10,13 @@ import Element.Input as Input
 import Maybe.Extra exposing (unwrap)
 import Misc
 import Set exposing (Set)
-import Theme exposing (almostWhite, black, white)
+import Theme exposing (almostWhite, black, orange, white)
 import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
-import View.Attrs exposing (cappedWidth, hover, roundBorder, slightRound, typeFont, whiteGlowAttributeSmall)
+import View.Attrs exposing (cappedWidth, hover, roundBorder, sansSerifFont, slightRound, typeFont, whiteGlowAttributeSmall)
 import View.Common exposing (chain, phaceElement, when, whenAttr, whenJust)
+import View.Compose
 import View.Img
 import View.Markdown
 
@@ -411,7 +412,7 @@ viewBurnOrTipInput post state =
                     |> Maybe.andThen String.toFloat
                     |> Maybe.andThen
                         (\amount ->
-                            if amount >= 0.01 then
+                            if amount >= 0 then
                                 Just <| SubmitTipOrBurn amount
 
                             else
@@ -577,3 +578,27 @@ supportBurnButton postId =
             View.Img.dollar 30 white
                 |> el [ centerX, centerY ]
         }
+
+
+viewReplyInput : Bool -> DisplayProfile -> ComposeModel -> UserInfo -> Element Msg
+viewReplyInput a b c userInfo =
+    View.Compose.composePanel False (viewReplyLabel userInfo.chain) a b c userInfo
+
+
+viewReplyLabel : Chain -> Element msg
+viewReplyLabel chain =
+    [ [ View.Img.replyArrow 25 orange
+      , "Reply with"
+            |> text
+            |> el [ Font.color orange ]
+      ]
+        |> row [ spacing 10 ]
+    , View.Common.chain chain
+        |> el
+            [ Background.color white
+            , View.Attrs.roundBorder
+            , padding 5
+            , Font.color black
+            ]
+    ]
+        |> row [ spacing 10, Element.moveUp 5 ]

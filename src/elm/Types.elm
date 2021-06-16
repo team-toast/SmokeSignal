@@ -3,14 +3,13 @@ module Types exposing (..)
 import Array exposing (Array)
 import Browser.Dom
 import Dict exposing (Dict)
-import Eth.Sentry.Wallet exposing (WalletSentry)
 import Eth.Types exposing (Address, Hex, TxHash, TxReceipt)
 import GTag
 import Http
 import Json.Decode exposing (Value)
 import Sentry as EventSentry exposing (EventSentry)
 import Set exposing (Set)
-import Time
+import Time exposing (Posix)
 import TokenValue exposing (TokenValue)
 import UserNotice exposing (UserNotice)
 
@@ -33,7 +32,7 @@ type alias Flags =
 
 type alias Model =
     { wallet : Wallet
-    , now : Time.Posix
+    , now : Posix
     , dProfile : DisplayProfile
     , sentries :
         { xDai : Maybe (EventSentry Msg)
@@ -41,7 +40,7 @@ type alias Model =
         }
     , view : View
     , sortType : SortType
-    , blockTimes : Dict Int Time.Posix
+    , blockTimes : Dict BlockTimeKey Posix
     , showAddressId : Maybe PhaceIconId
     , userNotices : List UserNotice
     , trackedTxs : Dict String TrackedTx -- Keyed by (Eth.Utils.txHashToString hash)
@@ -67,25 +66,35 @@ type alias Model =
     , faucetToken : String
     , gtagHistory : GTag.GTagHistory
     , shareEnabled : Bool
+    , ethAccountingQueue :
+        Maybe
+            { updatedAt : Posix
+            , postIds : List PostId
+            }
+    , xDaiAccountingQueue :
+        Maybe
+            { updatedAt : Posix
+            , postIds : List PostId
+            }
     }
 
 
 type Msg
     = RouteChanged Route
-    | Tick Time.Posix
+    | Tick Posix
     | ChangeDemoPhaceSrc
     | NewDemoSrc String
     | ScrollResponse (Result Browser.Dom.Error ())
     | Resize Int Int
     | EventSentryMsg Chain EventSentry.Msg
     | PostLogReceived (Eth.Types.Event (Result Json.Decode.Error LogPost))
-    | PostAccountingFetched PostId (Result Http.Error Accounting)
+    | AccountingFetched (Result Http.Error (List ( PostId, Accounting )))
     | ToggleTrackedTxs
     | CheckTrackedTxsStatus
     | TrackedTxStatusResult (Result Http.Error (Maybe TxReceipt))
-    | BlockTimeFetched Int (Result Http.Error Time.Posix)
+    | BlockTimeFetched BlockTimeKey (Result Http.Error Posix)
     | DismissNotice Int
-    | ComposeOpen
+    | OpenModal
     | ReplyOpen PostId
     | ComposeClose
     | CookieConsentGranted
@@ -95,13 +104,15 @@ type Msg
     | SubmitDraft
     | ShowNewToSmokeSignalModal Bool
     | ComposeBodyChange String
+    | AddToAccountingQueue Core Posix
+    | HandleAccountingQueues Posix
     | ComposeTitleChange String
     | ComposeDollarChange String
     | BurnOrTipUXInputChange String
     | TopicInputChange String
     | StartBurnOrTipUX PostId BurnOrTip
     | CancelPostInput
-    | WalletResponse (Result WalletConnectErr UserInfo)
+    | WalletResponse (Result WalletResponseErr UserInfo)
     | TopicSubmit
     | XDaiImport
     | SanitizeTopic
@@ -117,10 +128,11 @@ type Msg
     | SetSortType SortType
     | FaucetResponse (Result Http.Error FaucetResult)
     | ToggleTooltip TooltipId
-    | BalanceResponse (Maybe TokenValue)
+    | BalanceResponse (Result Http.Error TokenValue)
     | CloseComposeError
     | SharePost Core
     | CyclePhace
+    | WalletConnectStart
 
 
 type RequestOutcome
@@ -149,6 +161,11 @@ type alias PostKey =
     ( String, String )
 
 
+type alias BlockTimeKey =
+    -- String comes from Chain.getName
+    ( String, Int )
+
+
 type alias RootPost =
     { core : Core
     , topic : String
@@ -157,7 +174,8 @@ type alias RootPost =
 
 type alias ChainConfig =
     { chain : Chain
-    , contract : Address
+    , ssContract : Address
+    , ssScriptsContract : Address
     , startScanBlock : Int
     , providerUrl : String
     }
@@ -189,7 +207,7 @@ type alias Core =
 
 type alias ComposeModel =
     { title : String
-    , dollar : String
+    , burnAmount : String
     , body : String
     , modal : Bool
     , reply : Bool
@@ -237,23 +255,24 @@ type View
     | ViewAbout
     | ViewUser Address
     | ViewPhace
+    | ViewCompose
 
 
 type alias UserInfo =
     { address : Address
-    , balance : TokenValue
+    , balance : Maybe TokenValue
     , chain : Chain
     , faucetStatus : FaucetUX
+    , provider : Provider
     }
 
 
-type alias WalletInfo =
-    { walletSentry : WalletSentry
-    , balance : Maybe TokenValue
-    }
+type Provider
+    = WalletConnect
+    | MetaMask
 
 
-type WalletConnectErr
+type WalletResponseErr
     = WalletCancel
     | WalletDisconnected
     | WalletInProgress
@@ -362,6 +381,7 @@ type Route
     | RouteTxns
     | RouteWallet
     | RouteAbout
+    | RouteCompose
     | RouteUser Address
     | RoutePhace
 

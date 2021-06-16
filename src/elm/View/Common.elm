@@ -1,9 +1,9 @@
-module View.Common exposing (burn, cancel, chain, ellipsisText, horizontalRule, link, phaceElement, spinner, timingOrSpinner, topic, verticalRule, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (burn, cancel, chain, ellipsisText, horizontalRule, link, phaceElement, scrollbarHack, spinner, timingOrSpinner, topic, verticalRule, viewInstructions, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
 
-import Element exposing (Attribute, Color, Element, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
+import Element exposing (Attribute, Color, Element, centerX, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -20,7 +20,7 @@ import Theme exposing (black, white)
 import Time
 import TokenValue exposing (TokenValue)
 import Types exposing (..)
-import View.Attrs exposing (hover, style)
+import View.Attrs exposing (hover, roundBorder, style)
 import View.Img
 
 
@@ -244,3 +244,129 @@ burn amount =
             , View.Img.icon 25
             ]
         ]
+
+
+viewInstructions : Bool -> DisplayProfile -> UserInfo -> Element Msg
+viewInstructions chainSwitchInProgress dProfile userInfo =
+    (case userInfo.chain of
+        Eth ->
+            [ [ el [ Font.bold ] (text "Note:")
+              , text " Posting on SmokeSignal using Ethereum can result in very high gas fees. Using xDai is a cheaper alternative."
+              ]
+                |> paragraph [ Font.color black ]
+            , Input.button
+                [ Background.color Theme.green
+                , padding 10
+                , View.Attrs.roundBorder
+                , hover
+                , width <| px 180
+                , Element.alignRight
+                ]
+                { onPress = Just XDaiImport
+                , label =
+                    if chainSwitchInProgress then
+                        spinner 20 black
+                            |> el [ centerX ]
+
+                    else
+                        text "Switch to xDai"
+                            |> el [ centerX ]
+                }
+                |> when (userInfo.provider == Types.MetaMask)
+            ]
+                |> (if dProfile == Mobile then
+                        column
+
+                    else
+                        row
+                   )
+                    [ width fill
+                    , spacing 10
+                    ]
+                |> Just
+
+        XDai ->
+            if userInfo.balance |> unwrap False TokenValue.isZero then
+                viewFaucet dProfile userInfo.faucetStatus
+                    |> Just
+
+            else
+                Nothing
+    )
+        |> whenJust
+            (el
+                [ padding 10
+                , Background.color white
+                , roundBorder
+                , width fill
+                , Font.color black
+                ]
+            )
+
+
+viewFaucet : DisplayProfile -> FaucetUX -> Element Msg
+viewFaucet dProfile faucetStatus =
+    case faucetStatus of
+        FaucetStatus status ->
+            [ [ [ el [ Font.bold ] (text "Note:")
+                , text " Your xDai wallet is currently empty."
+                ]
+                    |> paragraph []
+              , Input.button
+                    [ Background.color Theme.green
+                    , padding 10
+                    , View.Attrs.roundBorder
+                    , hover
+                    , width <| px 240
+                    ]
+                    { onPress =
+                        if status == Types.RequestInProgress then
+                            Nothing
+
+                        else
+                            Just SubmitFaucet
+                    , label =
+                        if status == Types.RequestInProgress then
+                            spinner 20 black
+                                |> el [ centerX ]
+
+                        else
+                            [ text "Request xDai from faucet" ]
+                                |> paragraph [ Font.center ]
+                    }
+              ]
+                |> (if dProfile == Mobile then
+                        column
+
+                    else
+                        row
+                   )
+                    [ width fill
+                    , spacing 10
+                    ]
+            , case status of
+                Types.RequestReady ->
+                    Element.none
+
+                Types.RequestInProgress ->
+                    Element.none
+
+                Types.RequestError message ->
+                    [ text message ]
+                        |> paragraph []
+            ]
+                |> column [ width fill, spacing 10 ]
+
+        FaucetSuccess ->
+            [ text "Your faucet request was successful. Please check your wallet for an updated balance."
+            ]
+                |> paragraph []
+
+
+{-| Element.scrollbarY sometimes needs to be paired with
+a column to work correctly.
+-}
+scrollbarHack : Element msg -> Element msg
+scrollbarHack =
+    List.singleton
+        >> column [ width fill, height fill ]
