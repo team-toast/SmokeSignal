@@ -1,4 +1,4 @@
-module Contracts.SmokeSignal exposing (burnEncodedPost, burnForPost, decodePost, getAccountingCmd, getBulkAccountingCmd, getEthPriceCmd, messageBurnEventFilter, tipForPost)
+module Contracts.SmokeSignal exposing (burnEncodedPost, burnForPost, burnTemp, decodePost, getAccountingCmd, getBulkAccountingCmd, getEthPriceCmd, messageBurnEventFilter, tipForPost)
 
 import BigInt
 import Contracts.Generated.SmokeSignal as G
@@ -36,6 +36,26 @@ messageBurnEventFilter smokeSignalContractAddress from to maybeHash maybeAuthor 
                 { filter
                     | fromBlock = from
                     , toBlock = to
+                }
+           )
+
+
+burnTemp : Address -> Address -> Draft -> Call Hex
+burnTemp addr smokeSignalContractAddress draft =
+    G.burnMessage
+        smokeSignalContractAddress
+        (Post.encodePostContent draft)
+        (TokenValue.getEvmValue draft.donateAmount)
+        |> Helpers.Eth.updateCallValue
+            (TokenValue.add
+                draft.authorBurn
+                draft.donateAmount
+                |> TokenValue.getEvmValue
+            )
+        |> (\call ->
+                { call
+                    | gas = Just 300000
+                    , from = Just addr
                 }
            )
 

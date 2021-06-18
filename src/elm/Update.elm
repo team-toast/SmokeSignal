@@ -941,6 +941,62 @@ update msg model =
                     )
                 )
 
+        SubmitDraftLocal ->
+            ( model
+            , SSContract.getEthPriceCmd
+                (Chain.getConfig Eth model.config)
+                |> Task.attempt PriceResponseLocal
+            )
+
+        PriceResponseLocal res ->
+            res
+                |> unpack
+                    (\_ ->
+                        ( model, Ports.log "bad temp" )
+                    )
+                    (\price ->
+                        let
+                            burnAmount =
+                                TokenValue.fromFloatWithWarning (1.0 / price)
+
+                            context =
+                                TopLevel "test-temp-topic"
+
+                            metadata =
+                                { metadataVersion =
+                                    Post.currentMetadataVersion
+                                , context = context
+                                , maybeDecodeError = Nothing
+                                }
+
+                            content =
+                                { title = Just "Test title"
+                                , desc = Nothing
+                                , body = "Test body"
+                                }
+
+                            config =
+                                Chain.getConfig Eth model.config
+
+                            address =
+                                Eth.Utils.unsafeToAddress "0x940fbbc4A30B47327d14783ea1eC623e5B314B1a"
+
+                            txParams =
+                                { donateAmount = TokenValue.zero
+                                , author = address
+                                , authorBurn = burnAmount
+                                , content = content
+                                , metadata = metadata
+                                }
+                                    |> SSContract.burnTemp address config.ssContract
+                                    |> Eth.toSend
+                                    |> Eth.encodeSend
+                        in
+                        ( model
+                        , Ports.submitTemp txParams
+                        )
+                    )
+
         SubmitTipOrBurn amount ->
             ensureUserInfo
                 (\userInfo ->

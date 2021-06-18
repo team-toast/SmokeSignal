@@ -1,6 +1,9 @@
 require("./index.css");
 const metamask = require("./metamask.js");
 const chains = require("../config.json");
+const Accounts = require("web3-eth-accounts");
+const Eth = require("web3-eth");
+const Web3Utils = require("web3-utils");
 
 const WalletConnect = require("@walletconnect/client").default;
 const QRCodeModal = require("@walletconnect/qrcode-modal");
@@ -37,12 +40,43 @@ const gaTrackingId = GA_TRACKING_ID;
 const HAS_VISITED = "has-visited";
 const COOKIE_CONSENT = "cookie-consent";
 
-window.addEventListener("load", () => {
+window.addEventListener("load", async () => {
   registerPageView();
   const app = startDapp();
 
   analyticsGtagPortStuff(app);
   seoPortStuff(app);
+
+  //const accounts = new Accounts("ws://localhost:8546");
+  //const accounts = new Accounts("http://127.0.0.1:8545");
+
+  //const eth = new Eth(Eth.givenProvider);
+  //const eth = new Eth("ws://localhost:8546");
+  const eth = new Eth("http://127.0.0.1:8545");
+
+  const accounts = new Accounts(eth);
+
+  //const acc = await accounts.create();
+  const priv = "foo";
+  const acc = await accounts.privateKeyToAccount(priv);
+  console.log(acc.address);
+
+  //console.log(Eth.givenProvider);
+
+  //setInterval(async () => {
+  const bal = await eth.getBalance(acc.address);
+  console.log(Web3Utils.fromWei(bal));
+  //}, 3000);
+
+  app.ports.submitTemp.subscribe(async (params) => {
+    //console.log(params);
+    const signed = await acc.signTransaction(params);
+    //const signed = await accounts.signTransaction(params, priv);
+    //const signed = await eth.signTransaction(params, acc.address);
+    //const res = await eth.sendTransaction(params);
+    const res = await eth.sendSignedTransaction(signed.rawTransaction);
+    console.log(res);
+  });
 
   app.ports.setVisited.subscribe(() => localStorage.setItem(HAS_VISITED, true));
 

@@ -131,6 +131,8 @@ type Msg
     | BalanceResponse (Result Http.Error TokenValue)
     | CloseComposeError
     | SharePost Core
+    | SubmitDraftLocal
+    | PriceResponseLocal (Result Http.Error Float)
     | WalletConnectStart
 
 
