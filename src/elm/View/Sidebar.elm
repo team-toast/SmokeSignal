@@ -1,10 +1,13 @@
 module View.Sidebar exposing (view, viewWallet)
 
 import Chain
+import Dict
 import Element exposing (Color, Element, centerX, centerY, column, el, fill, height, padding, paragraph, px, row, spacing, text, width)
 import Element.Background as Background
+import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
+import Eth
 import Eth.Utils
 import Maybe.Extra exposing (unwrap)
 import Misc
@@ -17,7 +20,29 @@ import Wallet
 
 view : Model -> Element Msg
 view model =
-    [ viewWallet model
+    [ [ text <| "post count: " ++ String.fromInt (Dict.size model.rootPosts + Dict.size model.replyPosts)
+      , [ text <| "since block: "
+        , text <| String.fromInt model.trackingBlock
+        ]
+            |> column [ spacing 5 ]
+      , Input.button [ padding 10, Border.width 1, hover ]
+            { onPress = Just <| Rewind 100000
+            , label =
+                text <| "-100k"
+            }
+      , Input.button [ padding 10, Border.width 1, hover ]
+            { onPress = Just <| Rewind 250000
+            , label =
+                text <| "-250k"
+            }
+      , Input.button [ padding 10, Border.width 1, hover ]
+            { onPress = Just <| Rewind 500000
+            , label =
+                text <| "-500k"
+            }
+      ]
+        |> column [ spacing 20, padding 20, Background.color white ]
+    , viewWallet model
     , [ Input.button [ height <| px 30, width fill, hover ]
             { onPress = Just <| GotoView ViewTopics
             , label =

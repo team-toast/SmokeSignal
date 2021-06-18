@@ -63,6 +63,7 @@ emptyModel =
     , shareEnabled = False
     , ethAccountingQueue = Nothing
     , xDaiAccountingQueue = Nothing
+    , trackingBlock = 0
     }
 
 

@@ -1,4 +1,4 @@
-module Sentry exposing (EventSentry, Msg, init, update, watch)
+module Sentry exposing (EventSentry, Msg, init, stopWatching, update, watch)
 
 import Dict exposing (Dict)
 import Eth
@@ -290,3 +290,8 @@ updateRequests ref logs requests =
             (\requestState -> { requestState | logCount = List.length logs + requestState.logCount })
         )
         requests
+
+
+stopWatching : EventSentry msg -> EventSentry msg
+stopWatching (EventSentry sentry) =
+    EventSentry { sentry | watching = Set.empty }

@@ -66,6 +66,7 @@ type alias Model =
     , faucetToken : String
     , gtagHistory : GTag.GTagHistory
     , shareEnabled : Bool
+    , trackingBlock : Int
     , ethAccountingQueue :
         Maybe
             { updatedAt : Posix
@@ -132,6 +133,8 @@ type Msg
     | CloseComposeError
     | SharePost Core
     | WalletConnectStart
+    | CurrentBlock Int
+    | Rewind Int
 
 
 type RequestOutcome

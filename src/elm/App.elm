@@ -6,6 +6,7 @@ import Browser.Navigation
 import Chain
 import Contracts.SmokeSignal
 import DemoPhaceSrcMutator
+import Eth
 import Eth.Types
 import Json.Decode
 import Maybe.Extra exposing (unwrap)
@@ -14,6 +15,7 @@ import Ports
 import Random
 import Routing
 import Sentry
+import Task
 import Time
 import Types exposing (Flags, Model, Msg)
 import Update exposing (update)
@@ -174,12 +176,13 @@ startApp flags model =
         , dProfile = Misc.screenWidthToDisplayProfile flags.width
         , sentries =
             model.sentries
-                |> (\cs ->
-                        { cs
-                            | xDai = Just xDaiSentry
-                            , ethereum = Just ethSentry
-                        }
-                   )
+
+        --|> (\cs ->
+        --{ cs
+        --| xDai = Just xDaiSentry
+        --, ethereum = Just ethSentry
+        --}
+        --)
         , userNotices = routingUserNotices
         , cookieConsentGranted = flags.cookieConsent
         , newUserModal = flags.newUser
@@ -188,10 +191,12 @@ startApp flags model =
         , shareEnabled = flags.shareEnabled
       }
     , Cmd.batch
-        [ ethCmd
-        , xDaiCmd
-        , Random.generate Types.NewDemoSrc DemoPhaceSrcMutator.addressSrcGenerator
+        [ --ethCmd
+          --xDaiCmd
+          Random.generate Types.NewDemoSrc DemoPhaceSrcMutator.addressSrcGenerator
         , Ports.setDescription Misc.defaultSeoDescription
+        , Eth.getBlockNumber model.config.xDai.providerUrl
+            |> Task.attempt (Result.withDefault 0 >> Types.CurrentBlock)
         ]
     )
 

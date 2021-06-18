@@ -3,7 +3,7 @@ module Update exposing (update)
 import Array
 import Browser.Dom
 import Chain
-import Contracts.SmokeSignal as SSContract
+import Contracts.SmokeSignal
 import DemoPhaceSrcMutator
 import Dict exposing (Dict)
 import Eth
@@ -40,6 +40,88 @@ update msg model =
                 |> unwrap ( model, Ports.log "Missing wallet" ) fn
     in
     case msg of
+        Rewind n ->
+            model.sentries.xDai
+                |> unwrap ( model, Cmd.none )
+                    (\sentry ->
+                        let
+                            config =
+                                model.config.xDai
+
+                            scan =
+                                Contracts.SmokeSignal.messageBurnEventFilter
+                                    config.ssContract
+                                    (Eth.Types.BlockNum (model.trackingBlock - n))
+                                    Eth.Types.LatestBlock
+                                    --(Eth.Types.BlockNum config.startScanBlock)
+                                    Nothing
+                                    Nothing
+
+                            ( newSentry, secondEventSentryCmd, _ ) =
+                                Sentry.watch
+                                    (Contracts.SmokeSignal.decodePost config.chain
+                                        >> Types.PostLogReceived
+                                    )
+                                    (Sentry.stopWatching sentry)
+                                    scan
+                        in
+                        ( { model
+                            | trackingBlock =
+                                model.trackingBlock - n
+                            , sentries =
+                                model.sentries
+                                    |> (\cs ->
+                                            { cs
+                                                | xDai = Just newSentry
+                                            }
+                                       )
+                          }
+                        , secondEventSentryCmd
+                        )
+                    )
+
+        CurrentBlock n ->
+            let
+                config =
+                    model.config.xDai
+
+                scan =
+                    Contracts.SmokeSignal.messageBurnEventFilter
+                        config.ssContract
+                        (Eth.Types.BlockNum n)
+                        Eth.Types.LatestBlock
+                        --(Eth.Types.BlockNum config.startScanBlock)
+                        Nothing
+                        Nothing
+
+                ( initEventSentry, initEventSentryCmd ) =
+                    Sentry.init (Types.EventSentryMsg config.chain)
+                        config.providerUrl
+
+                ( eventSentry, secondEventSentryCmd, _ ) =
+                    Sentry.watch
+                        (Contracts.SmokeSignal.decodePost config.chain
+                            >> Types.PostLogReceived
+                        )
+                        initEventSentry
+                        scan
+            in
+            ( { model
+                | trackingBlock = n
+                , sentries =
+                    model.sentries
+                        |> (\cs ->
+                                { cs
+                                    | xDai = Just eventSentry
+                                }
+                           )
+              }
+            , Cmd.batch
+                [ initEventSentryCmd
+                , secondEventSentryCmd
+                ]
+            )
+
         RouteChanged route ->
             handleRoute model route
 
@@ -883,7 +965,7 @@ update msg model =
 
                                                 txParams =
                                                     postDraft
-                                                        |> SSContract.burnEncodedPost userInfo config.ssContract
+                                                        |> Contracts.SmokeSignal.burnEncodedPost userInfo config.ssContract
                                                         |> Eth.toSend
                                                         |> Eth.encodeSend
                                             in
@@ -935,7 +1017,7 @@ update msg model =
                     ( { model
                         | compose = compose
                       }
-                    , SSContract.getEthPriceCmd
+                    , Contracts.SmokeSignal.getEthPriceCmd
                         (Chain.getConfig userInfo.chain model.config)
                         |> Task.attempt PriceResponse
                     )
@@ -963,7 +1045,7 @@ update msg model =
                                 ( { model
                                     | maybeBurnOrTipUX = Just postState
                                   }
-                                , SSContract.getEthPriceCmd
+                                , Contracts.SmokeSignal.getEthPriceCmd
                                     (Chain.getConfig userInfo.chain model.config)
                                     |> Task.attempt
                                         (BurnOrTipPriceResponse txState)
@@ -1016,10 +1098,10 @@ update msg model =
                                     ( fn, tipOrBurn ) =
                                         case state.txType of
                                             Tip ->
-                                                ( SSContract.tipForPost, "tip" )
+                                                ( Contracts.SmokeSignal.tipForPost, "tip" )
 
                                             Burn ->
-                                                ( SSContract.burnForPost, "burn" )
+                                                ( Contracts.SmokeSignal.burnForPost, "burn" )
 
                                     txParams =
                                         fn userInfo config.ssContract state.postHash amount TokenValue.zero
@@ -1831,7 +1913,7 @@ handleTxReceipt chain txReceipt =
                 post =
                     txReceipt.logs
                         |> List.map
-                            (SSContract.decodePost chain
+                            (Contracts.SmokeSignal.decodePost chain
                                 >> .returnData
                             )
                         |> List.filterMap Result.toMaybe
@@ -1868,7 +1950,7 @@ fetchBulk config chain posts =
         hashes =
             posts |> List.map .messageHash
     in
-    SSContract.getBulkAccountingCmd
+    Contracts.SmokeSignal.getBulkAccountingCmd
         (Chain.getConfig chain config)
         hashes
         |> Task.map (List.map2 Tuple.pair posts)
@@ -1909,7 +1991,7 @@ fetchPostInfo blockTimes config core =
         blockTimeKey =
             ( Chain.getName core.chain, core.id.block )
     in
-    [ SSContract.getAccountingCmd
+    [ Contracts.SmokeSignal.getAccountingCmd
         (Chain.getConfig core.chain config)
         core.id.messageHash
         |> Task.map
@@ -1967,3 +2049,34 @@ resetScroll : Cmd Msg
 resetScroll =
     Browser.Dom.setViewportOf Misc.scrollId 0 0
         |> Task.attempt ScrollResponse
+
+
+startSentry : Types.ChainConfig -> ( Sentry.EventSentry Msg, Cmd Msg )
+startSentry config =
+    let
+        scan =
+            Contracts.SmokeSignal.messageBurnEventFilter
+                config.ssContract
+                (Eth.Types.BlockNum config.startScanBlock)
+                Eth.Types.LatestBlock
+                Nothing
+                Nothing
+
+        ( initEventSentry, initEventSentryCmd ) =
+            Sentry.init (Types.EventSentryMsg config.chain)
+                config.providerUrl
+
+        ( eventSentry, secondEventSentryCmd, _ ) =
+            Sentry.watch
+                (Contracts.SmokeSignal.decodePost config.chain
+                    >> Types.PostLogReceived
+                )
+                initEventSentry
+                scan
+    in
+    ( eventSentry
+    , Cmd.batch
+        [ initEventSentryCmd
+        , secondEventSentryCmd
+        ]
+    )
