@@ -76,6 +76,7 @@ type alias Model =
             { updatedAt : Posix
             , postIds : List PostId
             }
+    , demoPhaceAddr : String
     }
 
 
@@ -84,6 +85,7 @@ type Msg
     | Tick Posix
     | ChangeDemoPhaceSrc
     | NewDemoSrc String
+    | NewDemoAddr String
     | ScrollResponse (Result Browser.Dom.Error ())
     | Resize Int Int
     | EventSentryMsg Chain EventSentry.Msg

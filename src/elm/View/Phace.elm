@@ -1,5 +1,6 @@
 module View.Phace exposing (view)
 
+import DemoPhaceSrcMutator
 import Element
     exposing
         ( Element
@@ -7,22 +8,27 @@ import Element
         , column
         , el
         , fill
+        , padding
         , paddingXY
         , row
+        , spacing
         , spacingXY
         , text
         , width
-        ,padding
         )
-import Element.Events
+import Element.Background as Background
+import Element.Font as Font
+import Element.Input as Input
+import Eth.Types exposing (Address)
 import Eth.Utils
 import Html.Events exposing (onClick)
 import Maybe.Extra exposing (unwrap)
+import Random
+import Theme exposing (white)
 import Types exposing (Model, Msg(..), PhaceIconId(..))
+import View.Attrs
 import View.Common exposing (phaceElement)
 import Wallet
-import Element.Font exposing (Font)
-import Theme exposing (white)
 
 
 view : Model -> Element Msg
@@ -55,25 +61,47 @@ view model =
         ]
         [ column
             [ width fill ]
-            [ el [ centerX, Element.Font.color white ] <| text "savedPhaces"
-            ]
-        , column
-            [ width fill ]
             [ row
-                [ width fill ]
+                [ width fill, spacing 10, padding 10 ]
                 [ column []
                     [ phaceEl ]
-                , column [ paddingXY 20 10, spacingXY 10 10 ]
+                , column [ paddingXY 20 10, spacing 10 ]
                     [ row
                         []
-                        [ el [ centerX, Element.Font.color white, Element.Events.onClick CyclePhace ] <| text "Cycle Phace" ]
+                        [ viewCyclePhaceButton ]
                     , row
                         []
-                        [ el [ centerX, Element.Font.color white ] <| text "SavePhace" ]
+                        [ viewSavePhaceButton ]
                     ]
                 ]
-            , row [ padding 20 ]
-                [ el [ centerX, Element.Font.color white ] <| text "Ethereum Address"
-                ]
+            , el [ centerX, Font.color white ] <| text model.demoPhaceAddr
             ]
         ]
+
+
+viewCyclePhaceButton : Element Msg
+viewCyclePhaceButton =
+    Input.button
+        [ centerX
+        , padding 10
+        , View.Attrs.roundBorder
+        , Background.color Theme.green
+        , Font.color white
+        ]
+        { onPress = Just Types.CyclePhace
+        , label = text "Cycle Phace"
+        }
+
+
+viewSavePhaceButton : Element Msg
+viewSavePhaceButton =
+    Input.button
+        [ centerX
+        , padding 10
+        , View.Attrs.roundBorder
+        , Background.color Theme.green
+        , Font.color white
+        ]
+        { onPress = Just Types.CyclePhace
+        , label = text "Save Phace"
+        }

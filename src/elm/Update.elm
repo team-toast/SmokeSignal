@@ -1508,7 +1508,13 @@ update msg model =
             ( model, Cmd.none )
 
         CyclePhace ->
-            (model, Cmd.none)
+            ( model
+            , Random.generate NewDemoAddr DemoPhaceSrcMutator.addressSrcGenerator
+            )
+        NewDemoAddr addr ->
+            ( { model | demoPhaceAddr = addr |> Eth.Utils.unsafeToAddress |> Eth.Utils.addressToString }
+            , Cmd.none
+            )
 
 
 handleRoute : Model -> Route -> ( Model, Cmd Msg )
