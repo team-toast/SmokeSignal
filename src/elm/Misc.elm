@@ -63,7 +63,8 @@ emptyModel =
     , shareEnabled = False
     , ethAccountingQueue = Nothing
     , xDaiAccountingQueue = Nothing
-    ,demoPhaceAddr = "Ethereum Address"
+    , demoPhaceAddr = "Ethereum Address"
+    , inDappWalletAddress = "InDapp wallet address"
     }
 
 

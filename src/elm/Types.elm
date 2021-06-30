@@ -77,6 +77,7 @@ type alias Model =
             , postIds : List PostId
             }
     , demoPhaceAddr : String
+    , inDappWalletAddress : String
     }
 
 
@@ -135,6 +136,8 @@ type Msg
     | SharePost Core
     | CyclePhace
     | WalletConnectStart
+    | ConnectToInDappWallet
+    | GetInDappWalletAddress String
 
 
 type RequestOutcome

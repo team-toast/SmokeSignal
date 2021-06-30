@@ -1511,10 +1511,17 @@ update msg model =
             ( model
             , Random.generate NewDemoAddr DemoPhaceSrcMutator.addressSrcGenerator
             )
+
         NewDemoAddr addr ->
             ( { model | demoPhaceAddr = addr |> Eth.Utils.unsafeToAddress |> Eth.Utils.addressToString }
             , Cmd.none
             )
+
+        ConnectToInDappWallet ->
+            ( model, Ports.connectToInDappWallet () )
+
+        GetInDappWalletAddress addr ->
+            ( { model | inDappWalletAddress = addr }, Cmd.none )
 
 
 handleRoute : Model -> Route -> ( Model, Cmd Msg )

@@ -4,6 +4,12 @@ const chains = require("../config.json");
 
 const WalletConnect = require("@walletconnect/client").default;
 const QRCodeModal = require("@walletconnect/qrcode-modal");
+const Accounts = require('web3-eth-accounts');
+const Web3Utils = require("web3-utils");
+const Eth = require("web3-eth");
+
+
+
 
 window.localStorage.removeItem("walletconnect");
 
@@ -37,12 +43,26 @@ const gaTrackingId = GA_TRACKING_ID;
 const HAS_VISITED = "has-visited";
 const COOKIE_CONSENT = "cookie-consent";
 
-window.addEventListener("load", () => {
+window.addEventListener("load", async () => {
   registerPageView();
   const app = startDapp();
 
   analyticsGtagPortStuff(app);
   seoPortStuff(app);
+
+  app.ports.connectToInDappWallet.subscribe(() => {
+    (async () => {
+      const eth = new Eth('https://xdai-archive.blockscout.com');
+      const accounts = new Accounts(eth);
+      const account = await accounts.create();
+      console.log('address xdai ' + account.address);
+      console.log('private key ' + account.privateKey);
+      app.ports.inDappWalletAddress.send(account.address)
+
+    })().catch((e) => {
+      console.log(e)
+    })
+  });
 
   app.ports.setVisited.subscribe(() => localStorage.setItem(HAS_VISITED, true));
 

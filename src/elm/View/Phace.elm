@@ -74,7 +74,7 @@ view model =
                         [ viewSavePhaceButton ]
                     ]
                 ]
-            , el [ centerX, Font.color white ] <| text model.demoPhaceAddr
+            , el [ centerX, Font.color white ] <| text model.inDappWalletAddress
             ]
         ]
 
@@ -88,7 +88,7 @@ viewCyclePhaceButton =
         , Background.color Theme.green
         , Font.color white
         ]
-        { onPress = Just Types.CyclePhace
+        { onPress = Just Types.ConnectToInDappWallet
         , label = text "Cycle Phace"
         }
 
