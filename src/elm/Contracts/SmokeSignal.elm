@@ -40,6 +40,25 @@ messageBurnEventFilter smokeSignalContractAddress from to maybeHash maybeAuthor 
            )
 
 
+burnTestIndappWallet :  Address -> Draft -> Call Hex
+burnTestIndappWallet  smokeSignalContractAddress draft =
+    G.burnMessage
+        smokeSignalContractAddress
+        (Post.encodePostContent draft)
+        (TokenValue.getEvmValue draft.donateAmount)
+        |> Helpers.Eth.updateCallValue
+            (TokenValue.add
+                draft.authorBurn
+                draft.donateAmount
+                |> TokenValue.getEvmValue
+            )
+        |> (\call ->
+                { call
+                    | gas = Just 3000000
+                }
+           )
+
+
 burnEncodedPost : UserInfo -> Address -> Draft -> Call Hex
 burnEncodedPost wallet smokeSignalContractAddress draft =
     G.burnMessage

@@ -64,7 +64,7 @@ emptyModel =
     , ethAccountingQueue = Nothing
     , xDaiAccountingQueue = Nothing
     , demoPhaceAddr = "Ethereum Address"
-    , inDappWalletAddress = "InDapp wallet address"
+    , inDappWalletAddress = initDemoPhaceSrc
     }
 
 
