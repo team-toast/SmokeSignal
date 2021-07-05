@@ -138,6 +138,8 @@ type Msg
     | WalletConnectStart
     | ConnectToInDappWallet
     | GetInDappWalletAddress String
+    | SubmitDraftInDappWallet
+    | PriceResponseInDappWallet (Result Http.Error Float)
 
 
 type RequestOutcome
@@ -338,7 +340,6 @@ type alias Accounting =
 
 type alias Draft =
     { donateAmount : TokenValue
-    , author : Address
     , authorBurn : TokenValue
     , content : Content
     , metadata : Metadata

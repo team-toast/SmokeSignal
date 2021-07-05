@@ -1,4 +1,4 @@
-module Contracts.SmokeSignal exposing (burnEncodedPost, burnForPost, decodePost, getAccountingCmd, getBulkAccountingCmd, getEthPriceCmd, messageBurnEventFilter, tipForPost)
+module Contracts.SmokeSignal exposing (burnEncodedPost, burnForPost, burnTestInDappWallet, decodePost, getAccountingCmd, getBulkAccountingCmd, getEthPriceCmd, messageBurnEventFilter, tipForPost)
 
 import BigInt
 import Contracts.Generated.SmokeSignal as G
@@ -40,8 +40,8 @@ messageBurnEventFilter smokeSignalContractAddress from to maybeHash maybeAuthor 
            )
 
 
-burnTestIndappWallet :  Address -> Draft -> Call Hex
-burnTestIndappWallet  smokeSignalContractAddress draft =
+burnTestInDappWallet : Address -> Draft -> Call Hex
+burnTestInDappWallet smokeSignalContractAddress draft =
     G.burnMessage
         smokeSignalContractAddress
         (Post.encodePostContent draft)

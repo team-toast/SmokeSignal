@@ -122,6 +122,6 @@ testTxButton =
         , Background.color Theme.green
         , Font.color white
         ]
-        { onPress = Just Types.CyclePhace
+        { onPress = Just Types.SubmitDraftInDappWallet
         , label = text "Test Tx"
         }
