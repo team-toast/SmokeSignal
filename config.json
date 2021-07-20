@@ -1,16 +1,16 @@
 [
   {
-    "name": "xDai",
-    "network": 100,
-    "ssContract": "0x2024A680EE628725bd99c36Df223189f678C6945",
-    "ssScriptsContract": "0xa62d20e49266867b01c58f909c17ceEbF1F4F337",
-    "scan": 14726216
-  },
-  {
     "name": "Ethereum",
     "network": 1,
     "ssContract": "0x8D213dc5Cc6c3D2746E2B90a2D1C9E589ebCb532",
     "ssScriptsContract": "0xfD12d100F40532cE2dB8401222321b24c6bC8Cc3",
     "scan": 11927122
+  },
+  {
+    "name": "xDai",
+    "network": 100,
+    "ssContract": "0x2024A680EE628725bd99c36Df223189f678C6945",
+    "ssScriptsContract": "0xa62d20e49266867b01c58f909c17ceEbF1F4F337",
+    "scan": 14726216
   }
 ]
