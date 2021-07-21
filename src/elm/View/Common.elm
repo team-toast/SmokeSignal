@@ -1,4 +1,4 @@
-module View.Common exposing (burn, cancel, chain, ellipsisText, horizontalRule, link, phaceElement, scrollbarHack, spinner, timingOrSpinner, topic, verticalRule, viewInstructions, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (burn, cancel, chain, ellipsisText, horizontalRule, link, permapostUrl, phaceElement, scrollbarHack, spinner, timingOrSpinner, topic, verticalRule, viewInstructions, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
@@ -8,7 +8,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input as Input
-import Eth.Types exposing (Address)
+import Eth.Types exposing (Address, TxHash)
 import Eth.Utils
 import Helpers.Time as TimeHelpers
 import Html
@@ -370,3 +370,21 @@ scrollbarHack : Element msg -> Element msg
 scrollbarHack =
     List.singleton
         >> column [ width fill, height fill ]
+
+
+permapostUrl : Chain -> TxHash -> String
+permapostUrl chain_ hash =
+    let
+        permaposturl =
+            "https://app.permapost.io/view?blockchain="
+    in
+    case chain_ of
+        Eth ->
+            permaposturl
+                ++ "eth&tx="
+                ++ Eth.Utils.txHashToString hash
+
+        XDai ->
+            permaposturl
+                ++ "xdai&tx="
+                ++ Eth.Utils.txHashToString hash

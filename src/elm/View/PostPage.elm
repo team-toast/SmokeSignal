@@ -113,6 +113,7 @@ viewHeader model core =
       , [ model.blockTimes
             |> Dict.get ( Chain.getName core.chain, core.id.block )
             |> View.Common.timingOrSpinner model.now
+        , viewPermapost core
         , Element.newTabLink [ hover ]
             { url = Chain.txUrl core.chain core.txHash
             , label =
@@ -133,6 +134,15 @@ viewHeader model core =
     ]
         |> column [ spacing 20, width fill ]
 
+viewPermapost : Core -> Element Msg
+viewPermapost post =
+    Element.newTabLink
+        [ hover ]
+        { url = View.Common.permapostUrl post.chain post.txHash
+        , label =
+            [ text "View on Permapost" ]
+                |> row [ spacing 5, Font.underline ]
+        }
 
 viewRepliesHeader : Dict PostKey Accounting -> List ReplyPost -> Element Msg
 viewRepliesHeader accounting replies =
