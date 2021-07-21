@@ -177,6 +177,7 @@ viewHeader isMobile tooltipState accounting topic timestamp now post =
     , viewChainCard () post
         |> el [ Element.alignTop ]
         |> when (not isMobile)
+    , viewPermaPost post
     ]
         |> row [ width fill, spacing 20 ]
 
@@ -284,6 +285,17 @@ viewChainCard _ post =
                     , Font.size 17
                     , width fill
                     ]
+        }
+
+
+viewPermaPost : Core -> Element Msg
+viewPermaPost post =
+    Element.newTabLink
+        [ hover ]
+        { url = Chain.permapostUrl post.chain post.txHash
+        , label =
+            [ View.Img.pencil 20 white, text "View on PermaPost" ]
+                |> row [ spacing 5, Font.underline ]
         }
 
 

@@ -1,4 +1,4 @@
-module Chain exposing (chainDecoder, decodeChain, getColor, getConfig, getName, getProviderUrl, txUrl)
+module Chain exposing (chainDecoder, decodeChain, getColor, getConfig, getName, getProviderUrl, permapostUrl, txUrl)
 
 import Element exposing (Color)
 import Eth.Decode
@@ -40,6 +40,24 @@ txUrl chain hash =
 
         XDai ->
             "https://blockscout.com/poa/xdai/tx/"
+                ++ Eth.Utils.txHashToString hash
+
+
+permapostUrl : Chain -> TxHash -> String
+permapostUrl chain hash =
+    let
+        permaposturl =
+            "https://app.permapost.io/view?blockchain="
+    in
+    case chain of
+        Eth ->
+            permaposturl
+                ++ "eth&tx="
+                ++ Eth.Utils.txHashToString hash
+
+        XDai ->
+            permaposturl
+                ++ "xdai&tx="
                 ++ Eth.Utils.txHashToString hash
 
 
