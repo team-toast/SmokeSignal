@@ -148,35 +148,88 @@ sortTypeButton sortType isSelected =
         }
 
 
+type PaginationViewElement
+    = PageNum Int
+    | Break
+
+
+viewPaginationElement : DisplayProfile -> Int -> PaginationViewElement -> Element Msg
+viewPaginationElement dProfile activePage paginationElement =
+    case paginationElement of
+        PageNum num ->
+            Input.button
+                [ Background.color
+                    (if num == activePage then
+                        Theme.orange
+
+                     else
+                        white
+                    )
+                , width <| px <| Misc.responsiveVal dProfile 50 30
+                , height <| px <| Misc.responsiveVal dProfile 50 30
+                , Border.rounded 25
+                , View.Attrs.sansSerifFont
+                , hover
+                , Font.size 30
+                ]
+                { onPress = Just <| SetPage num
+                , label =
+                    (num + 1)
+                        |> String.fromInt
+                        |> text
+                        |> el [ centerX, centerY ]
+                }
+
+        Break ->
+            row [ spacing 2 ]
+                (List.repeat 3 <|
+                    el
+                        [ width <| px <| Misc.responsiveVal dProfile 8 6
+                        , height <| px <| Misc.responsiveVal dProfile 8 6
+                        , Border.rounded <| Misc.responsiveVal dProfile 4 3
+                        , Background.color white
+                        ]
+                        Element.none
+                )
+
+
 viewPagination : Model -> Element Msg
 viewPagination model =
-    List.range 0 (Array.length model.pages - 1)
-        |> List.map
-            (\n ->
-                Input.button
-                    [ Background.color
-                        (if n == model.currentPage then
-                            Theme.orange
+    let
+        numButtonsShownInRange =
+            Misc.responsiveVal model.dProfile 7 3
 
-                         else
-                            white
-                        )
-                    , width <| px 50
-                    , height <| px 50
-                    , Border.rounded 25
-                    , View.Attrs.sansSerifFont
-                    , hover
-                    , Font.size 30
-                    ]
-                    { onPress = Just <| SetPage n
-                    , label =
-                        (n + 1)
-                            |> String.fromInt
-                            |> text
-                            |> el [ centerX, centerY ]
-                    }
+        paginationViewElements =
+            (if model.currentPage - (numButtonsShownInRange // 2) <= 1 then
+                List.range 0 (model.currentPage - 1)
+                    |> List.map PageNum
+
+             else
+                [ PageNum 0, Break ]
+                    ++ (List.range (model.currentPage - (numButtonsShownInRange // 2)) (model.currentPage - 1)
+                            |> List.map PageNum
+                       )
             )
-        |> row [ spacing 20, height <| px 50, Element.scrollbarX, width fill ]
+                ++ [ PageNum model.currentPage ]
+                ++ (if model.currentPage + (numButtonsShownInRange // 2) >= Array.length model.pages - 2 then
+                        List.range (model.currentPage + 1) (Array.length model.pages - 1)
+                            |> List.map PageNum
+
+                    else
+                        (List.range (model.currentPage + 1) (model.currentPage + (numButtonsShownInRange // 2))
+                            |> List.map PageNum
+                        )
+                            ++ [ Break, PageNum (Array.length model.pages - 1) ]
+                   )
+    in
+    row
+        [ centerX
+        , height <| px 50
+        , spacing <| Misc.responsiveVal model.dProfile 20 10
+        ]
+        (paginationViewElements
+            |> List.map (viewPaginationElement model.dProfile model.currentPage)
+        )
 
 
 viewPost : Model -> Maybe UserInfo -> RootPost -> Element Msg
