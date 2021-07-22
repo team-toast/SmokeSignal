@@ -323,7 +323,7 @@ viewMarkdown isCompose dProfile compose =
                     , padding 10
                     , Background.color black
                     ]
-                |> View.Common.scrollbarHack
+                |> View.Common.scrollbarYHack
 
         input =
             Input.multiline
@@ -361,7 +361,7 @@ viewMarkdown isCompose dProfile compose =
 
     else
         [ input
-            |> View.Common.scrollbarHack
+            |> View.Common.scrollbarYHack
         , preview
         ]
             |> row [ width fill, height fill, spacing 20 ]

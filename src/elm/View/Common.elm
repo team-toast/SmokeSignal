@@ -1,4 +1,4 @@
-module View.Common exposing (burn, cancel, chain, ellipsisText, horizontalRule, link, permapostUrl, phaceElement, scrollbarHack, spinner, timingOrSpinner, topic, verticalRule, viewInstructions, when, whenAttr, whenJust, wrapModal)
+module View.Common exposing (burn, cancel, chain, ellipsisText, horizontalRule, link, permapostUrl, phaceElement, scrollbarXHack, scrollbarYHack, spinner, timingOrSpinner, topic, verticalRule, viewInstructions, when, whenAttr, whenJust, wrapModal)
 
 {-| A module for managing elm-ui 'Element' helper functions and reuseable components.
 -}
@@ -363,13 +363,19 @@ viewFaucet dProfile faucetStatus =
                 |> paragraph []
 
 
-{-| Element.scrollbarY sometimes needs to be paired with
-a column to work correctly.
+{-| Element.scrollbarX/Y sometimes needs to be paired with
+a row/column to work correctly.
 -}
-scrollbarHack : Element msg -> Element msg
-scrollbarHack =
+scrollbarYHack : Element msg -> Element msg
+scrollbarYHack =
     List.singleton
         >> column [ width fill, height fill ]
+
+
+scrollbarXHack : Element msg -> Element msg
+scrollbarXHack =
+    List.singleton
+        >> row [ width fill, height fill ]
 
 
 permapostUrl : Chain -> TxHash -> String

@@ -11,10 +11,11 @@ import Markdown.Block
 import Markdown.Html
 import Markdown.Parser
 import Markdown.Renderer exposing (Renderer)
+import Misc
 import Theme
 import Types exposing (DisplayProfile)
 import View.Attrs exposing (hover, style)
-import View.Common exposing (horizontalRule)
+import View.Common exposing (horizontalRule, scrollbarXHack)
 
 
 
@@ -57,8 +58,8 @@ renderString device src =
 
 
 renderer : DisplayProfile -> Renderer (Element msg)
-renderer device =
-    { heading = heading device
+renderer dProfile =
+    { heading = heading dProfile
     , paragraph =
         paragraph
             [ Element.spacing 3 ]
@@ -221,12 +222,18 @@ code snippet =
 codeBlock : { body : String, language : Maybe String } -> Element msg
 codeBlock details =
     Element.el
-        [ Element.Background.color (Element.rgba 0 0 0 0.03)
+        [ Element.Background.color (Element.rgba 1 1 1 0.06)
+        , Element.Border.width 1
+        , Element.Border.color (Element.rgba 1 1 1 0.15)
         , Element.htmlAttribute (Html.Attributes.style "white-space" "pre")
         , Element.padding 20
         , View.Attrs.codeFont
+        , Element.width (Element.fill |> Element.maximum 600)
+        , Element.scrollbarX
+        , Element.height Element.shrink
         ]
         (Element.text details.body)
+        |> View.Common.scrollbarXHack
 
 
 breakingParagraph : List (Element msg) -> Element msg
